@@ -1,0 +1,14 @@
+.DS_Store
+build/
+dist/
+*.o
+*.pid
+*.tmp
+private/
+loginusers.vdf
+ssfn*
+config.vdf
+htmlcache/
+steamapps/
+client/
+

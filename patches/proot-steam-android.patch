@@ -1,0 +1,471 @@
+diff --git a/src/extension/sysvipc/sysvipc.c b/src/extension/sysvipc/sysvipc.c
+index 41952bc..1884023 100644
+--- a/src/extension/sysvipc/sysvipc.c
++++ b/src/extension/sysvipc/sysvipc.c
+@@ -1,5 +1,6 @@
+ #include "extension/sysvipc/sysvipc.h"
+ #include "tracee/seccomp.h"
++#include "tracee/mem.h"
+ #include "syscall/chain.h"
+ #include "path/path.h"
+ #include "path/temp.h"
+@@ -29,6 +30,8 @@ static FilteredSysnum filtered_sysnums[] = {
+ 	{ PR_shmat,		0 },
+ 	{ PR_shmdt,		0 },
+ 	{ PR_shmctl,		0 },
++	{ PR_set_robust_list,	0 },
++	{ PR_get_robust_list,	0 },
+ 	FILTERED_SYSNUM_END,
+ };
+ 
+@@ -77,6 +80,38 @@ static int sysvipc_syscall_common(Tracee *tracee, struct SysVIpcConfig *config,
+ 	case PR_shmctl:
+ 		status = sysvipc_shmctl(tracee, config);
+ 		break;
++	case PR_set_robust_list:
++		config->robust_list_head = peek_reg(tracee, CURRENT, SYSARG_1);
++		config->robust_list_len = peek_reg(tracee, CURRENT, SYSARG_2);
++		status = config->robust_list_head == 0 ? -EINVAL : 0;
++		break;
++	case PR_get_robust_list:
++	{
++		pid_t pid = (pid_t) peek_reg(tracee, CURRENT, SYSARG_1);
++		struct SysVIpcConfig *target_config = config;
++		if (pid != 0 && pid != tracee->pid) {
++			Tracee *target = get_tracee(NULL, pid, false);
++			if (target == NULL) {
++				status = -ESRCH;
++				break;
++			}
++			target_config = sysvipc_get_config(target);
++			if (target_config == NULL) {
++				status = -ESRCH;
++				break;
++			}
++		}
++		word_t head_out = target_config->robust_list_head;
++		word_t len_out = target_config->robust_list_len;
++		status = write_data(tracee,
++			peek_reg(tracee, CURRENT, SYSARG_2), &head_out, sizeof(head_out));
++		if (status < 0) break;
++		status = write_data(tracee,
++			peek_reg(tracee, CURRENT, SYSARG_3), &len_out, sizeof(len_out));
++		if (status < 0) break;
++		status = 0;
++		break;
++	}
+ 	default:
+ 		return 0;
+ 	}
+diff --git a/src/extension/sysvipc/sysvipc_internal.h b/src/extension/sysvipc/sysvipc_internal.h
+index a91d9e1..d9125b7 100644
+--- a/src/extension/sysvipc/sysvipc_internal.h
++++ b/src/extension/sysvipc/sysvipc_internal.h
+@@ -38,6 +38,7 @@ struct SysVIpcSemaphore {
+ 	int16_t generation;
+ 	bool valid;
+ 	uint16_t *sems;
++	int32_t *last_pids;
+ 	int nsems;
+ };
+ 
+@@ -149,6 +150,11 @@ struct SysVIpcConfig {
+ 	struct SysVIpcNamespace *ipc_namespace;
+ 	struct SysVIpcProcess *process;
+ 
++	/* Android's app seccomp policy blocks set_robust_list.  Keep the
++	 * per-thread registration here so glibc applications can query it. */
++	word_t robust_list_head;
++	word_t robust_list_len;
++
+ 	/* Reason why this tracee should wait
+ 	 *
+ 	 * When syscall handler requests tracee to wait
+@@ -269,4 +275,3 @@ void sysvipc_shm_fill_proc(FILE *proc_file, struct SysVIpcNamespace *ipc_namespa
+ int sysvipc_shm_namespace_destructor(struct SysVIpcNamespace *ipc_namespace);
+ 
+ #endif // SYSVIPC_INTERNAL_H
+-
+diff --git a/src/extension/sysvipc/sysvipc_sem.c b/src/extension/sysvipc/sysvipc_sem.c
+index 89383ca..d1478ea 100644
+--- a/src/extension/sysvipc/sysvipc_sem.c
++++ b/src/extension/sysvipc/sysvipc_sem.c
+@@ -6,6 +6,22 @@
+ #include <sys/errno.h> /* E* */
+ #include <string.h> /* memset */
+ #include <assert.h> /* assert */
++#include <stdio.h>
++#include <stdlib.h>
++
++static bool sysvipc_debug_enabled(void) {
++	static int enabled = -1;
++	if (enabled < 0) enabled = getenv("PROOT_SYSVIPC_LOG") != NULL;
++	return enabled != 0;
++}
++
++#define SYSVIPC_DEBUG(...) do { \
++	if (sysvipc_debug_enabled()) { \
++		fprintf(stderr, "PROOT_SYSVIPC pid=%d ", tracee->pid); \
++		fprintf(stderr, __VA_ARGS__); \
++		fputc('\n', stderr); \
++	} \
++} while (0)
+ 
+ #define SYSVIPC_MAX_SEMS 512
+ #define SYSVIPC_MAX_NSEMS 512
+@@ -16,6 +32,7 @@ int sysvipc_semget(Tracee *tracee, struct SysVIpcConfig *config) {
+ 	word_t semaphore_id = peek_reg(tracee, CURRENT, SYSARG_1);
+ 	int nsems = peek_reg(tracee, CURRENT, SYSARG_2);
+ 	int semflg = peek_reg(tracee, CURRENT, SYSARG_3);
++	SYSVIPC_DEBUG("semget key=%#lx nsems=%d flags=%#x", (unsigned long) semaphore_id, nsems, semflg);
+ 
+ 	if (nsems <= 0 || nsems > SYSVIPC_MAX_NSEMS) {
+ 		return -EINVAL;
+@@ -58,6 +75,8 @@ int sysvipc_semget(Tracee *tracee, struct SysVIpcConfig *config) {
+ 		semaphore->valid = true;
+ 		semaphore->sems = talloc_array(config->ipc_namespace, uint16_t, nsems);
+ 		memset(semaphore->sems, 0, nsems * sizeof(uint16_t));
++		semaphore->last_pids = talloc_array(config->ipc_namespace, int32_t, nsems);
++		memset(semaphore->last_pids, 0, nsems * sizeof(int32_t));
+ 		semaphore->nsems = nsems;
+ 	} else {
+ 		if ((semflg & IPC_CREAT) && (semflg & IPC_EXCL)) {
+@@ -68,7 +87,9 @@ int sysvipc_semget(Tracee *tracee, struct SysVIpcConfig *config) {
+ 			return -EINVAL;
+ 		}
+ 	}
+-	return (semaphore_index + 1) | (semaphore->generation << 12);
++	int result = (semaphore_index + 1) | (semaphore->generation << 12);
++	SYSVIPC_DEBUG("semget -> %d", result);
++	return result;
+ }
+ 
+ /**
+@@ -119,6 +140,31 @@ static int sysvipc_sem_check(struct SysVIpcConfig *config, struct SysVIpcSemapho
+ 	return 0;
+ }
+ 
++/*
++ * A successful SETVAL/SETALL can make blocked semop operations runnable.
++ * Linux wakes those waiters; leaving them asleep causes applications which
++ * use SysV semaphores for process startup (including Steam) to deadlock.
++ */
++static void sysvipc_sem_wake_waiters(struct SysVIpcConfig *config,
++		struct SysVIpcSemaphore *semaphore, size_t semaphore_index) {
++	Tracee *waiting_tracee;
++	struct SysVIpcConfig *waiting_config;
++	SYSVIPC_FOREACH_TRACEE(waiting_tracee, waiting_config, config->ipc_namespace) {
++		if (waiting_config->wait_reason != WR_WAIT_SEMOP ||
++			waiting_config->waiting_object_index != semaphore_index) continue;
++		int status = sysvipc_sem_check(waiting_config, semaphore, NULL);
++		if (status != 1) {
++			if (status == 0) {
++				size_t nsops = talloc_array_length(waiting_config->semop_sops);
++				for (size_t i = 0; i < nsops; i++)
++					semaphore->last_pids[waiting_config->semop_sops[i].sem_num] = waiting_tracee->pid;
++			}
++			TALLOC_FREE(waiting_config->semop_sops);
++			sysvipc_wake_tracee(waiting_tracee, waiting_config, status);
++		}
++	}
++}
++
+ int sysvipc_semop(Tracee *tracee, struct SysVIpcConfig *config)
+ {
+ 	/** Lookup semaphore */
+@@ -129,6 +175,7 @@ int sysvipc_semop(Tracee *tracee, struct SysVIpcConfig *config)
+ 	/** Read and check arguments */
+ 	word_t sops_ptr = peek_reg(tracee, CURRENT, SYSARG_2);
+ 	size_t nsops = peek_reg(tracee, CURRENT, SYSARG_3);
++	SYSVIPC_DEBUG("semop id=%#lx nsops=%zu", (unsigned long) peek_reg(tracee, CURRENT, SYSARG_1), nsops);
+ 
+ 	if (nsops > SYSVIPC_MAX_NSOPS) {
+ 		return -E2BIG;
+@@ -156,6 +203,17 @@ int sysvipc_semop(Tracee *tracee, struct SysVIpcConfig *config)
+ 	config->waiting_object_index = semaphore_index;
+ 	config->semop_sops = sops;
+ 	int this_semop_status = sysvipc_sem_check(config, semaphore, NULL);
++	if (this_semop_status == 0) {
++		for (size_t i = 0; i < nsops; i++)
++			semaphore->last_pids[sops[i].sem_num] = tracee->pid;
++	}
++	if (sysvipc_debug_enabled()) {
++		for (size_t i = 0; i < nsops; i++) {
++			fprintf(stderr, "PROOT_SYSVIPC pid=%d semop[%zu] num=%u op=%d flags=%#x\n",
++				tracee->pid, i, sops[i].sem_num, sops[i].sem_op, sops[i].sem_flg);
++		}
++		fprintf(stderr, "PROOT_SYSVIPC pid=%d semop status=%d\n", tracee->pid, this_semop_status);
++	}
+ 
+ 	Tracee *other_tracee;
+ 	struct SysVIpcConfig *other_config;
+@@ -199,6 +257,8 @@ int sysvipc_semctl(Tracee *tracee, struct SysVIpcConfig *config) {
+ 	int semnum = peek_reg(tracee, CURRENT, SYSARG_2);
+ 	int cmd = peek_reg(tracee, CURRENT, SYSARG_3);
+ 	word_t cmdarg = peek_reg(tracee, CURRENT, SYSARG_4);
++	SYSVIPC_DEBUG("semctl id=%#lx num=%d cmd=%#x arg=%#lx",
++		(unsigned long) peek_reg(tracee, CURRENT, SYSARG_1), semnum, cmd, (unsigned long) cmdarg);
+ 	
+ 	switch (cmd & ~SYSVIPC_IPC_64) {
+ 	case SYSVIPC_GETVAL:
+@@ -206,11 +266,18 @@ int sysvipc_semctl(Tracee *tracee, struct SysVIpcConfig *config) {
+ 		if (semnum < 0 || semnum >= semaphore->nsems) return -EINVAL;
+ 		return semaphore->sems[semnum];
+ 	}
++	case SYSVIPC_GETPID:
++	{
++		if (semnum < 0 || semnum >= semaphore->nsems) return -EINVAL;
++		return semaphore->last_pids[semnum];
++	}
+ 	case SYSVIPC_SETVAL:
+ 	{
+ 		if (cmdarg > SYSVIPC_MAX_SEMVAL) return -ERANGE;
+ 		if (semnum < 0 || semnum >= semaphore->nsems) return -EINVAL;
+ 		semaphore->sems[semnum] = cmdarg;
++		semaphore->last_pids[semnum] = tracee->pid;
++		sysvipc_sem_wake_waiters(config, semaphore, semaphore_index);
+ 		return 0;
+ 	}
+ 	case SYSVIPC_GETALL:
+@@ -219,6 +286,43 @@ int sysvipc_semctl(Tracee *tracee, struct SysVIpcConfig *config) {
+ 		if (status < 0) return status;
+ 		return 0;
+ 	}
++	case SYSVIPC_SETALL:
++	{
++		uint16_t values[semaphore->nsems];
++		int status = read_data(tracee, values, cmdarg,
++			semaphore->nsems * sizeof(uint16_t));
++		if (status < 0) return status;
++		for (int i = 0; i < semaphore->nsems; i++) {
++			if (values[i] > SYSVIPC_MAX_SEMVAL) return -ERANGE;
++		}
++		memcpy(semaphore->sems, values, semaphore->nsems * sizeof(uint16_t));
++		for (int i = 0; i < semaphore->nsems; i++)
++			semaphore->last_pids[i] = tracee->pid;
++		sysvipc_sem_wake_waiters(config, semaphore, semaphore_index);
++		return 0;
++	}
++	case SYSVIPC_GETNCNT:
++	case SYSVIPC_GETZCNT:
++	{
++		if (semnum < 0 || semnum >= semaphore->nsems) return -EINVAL;
++		int count = 0;
++		Tracee *waiting_tracee;
++		struct SysVIpcConfig *waiting_config;
++		SYSVIPC_FOREACH_TRACEE(waiting_tracee, waiting_config, config->ipc_namespace) {
++			if (waiting_config->wait_reason != WR_WAIT_SEMOP ||
++				waiting_config->waiting_object_index != semaphore_index) continue;
++			size_t nsops = talloc_array_length(waiting_config->semop_sops);
++			for (size_t i = 0; i < nsops; i++) {
++				struct SysVIpcSembuf *op = &waiting_config->semop_sops[i];
++				if (op->sem_num != semnum) continue;
++				if ((cmd & ~SYSVIPC_IPC_64) == SYSVIPC_GETNCNT && op->sem_op < 0) count++;
++				if ((cmd & ~SYSVIPC_IPC_64) == SYSVIPC_GETZCNT && op->sem_op == 0) count++;
++				break;
++			}
++		}
++		SYSVIPC_DEBUG("semctl waiter-count -> %d", count);
++		return count;
++	}
+ 	case IPC_RMID:
+ 	{
+ 		Tracee *waiting_tracee;
+@@ -235,6 +339,7 @@ int sysvipc_semctl(Tracee *tracee, struct SysVIpcConfig *config) {
+ 		semaphore->valid = false;
+ 		semaphore->generation++;
+ 		TALLOC_FREE(semaphore->sems);
++		TALLOC_FREE(semaphore->last_pids);
+ 		return 0;
+ 	}
+ #if 0
+diff --git a/src/extension/sysvipc/sysvipc_shm.c b/src/extension/sysvipc/sysvipc_shm.c
+index b14eb65..72782b2 100644
+--- a/src/extension/sysvipc/sysvipc_shm.c
++++ b/src/extension/sysvipc/sysvipc_shm.c
+@@ -1,6 +1,23 @@
+ #include "sysvipc.h"
+ #include "sysvipc_internal.h"
+ 
++#include <stdio.h>
++#include <stdlib.h>
++
++static bool sysvipc_shm_debug_enabled(void) {
++	static int enabled = -1;
++	if (enabled < 0) enabled = getenv("PROOT_SYSVIPC_LOG") != NULL;
++	return enabled != 0;
++}
++
++#define SHM_DEBUG(...) do { \
++	if (sysvipc_shm_debug_enabled()) { \
++		fprintf(stderr, "PROOT_SYSVIPC pid=%d ", tracee->pid); \
++		fprintf(stderr, __VA_ARGS__); \
++		fputc('\n', stderr); \
++	} \
++} while (0)
++
+ #include "tracee/reg.h"
+ #include "tracee/mem.h"
+ #include "tracee/tracee.h"
+@@ -200,6 +217,9 @@ int sysvipc_shmget(Tracee *tracee, struct SysVIpcConfig *config)
+ 	word_t shm_key = peek_reg(tracee, CURRENT, SYSARG_1);
+ 	size_t shm_size = peek_reg(tracee, CURRENT, SYSARG_2);
+ 	word_t shmflg = peek_reg(tracee, CURRENT, SYSARG_3);
++	SHM_DEBUG("shmget key=%#lx size=%zu flags=%#lx libandroid=%d",
++		(unsigned long) shm_key, shm_size, (unsigned long) shmflg,
++		config->ipc_namespace->shm_use_libandroid);
+ 	if (config->ipc_namespace->shm_use_libandroid) {
+ 		struct SysVIpcShmHelperRequest request = {
+ 			.op = SHMHELPER_LIBANDROID_SHMGET,
+@@ -209,6 +229,7 @@ int sysvipc_shmget(Tracee *tracee, struct SysVIpcConfig *config)
+ 		};
+ 		int response = -EIO;
+ 		sysvipc_shm_send_helper_request(&request, &response, sizeof(response));
++		SHM_DEBUG("shmget(libandroid) -> %d", response);
+ 		return response;
+ 	}
+ 	struct SysVIpcSharedMem *shms = config->ipc_namespace->shms;
+@@ -268,7 +289,9 @@ int sysvipc_shmget(Tracee *tracee, struct SysVIpcConfig *config)
+ 			return -EINVAL;
+ 		}
+ 	}
+-	return IPC_OBJECT_ID(shm_index, shm);
++	int result = IPC_OBJECT_ID(shm_index, shm);
++	SHM_DEBUG("shmget -> %d fd=%d", result, shm->fd);
++	return result;
+ }
+ 
+ /* Only used when shm_use_libandroid is false */
+@@ -340,6 +363,11 @@ static void sysvipc_shm_wake_pending_shmat()
+ 
+ int sysvipc_shmat(Tracee *tracee, struct SysVIpcConfig *config)
+ {
++	SHM_DEBUG("shmat id=%#lx requested=%#lx flags=%#lx libandroid=%d",
++		(unsigned long) peek_reg(tracee, CURRENT, SYSARG_1),
++		(unsigned long) peek_reg(tracee, CURRENT, SYSARG_2),
++		(unsigned long) peek_reg(tracee, CURRENT, SYSARG_3),
++		config->ipc_namespace->shm_use_libandroid);
+ 	size_t shm_index;
+ 	struct SysVIpcSharedMem *shm;
+ 	if (!config->ipc_namespace->shm_use_libandroid) {
+@@ -420,6 +448,8 @@ int sysvipc_shmat(Tracee *tracee, struct SysVIpcConfig *config)
+ 	poke_reg(tracee, SYSARG_2, SOCK_SEQPACKET);
+ 	poke_reg(tracee, SYSARG_3, 0);
+ 	config->chain_state = CSTATE_SHMAT_SOCKET;
++	SHM_DEBUG("shmat begin index=%zu fd=%d size=%zu", shm_index, shm->fd,
++		(size_t) shm->stats.shm_segsz);
+ 	return 0;
+ }
+ 
+@@ -438,6 +468,9 @@ int sysvipc_shmat_chain(Tracee *tracee, struct SysVIpcConfig *config)
+ {
+ 	assert(config->waiting_object_index < talloc_array_length(config->ipc_namespace->shms));
+ 	struct SysVIpcSharedMem *shm = &config->ipc_namespace->shms[config->waiting_object_index];
++	SHM_DEBUG("shmat_chain state=%d syscall_result=%#lx index=%zu",
++		config->chain_state, (unsigned long) peek_reg(tracee, CURRENT, SYSARG_RESULT),
++		config->waiting_object_index);
+ 	assert(shm->valid);
+ 	switch (config->chain_state) {
+ 	case CSTATE_SHMAT_SOCKET:
+@@ -529,6 +562,7 @@ int sysvipc_shmat_chain(Tracee *tracee, struct SysVIpcConfig *config)
+ 		force_chain_final_result(tracee, addr);
+ 		config->chain_state = CSTATE_NOT_CHAINED;
+ 		sysvipc_shm_wake_pending_shmat();
++		SHM_DEBUG("shmat complete addr=%#lx size=%zu", (unsigned long) addr, mapping->size);
+ 
+ 		return 1;
+ 	}
+@@ -555,6 +589,7 @@ fail_dont_close:
+ int sysvipc_shmdt(Tracee *tracee, struct SysVIpcConfig *config)
+ {
+ 	word_t addr = peek_reg(tracee, CURRENT, SYSARG_1);
++	SHM_DEBUG("shmdt addr=%#lx", (unsigned long) addr);
+ 	struct SysVIpcSharedMemMap *mapped;
+ 	LIST_FOREACH(mapped, &config->process->mapped_shms, link_process) {
+ 		if (mapped->addr == addr) {
+@@ -581,6 +616,9 @@ static void sysvipc_shm_update_stats(struct SysVIpcSharedMem *shm)
+ int sysvipc_shmctl(Tracee *tracee, struct SysVIpcConfig *config)
+ {
+ 	int object_id = peek_reg(tracee, CURRENT, SYSARG_1);
++	SHM_DEBUG("shmctl id=%d cmd=%#lx buf=%#lx", object_id,
++		(unsigned long) peek_reg(tracee, CURRENT, SYSARG_2),
++		(unsigned long) peek_reg(tracee, CURRENT, SYSARG_3));
+ 	size_t shm_index;
+ 	struct SysVIpcSharedMem *shm = NULL;
+ 	if (!config->ipc_namespace->shm_use_libandroid) {
+diff --git a/src/tracee/event.c b/src/tracee/event.c
+index 4d75e1f..c3877c1 100644
+--- a/src/tracee/event.c
++++ b/src/tracee/event.c
+@@ -53,6 +53,62 @@
+ #include "compat.h"
+ 
+ static bool seccomp_after_ptrace_enter = false;
++
++static void report_guest_crash(Tracee *tracee, int signal)
++{
++	if (getenv("PROOT_CRASH_LOG") == NULL)
++		return;
++
++	/* Signal stops do not necessarily have a fresh CURRENT register bank. */
++	(void) fetch_regs(tracee);
++	siginfo_t info = {};
++	(void) ptrace(PTRACE_GETSIGINFO, tracee->pid, NULL, &info);
++	word_t ip = peek_reg(tracee, CURRENT, INSTR_POINTER);
++	word_t sp = peek_reg(tracee, CURRENT, STACK_POINTER);
++	fprintf(stderr,
++		"PROOT_CRASH pid=%d vpid=%" PRIu64 " signal=%d code=%d "
++		"fault=%p ip=%#lx sp=%#lx"
++#ifdef ARCH_ARM64
++		" lr=%#lx"
++#endif
++		" exe=%s\n",
++		tracee->pid, tracee->vpid, signal, info.si_code, info.si_addr,
++		(unsigned long) ip, (unsigned long) sp,
++#ifdef ARCH_ARM64
++		(unsigned long) tracee->_regs[CURRENT].regs[30],
++#endif
++		tracee->exe != NULL ? tracee->exe : "(unknown)");
++
++	char cmdline_path[64];
++	snprintf(cmdline_path, sizeof(cmdline_path), "/proc/%d/cmdline", tracee->pid);
++	FILE *cmdline = fopen(cmdline_path, "r");
++	if (cmdline != NULL) {
++		char command[4096];
++		size_t count = fread(command, 1, sizeof(command) - 1, cmdline);
++		fclose(cmdline);
++		for (size_t i = 0; i < count; i++)
++			if (command[i] == '\0') command[i] = ' ';
++		command[count] = '\0';
++		fprintf(stderr, "PROOT_CRASH cmdline=%s\n", command);
++	}
++
++	char maps_path[64];
++	snprintf(maps_path, sizeof(maps_path), "/proc/%d/maps", tracee->pid);
++	FILE *maps = fopen(maps_path, "r");
++	if (maps == NULL)
++		return;
++
++	char line[PATH_MAX + 160];
++	while (fgets(line, sizeof(line), maps) != NULL) {
++		unsigned long start, end;
++		if (sscanf(line, "%lx-%lx", &start, &end) == 2 &&
++			(unsigned long) ip >= start && (unsigned long) ip < end) {
++			fprintf(stderr, "PROOT_CRASH map=%s", line);
++			break;
++		}
++	}
++	fclose(maps);
++}
+ static bool seccomp_ptrace_event_supported = false;
+ 
+ /**
+@@ -495,6 +551,8 @@ int handle_tracee_event(Tracee *tracee, int tracee_status)
+ 		/* Don't use WSTOPSIG() to extract the signal
+ 		 * since it clears the PTRACE_EVENT_* bits. */
+ 		signal = (tracee_status & 0xfff00) >> 8;
++		if (signal == SIGSEGV || signal == SIGBUS || signal == SIGILL || signal == SIGABRT)
++			report_guest_crash(tracee, signal);
+ 
+ 		switch (signal) {
+ 			static bool deliver_sigtrap = false;

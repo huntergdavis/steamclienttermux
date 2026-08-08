@@ -1,0 +1,122 @@
+Starting native ARM64 Steam on DISPLAY=:0
+Log: /data/data/com.termux/files/home/steam-arm64/logs/steam-20260807-151041.log
+CProcessEnvironmentManager is ready, 5 preallocated environment variables.
+[2026-08-07 22:10:42] Startup - updater built Aug  3 2026 19:41:13
+[2026-08-07 22:10:42] Startup - Steam Client launched with: '/data/data/com.termux/files/home/steam-arm64/client/steamrtarm64/steam' '-no-cef-sandbox' '-noverifyfiles'
+08/07 22:10:42 minidumps folder is set to /tmp/dumps
+08/07 22:10:42 Init: Installing breakpad exception handler for appid(steam)/version(1785799196)/tid(22573)
+Looks like steam didn't shutdown cleanly, scheduling immediate update check
+CProcessEnvironmentManager is ready, 5 preallocated environment variables.
+[2026-08-07 22:10:42] Process started with command-line: '/data/data/com.termux/files/home/steam-arm64/client/steamrtarm64/steam' '-child-update-ui' '-child-update-ui-socket' '10' '-no-cef-sandbox' '-noverifyfiles'
+[2026-08-07 22:10:42] Loading cached metrics from disk (/data/data/com.termux/files/home/steam-arm64/client/package/steam_client_metrics.bin)
+[2026-08-07 22:10:42] Failed to load cached hosts file (File 'update_hosts_cached.vdf' not found), using defaults
+[2026-08-07 22:10:42] Using the following download hosts for Public, Realm steamglobal
+[2026-08-07 22:10:42] 1. https://client-update.steamstatic.com, /, Realm 'steamglobal', weight was 1, source = 'baked in'
+08/07 22:10:42 minidumps folder is set to /tmp/dumps
+[2026-08-07 22:10:42] Checking for update on startup
+[2026-08-07 22:10:43] Checking for available updates...
+[2026-08-07 22:10:43] Downloading manifest: https://client-update.steamstatic.com/steam_client_linuxarm64
+[2026-08-07 22:10:43] Manifest download: send request
+[2026-08-07 22:10:42] Using update UI: console
+08/07 22:10:43 Init: Installing breakpad exception handler for appid(steam)/version(0)/tid(22583)
+[2026-08-07 22:10:43] Create window
+[2026-08-07 22:10:43] Set percent complete: 0
+[2026-08-07 22:10:43] Set status message: Checking for available updates...
+[  0%] Checking for available updates...
+[2026-08-07 22:10:43] Set percent complete: -1
+[2026-08-07 22:10:43] Manifest download: waiting for download to finish
+[2026-08-07 22:10:43] Manifest download: finished
+[2026-08-07 22:10:43] Download skipped: /steam_client_linuxarm64 version 1785799196, installed version 1785799196, existing pending version 0
+[2026-08-07 22:10:43] Nothing to do
+[2026-08-07 22:10:43] Verifying installation...
+[2026-08-07 22:10:43] Verification skipped
+[2026-08-07 22:10:43] Verification complete
+UpdateUI: skip show logo
+[2026-08-07 22:10:43] Set percent complete: -1
+[2026-08-07 22:10:43] Set status message: Verifying installation...
+[----] Verifying installation...
+[2026-08-07 22:10:43] Destroy window
+
+Steam logging initialized: directory: /data/data/com.termux/files/home/steam-arm64/client/logs
+
+[2026-08-07 22:10:43] ProcessNextMessage: socket disconnected
+[2026-08-07 22:10:43] No more messages are expected - exiting
+XOpenIM() failed, LANG = C.UTF-8
+XOpenIM() failed, LANG = C.UTF-8sh: 1: lspci: Operation not permitted
+XRRGetOutputInfo Workaround: initialized with override: 0 real: (nil)
+Error: XRRGetOutputInfo() is not available
+MESA-LOADER: failed to retrieve device information
+os_same_file_description couldn't determine if two DRM fds reference the same file description. (Function not implemented)
+Let's just assume that file descriptors for the same file probablyshare the file description instead. This may cause problems whenthat isn't the case.
+08/07 22:10:44 minidumps folder is set to /tmp/dumps
+08/07 22:10:44 Init: Installing breakpad exception handler for appid(steamsysinfo)/version(1785799196)/tid(22597)
+Running query: 1 - GpuTopology
+Response: gpu_topology {
+  gpus {
+    id: 1
+    name: "Turnip Adreno (TM) 730"
+    vram_size_bytes: 5734662144
+    driver_id: k_EGpuDriverId_MesaTurnip
+    driver_version_major: 26
+    driver_version_minor: 1
+    driver_version_patch: 99
+    luid: 0
+  }
+  default_gpu_id: 1
+}
+
+Exit code: 0
+Saving response to: /tmp/steamOLPFdD - 48 bytes
+sh: 1: lspci: Operation not permitted
+Error: XRRGetOutputInfo() is not available
+MESA-LOADER: failed to retrieve device information
+setting LIBGL_KOPPER_DISABLE=true for steamwebhelper to get store working properly
+MESA-LOADER: failed to retrieve device information
+Steam Runtime Launch Service: starting steam-runtime-launcher-service
+Steam Runtime Launch Service: steam-runtime-launcher-service is running pid 22660
+sh: 1: exec: steam-runtime-launcher-service: not found
+DetectUsbEntities: udev_enumerate_scan_devices failed
+
+DetectUsbEntities: udev_enumerate_scan_devices failed
+MESA-LOADER: failed to retrieve device information
+Steam Runtime Launch Service: steam-runtime-launcher-service pid 22660 exited
+Steam Runtime Launch Service: steam-runtime-launcher-service possible problem, disabling
+/bin/sh: 1: /data/data/com.termux/files/home/steam-arm64/client/steamrtarm64/../steamrtarm32/gldriverquery: not found
+/bin/sh: 1: /data/data/com.termux/files/home/steam-arm64/client/steamrtarm64/../steamrtarm32/vulkandriverquery: not found
+DetectUsbEntities: udev_enumerate_scan_devices failed
+
+DetectUsbEntities: udev_enumerate_scan_devices failed
+reaping pid: 22582 -- sh
+[2026-08-07 22:12:00] Background update loop checking for update. . .
+[2026-08-07 22:12:01] Checking for available updates...
+[2026-08-07 22:12:01] Downloading manifest: https://client-update.steamstatic.com/steam_client_linuxarm64
+[2026-08-07 22:12:02] Manifest download: send request
+[2026-08-07 22:12:02] Manifest download: waiting for download to finish
+[2026-08-07 22:12:03] Manifest download: finished
+[2026-08-07 22:12:03] Download skipped by HTTP 304 Not Modified
+[2026-08-07 22:12:03] Nothing to do
+src/steamUI/webuitransportcontroller.cpp (175) : Failed to connect to websocket
+src/steamUI/webuitransportcontroller.cpp (175) : Failed to connect to websocket
+/data/src/steamUI/webuitransportcontroller.cpp 175 Failed to connect to websocket/data/data/com.termux/files/home/bin/steam-arm: line 107: 22563 Killed                     proot-distro "${pd_args[@]}" -- /bin/bash -lc '
+    set -e
+    mkdir -p "$1/.steam" /tmp/steam-runtime
+    ln -sfn "$6" "$1/.steam/steam"
+    chmod 700 /tmp/steam-runtime
+    export HOME="$1"
+    export DISPLAY="$2"
+    export LANG=C.UTF-8
+    export LC_ALL=C.UTF-8
+    export XDG_RUNTIME_DIR=/tmp/steam-runtime
+    export PULSE_SERVER=127.0.0.1
+    export LD_LIBRARY_PATH="$3"
+    export VK_DRIVER_FILES="$4"
+    export LIBGL_DRIVERS_PATH="$3/dri"
+    export MESA_LOADER_DRIVER_OVERRIDE=kgsl
+    export TU_DEBUG=noconform
+    export MESA_VK_WSI_PRESENT_MODE=mailbox
+    steam_exe="$5"
+    cd "$6"
+    shift 6
+    exec "$steam_exe" -no-cef-sandbox "$@"
+' steam-arm "$steam_home" "$display" "$mesa_lib" "$icd" "$client/steam" "$client_root" "$@" 2>&1
+     22564 Done                       | tee "$log"

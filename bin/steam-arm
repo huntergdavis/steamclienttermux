@@ -1,0 +1,142 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+
+base="$HOME/steam-arm64"
+client_root="$base/client"
+client="$client_root/steamrtarm64"
+mesa="$base/mesa-kgsl"
+mesa_lib="$mesa/usr/lib/aarch64-linux-gnu"
+icd="$mesa/icd.d/freedreno-private.json"
+steam_hosts="$base/config/hosts-ipv4"
+compat_bin="$base/compat-bin"
+ui_patch="$base/patch-steam-network-ui.sh"
+steam_home="/root/steam-arm"
+custom_proot_dir="$base/src/proot-debug/src"
+
+if [[ ! -x "$client/steam" ]]; then
+    printf 'Steam ARM64 executable not found: %s\n' "$client/steam" >&2
+    exit 1
+fi
+if [[ ! -f "$icd" ]]; then
+    printf 'Private Turnip Vulkan ICD not found: %s\n' "$icd" >&2
+    exit 1
+fi
+if [[ ! -f "$steam_hosts" ]]; then
+    printf 'Private Steam hosts file not found: %s\n' "$steam_hosts" >&2
+    exit 1
+fi
+if [[ ! -x "$compat_bin/lsof" ]]; then
+    printf 'Steam compatibility lsof not found: %s\n' "$compat_bin/lsof" >&2
+    exit 1
+fi
+if [[ ! -x "$ui_patch" ]]; then
+    printf 'Steam UI compatibility patcher not found: %s\n' "$ui_patch" >&2
+    exit 1
+fi
+
+"$ui_patch"
+
+mkdir -p "$base/logs"
+
+# Steam's ARM64 CEF build can emit these debug streams continuously when its
+# compatibility workarounds are active.  They have grown by tens of gigabytes
+# in a single session, so discard only these two noisy files.  Normal Steam
+# logs and our timestamped launcher log remain available under $base/logs.
+noisy_logs=(
+    "$client_root/logs/steamwebhelper.log"
+    "$client_root/config/htmlcache/chrome_debug.log"
+)
+for noisy_log in "${noisy_logs[@]}"; do
+    mkdir -p "$(dirname "$noisy_log")"
+    if [[ -e "$noisy_log" && ! -L "$noisy_log" ]]; then
+        truncate -s 0 -- "$noisy_log"
+        rm -f -- "$noisy_log"
+    fi
+    ln -sfn /dev/null "$noisy_log"
+done
+
+pulseaudio --check >/dev/null 2>&1 || pulseaudio --start --exit-idle-time=-1
+pactl load-module module-native-protocol-tcp \
+    auth-ip-acl=127.0.0.1 auth-anonymous=1 >/dev/null 2>&1 || true
+
+display="${DISPLAY:-:0}"
+log="$base/logs/steam-$(date +%Y%m%d-%H%M%S).log"
+# Keep the patched PRoot crash tracer enabled for unattended/menu launches.
+# This is diagnostic only and has no effect unless a translated process fails.
+export PROOT_CRASH_LOG="${PROOT_CRASH_LOG:-1}"
+
+# Steam otherwise autolaunches D-Bus from its updater process.  The spawned
+# daemon inherits the updater IPC pipe and prevents EOF for about five minutes.
+# Create a private session first, with its diagnostic descriptors isolated.
+dbus_runtime="$base/run/dbus"
+mkdir -p "$dbus_runtime"
+dbus_address_file="$dbus_runtime/address.$$"
+dbus_pid_file="$dbus_runtime/pid.$$"
+dbus-daemon --session --fork \
+    --print-address=3 --print-pid=4 \
+    3>"$dbus_address_file" 4>"$dbus_pid_file" </dev/null 2>/dev/null
+dbus_address="$(<"$dbus_address_file")"
+dbus_pid="$(<"$dbus_pid_file")"
+if [[ -z "$dbus_address" || ! "$dbus_pid" =~ ^[0-9]+$ ]]; then
+    printf 'Failed to start private Steam D-Bus session\n' >&2
+    exit 1
+fi
+
+cleanup_dbus() {
+    if [[ "$dbus_pid" =~ ^[0-9]+$ ]] && kill -0 "$dbus_pid" 2>/dev/null; then
+        dbus_cmdline="$(tr '\0' ' ' <"/proc/$dbus_pid/cmdline" 2>/dev/null || true)"
+        if [[ "$dbus_cmdline" == *dbus-daemon* ]]; then
+            kill "$dbus_pid" 2>/dev/null || true
+        fi
+    fi
+    rm -f -- "$dbus_address_file" "$dbus_pid_file"
+}
+trap cleanup_dbus EXIT
+
+printf 'Starting native ARM64 Steam on DISPLAY=%s\nLog: %s\n' "$display" "$log"
+
+pd_args=(login debian --shared-tmp)
+pd_args+=(--bind "$steam_hosts:/etc/hosts")
+pd_args+=(--env "DBUS_SESSION_BUS_ADDRESS=$dbus_address")
+if [[ -n "${PROOT_SYSVIPC_LOG:-}" ]]; then
+    pd_args+=(--env "PROOT_SYSVIPC_LOG=$PROOT_SYSVIPC_LOG")
+fi
+if [[ -n "${PROOT_VERBOSE:-}" ]]; then
+    pd_args+=(--env "PROOT_VERBOSE=$PROOT_VERBOSE")
+fi
+if [[ -n "${PROOT_CRASH_LOG:-}" ]]; then
+    pd_args+=(--env "PROOT_CRASH_LOG=$PROOT_CRASH_LOG")
+fi
+
+if [[ -x "$custom_proot_dir/proot" ]]; then
+    export PATH="$custom_proot_dir:$PATH"
+fi
+
+proot-distro "${pd_args[@]}" -- /bin/bash -lc '
+    set -e
+    mkdir -p "$1/.steam" /tmp/steam-runtime
+    ln -sfn "$6" "$1/.steam/steam"
+    chmod 700 /tmp/steam-runtime
+    export HOME="$1"
+    export DISPLAY="$2"
+    export LANG=C.UTF-8
+    export LC_ALL=C.UTF-8
+    export XDG_RUNTIME_DIR=/tmp/steam-runtime
+    export PULSE_SERVER=127.0.0.1
+    export LD_LIBRARY_PATH="$3"
+    export VK_DRIVER_FILES="$4"
+    export LIBGL_DRIVERS_PATH="$3/dri"
+    export MESA_LOADER_DRIVER_OVERRIDE=kgsl
+    export TU_DEBUG=noconform
+    export MESA_VK_WSI_PRESENT_MODE=mailbox
+    export PATH="$7:$PATH"
+    steam_exe="$5"
+    cd "$6"
+    shift 7
+    # CEF GPU compositing produces stale/partial X11 surfaces under
+    # Termux:X11. This affects only the Steam HTML UI; games retain Turnip.
+    # Avoid Steam file-by-file preallocation through PRoot. The operation is
+    # pathologically slow under ptrace and can hold downloads at 2 percent.
+    exec "$steam_exe" -no-cef-sandbox -cef-disable-gpu -chromeosnopreallocate "$@"
+' steam-arm "$steam_home" "$display" "$mesa_lib" "$icd" "$client/steam" "$client_root" "$compat_bin" "$@" \
+    2>&1 | tee "$log"

@@ -1,0 +1,468 @@
+Patched /data/data/com.termux/files/home/steam-arm64/client/steamui/chunk~2dcc5aaf7.js (backup: /data/data/com.termux/files/home/steam-arm64/backups/chunk~2dcc5aaf7.js.pre-network-guard)
+Starting native ARM64 Steam on DISPLAY=:0
+Log: /data/data/com.termux/files/home/steam-arm64/logs/steam-20260807-230846.log
+CProcessEnvironmentManager is ready, 5 preallocated environment variables.
+[2026-08-08 06:08:48] Startup - updater built Aug  3 2026 19:41:13
+[2026-08-08 06:08:48] Startup - Steam Client launched with: '/data/data/com.termux/files/home/steam-arm64/client/steamrtarm64/steam' '-no-cef-sandbox' '-cef-disable-gpu' '-chromeosnopreallocate' '-noverifyfiles'
+08/08 06:08:48 minidumps folder is set to /tmp/dumps
+08/08 06:08:48 Init: Installing breakpad exception handler for appid(steam)/version(1785799196)/tid(32635)
+Looks like steam didn't shutdown cleanly, scheduling immediate update check
+CProcessEnvironmentManager is ready, 5 preallocated environment variables.
+[2026-08-08 06:08:48] Process started with command-line: '/data/data/com.termux/files/home/steam-arm64/client/steamrtarm64/steam' '-child-update-ui' '-child-update-ui-socket' '10' '-no-cef-sandbox' '-cef-disable-gpu' '-chromeosnopreallocate' '-noverifyfiles'
+08/08 06:08:48 minidumps folder is set to /tmp/dumps
+[2026-08-08 06:08:48] Loading cached metrics from disk (/data/data/com.termux/files/home/steam-arm64/client/package/steam_client_metrics.bin)
+[2026-08-08 06:08:48] Using the following download hosts for Public, Realm steamglobal
+[2026-08-08 06:08:48] 1. https://client-update.fastly.steamstatic.com, /, Realm 'steamglobal', weight was 900, source = 'update_hosts_cached.vdf'
+[2026-08-08 06:08:48] 2. https://client-update.akamai.steamstatic.com, /, Realm 'steamglobal', weight was 400, source = 'update_hosts_cached.vdf'
+[2026-08-08 06:08:48] 3. https://client-update.steamstatic.com, /, Realm 'steamglobal', weight was 1, source = 'baked in'
+[2026-08-08 06:08:48] Using update UI: console
+08/08 06:08:48 Init: Installing breakpad exception handler for appid(steam)/version(0)/tid(32644)
+[2026-08-08 06:08:48] Checking for update on startup
+[2026-08-08 06:08:48] Create window
+[2026-08-08 06:08:48] Set percent complete: 0
+[2026-08-08 06:08:48] Checking for available updates...
+[2026-08-08 06:08:48] Downloading manifest: https://client-update.fastly.steamstatic.com/steam_client_linuxarm64
+[2026-08-08 06:08:48] Set status message: Checking for available updates...
+[  0%] Checking for available updates...
+[2026-08-08 06:08:48] Manifest download: send request
+[2026-08-08 06:08:48] Set percent complete: -1
+[2026-08-08 06:08:49] Manifest download: waiting for download to finish
+[2026-08-08 06:08:49] Manifest download: finished
+[2026-08-08 06:08:49] Download skipped: /steam_client_linuxarm64 version 1785799196, installed version 1785799196, existing pending version 0
+[2026-08-08 06:08:49] Nothing to do
+[2026-08-08 06:08:49] Verifying installation...
+[2026-08-08 06:08:49] Verification skipped
+[2026-08-08 06:08:49] Verification complete
+UpdateUI: skip show logo
+[2026-08-08 06:08:49] Set percent complete: -1
+[2026-08-08 06:08:49] Set status message: Verifying installation...
+[----] Verifying installation...
+[2026-08-08 06:08:49] Destroy window
+
+Steam logging initialized: directory: /data/data/com.termux/files/home/steam-arm64/client/logs
+
+[2026-08-08 06:08:49] ProcessNextMessage: socket disconnected
+[2026-08-08 06:08:49] No more messages are expected - exiting
+XOpenIM() failed, LANG = C.UTF-8
+XOpenIM() failed, LANG = C.UTF-8sh: 1: lspci: Operation not permitted
+XRRGetOutputInfo Workaround: initialized with override: 0 real: (nil)
+Error: XRRGetOutputInfo() is not available
+MESA-LOADER: failed to retrieve device information
+os_same_file_description couldn't determine if two DRM fds reference the same file description. (Function not implemented)
+Let's just assume that file descriptors for the same file probablyshare the file description instead. This may cause problems whenthat isn't the case.
+08/08 06:08:50 minidumps folder is set to /tmp/dumps
+08/08 06:08:50 Init: Installing breakpad exception handler for appid(steamsysinfo)/version(1785799196)/tid(32661)
+Running query: 1 - GpuTopology
+Response: gpu_topology {
+  gpus {
+    id: 1
+    name: "Turnip Adreno (TM) 730"
+    vram_size_bytes: 5734662144
+    driver_id: k_EGpuDriverId_MesaTurnip
+    driver_version_major: 26
+    driver_version_minor: 1
+    driver_version_patch: 99
+    luid: 0
+  }
+  default_gpu_id: 1
+}
+
+Exit code: 0
+Saving response to: /tmp/steamMIHklg - 48 bytes
+sh: 1: lspci: Operation not permitted
+Error: XRRGetOutputInfo() is not available
+MESA-LOADER: failed to retrieve device information
+setting LIBGL_KOPPER_DISABLE=true for steamwebhelper to get store working properly
+MESA-LOADER: failed to retrieve device information
+Steam Runtime Launch Service: starting steam-runtime-launcher-service
+Steam Runtime Launch Service: steam-runtime-launcher-service is running pid 32703
+sh: 1: exec: steam-runtime-launcher-service: not found
+DetectUsbEntities: udev_enumerate_scan_devices failed
+
+DetectUsbEntities: udev_enumerate_scan_devices failed
+MESA-LOADER: failed to retrieve device information
+Steam Runtime Launch Service: steam-runtime-launcher-service pid 32703 exited
+Steam Runtime Launch Service: steam-runtime-launcher-service possible problem, disabling
+/bin/sh: 1: /data/data/com.termux/files/home/steam-arm64/client/steamrtarm64/../steamrtarm32/gldriverquery: not found
+/bin/sh: 1: /data/data/com.termux/files/home/steam-arm64/client/steamrtarm64/../steamrtarm32/vulkandriverquery: not found
+DetectUsbEntities: udev_enumerate_scan_devices failed
+
+DetectUsbEntities: udev_enumerate_scan_devices failed
+reaping pid: 32643 -- sh
+Unable to read VR Path Registry from /root/steam-arm/.config/openvr/openvrpaths.vrpath
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 60.058743s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 60.058743s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/steamengine.cpp (2843) : Assertion Failed: CSteamEngine::BMainLoop appears to have stalled > 15 seconds without event signalled
+src/clientdll/steamengine.cpp (2843) : Assertion Failed: CSteamEngine::BMainLoop appears to have stalled > 15 seconds without event signalled
+[2026-08-08 06:11:39] Background update loop checking for update. . .
+[2026-08-08 06:11:39] Checking for available updates...
+[2026-08-08 06:11:39] Downloading manifest: https://client-update.fastly.steamstatic.com/steam_client_linuxarm64
+[2026-08-08 06:11:41] Manifest download: send request
+[2026-08-08 06:11:41] Manifest download: waiting for download to finish
+Desktop state changed: desktop: { pos:    0,   0 size: 2800, 876 } primary: { pos:    0,   0 size: 2800, 876 }
+Caching cursor image for , size 64x64, serial 5, cache size = 0
+MESA-LOADER: failed to retrieve device information
+sh: 1: lsb_release: not found
+[2026-08-08 06:11:44] Manifest download: finished
+[2026-08-08 06:11:44] Download skipped by HTTP 304 Not Modified
+[2026-08-08 06:11:44] Nothing to do
+sh: 1: lspci: Operation not permitted
+Error: XRRGetOutputInfo() is not available
+MESA-LOADER: failed to retrieve device information
+sh: 1: lsb_release: not found
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 59.966293s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 59.966293s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 60.027729s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 60.027729s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 60.604408s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 60.604408s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 99.434448s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 99.434448s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 100.015320s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 100.015320s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 111.826889s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 111.826889s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 64.372261s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 64.372261s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 88.724174s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 88.724174s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 74.926155s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 74.926155s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 87.613846s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 87.613846s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 63.252365s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 63.252365s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 54.100300s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 54.100300s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 60.322273s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 60.322273s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 60.509155s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 60.509155s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 64.283897s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 64.283897s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 68.282234s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 68.282234s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 86.942612s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 86.942612s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 97.053429s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 97.053429s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 70.417397s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 70.417397s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 60.157757s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 60.157757s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 81.636383s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 81.636383s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 60.279926s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 60.279926s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 62.435505s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 62.435505s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 69.247643s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 69.247643s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 739.296326s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 739.296326s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 60.629757s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 60.629757s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 65.529289s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 65.529289s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/common/completionportmanager_posix.cpp (359) : Assertion Failed: Async I/O on closed handle 117
+src/common/completionportmanager_posix.cpp (359) : Assertion Failed: Async I/O on closed handle 117
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 66.884201s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 66.884201s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 60.395779s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 60.395779s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 62.228222s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 62.228222s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 71.052223s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 71.052223s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 84.053055s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 84.053055s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 959.359253s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 959.359253s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 64.869522s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 64.869522s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 64.487892s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 64.487892s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 61.022671s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 61.022671s
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 60.318779s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 60.318779s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 65.020302s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 65.020302s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 61.702332s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 61.702332s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 73.945801s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 73.945801s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 64.620110s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 64.620110s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 90.997681s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 90.997681s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 71.558571s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 71.558571s
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 90.015877s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 90.015877s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 61.739326s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 61.739326s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 47.172443s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 47.172443s
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 94.175392s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 94.175392s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+src/common/pipes.cpp (241) : !"Emptying callback queue because client didn't process them in a timely manner"
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 60.108189s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 60.108189s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 75.699753s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 75.699753s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+Waiting for compat in post-logon timed out
+Waiting for compat in post-logon timed outsrc/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 71.121994s
+src/clientdll/clientjob.cpp (6506) : Assertion Failed: Waiting for compat manager in post-logon took longer than expected: 71.121994s
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.
+CClientJobPostLogon: failed to process compat data. Game install state may be inconsistent.src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+src/clientdll/clientjob.cpp (6441) : CClientJobPostLogon: timed out waiting for compat manager
+proot error: can't create temporary file: No space left on device
+proot info: Please set PROOT_TMP_DIR env. variable to an alternate location (with write permission).
+proot error: can't create temporary file: No space left on device
+proot info: Please set PROOT_TMP_DIR env. variable to an alternate location (with write permission).
+proot error: can't create temporary file: No space left on device
+proot info: Please set PROOT_TMP_DIR env. variable to an alternate location (with write permission).
+proot error: can't create temporary file: No space left on device
+proot info: Please set PROOT_TMP_DIR env. variable to an alternate location (with write permission).
+proot error: can't create temporary file: No space left on device
+proot info: Please set PROOT_TMP_DIR env. variable to an alternate location (with write permission).
+proot error: can't create temporary file: No space left on device
+proot info: Please set PROOT_TMP_DIR env. variable to an alternate location (with write permission).
+proot error: can't create temporary file: No space left on device
+proot info: Please set PROOT_TMP_DIR env. variable to an alternate location (with write permission).
+proot error: can't create temporary file: No space left on device
+proot info: Please set PROOT_TMP_DIR env. variable to an alternate location (with write permission).
+proot error: can't create temporary file: No space left on device
+proot info: Please set PROOT_TMP_DIR env. variable to an alternate location (with write permission).
+proot error: can't create temporary file: No space left on device
+proot info: Please set PROOT_TMP_DIR env. variable to an alternate locatio

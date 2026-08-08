@@ -1,0 +1,9 @@
+{
+  "file_format_version": "1.0.1",
+  "ICD": {
+    "library_path": "@HOME@/steam-arm64/mesa-kgsl/usr/lib/aarch64-linux-gnu/libvulkan_freedreno.so",
+    "api_version": "1.4.335",
+    "library_arch": "64"
+  }
+}
+

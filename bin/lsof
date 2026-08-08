@@ -1,0 +1,27 @@
+#!/bin/sh
+# Android hides /proc/net TCP ownership from unprivileged applications. Steam
+# uses lsof only to verify that its loopback WebSocket peer is steamwebhelper;
+# provide that scoped identity while retaining real lsof for all other uses.
+case " $* " in
+    *" -i TCP@127.0.0.1:"*)
+        port=0
+        for arg do
+            case "$arg" in
+                TCP@127.0.0.1:*) port=${arg##*:} ;;
+            esac
+        done
+        ps -eo pid=,ppid=,args= | awk -v uid="$(id -u)" -v port="$port" '
+            /[/]steamrtarm64[/]steamwebhelper/ && /NetworkService/ {
+                print "p" $1
+                print "R" $2
+                print "u" uid
+                print "n127.0.0.1:" port "->127.0.0.1:27060"
+                found=1
+            }
+            END { if (!found) exit 1 }
+        '
+        ;;
+    *)
+        exec /data/data/com.termux/files/usr/bin/lsof "$@"
+        ;;
+esac
