@@ -1,0 +1,29 @@
+"compatibilitytools"
+{
+	"compat_tools"
+	{
+		"proton_11_arm64_official"
+		{
+			"appid"               "4628740"
+			"depotid"             "4628741"
+			"install_path"        "@CLIENT_ROOT@/steamapps/common/Proton 11.0 (ARM64)"
+			"display_name"        "Proton 11.0 (ARM64)"
+			"require_tool_appid"  "4185400"
+			"from_oslist"         "windows"
+			"to_oslist"           "linux"
+			"aliases"             "proton-11.0-arm64"
+		}
+
+		"steamlinuxruntime_4_arm64_official"
+		{
+			"appid"         "4185400"
+			"depotid"       "4185401"
+			"install_path"  "@CLIENT_ROOT@/steamapps/common/SteamLinuxRuntime_4-arm64"
+			"display_name"  "Steam Linux Runtime 4.0 - Arm64"
+			"from_oslist"   "linux"
+			"to_oslist"     "linux"
+			"unlisted"      "1"
+			"aliases"       "steamrt4-arm64"
+		}
+	}
+}

@@ -45,7 +45,9 @@ compatibility problems remained:
 Finally, Steam's file preallocation was disastrously slow through ptrace PRoot,
 so `-chromeosnopreallocate` was needed for practical downloads. Runaway CEF
 debug streams also required a launcher-level log guard after they consumed about
-25 GiB.
+25 GiB. The launcher also uses `-noverifyfiles`: Steam still checks for client
+updates, but it does not replace the intentional, version-specific UI guard on
+every start.
 
 In short:
 
@@ -75,8 +77,13 @@ client binaries, games, Proton payloads, credentials, or Mesa binaries.
 - Burnout Paradise Remastered and Proton 11.0 (ARM64) downloaded completely.
 - Steam Linux Runtime 4.0 - Arm64 is the required companion runtime; the
   conventional x86-64 Runtime 4 cannot execute directly in this environment.
+- The launcher registers both official ARM64 payloads as local compatibility
+  tools under the Steam client root. Steam has confirmed internal keys
+  `proton_11_arm64_official` and `steamlinuxruntime_4_arm64_official` for App
+  IDs 4628740 and 4185400 respectively.
 - Windows game execution is not yet demonstrated end-to-end. The remaining work
-  is selecting ARM64 Proton for the game and validating its bundled FEX path.
+  is mapping Burnout to the registered ARM64 Proton tool and validating its
+  bundled FEX path.
 
 This is a precise, continuable engineering record, not yet a one-command finished
 installer.
@@ -86,6 +93,8 @@ installer.
 - `bin/steam-arm` — isolated launcher used on the tablet.
 - `bin/patch-steam-network-ui.sh` — version-specific Steam UI API guard.
 - `bin/lsof` — narrowly scoped Android `/proc/net` compatibility shim.
+- `config/steam-arm64-compatibilitytools.vdf.in` — local registrations for the
+  official ARM64 Proton and runtime payloads.
 - `patches/proot-steam-android.patch` — exact custom PRoot changes.
 - `scripts/build-proot.sh` — reproducibly rebuilds patched PRoot.
 - `scripts/install-project-files.sh` — installs only this project's files.

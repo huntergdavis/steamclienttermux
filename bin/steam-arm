@@ -8,6 +8,7 @@ mesa="$base/mesa-kgsl"
 mesa_lib="$mesa/usr/lib/aarch64-linux-gnu"
 icd="$mesa/icd.d/freedreno-private.json"
 steam_hosts="$base/config/hosts-ipv4"
+arm_compat_template="$base/config/steam-arm64-compatibilitytools.vdf.in"
 compat_bin="$base/compat-bin"
 ui_patch="$base/patch-steam-network-ui.sh"
 steam_home="/root/steam-arm"
@@ -23,6 +24,10 @@ if [[ ! -f "$icd" ]]; then
 fi
 if [[ ! -f "$steam_hosts" ]]; then
     printf 'Private Steam hosts file not found: %s\n' "$steam_hosts" >&2
+    exit 1
+fi
+if [[ ! -f "$arm_compat_template" ]]; then
+    printf 'ARM64 compatibility-tool manifest template not found: %s\n' "$arm_compat_template" >&2
     exit 1
 fi
 if [[ ! -x "$compat_bin/lsof" ]]; then
@@ -114,7 +119,7 @@ fi
 
 proot-distro "${pd_args[@]}" -- /bin/bash -lc '
     set -e
-    mkdir -p "$1/.steam" /tmp/steam-runtime
+    mkdir -p "$1/.steam" "$6/compatibilitytools.d/steam-arm64-official" /tmp/steam-runtime
     ln -sfn "$6" "$1/.steam/steam"
     # The ARM client refers to these through the traditional $HOME/.steam
     # SDK layout.  Keep .steam as a real directory because Steam stores live
@@ -123,6 +128,14 @@ proot-distro "${pd_args[@]}" -- /bin/bash -lc '
     ln -sfn "$6/steamrt64" "$1/.steam/bin64"
     ln -sfn "$6/steamrt32" "$1/.steam/bin32"
     ln -sfn "$6/steamrtarm64" "$1/.steam/steamrtarm64"
+    # SteamPlay 2.0 Manifests (App ID 891390) can omit the separately
+    # distributed ARM64 Proton and runtime App IDs.  Register the untouched
+    # official payloads through the supported local-tool manifest path.
+    # The template gives them explicit local keys and preserves their App IDs
+    # so the require_tool_appid=4185400 dependency resolves to ARM64.
+    arm_compat_manifest="$6/compatibilitytools.d/steam-arm64-official/compatibilitytool.vdf"
+    sed "s|@CLIENT_ROOT@|$6|g" "$8" >"$arm_compat_manifest.tmp"
+    mv "$arm_compat_manifest.tmp" "$arm_compat_manifest"
     chmod 700 /tmp/steam-runtime
     export HOME="$1"
     export DISPLAY="$2"
@@ -139,11 +152,11 @@ proot-distro "${pd_args[@]}" -- /bin/bash -lc '
     export PATH="$7:$PATH"
     steam_exe="$5"
     cd "$6"
-    shift 7
+    shift 8
     # CEF GPU compositing produces stale/partial X11 surfaces under
     # Termux:X11. This affects only the Steam HTML UI; games retain Turnip.
     # Avoid Steam file-by-file preallocation through PRoot. The operation is
     # pathologically slow under ptrace and can hold downloads at 2 percent.
-    exec "$steam_exe" -no-cef-sandbox -cef-disable-gpu -chromeosnopreallocate "$@"
-' steam-arm "$steam_home" "$display" "$mesa_lib" "$icd" "$client/steam" "$client_root" "$compat_bin" "$@" \
+    exec "$steam_exe" -no-cef-sandbox -cef-disable-gpu -chromeosnopreallocate -noverifyfiles "$@"
+' steam-arm "$steam_home" "$display" "$mesa_lib" "$icd" "$client/steam" "$client_root" "$compat_bin" "$arm_compat_template" "$@" \
     2>&1 | tee "$log"

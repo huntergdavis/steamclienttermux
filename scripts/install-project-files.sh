@@ -19,6 +19,7 @@ install_one "$repo_root/bin/steam-arm" "$HOME/bin/steam-arm" 700
 install_one "$repo_root/bin/patch-steam-network-ui.sh" "$base/patch-steam-network-ui.sh" 700
 install_one "$repo_root/bin/lsof" "$base/compat-bin/lsof" 700
 install_one "$repo_root/config/hosts-ipv4" "$base/config/hosts-ipv4" 600
+install_one "$repo_root/config/steam-arm64-compatibilitytools.vdf.in" "$base/config/steam-arm64-compatibilitytools.vdf.in" 600
 install_one "$repo_root/desktop/steam-arm.desktop" "$HOME/.local/share/applications/steam-arm.desktop" 600
 
 mkdir -p "$base/mesa-kgsl/icd.d"
@@ -26,4 +27,3 @@ sed "s|@HOME@|$HOME|g" "$repo_root/config/freedreno-private.json.in" > "$base/me
 mv "$base/mesa-kgsl/icd.d/freedreno-private.json.tmp" "$base/mesa-kgsl/icd.d/freedreno-private.json"
 
 printf 'Installed project files. Backups: %s\n' "$backup"
-

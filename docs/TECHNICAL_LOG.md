@@ -146,3 +146,50 @@ Proton 11.0 (ARM64) downloaded completely (3,596,743,348 installed bytes). The
 ARM64 runtime download was started next. Burnout must then be explicitly mapped
 to Proton 11.0 (ARM64); installing it alone does not replace Steam's automatic
 Proton Experimental mapping.
+
+## 2026-08-08: register the separately distributed ARM64 tools
+
+The installed ARM64 applications were absent from the compatibility-tool list
+in the cached SteamPlay 2.0 Manifests application (App ID 891390). Their own
+`toolmanifest.vdf` files were valid, but installing the applications did not add
+them to Burnout's compatibility dropdown.
+
+The launcher now renders
+`config/steam-arm64-compatibilitytools.vdf.in` into Steam's canonical local-tool
+directory:
+
+```text
+~/steam-arm64/client/compatibilitytools.d/steam-arm64-official/compatibilitytool.vdf
+```
+
+This declares the untouched installed payloads with explicit local keys:
+
+- `proton_11_arm64_official`: Proton App ID 4628740, depot 4628741;
+- `steamlinuxruntime_4_arm64_official`: runtime App ID 4185400, depot 4185401.
+
+The Proton declaration and its installed `toolmanifest.vdf` both preserve the
+runtime dependency on App ID 4185400. The first attempt placed the declaration
+at `/root/steam-arm/.steam/compatibilitytools.d`. A full registry pass completed
+at 16:11:23 without either ARM tool, and access times proved Steam never opened
+that directory. This installation has no conventional `~/.steam/root` symlink;
+placing the descriptor directly under the actual client root fixed discovery
+without replacing the live `.steam` state directory.
+
+On the corrected start, `compat_log.txt` recorded at 16:37:00:
+
+```text
+Processing local tool list at .../client/compatibilitytools.d/steam-arm64-official/compatibilitytool.vdf...
+Registering tool proton_11_arm64_official, AppID 4628740
+Registering tool steamlinuxruntime_4_arm64_official, AppID 4185400
+Loaded manifest for tool proton_11_arm64_official.
+Loaded manifest for tool steamlinuxruntime_4_arm64_official.
+```
+
+The launcher also makes `-noverifyfiles` a fixed client argument. It does not
+disable the normal client-version manifest check. It skips bootstrap file-size
+verification because this project deliberately patches one minified Steam UI
+chunk. A bare start without the flag detected the 57-byte intentional size
+difference and spent about eleven minutes extracting and reinstalling the same
+client build. After the stock file was restored, all three exact UI signatures
+were verified, the guard was reapplied, and the next start logged `Verification
+skipped` with exactly one `-noverifyfiles` argument.
