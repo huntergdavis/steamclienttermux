@@ -1,5 +1,19 @@
 # Architecture and isolation boundaries
 
+## The key compatibility boundary
+
+This project is primarily a **Linux ABI/behavior repair**, not a CPU-emulation
+trick. Steam is already an ARM64 executable. Debian supplies its glibc userspace,
+but PRoot must make that userspace observe kernel behavior close enough to normal
+Linux. The decisive changes were robust-list syscall emulation and more complete
+SysV semaphore semantics, especially waking blocked `semop` callers when another
+process changes a semaphore.
+
+The graphics issue is separate: Turnip can accelerate Vulkan on Adreno 740, but
+Steam's Chromium compositor did not interact correctly with Termux:X11. The
+working configuration deliberately splits those paths—software-rendered CEF for
+the Steam interface, private Turnip Vulkan for games.
+
 ```text
 Android / Samsung kernel
   -> Termux app sandbox
@@ -26,4 +40,3 @@ GPU compositing created stale/partial Termux:X11 surfaces; games retain Turnip.
 
 The `lsof` shim only answers Steam's loopback-WebSocket ownership query, which
 Android's restricted `/proc/net` cannot answer, and delegates all other calls.
-
