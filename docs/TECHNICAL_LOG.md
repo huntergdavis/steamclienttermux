@@ -122,3 +122,27 @@ The Runtime 4 installation and `toolmanifest.vdf` were verified complete. This
 distinguishes a slow/incomplete compatibility-cache rebuild from missing game
 files or a Proton/game crash. The live state is captured in
 `docs/evidence/2026-08-08-live-debugging-compat-timeout.png`.
+
+## 2026-08-08: ARM SDK layout and the correct Proton artifacts
+
+Once compatibility registration completed, the first real launch failed before
+Proton with `/root/steam-arm/.steam/sdkarm64/steam-launch-wrapper: not found`.
+The ARM client stores that wrapper in `linuxarm64`, while its game-launch command
+uses Steam's traditional `$HOME/.steam` SDK names. The isolated launcher now
+creates narrow symlinks for `sdkarm64`, `bin64`, `bin32`, and `steamrtarm64`.
+It intentionally keeps `.steam` as a real directory because Steam stores live
+account and IPC state there.
+
+That exposed the next architecture mismatch: Burnout was automatically mapped
+to conventional x86-64 Proton Experimental (App ID 1493710) and x86-64 Steam
+Linux Runtime 4.0 (App ID 4183110). The x86-64 `pressure-vessel-wrap` cannot be
+executed directly on this AArch64 userspace and exited 127. The required native
+tools are separate Steam applications:
+
+- Proton 11.0 (ARM64), App ID 4628740;
+- Steam Linux Runtime 4.0 - Arm64, App ID 4185400.
+
+Proton 11.0 (ARM64) downloaded completely (3,596,743,348 installed bytes). The
+ARM64 runtime download was started next. Burnout must then be explicitly mapped
+to Proton 11.0 (ARM64); installing it alone does not replace Steam's automatic
+Proton Experimental mapping.

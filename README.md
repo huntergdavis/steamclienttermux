@@ -72,10 +72,11 @@ client binaries, games, Proton payloads, credentials, or Mesa binaries.
 - Native Linux ARM64 Steam client launches and authenticates.
 - Steam's HTML interface renders under Termux:X11 using CEF software rendering.
 - The native ARM64 client uses a private Mesa Turnip Vulkan stack for games.
-- Burnout Paradise Remastered, Proton Experimental, and Steam Linux Runtime 4.0
-  downloaded completely.
+- Burnout Paradise Remastered and Proton 11.0 (ARM64) downloaded completely.
+- Steam Linux Runtime 4.0 - Arm64 is the required companion runtime; the
+  conventional x86-64 Runtime 4 cannot execute directly in this environment.
 - Windows game execution is not yet demonstrated end-to-end. The remaining work
-  is the x86/x86-64 guest execution layer and Proton launch integration.
+  is selecting ARM64 Proton for the game and validating its bundled FEX path.
 
 This is a precise, continuable engineering record, not yet a one-command finished
 installer.

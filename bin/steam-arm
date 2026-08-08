@@ -116,6 +116,13 @@ proot-distro "${pd_args[@]}" -- /bin/bash -lc '
     set -e
     mkdir -p "$1/.steam" /tmp/steam-runtime
     ln -sfn "$6" "$1/.steam/steam"
+    # The ARM client refers to these through the traditional $HOME/.steam
+    # SDK layout.  Keep .steam as a real directory because Steam stores live
+    # state there, and expose only the client directories it expects.
+    ln -sfn "$6/linuxarm64" "$1/.steam/sdkarm64"
+    ln -sfn "$6/steamrt64" "$1/.steam/bin64"
+    ln -sfn "$6/steamrt32" "$1/.steam/bin32"
+    ln -sfn "$6/steamrtarm64" "$1/.steam/steamrtarm64"
     chmod 700 /tmp/steam-runtime
     export HOME="$1"
     export DISPLAY="$2"
