@@ -30,6 +30,24 @@ translate, not simply a disabled accelerator.
 
 ## Optimization tracks
 
+## First prototype results
+
+Tracing showed that Steam's metadata workload is dominated by directory-relative
+`fstatat` calls. Fake-root, link-to-symlink, and symlink-size extensions broaden
+the seccomp filter and force additional metadata calls through ptrace.
+
+An alternate PRoot invocation without those unnecessary Steam-session extensions
+reduced the 5,601-file benchmark to approximately 2.10 seconds. An experimental,
+opt-in fast path for non-dereferencing, single-component `fstatat` operations
+under an explicitly trusted prefix reduced it further to approximately 1.76
+seconds. Together these are about 2.4 times faster than the current 4.23-second
+configuration, but still roughly 14 times slower than native access.
+
+The experimental source change is retained as
+`patches/proot-noderef-fastpath.patch`. It is not enabled by the production
+launcher. It requires `PROOT_NODEREF_FAST_PATH` to name the trusted host-visible
+tree and otherwise leaves path translation unchanged.
+
 ### 1. Profile and optimize PRoot path translation
 
 Add low-overhead per-syscall counters to the custom PRoot build, reproduce the
@@ -37,6 +55,9 @@ Add low-overhead per-syscall counters to the custom PRoot build, reproduce the
 work includes safe canonicalization caches and a pass-through fast path for
 host-visible trees whose guest and host paths are identical. Any cache must be
 correct across rename, symlink, bind, cwd, and process lifecycle changes.
+
+The first prototype proves canonicalization is material, but also proves that
+canonicalization alone cannot remove the ptrace stop for each `fstatat` call.
 
 ### 2. Remove native ARM64 Steam from ptrace
 
@@ -69,4 +90,3 @@ Performance changes must retain the custom semaphore wakeup behavior and must
 not weaken Android security or require root. Benchmarks are insufficient: Steam
 authentication, compatibility-cache completion, downloads, and game launch must
 all be retested.
-

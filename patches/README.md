@@ -19,3 +19,7 @@ src/tracee/event.c                       |  58 +
 5 files changed, 244 insertions(+), 3 deletions(-)
 ```
 
+`proot-noderef-fastpath.patch` is a separate experimental performance patch. It
+adds an environment-gated fast path for a narrowly constrained metadata lookup
+inside a trusted host-visible prefix. It is documented and benchmarked in
+`docs/PERFORMANCE.md` but is not part of the production build yet.
