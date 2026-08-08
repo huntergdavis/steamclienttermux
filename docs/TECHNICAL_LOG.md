@@ -104,3 +104,21 @@ Next: integrate and validate an ARM64 Proton/FEX (or equivalent) guest layer,
 then test DXVK, VKD3D, audio, controller input, and a small Windows game before
 Burnout.
 
+## 2026-08-08: first complete Burnout launch trace
+
+Steam accepted a Burnout launch request and advanced through `UnlockingH264`,
+shader-cache processing, license checkout, and `CreatingProcess`. No Proton,
+Wine, FEX, EA launcher, or game process was spawned.
+
+The immediate failure occurred in Steam's compatibility manager. Its cache-off
+job was still registering every historical Proton generation at approximately
+35 seconds per entry. PRoot consumed about 87% of one CPU core and accumulated
+hundreds of thousands of context switches. When Proton Experimental requested
+its installed Runtime 4 dependency (App ID 4183110), Steam reported the tool as
+unknown because the cache rebuild had not reached it. Command-line wrapping
+failed and Steam released the game session.
+
+The Runtime 4 installation and `toolmanifest.vdf` were verified complete. This
+distinguishes a slow/incomplete compatibility-cache rebuild from missing game
+files or a Proton/game crash. The live state is captured in
+`docs/evidence/2026-08-08-live-debugging-compat-timeout.png`.
