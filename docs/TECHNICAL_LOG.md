@@ -561,3 +561,54 @@ Vessel files, 5,372 real mutable-runtime files, and zero `.l2s` links. The log
 `~/steam-arm64/logs/proot-v3-full-runtime-smoke-20260808-2010.log` contains no
 unexpected error. This validates the fix before production deployment; it does
 not yet prove Proton, FEX, Wine, EA App, or Burnout execution.
+
+The confirmed fix was committed and pushed as `822880d`. Steam then shut down
+gracefully ten seconds after its own `-shutdown` forwarder completed. The prior
+complete production PRoot tree and unchanged launcher are preserved at:
+
+```text
+~/steam-arm64/backups/20260808-201650-before-mountinfo-v3
+```
+
+The v3 source tree was atomically promoted to
+`~/steam-arm64/src/proot-production`; its commit, patch-set hash, source-diff
+hash, and binary hash all matched the isolated build. Steam restarted on PRoot
+PID 32757 and main PID 320. `/proc/32757/exe` has the expected
+`c9ae8f9611b1009568ac18a8d83695440306e25e0f0b4223d09bf821ca2d6a53`
+hash, and its command line and environment retain the exact ARM64 runtime
+overlay and guarded `var/tmp-` prefix.
+
+The new session log is `~/steam-arm64/logs/steam-20260808-201738.log`. Turnip
+sysinfo still succeeds after restart and reports `Turnip Adreno (TM) 730`.
+`~/steam-arm64/post-mountinfo-v3-restart.png` is a full-resolution 2800x1586
+screenshot of the healthy Steam "Loading user data..." window. Steam registered
+both ARM tools and the priority-250 Burnout mapping, then started compatibility
+cache job 15488033736693968634 at 03:18:13 UTC. The queued second pass completed
+at 03:47:16 UTC with callbacks for App ID 4185400 as
+`steamlinuxruntime_4_arm64_official`, App ID 4628740 as
+`proton_11_arm64_official`, and Burnout App ID 1238080. The log explicitly
+skipped Burnout's lower-priority automatic `proton_experimental` mapping.
+
+At 20:50:31 PDT, a single `steam://rungameid/1238080` launch was forwarded to
+the existing Steam process. Session `bb257b8e4cd92f1` selected the official
+`SteamLinuxRuntime_4-arm64` and `Proton 11.0 (ARM64)` paths for both its install
+evaluator and main `link2ea://launchgame/1238080` command. Both invocations
+passed the old spaced-path mount-table failure, confirming the production
+mountinfo fix against Steam's real launch path.
+
+The next exact blocker is independent of the Proton path. Both invocations
+ended at:
+
+```text
+bwrap: Can't get type of source /tmp/.X11-unix/X0: No such file or directory
+```
+
+The X0 socket exists natively in Termux and is visible from an ordinary
+`proot-distro login debian --shared-tmp` shell, but the bundled ARM64
+`srt-bwrap` cannot resolve it while setting up the container. The main launch
+exited at 03:56:04 UTC before a Proton child, FEX, Wine, the EA App, or Burnout
+started. Pressure Vessel and its mutable runtime still contain zero `.l2s`
+links, and 27 GB remained free. The failed 370 MB temporary root
+`var/tmp-EJJ2T3` was retained for inspection. A full-resolution post-failure
+screenshot at `~/steam-arm64/post-x0-bind-failure.png` shows the authenticated
+Steam Store healthy with no game or EA window.
