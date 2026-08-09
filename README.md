@@ -144,8 +144,33 @@ client binaries, games, Proton payloads, credentials, or Mesa binaries.
   initialized credential-free prefix returned three adapters, five unicast
   rows, WinINet connected flags `0x12`, and NLM IPv4 local/Internet
   connectivity `0x60`. This proves the network fix across the actual container
-  boundary. It has not yet been deployed to the live launcher or tested with
-  EA Desktop.
+  boundary.
+- The validated route-preservation checkpoint (`1ebd14f`), including its
+  native-Termux test fallbacks (`a12d9f4` and `a1d8f61`), is now deployed. The
+  live production PRoot has SHA-256
+  `0378e0631dbf7a8bd0061b54fc167bb881c70a76109f567b682f7262a063166c`;
+  the route-wrapper SHA-256 is
+  `6ba0a5f0ed955439efb220ea64d267b96cc3f6a1e7ee390f17be175990c39f7a`.
+  Steam restarted under outer PRoot PID 13620 and Steam PID 13625 with the
+  exact wrapper, real ARM64 `srt-bwrap`, and private `/proc/net` shadow in its
+  live environment.
+- At 14:46:33 Steam registered both official ARM64 tools and retained Burnout's
+  priority-250 `proton_11_arm64_official` mapping. The second cache-off pass
+  completed at 15:15:49, after rejecting the automatic priority-100
+  `proton-experimental` mapping. A live launch then used only
+  `SteamLinuxRuntime_4-arm64` and `Proton 11.0 (ARM64)`.
+- The deployed route fix cleared the former EA offline blocker. EA reached its
+  online state, authenticated through Steam, linked the account, connected its
+  local service, and reported a successful Link2EA launch. Burnout's executable
+  started through Proton's bundled FEX/WoW64 path for the first time. This was
+  a diagnostic WineD3D run, not the final DXVK/Turnip configuration.
+- The milestone is not gameplay success. EA's CEF surface later displayed a
+  network-load error while its online background service remained healthy.
+  CEF then suffered renderer/network-service and GPU-process failures. Burnout
+  remained in activation/protected startup without a managed game window or a
+  mapped game renderer. The high-CPU FEX process emitted dense handled SIGBUS
+  guest-fault traffic before Steam exited on a fatal stalled cross-thread pipe.
+  No DXVK/Turnip frame has been captured yet.
 - Every X11 evidence capture now uses a stable, validated window and a short
   timeout. A previous unbounded ImageMagick helper demonstrated that a stale X
   server grab can invalidate an EA launch attempt.

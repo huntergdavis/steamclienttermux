@@ -1390,3 +1390,127 @@ launch options intentionally still contain `PROTON_USE_WINED3D=1` and
 `PRESSURE_VESSEL_REMOVE_GAME_OVERLAY=1`; they must not be treated as the final
 renderer configuration. Burnout has not started, and the separate official
 DXVK ARM64EC dispatch fault remains open.
+
+## 2026-08-09: route-preservation fix deployed to production
+
+The validated implementation was committed as `1ebd14f`. Its test harness
+then received a native Termux fallback: `a12d9f4` retains the owning argument
+file object and uses `TemporaryFile` when `os.memfd_create` is unavailable.
+Commit `a1d8f61` makes the C wrapper honor Termux's `TMPDIR` when it creates its
+replacement argument stream. A focused `deja` query for the Termux
+`TMPDIR`/Bubblewrap wrapper case returned no indexed match, so no prior-session
+implementation was reused.
+
+Steam was stopped through its own shutdown path before production files were
+changed. The old outer PRoot PID 28801 and Steam PID 28808 both exited. The
+pre-deployment state and the two guarded installer passes are preserved at:
+
+```text
+/data/data/com.termux/files/home/steam-arm64/backups/20260809-before-pressure-vessel-route-deploy.zCJzqG
+/data/data/com.termux/files/home/steam-arm64/backups/repo-install-20260809-074455
+/data/data/com.termux/files/home/steam-arm64/backups/repo-install-20260809-075057
+```
+
+The previous production source tree was retained, not deleted, at:
+
+```text
+/data/data/com.termux/files/home/steam-arm64/src/proot-production-old-ba3282b-20260809
+```
+
+The freshly built and stamped tree was promoted to
+`~/steam-arm64/src/proot-production`. The live executable and installed route
+wrapper match the validated artifacts exactly:
+
+```text
+production PRoot SHA-256  0378e0631dbf7a8bd0061b54fc167bb881c70a76109f567b682f7262a063166c
+route wrapper SHA-256     6ba0a5f0ed955439efb220ea64d267b96cc3f6a1e7ee390f17be175990c39f7a
+```
+
+Steam restarted successfully under outer PRoot PID 13620 and Steam PID 13625.
+Live environment inspection recorded the complete route-injection chain:
+
+```text
+PRESSURE_VESSEL_BWRAP=/data/data/com.termux/files/home/steam-arm64/compat-bin/steam-arm64-bwrap-route
+STEAM_ARM64_REAL_BWRAP=/data/data/com.termux/files/home/steam-arm64/runtime/SteamLinuxRuntime_4-arm64/pressure-vessel/libexec/steam-runtime-tools-0/srt-bwrap
+STEAM_ARM64_PROC_NET=/data/data/com.termux/files/home/steam-arm64/config/proc-net
+```
+
+At 14:46:33, the new session registered
+`steamlinuxruntime_4_arm64_official` and `proton_11_arm64_official` and retained
+Burnout App ID 1238080's explicit priority-250 mapping to
+`proton_11_arm64_official`. The live outcomes after the compatibility scan are
+recorded in the following checkpoint.
+
+## 2026-08-09: live EA route breakthrough and Burnout pre-render stall
+
+Steam's second cache-off pass completed at 15:15:49:
+
+```text
+Recording non-user mapping for 1238080 at priority 100 to tool proton-experimental
+Skip mapping AppID 1238080 to tool "proton-experimental" with priority 100:
+  mapping to tool "proton_11_arm64_official" with priority 250 already exists.
+CCacheOffSteamPlayStateJob 9249030437168336014 complete
+```
+
+The next real launch used the intended artifacts throughout:
+
+```text
+SteamLinuxRuntime_4-arm64/_v2-entry-point --verb=waitforexitandrun
+Proton 11.0 (ARM64)/proton waitforexitandrun
+link2ea://launchgame/1238080?platform=steam&theme=bprm
+```
+
+It did not reference conventional Proton Experimental or the x86-64 Runtime 4.
+The still-active launch options were intentionally diagnostic:
+
+```text
+PROTON_USE_WINED3D=1 PRESSURE_VESSEL_REMOVE_GAME_OVERLAY=1 %command%
+```
+
+The production route fix cleared the previous EA offline state. EA logged HTTP
+successes, entered its online application state, authenticated through Steam,
+linked the account, found the Burnout offer, accepted the external launch
+action, connected its local service, and reported Link2EA launch success.
+Strings naming `offlineAwaitingAuth` were state-machine definitions; the live
+transition count was zero. The visible EA frontend nevertheless showed a
+network-load error after its SPA load stalled. CEF subsequently logged frame
+connection timeouts, a network-service crash/restart, renderer termination as
+`PROCESS_CRASHED`, aborted page loads, and repeated GPU-process failures. At the
+same time, the background service remained network-online, maintained websocket
+traffic, and received later HTTP 200 replies. No certificate, SSL, or TLS error
+was logged. The best-supported classification is a CEF renderer/GPU and IPC
+starvation failure, not failure of the preserved network route.
+
+`BurnoutPR.exe --reactivate` then appeared for the first time. Process mappings
+proved Proton's bundled ARM64 WoW64/FEX path through
+`aarch64-windows/libwow64fex.dll`. EA reported the game running and
+`FirstPartyLoaderReady`, but X11 never acquired a managed Burnout gameplay
+window. The sampled Burnout processes remained in activation/protected startup:
+`Core/Activation.dll` and the EA activation/IGO logs were open, while no movie
+asset or game `d3d9`, `d3d11`, or WineD3D renderer module was mapped. This does
+not support a `-skipvideos` change yet.
+
+The later FEX-hosted Burnout process produced 59,989 repeated signal-7/SIGBUS
+records in `[anon:FEXMemJIT]` in the Steam session log and consumed enough CPU
+to make Steam and touch input unresponsive. These records are handled guest
+fault traffic, not 59,989 process crashes: both Burnout processes and affected
+EA/CEF components continued running after many such records. Steam subsequently
+asserted that its main loop had stalled for more than 15 seconds and exited on:
+
+```text
+src/common/pipes.cpp (900) : fatal stalled cross-thread pipe.
+```
+
+The gameprocess log did not receive a normal tracked-process removal for this
+final attempt. The game container supervisor was sent standard `SIGTERM`; all
+Burnout, EA, Wine, Steam, and outer-PRoot processes were subsequently absent,
+but the logs do not identify the exact initiator of the whole-session exit. No
+`SIGKILL` was used, and no game, prefix, credential, Mesa, or Steam data was
+deleted. A full-resolution post-teardown screenshot had SHA-256
+`00010e0eef41c19f56e5dd0194fa68ad2ab1b2d3bb53c6a1dcad9486dc2dba91`
+and showed the intact KDE desktop with no Steam, EA, or Burnout surface.
+
+This checkpoint proves the official ARM64 runtime/Proton/FEX launch path and
+the live EA network route. It does **not** prove rendered gameplay or the final
+DXVK/Turnip path. A focused `deja` query for this exact EA CEF/FEX failure found
+no independent prior-session match, so no recalled implementation was reused.
