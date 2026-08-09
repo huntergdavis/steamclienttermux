@@ -125,6 +125,14 @@ client binaries, games, Proton payloads, credentials, or Mesa binaries.
   the final Turnip/DXVK solution. The test was stopped through Steam, all EA and
   Wine processes exited, Steam returned to **PLAY**, and launch options were
   restored to `PRESSURE_VESSEL_REMOVE_GAME_OVERLAY=1 %command%` only.
+- A credential-free native ARM64 Windows probe isolated the EA offline state
+  to Android's protected `/proc/net/route`. Proton Wine maps that read failure
+  to `GetAdaptersAddresses` error 50, so Network List Manager reports
+  disconnected even though unicast addresses and HTTPS work. With a measured,
+  read-only route shadow bound at `/proc/net`, the same probe changes from zero
+  adapters/NLM disconnected to three adapters/NLM IPv4 Internet. The launcher
+  now prepares that shadow from validated tablet network data. A canonical EA
+  retest with this new outer PRoot bind is still required.
 - Every X11 evidence capture now uses a stable, validated window and a short
   timeout. A previous unbounded ImageMagick helper demonstrated that a stale X
   server grab can invalidate an EA launch attempt.
@@ -155,6 +163,8 @@ installer.
 
 - `bin/steam-arm` — isolated launcher used on the tablet.
 - `bin/patch-steam-network-ui.sh` — version-specific Steam UI API guard.
+- `bin/prepare-proc-net-shadow.sh` — validates the active Termux network and
+  prepares the minimal route snapshot required by Wine's IP Helper APIs.
 - `bin/lsof` — narrowly scoped Android `/proc/net` compatibility shim.
 - `config/steam-arm64-compatibilitytools.vdf.in` — local registrations for the
   official ARM64 Proton and runtime payloads.
@@ -170,6 +180,10 @@ installer.
 - `scripts/run-ea-link2ea-direct.sh` — guarded diagnostic that runs the
   installed Link2EA URI through official ARM Runtime 4 and Proton; it refuses
   to collide with an active wineserver and is not a replacement game launcher.
+- `scripts/build-win-network-status-probe.sh` and
+  `diagnostics/win-network-status-probe.c` — build the credential-free ARM64
+  Windows probe used to compare Wine IP Helper/NLM behavior with and without
+  the Android route shadow.
 - `scripts/install-project-files.sh` — installs only this project's files.
 - `scripts/inventory.sh` and `scripts/verify-gpu.sh` — diagnostics.
 - `docs/TECHNICAL_LOG.md` — chronological fault/fix record.

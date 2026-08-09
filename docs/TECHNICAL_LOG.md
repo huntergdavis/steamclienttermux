@@ -1188,3 +1188,114 @@ WineD3D is a diagnostic isolator, not the desired renderer. The final path
 must still return to official ARM DXVK plus Turnip after the ARM64EC dispatch
 defect is fixed. A focused `deja` query for the EA offline/external-action
 state returned no reusable session, so no cross-session workaround was used.
+
+## 2026-08-09: Android route visibility makes Wine report offline
+
+A focused `deja` query for Android `/proc/net/route`, Wine IP Helper, and NLM
+returned no reusable session. The next diagnosis therefore used a new,
+credential-free Windows ARM64 probe in a scratch Proton prefix, not EA's live
+prefix or verbose authenticated logs.
+
+Static inspection first narrowed EADesktop's imports. It imports synchronous
+`GetBestRoute2`, `GetUnicastIpAddressTable`, `FreeMibTable`, and
+`GetAdaptersAddresses` from IP Helper, plus `CoCreateInstance`, and contains a
+`NetworkListManager` system-connectivity checker. It does not statically import
+or contain the names of the newer connectivity-hint notification APIs.
+
+The probe is a freestanding COFF-ARM64 console executable built on the tablet
+with Termux Clang, `llvm-dlltool`, and `lld-link`. It imports only Kernel32 and
+Ole32; IP Helper, WinINet, and their optional entry points are resolved at
+runtime. The canonical executable is:
+
+```text
+~/steam-arm64/diagnostics/network-api-probe/build/win-network-status-probe.exe
+SHA-256 796e883f0398176e78073cbdc4d7c3f9f8a65544a1b0887821ef37c32c3dd101
+scratch prefix version 11.0-100
+```
+
+Without a route workaround, official Proton 11 ARM64 returned:
+
+```text
+GetAdaptersAddresses flags 0       -> 50, zero adapters
+GetAdaptersAddresses NLM flags 8e  -> 50, zero adapters
+GetUnicastIpAddressTable           -> 0, five addresses
+InternetGetConnectedState          -> false, flags 0
+NLM create/query HRESULTs          -> S_OK
+NLM connected / Internet           -> false / false
+NLM connectivity                   -> 0x00000000
+NotifyIpInterfaceChange(TRUE)      -> success, null handle, zero callbacks
+NotifyUnicastIpAddressChange(TRUE) -> success, null handle, one callback
+```
+
+The complete numeric transcript is
+`~/steam-arm64/diagnostics/network-api-probe/network-probe-no-route.log`,
+SHA-256
+`5b66195dc2e21e5cdbfdae9198e5c351cb86d3987847a7dceedc773ca8f31ccb`.
+The narrow `+iphlpapi,+nsi,+netprofm` trace is
+`network-probe-api-trace.log`, SHA-256
+`98661bee5dbcd55727e56367c92663aee6cef794897f7a9889a759355e0b2c7f`.
+
+The trace and Valve's Proton 11 Wine source establish the exact failure chain:
+
+1. Android denies the Termux UID access to `/proc/net/route`; a Debian PRoot
+   read also returns `Permission denied`. Netlink route dumps are denied too.
+2. Wine's `ipv4_forward_enumerate_all()` returns `STATUS_NOT_SUPPORTED` when
+   it cannot open that file.
+3. `gateway_and_prefix_addresses_alloc()` propagates the error, so
+   `GetAdaptersAddresses()` aborts with Windows error 50 even when gateways
+   were not requested.
+4. Proton's `netprofm` calls `GetAdaptersAddresses()` with flags `0x8e`. With
+   no returned adapters, Network List Manager has no connected network and
+   reports connectivity zero.
+
+Relevant Proton 11 source:
+
+- <https://github.com/ValveSoftware/wine/blob/proton_11.0/dlls/nsiproxy.sys/ip.c>
+- <https://github.com/ValveSoftware/wine/blob/proton_11.0/dlls/iphlpapi/iphlpapi_main.c>
+- <https://github.com/ValveSoftware/wine/blob/proton_11.0/dlls/netprofm/list.c>
+- <https://github.com/ValveSoftware/wine/blob/proton_11.0/include/netlistmgr.idl>
+
+The real tablet route was measured without root: `ifconfig` identified
+`wlan0` at `192.168.0.215/24`, and a one-hop TTL probe received the expected
+time-exceeded response from `192.168.0.1`. A standard two-row Linux route file
+was generated from those values. Its SHA-256 is
+`4b3a3e8bed570a9f39e2bca75b86e1023e3ecded31f4efe046469b63be53c648`.
+Individual file binds at `/proc/net/route`, `/proc/self/net/route`, and
+`/proc/thread-self/net/route` did not override Android's protected proc entry
+through PRoot. Binding a private directory at `/proc/net` did.
+
+With that one directory bind, the same binary and scratch prefix returned:
+
+```text
+GetAdaptersAddresses flags 0 / 8e -> 0 / 0, three adapters each
+GetUnicastIpAddressTable          -> 0, five addresses
+InternetGetConnectedState         -> true, flags 0x12
+NLM connected / Internet          -> true / true
+NLM connectivity                  -> 0x00000060 (IPv4 local + Internet)
+```
+
+The positive-control transcript is
+`~/steam-arm64/diagnostics/network-api-probe/network-probe-with-route.log`,
+SHA-256
+`e4ce6c95207eea40e56a2a53a44edb6f83ede4bef799bec0384def10725ca28e`.
+Linux DNS and HTTPS also continued working through the synthetic directory;
+an `example.com` request returned HTTP 200.
+
+`bin/prepare-proc-net-shadow.sh` now derives the Wi-Fi IPv4 address, interface,
+netmask, and one-hop gateway, validates every component and subnet
+relationship, and atomically writes only `route` plus an empty `ipv6_route`.
+`bin/steam-arm` fails closed if the helper or files are absent and binds that
+private directory at `/proc/net`. Fully explicit environment overrides remain
+available for networks where the TTL probe is blocked. The tablet's automatic
+discovery path produced the exact positive-control hash; local fixtures also
+passed byte comparison plus off-subnet, unexpected-entry, and symlink
+rejection.
+
+This fixes the proven static Wine connectivity view. It does not fix Wine's
+separate `NotifyIpInterfaceChange` stub, which still returns success without
+the required initial callback. Microsoft documents that `InitialNotification`
+must invoke the callback immediately:
+<https://learn.microsoft.com/en-us/windows/win32/api/netioapi/nf-netioapi-notifyipinterfacechange>.
+EADesktop does not statically import that function, so it is a remaining Wine
+gap, not yet the demonstrated EA cause. A canonical Steam/EA retest after a
+necessary launcher restart is the next boundary.

@@ -13,6 +13,8 @@ arm_runtime="$base/runtime/SteamLinuxRuntime_4-arm64"
 arm_runtime_depot="$client_root/steamapps/common/SteamLinuxRuntime_4-arm64"
 compat_bin="$base/compat-bin"
 ui_patch="$base/patch-steam-network-ui.sh"
+proc_net_prep="$base/prepare-proc-net-shadow.sh"
+proc_net_shadow="$base/config/proc-net"
 steam_home="/root/steam-arm"
 custom_proot_dir="$base/src/proot-production/src"
 
@@ -56,8 +58,18 @@ if [[ ! -x "$ui_patch" ]]; then
     printf 'Steam UI compatibility patcher not found: %s\n' "$ui_patch" >&2
     exit 1
 fi
+if [[ ! -x "$proc_net_prep" ]]; then
+    printf 'Synthetic /proc/net preparer not found: %s\n' "$proc_net_prep" >&2
+    exit 1
+fi
 
 "$ui_patch"
+"$proc_net_prep" "$base"
+if [[ ! -f "$proc_net_shadow/route" ]] ||
+        [[ ! -f "$proc_net_shadow/ipv6_route" ]]; then
+    printf 'Synthetic /proc/net is incomplete: %s\n' "$proc_net_shadow" >&2
+    exit 1
+fi
 
 mkdir -p "$base/logs"
 
@@ -120,6 +132,12 @@ printf 'Starting native ARM64 Steam on DISPLAY=%s\nLog: %s\n' "$display" "$log"
 
 pd_args=(login debian --shared-tmp)
 pd_args+=(--bind "$steam_hosts:/etc/hosts")
+# Android denies the Termux UID access to /proc/net/route. Proton Wine turns
+# that denial into GetAdaptersAddresses error 50, leaving NLM disconnected even
+# while sockets work. Expose only a validated route snapshot in a private
+# /proc/net shadow; the Android-protected directory has no usable entries for
+# this process otherwise.
+pd_args+=(--bind "$proc_net_shadow:/proc/net")
 # Steam resolves Proton's numeric require_tool_appid through the installed App
 # ID directory, ignoring a local tool's alternate install_path. Overlay only
 # that expected guest directory with the prepared shadow. The official depot

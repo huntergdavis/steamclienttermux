@@ -17,6 +17,7 @@ install_one() {
 
 install_one "$repo_root/bin/steam-arm" "$HOME/bin/steam-arm" 700
 install_one "$repo_root/bin/patch-steam-network-ui.sh" "$base/patch-steam-network-ui.sh" 700
+install_one "$repo_root/bin/prepare-proc-net-shadow.sh" "$base/prepare-proc-net-shadow.sh" 700
 install_one "$repo_root/bin/lsof" "$base/compat-bin/lsof" 700
 install_one "$repo_root/config/hosts-ipv4" "$base/config/hosts-ipv4" 600
 install_one "$repo_root/config/steam-arm64-compatibilitytools.vdf.in" "$base/config/steam-arm64-compatibilitytools.vdf.in" 600
