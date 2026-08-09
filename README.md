@@ -90,6 +90,19 @@ client binaries, games, Proton payloads, credentials, or Mesa binaries.
   100.
 - Burnout's first explicitly mapped launch used the official ARM64 runtime and
   Proton commands, including the expected `link2ea://` target.
+- The production mount-stack PRoot fix clears the former shared-`/tmp` X0
+  blocker on Steam's real launch path. Official Proton 11 ARM64 reached its
+  Python entry point, created/upgraded the prefix, and started native ARM64
+  Wine plus the bundled FEX bridge. This is confirmed process and log evidence,
+  not an inference from tool registration.
+- Burnout's DirectX June 2010 prerequisite completed successfully in that
+  prefix. The remaining launch boundary is the EA App: its first install pass
+  unpacked and started the background service but rolled back after the
+  elevated installer lost its parent IPC channel (`0x800700e8`).
+- A later EA retry was invalidated by a stale ImageMagick screenshot helper
+  holding an X server grab while EA created its window. That attempt is not
+  evidence for an EA configuration workaround. Future captures must have a
+  short timeout and must never target a transient window that may disappear.
 - The ARM64 Pressure Vessel path now passes an end-to-end `/bin/true` smoke
   test with a clean, repository-built PRoot. The fixes normalize `.l2s`
   directory-entry metadata, force Pressure Vessel's copy fallback only inside
@@ -103,8 +116,9 @@ client binaries, games, Proton payloads, credentials, or Mesa binaries.
   App-ID path Steam computes, without changing the installed ARM64 depot or its
   appmanifest, and gives mutable runtime copies their own private `var`
   directory.
-- Burnout has not yet been proven on screen. The next confirmed boundary is
-  Proton/FEX startup, followed by the EA App, DXVK, and Turnip game path.
+- Burnout has not yet been proven on screen. Proton/FEX/Wine and the DirectX
+  prerequisite are now confirmed; the next boundary is completing the EA App,
+  followed by the game's DXVK and Turnip rendering path.
 
 This is a precise, continuable engineering record, not yet a one-command finished
 installer.

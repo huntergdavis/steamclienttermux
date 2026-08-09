@@ -704,3 +704,175 @@ loaded App IDs 4628740 and 4185400 as `proton_11_arm64_official` and
 `steamlinuxruntime_4_arm64_official`, and mapped Burnout App ID 1238080 to the
 ARM Proton at priority 250. The new cache job then began its known slow scan;
 Burnout was deliberately not launched while registration remained incomplete.
+
+## 2026-08-08/09: official Proton/FEX/Wine reaches the EA App
+
+Compatibility cache job `1851510475679486629` completed at 05:06:28 UTC. In
+the same second Steam posted callbacks for App ID 4185400 as
+`steamlinuxruntime_4_arm64_official`, App ID 4628740 as
+`proton_11_arm64_official`, and Burnout App ID 1238080. Steam again skipped the
+priority-100 automatic Experimental mapping because the priority-250 ARM
+mapping already existed. `~/steam-arm64/prelaunch-mountstack-v4.png` (SHA-256
+`4aebe248d100d7737ff6eba464120bde9286511086ba401d32194b0902ef3332`)
+shows the authenticated Steam Store before the single launch request.
+
+The install-script evaluator started at 05:08:11 UTC and selected the official
+ARM tool. Production PRoot v4b passed the previous X0 bind boundary and ran the
+bundled `srt-bwrap`, `pv-adverb`, official Proton Python entry point, native
+ARM64 Wine, and ARM64 wineserver. Proton upgraded the prefix to `11.0-100` and
+generated `proton-fex-config.json`. Process maps and signal telemetry identified
+both `libarm64ecfex.dll`/`libwow64fex.dll` and `[anon:FEXMemJIT]`, confirming
+the official bundled FEX path.
+
+The EA installer displayed its first-run `LET'S GO` UI. The exact visible child
+window was validated as `EA app installer`, 480x480, before its button was
+clicked. These screenshots preserve the milestone:
+
+```text
+~/steam-arm64/wine-prefix-init-v4.png
+  bed33e8043245846f10867291bbd951f1538ed13599e63d6aac0e11334b78aa3
+~/steam-arm64/ea-installer-window-v4.png
+  af0f34146d6bccf6b1dc3617a96d26080e6e5fe81f9598eff7053c595e4499a9
+~/steam-arm64/ea-after-lets-go-v4.png
+  83be20fe233cb396e307047d8e49b548b6cc579bf72bc21187fd4d7656362e5c
+```
+
+EA unpacked roughly 556 MB and invoked `EABackgroundService.exe -start`, but
+the MSI transaction rolled back. The authoritative terminal artifact is:
+
+```text
+~/steam-arm64/client/steamapps/compatdata/1238080/pfx/drive_c/users/steamuser/AppData/Local/Temp/Setup_20260809053742_Failed.txt
+SHA-256 2258a43b898517f750fad153876b68d8e31b2bda4c0f7c288f21f78e7bcdc814
+
+Error 0x800700e8: Failed to pump messages from parent process.
+Error 0x800700e8: Failed to run per-machine mode.
+```
+
+`0x800700e8` is Win32 `ERROR_NO_DATA`. The original clean-room/UI parent had
+exited about twenty minutes earlier, leaving the elevated Burn child without
+its IPC peer. The MSI log did not preserve the service return code, so this
+does not prove that EA's supported `EAX_DISABLE_SYMLINKS` option is relevant.
+No EA override was applied. The source `installScript.vdf` remains signed and
+unchanged.
+
+DirectX proceeded slowly through 154 CAB files after EA rolled back. Every
+observed helper returned zero, and `windows/Logs/DirectX.log` ended at 05:48:50
+UTC with:
+
+```text
+Installation ended with value 0 = Installation succeeded
+```
+
+The prefix registry now contains Steam's DirectX June 2010 completion marker,
+so a normal retry should not repeat that prerequisite.
+
+Steam naturally advanced into the main command at 05:52:10 UTC:
+
+```text
+SteamLinuxRuntime_4-arm64/_v2-entry-point --verb=waitforexitandrun --
+Proton 11.0 (ARM64)/proton waitforexitandrun
+link2ea://launchgame/1238080?platform=steam&theme=bprm
+```
+
+That attempt re-entered the cached EA bundle, but it was invalidated by the
+screenshot workflow rather than an EA payload failure. An earlier
+`import -window 0x4800091` remained alive after its transient target vanished.
+ImageMagick's X11 import path grabs the server until image retrieval returns;
+Termux:X11 frame telemetry stopped while that helper was stuck and resumed in
+the exact second it was terminated. See the upstream
+[`XImportImage` implementation](https://www.imagemagick.org/api/MagickCore/xwindow_8c-source.html).
+
+EA started while the server was grabbed and logged:
+
+```text
+Error 0x800703e6: Failed to create window.
+CreateDialogParam failed: File not found.
+```
+
+Its UI thread then exited, package detection completed, and both remaining EA
+processes slept indefinitely in `pipe_read`. The cached and clean-room
+installer executables were byte-identical, no new crash/failure artifact was
+created, and no EA window appeared after X11 recovered. Therefore this run is
+not evidence for changing `EAX_LAUNCH_CLIENT`, `IGNORE_INSTALLED`, symlink
+mode, or Proton settings.
+
+The recovered full desktop screenshot
+`~/steam-arm64/main-link2ea-stuck-ea.png` has SHA-256
+`4a3a26b00bda9aa24436106778a40df462022b6ed7bc904b15cd1da6f237837d`.
+The Steam-only confirmation screenshot
+`~/steam-arm64/steam-after-stop-click.png` has SHA-256
+`cc0f43276a478965024f2f3a91593a0ea8bb63a4d0698bfaaeaa2252f2f6ee5d`.
+After the exact visible Stop/Confirm controls were used, Steam removed App
+1238080 from the running list at 06:07:28 UTC; the outer tracked PID exited
+zero and every Runtime/Proton/Wine/EA child disappeared.
+
+Future X11 evidence capture must use a hard timeout and a stable target, for
+example:
+
+```sh
+timeout 12 env DISPLAY=:0 import -window <stable-window-id> output.png
+```
+
+After a timeout, verify that no `import` or capture-side `xdotool` process
+survived before allowing a new GUI process to start. Do not capture a transient
+window by ID while it may be closing.
+
+The signed Steam install script, prefix registries, active EA logs, and failure
+artifact were preserved before retry work under:
+
+```text
+~/steam-arm64/backups/20260808-2300-ea-before-retry
+```
+
+Before diagnosing the EA window failure and manifest-rescan behavior, focused
+`deja` queries returned no indexed matches. No prior-session solution was
+reused.
+
+## 2026-08-08: avoid registry rebuilds for unchanged ARM manifests
+
+Forwarded `steam://` commands also enter `bin/steam-arm`. The launcher formerly
+rendered the ARM compatibility manifest to a temporary file and unconditionally
+replaced the destination. A navigation request at 23:05:19 PDT changed the
+manifest mtime without changing its content; Steam began compatibility cache
+job `17304496708137475581` shortly afterward.
+
+The launcher now streams the generated manifest into `cmp` first. Identical
+content creates no temporary directory entry and does not touch the destination;
+only a real content change uses a unique same-directory `mktemp` followed by an
+atomic replacement. A two-pass focused test retained the same inode and mtime,
+first-run and changed-content tests passed, and 128 concurrent publishers
+completed with exact content and no leftover temp files. `bash -n` passed, and
+ShellCheck passed after excluding the existing intentional SC2016 warning for
+the single-quoted inner PRoot script. This avoids both metadata-only
+compatibility scans and fixed-temp races between concurrent URI forwarders.
+
+The new cache job was allowed to continue; Burnout will not be launched again
+until it completes and reconfirms the priority-250 ARM mapping. The next test is
+one clean, otherwise unmodified Steam launch with no screenshot helper active
+during EA startup. A direct quiet bundle/MSI workaround remains a later option
+only if the clean run reproduces the parent-IPC failure.
+
+The reviewed launcher was deployed without executing it. Its live SHA-256 is
+`c8af1a27e6e9ed716a77bdd04021ee0fc23edad9334d06e036f63851e0bd2b26`.
+The prior launcher (SHA-256
+`548d79bfae0e5d6a87288c84ba4a13285719139d004980d212b667e8f0a706e1`)
+is preserved at:
+
+```text
+~/steam-arm64/backups/20260808-2300-ea-before-retry/steam-arm.before-manifest-idempotence
+```
+
+Cache job `17304496708137475581` then completed naturally at 06:19:17 UTC and
+again retained Burnout's priority-250 `proton_11_arm64_official` mapping over
+the priority-100 automatic Experimental entry. This incremental pass did not
+post new ARM callbacks; the retained callbacks remain those from 05:06:28 UTC,
+and live `config.vdf` plus the latest command prefixes still select the exact
+ARM64 runtime and Proton paths.
+
+A live navigation-only forwarder test at 23:20:40 PDT then exercised the
+deployed launcher without starting a game. Before and after the command, the
+manifest retained inode 717612, mtime `2026-08-08 23:05:19.512701718 -0700`,
+size 853, and SHA-256
+`051c887425acd289c225d02f6225014d63b29dc7c66f9b705bc27f3627dfcffe`.
+No new cache job appeared during the observation interval. This confirms the
+fix against a real existing-client URI forward, not only the focused harness.

@@ -146,7 +146,7 @@ pd_args+=(--env "PROOT_L2S_EXDEV_PREFIX=$PROOT_L2S_EXDEV_PREFIX")
 export PATH="$custom_proot_dir:$PATH"
 
 proot-distro "${pd_args[@]}" -- /bin/bash -lc '
-    set -e
+    set -eo pipefail
     mkdir -p "$1/.steam" "$6/compatibilitytools.d/steam-arm64-official" /tmp/steam-runtime
     ln -sfn "$6" "$1/.steam/steam"
     # The ARM client refers to these through the traditional $HOME/.steam
@@ -162,8 +162,19 @@ proot-distro "${pd_args[@]}" -- /bin/bash -lc '
     # The template gives them explicit local keys and preserves their App IDs
     # so the require_tool_appid=4185400 dependency resolves to ARM64.
     arm_compat_manifest="$6/compatibilitytools.d/steam-arm64-official/compatibilitytool.vdf"
-    sed "s|@CLIENT_ROOT@|$6|g" "$8" >"$arm_compat_manifest.tmp"
-    mv "$arm_compat_manifest.tmp" "$arm_compat_manifest"
+    # Forwarded steam:// commands also enter this launcher. Avoid replacing an
+    # identical manifest: changing only its mtime makes Steam rebuild the
+    # compatibility-tool registry, which is exceptionally slow through PRoot.
+    if sed "s|@CLIENT_ROOT@|$6|g" "$8" | cmp -s - "$arm_compat_manifest"; then
+        :
+    else
+        arm_compat_manifest_tmp="$(mktemp "$arm_compat_manifest.tmp.XXXXXX")"
+        if ! sed "s|@CLIENT_ROOT@|$6|g" "$8" >"$arm_compat_manifest_tmp"; then
+            unlink -- "$arm_compat_manifest_tmp"
+            exit 1
+        fi
+        mv "$arm_compat_manifest_tmp" "$arm_compat_manifest"
+    fi
     chmod 700 /tmp/steam-runtime
     export HOME="$1"
     export DISPLAY="$2"
