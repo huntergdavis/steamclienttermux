@@ -656,7 +656,8 @@ The isolated v4b build remains pinned to PRoot commit
 `a89b3732ec6ae1db674510f0843b2f3db54d0a2f`. Its provenance is:
 
 ```text
-source tree:          ~/steam-arm64/src/mountstack-v4b-20260808-212006
+artifact root:        ~/steam-arm64/src/mountstack-v4b-20260808-212006
+source tree:          ~/steam-arm64/src/mountstack-v4b-20260808-212006/worktree
 patch input SHA-256:  263d3db02e03ab90163d5080b26a806c4851af8c554ef33c81b57b2911a64ca9
 probe SHA-256:        8d5e7ac5881c03585dbe69a18385c0dbe3f7a9c2fbeacc11564372338116a52a
 patch-set SHA-256:    fa72be34b4317763eb6c7f0eeb048a475eb6be5a1ef33d1bc9d57cb174f71258
@@ -672,3 +673,34 @@ only the expected guarded `EXDEV` copy warnings and no unexpected missing-path,
 permission, segmentation, fatal, or `E:` errors. The production binary remains
 v3 hash `c9ae8f9611b1009568ac18a8d83695440306e25e0f0b4223d09bf821ca2d6a53`
 until a guarded deployment, Steam remained alive, and 26 GB remained free.
+
+The guarded production deployment then shut Steam down through its own
+forwarder and observed a natural exit. The shutdown transcript is
+`~/steam-arm64/logs/shutdown-before-mountstack-v4-20260808-213614.log`. The
+complete v3 tree was preserved by atomic rename at:
+
+```text
+~/steam-arm64/backups/20260808-2136-before-mountstack-v4/proot-production-v3
+```
+
+The validated v4b tree was promoted to
+`~/steam-arm64/src/proot-production`, retaining the isolated candidate
+artifact. The promoted patch-set, source-diff, and binary hashes exactly match
+the provenance above. Steam restarted through
+`~/steam-arm64/logs/restart-mountstack-v4-20260808-213713.log`; its new session
+log is `~/steam-arm64/logs/steam-20260808-213715.log`. Live process inspection
+found Steam PID 17522 under outer PRoot PID 17515, and `/proc/17515/exe` has
+the expected v4b binary SHA-256
+`981c304c7cf156ea7f7068fc2d3ed781aef1d2514c5d128b0ce0b57d52ad47ca`.
+The runtime shadow bind and guarded `PROOT_L2S_EXDEV_PREFIX` also remained
+exactly as configured.
+
+The post-restart screenshot
+`~/steam-arm64/post-mountstack-v4-restart.png` (SHA-256
+`2b3c7e8962c2a2ac4291c7a3063893c582d948f4a1acce68a3618837c1e61020`)
+shows KDE responsive and Steam at `Loading user data...`, with no crash dialog
+or game window. Before the new cache rebuild began, `compat_log.txt` again
+loaded App IDs 4628740 and 4185400 as `proton_11_arm64_official` and
+`steamlinuxruntime_4_arm64_official`, and mapped Burnout App ID 1238080 to the
+ARM Proton at priority 250. The new cache job then began its known slow scan;
+Burnout was deliberately not launched while registration remained incomplete.
