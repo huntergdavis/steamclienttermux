@@ -15,8 +15,14 @@ compat_bin="$base/compat-bin"
 ui_patch="$base/patch-steam-network-ui.sh"
 proc_net_prep="$base/prepare-proc-net-shadow.sh"
 proc_net_shadow="$base/config/proc-net"
+pressure_vessel_bwrap="$base/compat-bin/steam-arm64-bwrap-route"
+real_pressure_vessel_bwrap="$arm_runtime/pressure-vessel/libexec/steam-runtime-tools-0/srt-bwrap"
 steam_home="/root/steam-arm"
 custom_proot_dir="$base/src/proot-production/src"
+proot_patch_stamp="$base/src/proot-production/.steamclienttermux-patchset"
+required_proot_patch="proot-runtime-directory-bind-target.patch"
+
+command -v sha256sum >/dev/null || { echo 'sha256sum is required' >&2; exit 1; }
 
 if [[ ! -x "$client/steam" ]]; then
     printf 'Steam ARM64 executable not found: %s\n' "$client/steam" >&2
@@ -50,6 +56,22 @@ if [[ ! -x "$custom_proot_dir/proot" ]]; then
     printf 'Run scripts/build-proot.sh before starting Steam.\n' >&2
     exit 1
 fi
+if [[ ! -f "$proot_patch_stamp" ]] ||
+        ! sed -n 's/^patches=//p' "$proot_patch_stamp" |
+        tr ' ' '\n' | grep -Fxq "$required_proot_patch"; then
+    printf 'Production PRoot lacks required patch: %s\n' \
+        "$required_proot_patch" >&2
+    printf 'Rebuild and deploy PRoot before starting Steam.\n' >&2
+    exit 1
+fi
+stamped_proot="$(sed -n 's/^proot_sha256=//p' "$proot_patch_stamp")"
+if [[ ! "$stamped_proot" =~ ^[0-9a-f]{64}$ ]] ||
+        [[ "$(sha256sum "$custom_proot_dir/proot" | awk '{print $1}')" != "$stamped_proot" ]]; then
+    printf 'Production PRoot does not match its build stamp: %s\n' \
+        "$custom_proot_dir/proot" >&2
+    printf 'Rebuild and deploy PRoot before starting Steam.\n' >&2
+    exit 1
+fi
 if [[ ! -x "$compat_bin/lsof" ]]; then
     printf 'Steam compatibility lsof not found: %s\n' "$compat_bin/lsof" >&2
     exit 1
@@ -60,6 +82,17 @@ if [[ ! -x "$ui_patch" ]]; then
 fi
 if [[ ! -x "$proc_net_prep" ]]; then
     printf 'Synthetic /proc/net preparer not found: %s\n' "$proc_net_prep" >&2
+    exit 1
+fi
+if [[ ! -x "$pressure_vessel_bwrap" ]]; then
+    printf 'Pressure Vessel /proc/net wrapper not found: %s\n' \
+        "$pressure_vessel_bwrap" >&2
+    printf 'Run scripts/install-project-files.sh before starting Steam.\n' >&2
+    exit 1
+fi
+if [[ ! -x "$real_pressure_vessel_bwrap" ]]; then
+    printf 'ARM64 srt-bwrap not found: %s\n' \
+        "$real_pressure_vessel_bwrap" >&2
     exit 1
 fi
 
@@ -138,6 +171,13 @@ pd_args+=(--bind "$steam_hosts:/etc/hosts")
 # /proc/net shadow; the Android-protected directory has no usable entries for
 # this process otherwise.
 pd_args+=(--bind "$proc_net_shadow:/proc/net")
+# Bubblewrap's --proc mount covers the outer bind above. Re-inject the same
+# validated directory afterward so Proton/Wine retain network-adapter state
+# inside Pressure Vessel. The matching PRoot patch keeps the literal /proc/net
+# mount point instead of dereferencing it to a process-specific PID path.
+pd_args+=(--env "PRESSURE_VESSEL_BWRAP=$pressure_vessel_bwrap")
+pd_args+=(--env "STEAM_ARM64_REAL_BWRAP=$real_pressure_vessel_bwrap")
+pd_args+=(--env "STEAM_ARM64_PROC_NET=$proc_net_shadow")
 # Steam resolves Proton's numeric require_tool_appid through the installed App
 # ID directory, ignoring a local tool's alternate install_path. Overlay only
 # that expected guest directory with the prepared shadow. The official depot

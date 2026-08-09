@@ -1299,3 +1299,94 @@ must invoke the callback immediately:
 EADesktop does not statically import that function, so it is a remaining Wine
 gap, not yet the demonstrated EA cause. A canonical Steam/EA retest after a
 necessary launcher restart is the next boundary.
+
+## 2026-08-09: route visibility preserved through Pressure Vessel
+
+The launcher's outer PRoot bind made the route shadow visible before Proton,
+but the official runtime then invoked Bubblewrap with `--proc /proc`. That
+mount covered the outer `/proc/net` directory. Re-injecting the directory after
+`--proc` exposed a second PRoot defect: emulated runtime mounts canonicalized
+the final `/proc/net` symlink to `/proc/<bubblewrap-pid>/net`. The sandbox child
+has a different PID and therefore did not see the new binding.
+
+`patches/proot-runtime-directory-bind-target.patch` changes only this mount
+case. `guest_canonicalize()` now takes an explicit final-component policy;
+`emulate_mount()` uses `lstat()` on the translated source and does not
+dereference the target's final component when the source is a directory.
+Pivot and unmount handling retain their previous dereferencing behavior. This
+matches PRoot's startup-bind semantics without preserving arbitrary covered
+mounts across a pivot.
+
+`diagnostics/pressure-vessel-route-bwrap.c` handles the other half of the
+boundary. It reads Pressure Vessel's NUL-delimited `--args` file, locates the
+end of the final `--proc /proc` pair, and inserts:
+
+```text
+--ro-bind-fd <validated-directory-fd> /proc/net
+```
+
+The wrapper opens the shadow with `O_NOFOLLOW | O_DIRECTORY`, requires a
+private current-user-owned directory, accepts exactly regular `route` and
+`ipv6_route` files with safe modes and bounded sizes, keeps the directory FD
+across `exec`, and closes the superseded argument-stream FD. Ordinary feature
+checks and invocations without `--args` pass through unchanged. Tests cover
+both `--args FD` and `--args=FD` spellings, insertion before the payload
+terminator, unsafe modes, unexpected entries, and ordinary argv passthrough.
+
+The real lifecycle regression used the isolated candidate PRoot and the exact
+installed ARM64 `srt-bwrap`. The sandbox payload could no longer access the
+source FD but still read the expected route marker from `/proc/net`, proving
+that the directory bind survives descriptor closure and the child PID change.
+The candidate and an independent reproduction build were byte-identical:
+
+```text
+PRoot SHA-256 0378e0631dbf7a8bd0061b54fc167bb881c70a76109f567b682f7262a063166c
+```
+
+The first complete Runtime/Proton probe used a new empty compatibility prefix
+and returned Windows error 2 with zero adapters. That was not a route-binding
+failure: the prefix was still running `wineboot --init` and lacked `version`,
+`config_info`, and `tracked_files`. Proton Wine opens `\\.\Nsi` before its
+adapter and unicast enumeration; the uninitialized device state made every NSI
+table unavailable.
+
+A second isolated run copied an already initialized, credential-free Proton 11
+ARM64 probe prefix, verified those three seed files, and used the candidate
+PRoot plus hardened FD wrapper through official Steam Linux Runtime 4 ARM64 and
+official Proton 11 ARM64. It completed before its 600-second guard with:
+
+```text
+/proc/net/route SHA-256             4b3a3e8bed570a9f39e2bca75b86e1023e3ecded31f4efe046469b63be53c648
+GetAdaptersAddresses flags 0 / 8e   0 / 0, three adapters each
+GetUnicastIpAddressTable            0, five rows
+InternetGetConnectedState           true, flags 0x00000012
+NLM Internet / Connected            true / true
+NLM connectivity                    0x00000060
+probe exit                           0
+```
+
+The stable transcript is:
+
+```text
+~/steam-arm64/diagnostics/network-api-probe/nested-runtime-candidate-seeded-20260809-073001/nested-runtime-network-probe.log
+SHA-256 8418407443327be9894a1c5549886e4a86e5064a956894531997b43ceda28862
+```
+
+All guarded probe processes exited, and exact checks for the fake App ID,
+scratch root, probe executable, and candidate PRoot found no residue. A focused
+`deja` search returned no matching prior implementation, so no recalled fix was
+reused.
+
+The build now records `proot_sha256` only after a successful compile. Existing
+build reuse, project-file installation, and launcher startup all fail closed if
+the executable does not match that stamp. Legacy production stamps without the
+hash are intentionally rejected, requiring a fresh verified build instead of
+an in-place source mutation.
+
+Nothing in this checkpoint has yet replaced the live production PRoot or
+restarted Steam. The next boundary is a backed-up, controlled deployment,
+graceful Steam restart, and canonical WineD3D EA retest. The live Burnout
+launch options intentionally still contain `PROTON_USE_WINED3D=1` and
+`PRESSURE_VESSEL_REMOVE_GAME_OVERLAY=1`; they must not be treated as the final
+renderer configuration. Burnout has not started, and the separate official
+DXVK ARM64EC dispatch fault remains open.

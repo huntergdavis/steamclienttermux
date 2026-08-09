@@ -19,7 +19,9 @@ patches=(
     proot-pivot-drop-stale-bindings.patch
     proot-mountinfo-escape-paths.patch
     proot-runtime-mount-stack.patch
+    proot-runtime-directory-bind-target.patch
 )
+patch_names="${patches[*]}"
 
 if [[ ! -d "$source_dir/.git" ]]; then
     mkdir -p "$(dirname "$source_dir")"
@@ -34,16 +36,33 @@ patchset_hash="$({
         sha256sum "$repo_root/patches/$patch"
     done
 } | sha256sum | awk '{print $1}')"
+write_stamp=0
+stamped_proot=""
 
 if [[ -f "$stamp" ]]; then
     stamped_commit="$(sed -n 's/^commit=//p' "$stamp")"
     stamped_patchset="$(sed -n 's/^patchset_sha256=//p' "$stamp")"
     stamped_diff="$(sed -n 's/^diff_sha256=//p' "$stamp")"
+    stamped_patches="$(sed -n 's/^patches=//p' "$stamp")"
+    stamped_proot="$(sed -n 's/^proot_sha256=//p' "$stamp")"
     current_diff="$(git -C "$source_dir" diff --binary | sha256sum | awk '{print $1}')"
     if [[ "$stamped_commit" != "$commit" ]] ||
             [[ "$stamped_patchset" != "$patchset_hash" ]] ||
-            [[ "$stamped_diff" != "$current_diff" ]]; then
+            [[ "$stamped_diff" != "$current_diff" ]] ||
+            [[ "$stamped_patches" != "$patch_names" ]] ||
+            [[ ! "$stamped_proot" =~ ^[0-9a-f]{64}$ ]]; then
         printf 'Refusing changed or stale patched source tree: %s\n' "$source_dir" >&2
+        exit 1
+    fi
+    if [[ ! -x "$source_dir/src/proot" ]]; then
+        printf 'Refusing stamped source tree without built PRoot: %s\n' \
+            "$source_dir/src/proot" >&2
+        exit 1
+    fi
+    current_proot="$(sha256sum "$source_dir/src/proot" | awk '{print $1}')"
+    if [[ "$current_proot" != "$stamped_proot" ]]; then
+        printf 'Refusing changed PRoot binary in stamped source tree: %s\n' \
+            "$source_dir/src/proot" >&2
         exit 1
     fi
     printf 'Verified existing patch set: %s\n' "$patchset_hash"
@@ -58,10 +77,36 @@ else
         git -C "$source_dir" apply "$repo_root/patches/$patch"
     done
     current_diff="$(git -C "$source_dir" diff --binary | sha256sum | awk '{print $1}')"
-    printf 'commit=%s\npatchset_sha256=%s\ndiff_sha256=%s\n' \
-        "$commit" "$patchset_hash" "$current_diff" >"$stamp"
+    write_stamp=1
 fi
 make -C "$source_dir/src" clean
 make -C "$source_dir/src" -j"$(nproc)" PROOT_WITH_LIBANDROID_SHMEM=1
+
+built_proot="$source_dir/src/proot"
+if [[ ! -x "$built_proot" ]]; then
+    printf 'Build did not produce an executable PRoot: %s\n' "$built_proot" >&2
+    exit 1
+fi
+built_proot_hash="$(sha256sum "$built_proot" | awk '{print $1}')"
+if (( write_stamp )); then
+    stamp_tmp="$(mktemp "$stamp.tmp.XXXXXX")"
+    cleanup_stamp_tmp() {
+        if [[ -n "${stamp_tmp:-}" ]] && [[ -f "$stamp_tmp" ]] &&
+                [[ ! -L "$stamp_tmp" ]]; then
+            unlink -- "$stamp_tmp"
+        fi
+    }
+    trap cleanup_stamp_tmp EXIT
+    printf 'commit=%s\npatchset_sha256=%s\ndiff_sha256=%s\npatches=%s\nproot_sha256=%s\n' \
+        "$commit" "$patchset_hash" "$current_diff" "$patch_names" \
+        "$built_proot_hash" >"$stamp_tmp"
+    mv -- "$stamp_tmp" "$stamp"
+    stamp_tmp=""
+    trap - EXIT
+elif [[ "$built_proot_hash" != "$stamped_proot" ]]; then
+    printf 'Refusing non-deterministic rebuilt PRoot: expected %s, got %s\n' \
+        "$stamped_proot" "$built_proot_hash" >&2
+    exit 1
+fi
 
 printf 'Built patched PRoot: %s\n' "$source_dir/src/proot"

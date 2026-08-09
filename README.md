@@ -123,16 +123,29 @@ client binaries, games, Proton payloads, credentials, or Mesa binaries.
   though Linux-side DNS/TLS requests to the same EA endpoints succeeded. No EA
   window or `BurnoutPR.exe` has appeared. WineD3D is diagnostic isolation, not
   the final Turnip/DXVK solution. The test was stopped through Steam, all EA and
-  Wine processes exited, Steam returned to **PLAY**, and launch options were
-  restored to `PRESSURE_VESSEL_REMOVE_GAME_OVERLAY=1 %command%` only.
+  Wine processes exited, and Steam itself remained healthy. The current live
+  launch options deliberately retain `PROTON_USE_WINED3D=1` plus
+  `PRESSURE_VESSEL_REMOVE_GAME_OVERLAY=1` for the controlled network retest.
 - A credential-free native ARM64 Windows probe isolated the EA offline state
   to Android's protected `/proc/net/route`. Proton Wine maps that read failure
   to `GetAdaptersAddresses` error 50, so Network List Manager reports
   disconnected even though unicast addresses and HTTPS work. With a measured,
   read-only route shadow bound at `/proc/net`, the same probe changes from zero
   adapters/NLM disconnected to three adapters/NLM IPv4 Internet. The launcher
-  now prepares that shadow from validated tablet network data. A canonical EA
-  retest with this new outer PRoot bind is still required.
+  prepares that shadow from validated tablet network data.
+- Pressure Vessel's `--proc /proc` covers the launcher's outer `/proc/net`
+  bind. A narrow wrapper now validates and opens the private shadow, inserts an
+  `srt-bwrap --ro-bind-fd` immediately after the final proc mount, and passes
+  all other arguments through. A matching PRoot correction preserves the
+  literal target of directory mounts instead of resolving `/proc/net` to a
+  Bubblewrap-process-specific `/proc/<pid>/net` path.
+- An isolated end-to-end probe using the corrected PRoot, hardened wrapper,
+  official Steam Linux Runtime 4 ARM64, official Proton 11 ARM64, and an
+  initialized credential-free prefix returned three adapters, five unicast
+  rows, WinINet connected flags `0x12`, and NLM IPv4 local/Internet
+  connectivity `0x60`. This proves the network fix across the actual container
+  boundary. It has not yet been deployed to the live launcher or tested with
+  EA Desktop.
 - Every X11 evidence capture now uses a stable, validated window and a short
   timeout. A previous unbounded ImageMagick helper demonstrated that a stale X
   server grab can invalidate an EA launch attempt.
@@ -153,8 +166,10 @@ client binaries, games, Proton payloads, credentials, or Mesa binaries.
 - Burnout has not yet been proven on screen. Proton/FEX/Wine, DirectX, EA
   installation, account authentication, and prerequisites are confirmed. The
   normal path is blocked by official ARM DXVK's ARM64EC dispatch; the WineD3D
-  isolation path bypasses that fault but stalls in EA's offline connectivity
-  state. The game executable and its Turnip rendering path have not started.
+  isolation path bypasses that fault, and its EA offline state now has an
+  isolated, end-to-end validated network fix awaiting controlled deployment
+  and a canonical EA retest. The game executable and its Turnip rendering path
+  have not started.
 
 This is a precise, continuable engineering record, not yet a one-command finished
 installer.
@@ -165,6 +180,9 @@ installer.
 - `bin/patch-steam-network-ui.sh` — version-specific Steam UI API guard.
 - `bin/prepare-proc-net-shadow.sh` — validates the active Termux network and
   prepares the minimal route snapshot required by Wine's IP Helper APIs.
+- `diagnostics/pressure-vessel-route-bwrap.c` — validates the route snapshot
+  and re-injects it by inherited directory FD after Pressure Vessel mounts its
+  private procfs.
 - `bin/lsof` — narrowly scoped Android `/proc/net` compatibility shim.
 - `config/steam-arm64-compatibilitytools.vdf.in` — local registrations for the
   official ARM64 Proton and runtime payloads.
@@ -173,6 +191,8 @@ installer.
   `patches/proot-runtime-*.patch` — focused Pressure Vessel/Bubblewrap
   compatibility fixes.
 - `scripts/build-proot.sh` — reproducibly rebuilds patched PRoot.
+- `scripts/probe-proot-bwrap-proc-net-bind.sh` — proves the real PRoot and
+  `srt-bwrap --ro-bind-fd` lifecycle across a sandbox child process.
 - `scripts/probe-proot-bwrap-*.sh` — bundled ARM64 Bubblewrap regression
   probes for spaced paths and shared-`/tmp` mount underlays.
 - `scripts/prepare-arm64-runtime-shadow.sh` — non-destructively prepares the

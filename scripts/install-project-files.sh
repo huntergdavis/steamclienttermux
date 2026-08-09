@@ -5,6 +5,32 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 base="$HOME/steam-arm64"
 stamp="$(date +%Y%m%d-%H%M%S)"
 backup="$base/backups/repo-install-$stamp"
+proot_patch_stamp="$base/src/proot-production/.steamclienttermux-patchset"
+proot_binary="$base/src/proot-production/src/proot"
+required_proot_patch="proot-runtime-directory-bind-target.patch"
+
+command -v sha256sum >/dev/null || { echo 'sha256sum is required' >&2; exit 1; }
+
+if [[ ! -f "$proot_patch_stamp" ]] ||
+        ! sed -n 's/^patches=//p' "$proot_patch_stamp" |
+        tr ' ' '\n' | grep -Fxq "$required_proot_patch"; then
+    printf 'Refusing install: production PRoot lacks %s\n' \
+        "$required_proot_patch" >&2
+    printf 'Build and deploy the repository PRoot patch set first.\n' >&2
+    exit 1
+fi
+if [[ ! -x "$proot_binary" ]]; then
+    printf 'Refusing install: production PRoot is not executable: %s\n' \
+        "$proot_binary" >&2
+    exit 1
+fi
+stamped_proot="$(sed -n 's/^proot_sha256=//p' "$proot_patch_stamp")"
+if [[ ! "$stamped_proot" =~ ^[0-9a-f]{64}$ ]] ||
+        [[ "$(sha256sum "$proot_binary" | awk '{print $1}')" != "$stamped_proot" ]]; then
+    printf 'Refusing install: production PRoot does not match its build stamp: %s\n' \
+        "$proot_binary" >&2
+    exit 1
+fi
 
 install_one() {
     local source="$1" destination="$2" mode="$3"
@@ -15,10 +41,27 @@ install_one() {
     install -m "$mode" "$source" "$destination"
 }
 
+wrapper_stage="$(mktemp "${TMPDIR:-$PREFIX/tmp}/steam-arm64-bwrap-route.XXXXXX")"
+cleanup_wrapper_stage() {
+    if [[ -n "$wrapper_stage" ]] && [[ -f "$wrapper_stage" ]] &&
+            [[ ! -L "$wrapper_stage" ]]; then
+        unlink -- "$wrapper_stage"
+    fi
+}
+trap cleanup_wrapper_stage EXIT
+"${CC:-cc}" -std=c11 -O2 -Wall -Wextra -Werror \
+    "$repo_root/diagnostics/pressure-vessel-route-bwrap.c" \
+    -o "$wrapper_stage"
+
 install_one "$repo_root/bin/steam-arm" "$HOME/bin/steam-arm" 700
 install_one "$repo_root/bin/patch-steam-network-ui.sh" "$base/patch-steam-network-ui.sh" 700
 install_one "$repo_root/bin/prepare-proc-net-shadow.sh" "$base/prepare-proc-net-shadow.sh" 700
 install_one "$repo_root/bin/lsof" "$base/compat-bin/lsof" 700
+install_one "$wrapper_stage" "$base/compat-bin/steam-arm64-bwrap-route" 700
+unlink -- "$wrapper_stage"
+wrapper_stage=""
+trap - EXIT
+
 install_one "$repo_root/config/hosts-ipv4" "$base/config/hosts-ipv4" 600
 install_one "$repo_root/config/steam-arm64-compatibilitytools.vdf.in" "$base/config/steam-arm64-compatibilitytools.vdf.in" 600
 install_one "$repo_root/desktop/steam-arm.desktop" "$HOME/.local/share/applications/steam-arm.desktop" 600
