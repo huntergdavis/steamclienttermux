@@ -230,8 +230,24 @@ validate_proc_net (const char *path)
 static int
 create_args_fd (void)
 {
-  char temporary[] = "/tmp/steam-arm64-bwrap-args.XXXXXX";
-  int fd = mkstemp (temporary);
+  const char *tmpdir = getenv ("TMPDIR");
+  char temporary[PATH_MAX];
+  size_t tmpdir_length;
+  int fd;
+  int length;
+
+  if (tmpdir == NULL || tmpdir[0] != '/')
+    tmpdir = "/tmp";
+
+  tmpdir_length = strlen (tmpdir);
+  length = snprintf (temporary, sizeof (temporary),
+                     "%s%ssteam-arm64-bwrap-args.XXXXXX", tmpdir,
+                     tmpdir_length > 0 && tmpdir[tmpdir_length - 1] == '/'
+                       ? "" : "/");
+  if (length < 0 || (size_t) length >= sizeof (temporary))
+    fail ("temporary directory path is too long");
+
+  fd = mkstemp (temporary);
 
   if (fd < 0)
     fail ("cannot create replacement --args fd: %s", strerror (errno));

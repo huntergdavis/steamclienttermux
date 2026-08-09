@@ -82,6 +82,7 @@ def invoke(wrapper, proc_net, args, *, equals_form=False):
             "STEAM_ARM64_BWRAP_TEST_MOCK": "1",
             "STEAM_ARM64_PROC_NET": str(proc_net),
             "STEAM_ARM64_REAL_BWRAP": str(Path(__file__).resolve()),
+            "TMPDIR": str(proc_net.parent),
         }
     )
     wrapper_args = (
