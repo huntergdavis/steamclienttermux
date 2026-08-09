@@ -100,9 +100,12 @@ and launcher logs remain. Roughly 30 GB was free after deleted handles closed.
 
 Authentication, UI interaction, downloads, native ARM64 client execution, and
 Turnip selection are demonstrated. Windows-game execution is not yet proven.
-Next: integrate and validate an ARM64 Proton/FEX (or equivalent) guest layer,
-then test DXVK, VKD3D, audio, controller input, and a small Windows game before
-Burnout.
+The official ARM64 Proton and runtime are registered and Burnout has an explicit
+mapping. Its first correctly mapped launch reached ARM64 Pressure Vessel, whose
+metadata scan exposed a PRoot `link2symlink` inconsistency and crashed before
+Proton, Wine, FEX, the EA App, or Burnout started. Next: validate the isolated
+PRoot correction, then continue through FEX, DXVK, Turnip, audio, and controller
+initialization without speculative workarounds.
 
 ## 2026-08-08: first complete Burnout launch trace
 
@@ -193,3 +196,119 @@ difference and spent about eleven minutes extracting and reinstalling the same
 client build. After the stock file was restored, all three exact UI signatures
 were verified, the guard was reapplied, and the next start logged `Verification
 skipped` with exactly one `-noverifyfiles` argument.
+
+## 2026-08-08: registry completion and explicit Burnout mapping
+
+The corrected compatibility registry pass completed at 00:13:45 UTC on
+2026-08-09 (17:13:45 local time on 2026-08-08) and posted the two queued ARM64
+tool-registration callbacks. Steam resolved these exact command prefixes:
+
+```text
+Command prefix for tool 4185400 "Steam Linux Runtime 4.0 - Arm64" set to: "'/data/data/com.termux/files/home/steam-arm64/client/steamapps/common/SteamLinuxRuntime_4-arm64'/_v2-entry-point --verb=run -- "
+Command prefix for tool 4628740 "Proton 11.0 (ARM64)" set to: "'/data/data/com.termux/files/home/steam-arm64/client/steamapps/common/SteamLinuxRuntime_4-arm64'/_v2-entry-point --verb=run -- '/data/data/com.termux/files/home/steam-arm64/client/steamapps/common/Proton 11.0 (ARM64)'/proton run "
+```
+
+This confirms that the ARM Proton tool depends on
+`SteamLinuxRuntime_4-arm64`; neither prefix uses conventional Proton
+Experimental or the x86-64 `SteamLinuxRuntime_4` directory.
+
+The UI remained on its loading spinner after registry completion, and opening
+the Burnout Properties URI did not render a usable dialog. Steam was shut down
+before the fallback edit. The live configuration files were preserved under:
+
+```text
+~/steam-arm64/backups/20260808-172147-post-shutdown-before-burnout-arm-mapping
+```
+
+With Steam offline, `~/steam-arm64/client/config/config.vdf` received this
+standard explicit entry under
+`InstallConfigStore/Software/Valve/Steam/CompatToolMapping`:
+
+```text
+"1238080"
+{
+	"name"      "proton_11_arm64_official"
+	"config"    ""
+	"priority"  "250"
+}
+```
+
+The next startup log accepted the edit at 00:34:35 UTC, recording Burnout App
+ID 1238080 mapped to `proton_11_arm64_official` at priority 250. This proves the
+explicit selection was loaded. The two queued compatibility cache passes then
+completed at 00:48:03 UTC. Steam explicitly skipped its automatic priority-100
+`proton-experimental` mapping because the priority-250 ARM64 mapping already
+existed.
+
+Screenshot capture also needs a bounded runtime in this environment:
+
+```sh
+timeout 40s proot-distro login debian --shared-tmp -- /bin/bash -lc \
+  'DISPLAY=:0 import -window root /data/data/com.termux/files/home/steam-arm64/current-screen.png'
+```
+
+An unbounded capture left an orphaned `import`/PRoot process. That process
+blocked the Steam updater handoff until it was identified and terminated. The
+timeout prevents a future capture from silently holding the startup sequence
+open.
+
+## 2026-08-08: first official ARM64 Proton launch and Pressure Vessel crash
+
+Burnout was launched through `steam://rungameid/1238080` at 17:50:57 local
+time. Both the install-script evaluator and the game-process log selected
+`proton_11_arm64_official`. The actual game command began with:
+
+```text
+SteamLinuxRuntime_4-arm64/_v2-entry-point --verb=waitforexitandrun --
+Proton 11.0 (ARM64)/proton waitforexitandrun
+link2ea://launchgame/1238080?platform=steam&theme=bprm
+```
+
+There was no reference to conventional Proton Experimental or the x86-64
+`SteamLinuxRuntime_4` directory. This confirms the registry and explicit
+mapping work. It does not yet prove Proton itself runs: the ARM64
+`pressure-vessel-wrap` process received `SIGSEGV` before Proton, FEX, Wine, the
+EA App, or Burnout appeared in the process tree. Steam recovered to the Burnout
+library page with its green Play button.
+
+Both the evaluator and game crashes had the same symbolized signature in the
+runtime's bundled GLib 2.66.8:
+
+```text
+instruction offset 0x41390: g_str_hash+0
+link-register offset 0x3fce4: g_hash_table_lookup_extended
+fault address: 0x0
+```
+
+The matching Pressure Vessel 0.20260714.0 source explains the null key. During
+runtime cleanup, `pv_runtime_remove_overridden_libraries()` trusts a directory
+entry reported as `DT_LNK`, ignores failure from its following `readlinkat`, and
+passes the resulting null target to a string-keyed hash lookup.
+
+The underlying inconsistency is in PRoot's `link2symlink` extension. A direct
+syscall probe on an emulated hard link showed:
+
+```text
+getdents64 d_type: DT_LNK
+guest lstat type: regular file
+guest readlink: EINVAL
+```
+
+The host file is a symlink into PRoot's `.l2s` storage, but PRoot deliberately
+presents it to the guest as a regular hard link for `stat` and `readlink`.
+`link2symlink` does not currently filter `getdents` or `getdents64`, so the raw
+host `DT_LNK` leaks through. Pressure Vessel therefore takes its symlink path
+and receives the contradictory regular-file behavior. Replacing GLib cannot
+fix this null input. The preferred fix is to make the extension report
+`DT_UNKNOWN` only for `.l2s`-backed directory entries, letting the caller query
+the already-correct guest `fstatat` result. Any modified PRoot must be built and
+validated separately before replacing the production launcher binary.
+
+Compatibility scanning was also strongly affected by Android scheduling. With
+Termux:X11 in the foreground, the Termux UID was restricted to the moderate
+cpuset on CPUs 0-3 and registry intervals took 52-54 seconds. Bringing the
+Termux activity to the foreground moved the same live Steam processes to the
+top-app cpuset on CPUs 0-7; the same intervals fell to 7-8 seconds, about a
+6.9x improvement. This is a useful non-destructive optimization for future
+nonvisual registry work; Termux:X11 must be foregrounded again for visual
+inspection.

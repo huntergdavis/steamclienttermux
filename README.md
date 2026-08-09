@@ -81,9 +81,19 @@ client binaries, games, Proton payloads, credentials, or Mesa binaries.
   tools under the Steam client root. Steam has confirmed internal keys
   `proton_11_arm64_official` and `steamlinuxruntime_4_arm64_official` for App
   IDs 4628740 and 4185400 respectively.
-- Windows game execution is not yet demonstrated end-to-end. The remaining work
-  is mapping Burnout to the registered ARM64 Proton tool and validating its
-  bundled FEX path.
+- A complete registry pass posted both ARM64 registration callbacks. Steam
+  resolved Proton 11 through `SteamLinuxRuntime_4-arm64`, not the conventional
+  x86-64 Runtime 4.
+- Burnout now has an explicit `CompatToolMapping` to
+  `proton_11_arm64_official` at priority 250. A subsequent start accepted that
+  mapping; it outranks the automatic Proton Experimental mapping at priority
+  100.
+- Burnout's first explicitly mapped launch used the official ARM64 runtime and
+  Proton commands, including the expected `link2ea://` target. It currently
+  stops in ARM64 `pressure-vessel-wrap`, before Proton/FEX starts, because
+  PRoot's hard-link emulation exposes contradictory `getdents64` and `readlink`
+  metadata. The next step is validating a narrowly scoped PRoot correction,
+  followed by the EA App, DXVK, and Turnip path.
 
 This is a precise, continuable engineering record, not yet a one-command finished
 installer.
