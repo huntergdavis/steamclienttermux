@@ -1,0 +1,17 @@
+--- a/src/syscall/enter.c
++++ b/src/syscall/enter.c
+@@ -383,6 +383,14 @@ static void emulate_pivot_root(Tracee *tracee, const char *new_root_user,
+ 			continue;
+ 		}
+ 
++		/* A same-directory pivot detaches the rest of the previous
++		 * namespace.  Keeping those bindings lets an older equal-host
++		 * entry win fd detranslation over the detached-root alias. */
++		if (same_directory_pivot) {
++			remove_binding_from_all_lists(tracee, b);
++			continue;
++		}
++
+ 		/* Everything else belonged to the previous root tree;
+ 		 * re-expose it under put_old (skipping what already sits
+ 		 * there) and keep the original in place. */

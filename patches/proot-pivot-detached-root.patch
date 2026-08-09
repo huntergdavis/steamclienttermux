@@ -1,0 +1,41 @@
+--- a/src/syscall/enter.c
++++ b/src/syscall/enter.c
+@@ -281,6 +281,7 @@ static void emulate_pivot_root(Tracee *tracee, const char *new_root_user,
+ 	char old_root_host[PATH_MAX];
+ 	Binding *root_binding;
+ 	Binding **snapshot;
++	bool same_directory_pivot;
+ 	size_t new_root_len;
+ 	size_t put_old_len = 0;
+ 	char put_old_after[PATH_MAX];
+@@ -303,6 +304,8 @@ static void emulate_pivot_root(Tracee *tracee, const char *new_root_user,
+ 	if (canonicalize(tracee, put_old_user, true, put_old_guest, 0) < 0)
+ 		return;
+ 
++	chop_finality(put_old_guest);
++	same_directory_pivot = strcmp(new_root_guest, put_old_guest) == 0;
+ 	root_binding = get_binding(tracee, GUEST, "/");
+ 	if (root_binding == NULL)
+ 		return;
+@@ -354,6 +356,21 @@ static void emulate_pivot_root(Tracee *tracee, const char *new_root_user,
+ 	(void) insort_binding3(tracee, tracee->fs, new_root_host, "/");
+ 	if (have_put_old)
+ 		(void) insort_binding3(tracee, tracee->fs, old_root_host, put_old_after);
++	else if (same_directory_pivot) {
++		char detached_alias[PATH_MAX];
++
++		/* Bubblewrap's second pivot_root(".", ".") keeps an fd for the
++		 * detached root, fchdir()s to it, and unmounts ".".  The kernel
++		 * can resolve that detached mount through the fd, but PRoot's path
++		 * emulation needs a temporary guest name for the same host path.
++		 * The following umount2(".") removes this runtime binding. */
++		if ((size_t) snprintf(detached_alias, sizeof(detached_alias),
++				      "/.proot-pivot-oldroot-%llu",
++				      (unsigned long long) tracee->vpid)
++		    < sizeof(detached_alias))
++			(void) insort_binding3(tracee, tracee->fs, old_root_host,
++					       detached_alias);
++	}
+ 
+ 	for (i = 0; i < count; i++) {
+ 		Binding *b = snapshot[i];

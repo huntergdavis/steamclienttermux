@@ -89,11 +89,20 @@ client binaries, games, Proton payloads, credentials, or Mesa binaries.
   mapping; it outranks the automatic Proton Experimental mapping at priority
   100.
 - Burnout's first explicitly mapped launch used the official ARM64 runtime and
-  Proton commands, including the expected `link2ea://` target. It currently
-  stops in ARM64 `pressure-vessel-wrap`, before Proton/FEX starts, because
-  PRoot's hard-link emulation exposes contradictory `getdents64` and `readlink`
-  metadata. The next step is validating a narrowly scoped PRoot correction,
-  followed by the EA App, DXVK, and Turnip path.
+  Proton commands, including the expected `link2ea://` target.
+- The ARM64 Pressure Vessel path now passes an end-to-end `/bin/true` smoke
+  test with a clean, repository-built PRoot. The fixes normalize `.l2s`
+  directory-entry metadata, force Pressure Vessel's copy fallback only inside
+  its private mutable-runtime prefix, preserve real symlink behavior, and
+  emulate Bubblewrap's bind/pivot sequence through its final root switch.
+- A prepared runtime shadow keeps the official App ID and platform payload but
+  supplies the hash-identical real-file ARM64 Pressure Vessel bundled in
+  conventional Runtime 4. A narrow outer PRoot bind exposes the shadow at the
+  App-ID path Steam computes, without changing the installed ARM64 depot or its
+  appmanifest, and gives mutable runtime copies their own private `var`
+  directory.
+- Burnout has not yet been proven on screen. The next confirmed boundary is
+  Proton/FEX startup, followed by the EA App, DXVK, and Turnip game path.
 
 This is a precise, continuable engineering record, not yet a one-command finished
 installer.
@@ -106,13 +115,18 @@ installer.
 - `config/steam-arm64-compatibilitytools.vdf.in` — local registrations for the
   official ARM64 Proton and runtime payloads.
 - `patches/proot-steam-android.patch` — exact custom PRoot changes.
+- `patches/proot-link2symlink-*.patch`, `patches/proot-pivot-*.patch`, and
+  `patches/proot-runtime-bind-exact-detranslate.patch` — focused Pressure
+  Vessel/Bubblewrap compatibility fixes.
 - `scripts/build-proot.sh` — reproducibly rebuilds patched PRoot.
+- `scripts/prepare-arm64-runtime-shadow.sh` — non-destructively prepares the
+  official ARM64 runtime for PRoot's mutable-runtime copy path.
 - `scripts/install-project-files.sh` — installs only this project's files.
 - `scripts/inventory.sh` and `scripts/verify-gpu.sh` — diagnostics.
 - `docs/TECHNICAL_LOG.md` — chronological fault/fix record.
 - `docs/ARCHITECTURE.md` — component and library-boundary explanation.
 - `docs/inventory/`, `docs/logs/`, and `docs/evidence/` — captured evidence.
-- `probes/` — focused C diagnostics used during PRoot IPC investigation.
+- `probes/` — focused C and Python diagnostics used during PRoot investigation.
 
 ## Observed working versions
 
@@ -130,8 +144,10 @@ installer.
 4. Build patched PRoot with `scripts/build-proot.sh`.
 5. Place compatible ARM64 Steam and private Turnip payloads in the paths listed
    in `docs/PROPRIETARY_AND_BINARY_INPUTS.md`.
-6. Run `scripts/install-project-files.sh`.
-7. Run `scripts/verify-gpu.sh`, then launch `~/bin/steam-arm` from KDE.
+6. Run `scripts/prepare-arm64-runtime-shadow.sh` after both official Runtime 4
+   depots are installed.
+7. Run `scripts/install-project-files.sh`.
+8. Run `scripts/verify-gpu.sh`, then launch `~/bin/steam-arm` from KDE.
 
 Read the technical log first. Several fixes are Android-sandbox and Steam-build
 specific.

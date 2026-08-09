@@ -1,0 +1,181 @@
+diff --git a/src/extension/link2symlink/link2symlink.c b/src/extension/link2symlink/link2symlink.c
+--- a/src/extension/link2symlink/link2symlink.c
++++ b/src/extension/link2symlink/link2symlink.c
+@@ -7,6 +7,8 @@
+ #include <errno.h>     /* E*, */
+ #include <limits.h>    /* PATH_MAX, */
+ #include <ctype.h>     /* isdigit, */
++#include <stddef.h>    /* offsetof, */
++#include <dirent.h>    /* DT_LNK, DT_UNKNOWN, */
+ 
+ #include "cli/note.h"
+ #include "extension/extension.h"
+@@ -48,6 +50,148 @@ static int my_readlink(const char symlink[PATH_MAX], char value[PATH_MAX])
+ 	return 0;
+ }
+ 
++struct l2s_linux_dirent {
++	unsigned long d_ino;
++	unsigned long d_off;
++	unsigned short d_reclen;
++	char d_name[];
++};
++
++struct l2s_linux_dirent64 {
++	unsigned long long d_ino;
++	long long d_off;
++	unsigned short d_reclen;
++	unsigned char d_type;
++	char d_name[];
++};
++
++/**
++ * Return non-zero if @name is a host symlink to link2symlink's private
++ * intermediate storage.  This inspection must remain on the host side:
++ * translating or statting the path first deliberately presents it to the
++ * guest as a regular hard link and hides the information needed here.
++ */
++static int is_link2symlink_dirent(const char directory[PATH_MAX], const char *name)
++{
++	char path[PATH_MAX];
++	char target[PATH_MAX];
++	char *component;
++	int status;
++
++	status = join_paths(2, path, directory, name);
++	if (status < 0)
++		return 0;
++
++	status = my_readlink(path, target);
++	if (status < 0)
++		return 0;
++
++	component = strrchr(target, '/');
++	if (component == NULL)
++		component = target;
++	else
++		component++;
++
++	return strncmp(component, PREFIX, strlen(PREFIX)) == 0;
++}
++
++/**
++ * link2symlink represents guest hard links as host symlinks into PREFIX
++ * storage.  stat/readlink translation hides that representation, but the raw
++ * d_type returned by getdents still says DT_LNK.  Rewrite only confirmed
++ * private entries to DT_UNKNOWN so callers perform an fstatat and observe the
++ * extension's already-correct guest regular-file type.
++ */
++static int handle_getdents_exit(Tracee *tracee)
++{
++	word_t sysnum = get_sysnum(tracee, ORIGINAL);
++	word_t result = peek_reg(tracee, CURRENT, SYSARG_RESULT);
++	word_t count = peek_reg(tracee, CURRENT, SYSARG_3);
++	word_t address = peek_reg(tracee, CURRENT, SYSARG_2);
++	char directory[PATH_MAX];
++	char *buffer;
++	size_t offset = 0;
++	int changed = 0;
++	int status;
++
++	/* Errors are encoded as large unsigned words; successful output cannot be
++	 * larger than the buffer supplied by the tracee. */
++	if (result == 0 || result > count)
++		return 0;
++
++	status = readlink_proc_pid_fd(tracee->pid,
++		(int) peek_reg(tracee, ORIGINAL, SYSARG_1), directory);
++	if (status < 0)
++		return 0;
++
++	buffer = malloc((size_t) result);
++	if (buffer == NULL)
++		return 0;
++
++	status = read_data(tracee, buffer, address, (size_t) result);
++	if (status < 0)
++		goto out;
++
++	while (offset < (size_t) result) {
++		size_t remaining = (size_t) result - offset;
++		unsigned short record_size;
++		char *name;
++		size_t name_size;
++		unsigned char *type;
++
++		if (sysnum == PR_getdents64) {
++			struct l2s_linux_dirent64 *entry;
++			size_t header_size = offsetof(struct l2s_linux_dirent64, d_name);
++
++			if (remaining < header_size + 1)
++				goto malformed;
++			entry = (struct l2s_linux_dirent64 *) (buffer + offset);
++			record_size = entry->d_reclen;
++			if (record_size < header_size + 1 || record_size > remaining)
++				goto malformed;
++			name = entry->d_name;
++			name_size = record_size - header_size;
++			type = &entry->d_type;
++		} else {
++			struct l2s_linux_dirent *entry;
++			size_t header_size = offsetof(struct l2s_linux_dirent, d_name);
++
++			if (remaining < header_size + 2)
++				goto malformed;
++			entry = (struct l2s_linux_dirent *) (buffer + offset);
++			record_size = entry->d_reclen;
++			if (record_size < header_size + 2 || record_size > remaining)
++				goto malformed;
++			name = entry->d_name;
++			name_size = record_size - header_size - 1;
++			type = (unsigned char *) entry + record_size - 1;
++		}
++
++		if (memchr(name, '\0', name_size) == NULL)
++			goto malformed;
++
++		if (*type == DT_LNK && is_link2symlink_dirent(directory, name)) {
++			*type = DT_UNKNOWN;
++			changed = 1;
++		}
++
++		offset += record_size;
++	}
++
++	if (changed)
++		status = write_data(tracee, address, buffer, (size_t) result);
++	else
++		status = 0;
++	goto out;
++
++malformed:
++	/* Leave an unexpected kernel buffer untouched. */
++	status = 0;
++out:
++	free(buffer);
++	return status;
++}
++
+ /**
+  * Move the path pointed to by @tracee's @sysarg to a new location,
+  * symlink the original path to this new one, make @tracee's @sysarg
+@@ -332,6 +476,10 @@ static int handle_sysexit_end(Tracee *tracee)
+ 
+ 	switch (sysnum) {
+ 
++	case PR_getdents:
++	case PR_getdents64:
++		return handle_getdents_exit(tracee);
++
+ 	case PR_fstatat64:                 //int fstatat(int dirfd, const char *pathname, struct stat *buf, int flags);
+ 	case PR_newfstatat:                //int fstatat(int dirfd, const char *pathname, struct stat *buf, int flags);
+ 	case PR_stat64:                    //int stat(const char *path, struct stat *buf);
+@@ -658,6 +806,8 @@ int link2symlink_callback(Extension *extension, ExtensionEvent event,
+ 	case INITIALIZATION: {
+ 		/* List of syscalls handled by this extensions.  */
+ 		static FilteredSysnum filtered_sysnums[] = {
++			{ PR_getdents,		FILTER_SYSEXIT },
++			{ PR_getdents64,	FILTER_SYSEXIT },
+ 			{ PR_link,		FILTER_SYSEXIT },
+ 			{ PR_linkat,		FILTER_SYSEXIT },
+ 			{ PR_unlink,		FILTER_SYSEXIT },

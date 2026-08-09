@@ -9,10 +9,12 @@ mesa_lib="$mesa/usr/lib/aarch64-linux-gnu"
 icd="$mesa/icd.d/freedreno-private.json"
 steam_hosts="$base/config/hosts-ipv4"
 arm_compat_template="$base/config/steam-arm64-compatibilitytools.vdf.in"
+arm_runtime="$base/runtime/SteamLinuxRuntime_4-arm64"
+arm_runtime_depot="$client_root/steamapps/common/SteamLinuxRuntime_4-arm64"
 compat_bin="$base/compat-bin"
 ui_patch="$base/patch-steam-network-ui.sh"
 steam_home="/root/steam-arm"
-custom_proot_dir="$base/src/proot-debug/src"
+custom_proot_dir="$base/src/proot-production/src"
 
 if [[ ! -x "$client/steam" ]]; then
     printf 'Steam ARM64 executable not found: %s\n' "$client/steam" >&2
@@ -28,6 +30,22 @@ if [[ ! -f "$steam_hosts" ]]; then
 fi
 if [[ ! -f "$arm_compat_template" ]]; then
     printf 'ARM64 compatibility-tool manifest template not found: %s\n' "$arm_compat_template" >&2
+    exit 1
+fi
+if [[ ! -f "$arm_runtime/.steamclienttermux-runtime-shadow" ]] ||
+        [[ ! -x "$arm_runtime/pressure-vessel/bin/pressure-vessel-wrap" ]]; then
+    printf 'Prepared ARM64 runtime shadow not found: %s\n' "$arm_runtime" >&2
+    printf 'Run scripts/prepare-arm64-runtime-shadow.sh before starting Steam.\n' >&2
+    exit 1
+fi
+if find "$arm_runtime/pressure-vessel" -type l -lname '*/.l2s/*' -print -quit |
+        grep -q .; then
+    printf 'Prepared ARM64 runtime contains unsafe .l2s links: %s\n' "$arm_runtime" >&2
+    exit 1
+fi
+if [[ ! -x "$custom_proot_dir/proot" ]]; then
+    printf 'Required patched PRoot not found: %s\n' "$custom_proot_dir/proot" >&2
+    printf 'Run scripts/build-proot.sh before starting Steam.\n' >&2
     exit 1
 fi
 if [[ ! -x "$compat_bin/lsof" ]]; then
@@ -102,6 +120,11 @@ printf 'Starting native ARM64 Steam on DISPLAY=%s\nLog: %s\n' "$display" "$log"
 
 pd_args=(login debian --shared-tmp)
 pd_args+=(--bind "$steam_hosts:/etc/hosts")
+# Steam resolves Proton's numeric require_tool_appid through the installed App
+# ID directory, ignoring a local tool's alternate install_path. Overlay only
+# that expected guest directory with the prepared shadow. The official depot
+# and appmanifest remain untouched on the host.
+pd_args+=(--bind "$arm_runtime:$arm_runtime_depot")
 pd_args+=(--env "DBUS_SESSION_BUS_ADDRESS=$dbus_address")
 if [[ -n "${PROOT_SYSVIPC_LOG:-}" ]]; then
     pd_args+=(--env "PROOT_SYSVIPC_LOG=$PROOT_SYSVIPC_LOG")
@@ -112,10 +135,15 @@ fi
 if [[ -n "${PROOT_CRASH_LOG:-}" ]]; then
     pd_args+=(--env "PROOT_CRASH_LOG=$PROOT_CRASH_LOG")
 fi
+# Pressure Vessel normally hard-links every mutable-runtime file. PRoot's
+# link2symlink representation is unsuitable as a Bubblewrap bind source, so
+# the patched PRoot returns EXDEV only for this exact private tmp- prefix and
+# lets Pressure Vessel use its normal copy fallback. Use the guest-visible
+# depot spelling; the outer bind translates it to the shadow on the host.
+export PROOT_L2S_EXDEV_PREFIX="$arm_runtime_depot/var/tmp-"
+pd_args+=(--env "PROOT_L2S_EXDEV_PREFIX=$PROOT_L2S_EXDEV_PREFIX")
 
-if [[ -x "$custom_proot_dir/proot" ]]; then
-    export PATH="$custom_proot_dir:$PATH"
-fi
+export PATH="$custom_proot_dir:$PATH"
 
 proot-distro "${pd_args[@]}" -- /bin/bash -lc '
     set -e

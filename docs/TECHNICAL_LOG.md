@@ -312,3 +312,139 @@ top-app cpuset on CPUs 0-7; the same intervals fell to 7-8 seconds, about a
 6.9x improvement. This is a useful non-destructive optimization for future
 nonvisual registry work; Termux:X11 must be foregrounded again for visual
 inspection.
+
+## 2026-08-08: complete ARM64 Runtime 4 container passes under PRoot
+
+Before implementing the Pressure Vessel fixes, two local history searches were
+run as required by the workspace instructions:
+
+```text
+deja "PRoot bubblewrap Can't bind mount bindfile newroot etc passwd Unable to find in mount table"
+deja "PRoot Bubblewrap fchdir to oldroot No such file or directory after pivot_root"
+```
+
+Neither query matched an indexed prior agent session, so no previous-session
+solution was reused. The implementation below was derived from the live traces,
+the pinned PRoot source, and Bubblewrap's matching pivot sequence in the
+[Steam Runtime Tools source](https://gitlab.steamos.cloud/steamrt/steam-runtime-tools/-/blob/v0.20260714.0/subprojects/bubblewrap/bubblewrap.c#L3039).
+
+The first fix makes the `link2symlink` extension post-process `getdents` and
+`getdents64`. A raw `DT_LNK` is changed to `DT_UNKNOWN` only when the host entry
+is confirmed to point into PRoot's private `.l2s` storage. A focused regression
+probe then produced the internally consistent results:
+
+```text
+source:   d_type=DT_UNKNOWN, lstat=regular, readlink=EINVAL
+hardlink: d_type=DT_UNKNOWN, lstat=regular, readlink=EINVAL
+symlink:  d_type=DT_LNK,     lstat=symlink, readlink=target=source
+```
+
+Pressure Vessel next encountered pseudo-hardlinks as physical bind sources
+below its emulated `/oldroot`. Final host-path canonicalization now resolves a
+confirmed `.l2s` backing path.
+
+Two separate Bubblewrap translation failures remained. Exact host bindings
+whose source is also inside the guest root were being discarded by PRoot's
+reverse binding lookup, yielding:
+
+```text
+Can't bind mount /bindfile... on /newroot/etc/passwd: Unable to find the mount point in the mount table
+```
+
+The existing safety guard is retained for descendants, but an exact binding is
+now allowed to win. Finally, Bubblewrap's second `pivot_root(".", ".")` keeps an
+fd for the detached root, calls `fchdir()` on it, detaches `.`, and changes to
+the new `/`. PRoot now gives that detached root a transient per-vpid binding
+and drops bindings belonging to the stale namespace snapshot so they cannot
+win fd detranslation over the alias. The focused fd probe prints
+`pivot-root-fd: PASS`.
+
+The first full-container smoke test exposed a validation mistake. Its narrow
+hard-link guard compared the configured guest `var/tmp-` prefix with a syscall
+argument that PRoot had already canonicalized to a host path. The command
+exited zero, but a later host-side audit showed all 136 regular Pressure Vessel
+files had been converted back into `.l2s` pseudo-links. The wrapper then failed
+to load `libjson-glib-1.0.so.0`. Guest-side `find -type f` had hidden the
+conversion because `link2symlink` intentionally presents those backing links
+as regular files. This invalidated the first smoke-test conclusion and binary:
+
+```text
+00cdd490de055ca71bbb8ec75eacc22d29f708d9221eff8bf2cf4cc9178d36ae
+```
+
+The corrected guard translates the opt-in guest prefix with PRoot's own
+`translate_path()` before comparing it with the canonicalized destination.
+The `/proc/self/fd` special case still runs first, the prefix must be absolute
+and end in `/tmp-`, and no behavior changes when the environment variable is
+absent. Pressure Vessel now receives `EXDEV` and uses its normal copy fallback.
+
+All production patches were applied to a clean checkout of Termux PRoot commit
+`a89b3732ec6ae1db674510f0843b2f3db54d0a2f` and built with
+`PROOT_WITH_LIBANDROID_SHMEM=1`. The corrected binary has SHA-256:
+
+```text
+5ec617e9177076d40bf1fd878387a419ff4fa6f7be32b1a0448a3e6fc38db8d5
+```
+
+The build script now stamps the commit, ordered patch-set hash, and complete
+source-diff hash. A second build verified the stamp instead of applying any
+patch twice. The patch-set and diff hashes were respectively:
+
+```text
+693ad81804c9c1376ff4dc9c1fa78aad1e3fe8205b48b2ee8476760c91c46179
+3e233db7b62e2494909a92fe2d902e623c58178a53285f97f29ce24836de7a02
+```
+
+A fresh isolated shadow was prepared at
+`~/steam-arm64/runtime/SteamLinuxRuntime_4-arm64-v2`. It preserves the
+installed official ARM64 runtime and its prior `var` state, while replacing
+the active Pressure Vessel tree with the hash-identical real-file ARM64 copy
+shipped in the installed conventional Runtime 4 depot. Its
+`pressure-vessel-wrap` SHA-256 is:
+
+```text
+f53f2e6574926d1e5bebac4ca43e19138d10941826bc397520508dcfa6648182
+```
+
+Using the corrected PRoot build and this exact shadow path, the complete
+official ARM64 Runtime 4 entry point passed:
+
+```text
+_v2-entry-point --verb=run -- /bin/true
+exit status: 0
+host Pressure Vessel: 136 regular files, 0 .l2s links
+host mutable runtime: 5,372 regular files, 0 .l2s links
+```
+
+Steam does not honor the local Runtime 4 `install_path` when Proton's
+`require_tool_appid=4185400` is resolved. After the compatibility pass completed
+at 02:16:17 UTC, the command prefix still used
+`client/steamapps/common/SteamLinuxRuntime_4-arm64`. The installed
+`appmanifest_4185400.acf`, library metadata, and ARM `steamclient.so` strings
+confirm that this path is computed through `GetAppInstallDir()`.
+
+The non-destructive solution is an outer PRoot bind from the prepared shadow
+onto that exact guest depot directory. The appmanifest and both official depot
+trees remain unchanged on the host. A second complete smoke test used the bind
+and Steam's exact computed path; it also exited zero with 136 real Pressure
+Vessel files, 5,372 real mutable-runtime files, and zero `.l2s` links on the
+host.
+
+This is the first valid end-to-end confirmation that Pressure Vessel builds and
+enters its full mutable ARM64 container under both the direct and actual Steam
+path spellings. It proves the runtime boundary, not Burnout, Proton, FEX, Wine,
+DXVK, or the EA App.
+
+Steam was shut down gracefully before deployment. The old launcher, manifest
+template, PRoot binary, generated compatibility manifest, and `config.vdf` are
+preserved at:
+
+```text
+~/steam-arm64/backups/20260808-191150-before-pressure-vessel-runtime-fixes
+```
+
+That deployment was subsequently shown to contain the invalid first guard and
+shadow, so it is retained as diagnostic history rather than accepted as the
+final fix. The corrected binary, runtime shadow, and outer bind are validated
+in isolation and await a backed-up graceful deployment before another Burnout
+launch tests the Proton/FEX boundary.

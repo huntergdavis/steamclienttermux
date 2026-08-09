@@ -1,0 +1,60 @@
+--- a/src/extension/link2symlink/link2symlink.c
++++ b/src/extension/link2symlink/link2symlink.c
+@@ -33,6 +33,47 @@
+ static int decrement_link_count(Tracee *tracee, Reg sysarg);
+ 
+ /**
++ * Return non-zero when a hard-link destination begins with the opt-in
++ * generated-runtime prefix whose callers should receive EXDEV and use their
++ * normal copy fallback.
++ */
++static int should_force_exdev(Tracee *tracee, Reg link_target_sysarg)
++{
++	const char *prefix = getenv("PROOT_L2S_EXDEV_PREFIX");
++	char host_prefix[PATH_MAX];
++	char target[PATH_MAX];
++	size_t prefix_length;
++	size_t host_prefix_length;
++	ssize_t size;
++
++	if (prefix == NULL || prefix[0] != '/')
++		return 0;
++
++	size = read_string(tracee, target,
++		peek_reg(tracee, CURRENT, link_target_sysarg), PATH_MAX);
++	if (size < 0 || size >= PATH_MAX)
++		return 0;
++
++	prefix_length = strlen(prefix);
++	if (prefix_length < 6
++	    || strcmp(prefix + prefix_length - 5, "/tmp-") != 0)
++		return 0;
++
++	if (strncmp(target, prefix, prefix_length) == 0)
++		return 1;
++
++	/* Path arguments have normally been canonicalized to their host-side
++	 * spelling by SYSCALL_ENTER_END.  Translate the opt-in guest prefix as
++	 * well, otherwise a bind-mounted home makes this guard look correct but
++	 * silently miss the hard links it is meant to reject. */
++	if (translate_path(tracee, host_prefix, AT_FDCWD, prefix, false) < 0)
++		return 0;
++	host_prefix_length = strlen(host_prefix);
++
++	return strncmp(target, host_prefix, host_prefix_length) == 0;
++}
++
++/**
+  * Copy the contents of the @symlink into @value (nul terminated).
+  * This function returns -errno if an error occured, otherwise 0.
+  */
+@@ -214,6 +255,9 @@
+ 	int first_link = 1;
+ 	int intermediate_suffix = 1;
+ 
++	if (should_force_exdev(tracee, link_target_sysarg))
++		return -EXDEV;
++
+ 	/* Note: this path was already canonicalized.  */
+ 	size = read_string(tracee, original, peek_reg(tracee, CURRENT, sysarg), PATH_MAX);
+ 	if (size < 0)

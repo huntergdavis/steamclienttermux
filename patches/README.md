@@ -19,6 +19,23 @@ src/tracee/event.c                       |  58 +
 5 files changed, 244 insertions(+), 3 deletions(-)
 ```
 
+The production build applies six additional focused patches after the IPC
+patch:
+
+- `proot-link2symlink-getdents.patch` reports `DT_UNKNOWN` only for confirmed
+  `.l2s` pseudo-hardlinks, while genuine symlinks remain `DT_LNK`;
+- `proot-link2symlink-host-path.patch` resolves a confirmed final `.l2s`
+  backing path during canonicalization;
+- `proot-link2symlink-force-exdev.patch` returns `EXDEV` only inside an exact,
+  opt-in mutable-runtime `tmp-` prefix, translated to the canonical host path,
+  so Pressure Vessel uses its normal copy fallback;
+- `proot-runtime-bind-exact-detranslate.patch` lets an exact runtime bind win
+  host-to-guest fd detranslation;
+- `proot-pivot-detached-root.patch` preserves Bubblewrap's detached old root
+  through its open fd during `pivot_root(".", ".")`;
+- `proot-pivot-drop-stale-bindings.patch` removes bindings from the detached
+  namespace so they cannot shadow the transient fd alias.
+
 `proot-noderef-fastpath.patch` is a separate experimental performance patch. It
 adds an environment-gated fast path for a narrowly constrained metadata lookup
 inside a trusted host-visible prefix. It is documented and benchmarked in

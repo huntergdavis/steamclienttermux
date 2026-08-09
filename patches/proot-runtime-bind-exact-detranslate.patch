@@ -1,0 +1,10 @@
+--- a/src/path/binding.c
++++ b/src/path/binding.c
+@@ -148,6 +148,7 @@ Binding *get_binding(const Tracee *tracee, Side side, const char path[PATH_MAX])
+ 		 *     proot -m /usr:/location /usr/local/slackware
+ 		 */
+ 		if (   side == HOST
++		    && comparison != PATHS_ARE_EQUAL
+ 		    && compare_paths(get_root(tracee), "/") != PATHS_ARE_EQUAL
+ 		    && belongs_to_guestfs(tracee, path))
+ 				continue;

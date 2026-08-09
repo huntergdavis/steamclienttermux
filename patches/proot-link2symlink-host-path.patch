@@ -1,0 +1,28 @@
+--- a/src/extension/link2symlink/link2symlink.c
++++ b/src/extension/link2symlink/link2symlink.c
+@@ -824,7 +824,7 @@ static int handle_linkat_from_proc_fd(Tracee *tracee) {
+  * occurred.  See ExtensionEvent for the meaning of @data1 and @data2.
+  */
+ int link2symlink_callback(Extension *extension, ExtensionEvent event,
+-			intptr_t data1, intptr_t data2 UNUSED)
++			intptr_t data1, intptr_t data2)
+ {
+ 	int status;
+ 
+@@ -969,6 +969,16 @@ int link2symlink_callback(Extension *extension, ExtensionEvent event,
+ 		return handle_sysexit_end(TRACEE(extension));
+ 	}
+ 
++	case HOST_PATH:
++		/* Canonicalization can encounter link2symlink's physical .l2s
++		 * representation before TRANSLATED_PATH runs, notably below
++		 * Bubblewrap's emulated /oldroot.  Resolve only a confirmed final
++		 * pseudo-hardlink through the same two-hop validation used for the
++		 * final syscall path. */
++		if ((bool) data2)
++			translated_path(TRACEE(extension), (char *) data1);
++		return 0;
++
+ 	case TRANSLATED_PATH:
+ 		translated_path(TRACEE(extension), (char *) data1);
+ 		return 0;
