@@ -171,6 +171,10 @@ client binaries, games, Proton payloads, credentials, or Mesa binaries.
   mapped game renderer. The high-CPU FEX process emitted dense handled SIGBUS
   guest-fault traffic before Steam exited on a fatal stalled cross-thread pipe.
   No DXVK/Turnip frame has been captured yet.
+- `PROOT_CRASH_LOG` is now opt-in. Proton 11's bundled FEX deliberately handles
+  SIGBUS for unaligned guest atomics in JIT code, so the previous production
+  default turned a normal hot path into 59,989 register/procfs diagnostic
+  dumps. Use `PROOT_CRASH_LOG=1 ~/bin/steam-arm` only for bounded debugging.
 - Every X11 evidence capture now uses a stable, validated window and a short
   timeout. A previous unbounded ImageMagick helper demonstrated that a stale X
   server grab can invalidate an EA launch attempt.

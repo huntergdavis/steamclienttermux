@@ -1514,3 +1514,43 @@ This checkpoint proves the official ARM64 runtime/Proton/FEX launch path and
 the live EA network route. It does **not** prove rendered gameplay or the final
 DXVK/Turnip path. A focused `deja` query for this exact EA CEF/FEX failure found
 no independent prior-session match, so no recalled implementation was reused.
+
+## 2026-08-09: PRoot crash tracing made opt-in
+
+The signal flood exposed an incorrect launcher assumption. `bin/steam-arm`
+previously forced `PROOT_CRASH_LOG=1` with this comment:
+
+```text
+This is diagnostic only and has no effect unless a translated process fails.
+```
+
+That is false for FEX. Valve's pinned Proton 11 ARM64 FEX source names its JIT
+mapping `FEXMemJIT` and installs a handler that attempts to emulate unaligned
+atomic accesses on SIGBUS. Valve's pinned ARM64 Wine maps native SIGBUS to the
+normal Windows `EXCEPTION_DATATYPE_MISALIGNMENT` exception path. The observed
+processes continued running after hundreds or tens of thousands of these
+events, matching handled guest-fault traffic rather than fatal exits.
+
+Primary sources for the exact pinned code are:
+
+- FEX JIT mapping name: <https://github.com/FEX-Emu/FEX/blob/a04b0241c2fe3911729842205cd8643981108aad/FEXCore/Source/Interface/Core/CPUBackend.cpp#L351-L368>
+- FEX WoW64 SIGBUS recovery: <https://github.com/FEX-Emu/FEX/blob/a04b0241c2fe3911729842205cd8643981108aad/Source/Windows/WOW64/Module.cpp#L919-L935>
+- FEX handled/unhandled atomic path: <https://github.com/FEX-Emu/FEX/blob/a04b0241c2fe3911729842205cd8643981108aad/FEXCore/Source/Utils/ArchHelpers/Arm64.cpp#L1900-L1925>
+- Valve Wine ARM64 SIGBUS handler: <https://github.com/ValveSoftware/wine/blob/81d78e4f3ea8ce868d775021fdc9f90122dc1a6b/dlls/ntdll/unix/signal_arm64.c#L1168-L1178>
+
+The PRoot diagnostic path is particularly expensive: for every selected signal
+stop it fetches registers, reads the process command line, opens the process
+maps, and scans for the instruction-pointer mapping before writing three log
+records. The prior launcher also offered no effective off switch because PRoot
+tests only whether `PROOT_CRASH_LOG` exists; even a value of `0` enabled it.
+
+The production launcher no longer defines the variable by default. Explicit
+`PROOT_CRASH_LOG=1 ~/bin/steam-arm` still enables the unchanged PRoot tracer for
+a bounded diagnostic. The specialized direct Link2EA diagnostic script retains
+its explicit setting. A focused `deja` query found no independent prior-session
+implementation for this logger/default issue, so no recalled fix was reused.
+
+The next safe discriminator is one bounded launch with Valve's supported
+`PROTON_LOG=1` and a new private `PROTON_LOG_DIR`, with external file-size,
+free-space, PID-progress, and timeout guards. Do not change FEX TSO or kernel
+settings based only on the handled signal count.

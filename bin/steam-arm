@@ -129,9 +129,10 @@ pactl load-module module-native-protocol-tcp \
 
 display="${DISPLAY:-:0}"
 log="$base/logs/steam-$(date +%Y%m%d-%H%M%S).log"
-# Keep the patched PRoot crash tracer enabled for unattended/menu launches.
-# This is diagnostic only and has no effect unless a translated process fails.
-export PROOT_CRASH_LOG="${PROOT_CRASH_LOG:-1}"
+# PRoot's crash tracer is intentionally opt-in. FEX uses handled SIGBUS traps
+# for unaligned guest atomics during normal execution; logging each stop fetches
+# registers and scans procfs, flooding the Steam log and magnifying hot loops.
+# Run `PROOT_CRASH_LOG=1 steam-arm` only for a bounded diagnostic capture.
 
 # Steam otherwise autolaunches D-Bus from its updater process.  The spawned
 # daemon inherits the updater IPC pipe and prevents EOF for about five minutes.
