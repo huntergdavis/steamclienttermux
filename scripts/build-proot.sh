@@ -17,6 +17,7 @@ patches=(
     proot-runtime-bind-exact-detranslate.patch
     proot-pivot-detached-root.patch
     proot-pivot-drop-stale-bindings.patch
+    proot-mountinfo-escape-paths.patch
 )
 
 if [[ ! -d "$source_dir/.git" ]]; then

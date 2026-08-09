@@ -1,0 +1,52 @@
+--- a/src/extension/mountinfo/mountinfo.c
++++ b/src/extension/mountinfo/mountinfo.c
+@@ -9,6 +9,33 @@
+ #include <stdlib.h>              /* free,  */
+ #include <sys/queue.h>           /* CIRCLEQ_*,  */
+ 
++/* Linux mountinfo path fields use octal escapes instead of shell quoting.
++ * Bubblewrap splits each line on whitespace before decoding these fields, so
++ * writing a raw space here truncates the mount point it later searches for. */
++static void write_mountinfo_path(FILE *fp, const char *path)
++{
++	const unsigned char *cursor;
++
++	for (cursor = (const unsigned char *) path; *cursor != '\0'; cursor++) {
++		switch (*cursor) {
++		case ' ':
++			fputs("\\040", fp);
++			break;
++		case '\t':
++			fputs("\\011", fp);
++			break;
++		case '\n':
++			fputs("\\012", fp);
++			break;
++		case '\\':
++			fputs("\\134", fp);
++			break;
++		default:
++			fputc(*cursor, fp);
++		}
++	}
++}
++
+ /**
+  * Append a synthesized mount-table line to @fp for each runtime
+  * binding (i.e. one that wasn't part of the static -r/-b set).  This
+@@ -31,10 +58,11 @@ static void append_runtime_binding_lines(Tracee *target_tracee, FILE *fp)
+ 		if (strcmp(binding->guest.path, "/") == 0)
+ 			continue;
+ 
+-		fprintf(fp,
+-			"%d %d 0:1 / %s rw,relatime - bind %s rw,relatime\n",
+-			next_id++, parent_id,
+-			binding->guest.path, binding->host.path);
++		fprintf(fp, "%d %d 0:1 / ", next_id++, parent_id);
++		write_mountinfo_path(fp, binding->guest.path);
++		fputs(" rw,relatime - bind ", fp);
++		write_mountinfo_path(fp, binding->host.path);
++		fputs(" rw,relatime\n", fp);
+ 	}
+ }
+ 

@@ -34,7 +34,10 @@ patch:
 - `proot-pivot-detached-root.patch` preserves Bubblewrap's detached old root
   through its open fd during `pivot_root(".", ".")`;
 - `proot-pivot-drop-stale-bindings.patch` removes bindings from the detached
-  namespace so they cannot shadow the transient fd alias.
+  namespace so they cannot shadow the transient fd alias;
+- `proot-mountinfo-escape-paths.patch` emits Linux mountinfo octal escapes for
+  whitespace and backslashes in synthetic mount points and sources, allowing
+  Bubblewrap to match compatibility-tool paths such as `Proton 11.0 (ARM64)`.
 
 `proot-noderef-fastpath.patch` is a separate experimental performance patch. It
 adds an environment-gated fast path for a narrowly constrained metadata lookup

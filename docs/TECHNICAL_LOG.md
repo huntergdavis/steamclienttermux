@@ -445,6 +445,119 @@ preserved at:
 
 That deployment was subsequently shown to contain the invalid first guard and
 shadow, so it is retained as diagnostic history rather than accepted as the
-final fix. The corrected binary, runtime shadow, and outer bind are validated
-in isolation and await a backed-up graceful deployment before another Burnout
-launch tests the Proton/FEX boundary.
+final fix.
+
+The corrected runtime checkpoint was committed and pushed as `dfa15f6`. A
+full-resolution 2800x1586 screenshot showed the authenticated Steam Store UI
+rendering normally before deployment. Steam then exited cleanly six seconds
+after a forwarded `-shutdown` request. The live launcher, compatibility-tool
+template, generated manifest, `config.vdf`, old PRoot hash, and invalid runtime
+shadow were preserved without deletion at:
+
+```text
+~/steam-arm64/backups/20260808-194157-before-runtime-v2-overlay
+```
+
+The tested v2 shadow was atomically promoted to
+`~/steam-arm64/runtime/SteamLinuxRuntime_4-arm64`, and the clean stamped build
+was installed at `~/steam-arm64/src/proot-production/src/proot`. The deployed
+hashes are:
+
+```text
+launcher:        548d79bfae0e5d6a87288c84ba4a13285719139d004980d212b667e8f0a706e1
+patched PRoot:   5ec617e9177076d40bf1fd878387a419ff4fa6f7be32b1a0448a3e6fc38db8d5
+PV wrapper:      f53f2e6574926d1e5bebac4ca43e19138d10941826bc397520508dcfa6648182
+```
+
+Steam restarted at 02:42:22 UTC with main PID 22724 and PRoot parent PID
+22711. The parent command line contains the exact bind:
+
+```text
+runtime/SteamLinuxRuntime_4-arm64:
+client/steamapps/common/SteamLinuxRuntime_4-arm64
+```
+
+Its environment contains the guest-visible copy-fallback prefix
+`client/steamapps/common/SteamLinuxRuntime_4-arm64/var/tmp-`. Turnip sysinfo
+still completed successfully after restart. The new registry pass registered
+both ARM tools and retained Burnout's priority-250 mapping.
+
+## 2026-08-08: spaced compatibility-tool paths in synthetic mountinfo
+
+The post-restart registry pass completed at 02:52:46 UTC. In the same second,
+Steam posted registration callbacks for App IDs 4185400 and 4628740 and set
+these fresh command prefixes:
+
+```text
+SteamLinuxRuntime_4-arm64/_v2-entry-point --verb=run --
+SteamLinuxRuntime_4-arm64/_v2-entry-point --verb=run -- Proton 11.0 (ARM64)/proton run
+```
+
+The priority-100 automatic `proton-experimental` mapping was skipped because
+Burnout retained the explicit priority-250 `proton_11_arm64_official` mapping.
+A full-resolution 2800x1586 screenshot at
+`~/steam-arm64/prelaunch-runtime-v2.png` showed the Steam Store UI rendering
+normally before launch.
+
+The launch request began at 02:55:27 UTC. Both its install-script evaluator and
+the subsequent real `link2ea://launchgame/1238080?platform=steam&theme=bprm`
+action selected official Proton 11 ARM64 and the ARM64 Runtime 4. Each completed
+the slow mutable-runtime copy and then failed before Proton, FEX, Wine, the EA
+App, or Burnout started:
+
+```text
+bwrap: Can't bind mount /oldroot/.../Proton 11.0 (ARM64)
+on /newroot/.../Proton 11.0 (ARM64):
+Unable to find "/newroot/.../Proton 11.0 (ARM64)" in mount table
+```
+
+The error appears at lines 18583 and 37085 of
+`~/steam-arm64/logs/steam-20260808-194221.log`. The preserved post-launch
+screenshot `~/steam-arm64/post-first-arm64-launch.png` shows a healthy Steam
+Store/KDE desktop but no game or EA window. Both host-side integrity audits
+still reported zero `.l2s` links.
+
+Before diagnosis, these required history searches returned no indexed match:
+
+```text
+deja "bwrap Unable to find newroot Proton ARM64 mount table PRoot same-dir pivot bind mount"
+deja "PROot bwrap Can't bind mount Unable to find in mount table emulate_pivot_root Proton ARM64 Pressure Vessel"
+```
+
+No prior-session solution was reused. The live trace, pinned PRoot source, and
+Bubblewrap parser behavior isolated the fault to PRoot's synthetic mountinfo.
+`append_runtime_binding_lines()` wrote mountpoint and source fields with raw
+`%s`. Mountinfo requires spaces, tabs, newlines, and backslashes to be encoded
+as `\040`, `\011`, `\012`, and `\134`. Bubblewrap splits on whitespace before
+decoding those octal escapes, so the raw compatibility-tool path was parsed
+only through `Proton` and could never equal the full destination.
+
+The focused Bubblewrap reproducer produced this matrix with the deployed PRoot:
+
+```text
+bind /bin:                                  exit 0
+bind Proton 11.0 (ARM64):                   exit 1
+```
+
+`proot-mountinfo-escape-paths.patch` now emits the required octal escapes for
+both fields. `probe-proot-mountinfo-escape.sh` verifies a bind containing both
+spaces and a literal backslash. `probe-proot-bwrap-spaced-bind.sh` exercises the
+bundled ARM64 `srt-bwrap` parser with both the no-space control and the actual
+official Proton directory. Against the isolated v3 build, both Bubblewrap cases
+exited zero and the mountinfo probe printed `mountinfo-escape: PASS`.
+
+The v3 build remains pinned to PRoot commit
+`a89b3732ec6ae1db674510f0843b2f3db54d0a2f`. Its provenance is:
+
+```text
+patch-set SHA-256: ef0d425bc118d54ad701e01123c09ab0da71c6001ab33bdebe24a68082367fda
+source-diff SHA-256: 8244798771f0c30d27ca09d28a3ff49227e0ca4bfe53daaac8780aa3c6bc44a9
+binary SHA-256: c9ae8f9611b1009568ac18a8d83695440306e25e0f0b4223d09bf821ca2d6a53
+```
+
+Finally, the complete official ARM64 Runtime 4 smoke test using the exact Steam
+path overlay exited zero after 177 seconds. Host audits found 136 real Pressure
+Vessel files, 5,372 real mutable-runtime files, and zero `.l2s` links. The log
+`~/steam-arm64/logs/proot-v3-full-runtime-smoke-20260808-2010.log` contains no
+unexpected error. This validates the fix before production deployment; it does
+not yet prove Proton, FEX, Wine, EA App, or Burnout execution.
