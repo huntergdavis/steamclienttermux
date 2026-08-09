@@ -55,15 +55,27 @@ def mock_bwrap():
 
 
 def args_fd(args):
-    fd = os.memfd_create("pressure-vessel-route-test")
-    os.write(fd, b"\0".join(arg.encode() for arg in args) + b"\0")
-    os.lseek(fd, 0, os.SEEK_SET)
-    os.set_inheritable(fd, True)
-    return fd
+    data = b"\0".join(arg.encode() for arg in args) + b"\0"
+    memfd_create = getattr(os, "memfd_create", None)
+    if memfd_create is not None:
+        args_file = os.fdopen(
+            memfd_create("pressure-vessel-route-test"), "w+b"
+        )
+    else:
+        args_file = tempfile.TemporaryFile(
+            mode="w+b", prefix="pressure-vessel-route-test."
+        )
+
+    args_file.write(data)
+    args_file.flush()
+    args_file.seek(0)
+    os.set_inheritable(args_file.fileno(), True)
+    return args_file
 
 
 def invoke(wrapper, proc_net, args, *, equals_form=False):
-    fd = args_fd(args)
+    args_file = args_fd(args)
+    fd = args_file.fileno()
     env = os.environ.copy()
     env.update(
         {
@@ -87,7 +99,7 @@ def invoke(wrapper, proc_net, args, *, equals_form=False):
             text=True,
         )
     finally:
-        os.close(fd)
+        args_file.close()
 
 
 def run_tests():
@@ -145,6 +157,24 @@ def run_tests():
             ["--proc", "/proc", "--", "/bin/true"],
             equals_form=True,
         )
+        assert result.returncode == 0, result.stderr
+        payload = json.loads(result.stdout)
+        assert payload["injected"] is True
+        assert payload["source"] == str(proc_net)
+        assert payload["before_terminator"] is True
+
+        memfd_create = getattr(os, "memfd_create", None)
+        if memfd_create is not None:
+            del os.memfd_create
+        try:
+            result = invoke(
+                wrapper,
+                proc_net,
+                ["--proc", "/proc", "--", "/bin/true"],
+            )
+        finally:
+            if memfd_create is not None:
+                os.memfd_create = memfd_create
         assert result.returncode == 0, result.stderr
         payload = json.loads(result.stdout)
         assert payload["injected"] is True
