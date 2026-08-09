@@ -15,17 +15,30 @@ require_file() {
     fi
 }
 
+require_no_l2s_links() {
+    local search_root="$1"
+    local refusal_message="$2"
+    local refusal_path="${3:-$search_root}"
+    local match
+
+    if ! match="$(find "$search_root" -type l -lname '*/.l2s/*' -print -quit)"; then
+        printf 'Unable to inspect runtime tree for .l2s links: %s\n' \
+            "$search_root" >&2
+        exit 1
+    fi
+    if [[ -n "$match" ]]; then
+        printf '%s: %s\n' "$refusal_message" "$refusal_path" >&2
+        exit 1
+    fi
+}
+
 require_file "$source_runtime/_v2-entry-point"
 require_file "$source_runtime/run"
 require_file "$source_runtime/pressure-vessel/bin/pressure-vessel-wrap"
 require_file "$pressure_vessel_donor/bin/pressure-vessel-wrap"
 
-if find "$pressure_vessel_donor" -type l -lname '*/.l2s/*' -print -quit |
-        grep -q .; then
-    printf 'Refusing pseudo-hardlink Pressure Vessel donor: %s\n' \
-        "$pressure_vessel_donor" >&2
-    exit 1
-fi
+require_no_l2s_links "$pressure_vessel_donor" \
+    'Refusing pseudo-hardlink Pressure Vessel donor'
 
 source_hash="$(sha256sum "$source_runtime/pressure-vessel/bin/pressure-vessel-wrap" | awk '{print $1}')"
 donor_hash="$(sha256sum "$pressure_vessel_donor/bin/pressure-vessel-wrap" | awk '{print $1}')"
@@ -37,6 +50,8 @@ fi
 
 if [[ -e "$destination" ]]; then
     if [[ -f "$marker" ]] && [[ -x "$destination/pressure-vessel/bin/pressure-vessel-wrap" ]]; then
+        require_no_l2s_links "$destination/pressure-vessel" \
+            'Refusing contaminated existing runtime shadow' "$destination"
         installed_hash="$(sha256sum "$destination/pressure-vessel/bin/pressure-vessel-wrap" | awk '{print $1}')"
         if [[ "$installed_hash" == "$source_hash" ]]; then
             printf 'ARM64 runtime shadow is already prepared: %s\n' "$destination"
@@ -73,12 +88,8 @@ install -d -m 700 "$stage/var"
 mv "$stage/pressure-vessel" "$stage/pressure-vessel-l2s-original"
 cp -a "$pressure_vessel_donor" "$stage/pressure-vessel"
 
-if find "$stage/pressure-vessel" -type l -lname '*/.l2s/*' -print -quit |
-        grep -q .; then
-    printf 'Prepared Pressure Vessel unexpectedly contains .l2s links: %s\n' \
-        "$stage/pressure-vessel" >&2
-    exit 1
-fi
+require_no_l2s_links "$stage/pressure-vessel" \
+    'Prepared Pressure Vessel unexpectedly contains .l2s links'
 
 prepared_hash="$(sha256sum "$stage/pressure-vessel/bin/pressure-vessel-wrap" | awk '{print $1}')"
 if [[ "$prepared_hash" != "$source_hash" ]]; then

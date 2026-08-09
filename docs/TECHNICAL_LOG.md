@@ -876,3 +876,315 @@ size 853, and SHA-256
 `051c887425acd289c225d02f6225014d63b29dc7c66f9b705bc27f3627dfcffe`.
 No new cache job appeared during the observation interval. This confirms the
 fix against a real existing-client URI forward, not only the focused harness.
+
+## 2026-08-09: fail closed on contaminated ARM64 runtime shadows
+
+The prepared ARM64 runtime must never contain PRoot `.l2s` pseudo-hardlink
+symlinks. They encode paths from the temporary copy namespace and can silently
+turn a reusable shadow into a host-specific, mutable tree. The preparation
+script now routes donor, staged-tree, and existing-shadow checks through one
+`require_no_l2s_links` guard. It rejects both a matching link and any failed
+`find` traversal; an existing marker and matching wrapper hash are no longer
+trusted until the whole Pressure Vessel tree passes that check.
+
+Focused fixtures passed for a clean first preparation, idempotent reuse, donor
+contamination, existing-shadow contamination, staged contamination, and an
+unreadable scan root. `bash -n`, ShellCheck, and `git diff --check` also pass.
+This hardening complements the earlier 136-link recovery; it does not alter the
+live Steam depot or select the experimental PRoot build.
+
+## 2026-08-09: direct Link2EA proves EA authentication and prerequisites
+
+The installed EA service was preserved and configured with
+`ServicesPipeTimeout=60000`. An isolated official-Proton session then started
+the service and Link2EA directly. The authoritative transcript is:
+
+```text
+~/steam-arm64/logs/ea-service-timeout-and-link2ea-20260809-0140.log
+terminal marker: LINK2EA_RC=0
+```
+
+EA's own logs show that Link2EA obtained an external-login authorization code
+and access token, fetched the persona, confirmed the linked Steam/EA account,
+queued App ID 1238080, and waited for the game launch request. EA Desktop and
+EALocalHost also started. EABackgroundService subsequently installed all four
+bundled Visual C++ prerequisites (11 x86/x64 and 12 x86/x64) successfully.
+The request was dequeued only after EA Desktop became ready, while those
+prerequisites were still running. This proves service startup, authentication,
+account linking, and prerequisite completion. It does not prove that
+`BurnoutPR.exe` started or rendered.
+
+## 2026-08-09: Steam's Link2EA path crashes in official ARM DXVK d3d11
+
+The clean canonical Steam launch selected
+`proton_11_arm64_official`, App ID 4628740, and its required
+`SteamLinuxRuntime_4-arm64`, App ID 4185400. The real command used the expected
+URI:
+
+```text
+link2ea://launchgame/1238080?platform=steam&theme=bprm
+```
+
+Official Proton Python, native ARM64 wineserver, Wine's Steam stub, and FEX all
+started. Link2EA then terminated before creating an EA log or window. PRoot's
+terminal signal record was stable across repeated launches:
+
+```text
+signal=11 code=2 fault=0x6ff9340000 ip=0x6ff9340000
+map=6ff9340000-6ff9341000 ...
+    compatdata/1238080/pfx/drive_c/windows/system32/d3d11.dll
+```
+
+The faulting prefix file is 7,569,408 bytes with SHA-256
+`27a79be7a0db74af3283a600b041c2ced087e4529678e6b1351488718608c676`.
+It exactly matches official Proton 11 ARM64's
+`files/lib/wine/dxvk/aarch64-windows/d3d11.dll`; Proton recopied it during the
+launch. The companion prefix `dxgi.dll` likewise matches the official ARM DXVK
+payload (`2c8df44028c1e5b707532cc4317827d9ceb306e6178eda52d2cbce89ee2b9cfe`).
+This is not evidence of a stale or third-party DLL.
+
+## 2026-08-09: overlay UI and overlay injection are separate controls
+
+Burnout's Properties dialog was opened only after validating its exact X11
+window. Before changing it, `localconfig.vdf` was preserved at:
+
+```text
+~/steam-arm64/backups/20260809-0213-before-overlay-test/localconfig.vdf
+SHA-256 422f06c26050e5bedef41c4d8c1031b2169f766cbb2afd790bf8362f7411894f
+```
+
+The checkbox persisted the authoritative key
+`UserLocalConfigStore/apps/1238080/OverlayAppEnable="0"`. The next process had
+`SteamNoOverlayUI=1`, but its Pressure Vessel command and `LD_PRELOAD` still
+contained the 64-bit, 32-bit, and ARM64 `gameoverlayrenderer.so` paths. Link2EA
+reproduced the same `d3d11.dll` fault. Therefore the checkbox disables overlay
+UI but is not an injection-removal control.
+
+The installed ARM64 Pressure Vessel 0.20260714.0 supports the narrower
+`PRESSURE_VESSEL_REMOVE_GAME_OVERLAY=1` switch. Valve's implementation maps it
+to `--remove-game-overlay` and filters only preload paths ending in
+`/gameoverlayrenderer.so`:
+
+- <https://gitlab.steamos.cloud/steamrt/steam-runtime-tools/-/blob/v0.20260714.0/pressure-vessel/wrap-context.c#L868>
+- <https://gitlab.steamos.cloud/steamrt/steam-runtime-tools/-/blob/v0.20260714.0/pressure-vessel/wrap-preload.c#L422>
+- <https://gitlab.steamos.cloud/steamrt/steam-runtime-tools/-/blob/v0.20260714.0/pressure-vessel/wrap.1.md#L305>
+
+Steam's Properties UI persisted the exact launch option under
+`UserLocalConfigStore/Software/Valve/Steam/apps/1238080/LaunchOptions`:
+
+```text
+PRESSURE_VESSEL_REMOVE_GAME_OVERLAY=1 %command%
+```
+
+The pre-change backup is
+`~/steam-arm64/backups/20260809-0310-before-remove-overlay-launch-option/localconfig.vdf`
+with SHA-256
+`fe87b3966a8e9087451515334debdc1777b38b2176ab7791260daec445062bf0`.
+After the UI write, the live file hash was
+`f6ece0176845e8d373100b1220166703c7a5b07e155e0c1f80985e7498ac4580`.
+
+The real launch began at 03:20:23 PDT. Its shell command began with the exact
+removal variable and used official ARM Runtime 4 plus Proton 11. The incoming
+Pressure Vessel wrapper still received Steam's three preload arguments, but
+the downstream `pv-adverb`, Proton Python, Wine Steam stub, and ARM wineserver
+had no `--ld-preloads` argument and no `LD_PRELOAD` environment entry. This is
+positive process-level proof that the supported filter worked. Nevertheless,
+Link2EA PID 1770 reproduced the identical terminal `d3d11.dll` fault, no EA log
+changed, no EA/Burnout window appeared, and Steam removed App ID 1238080 from
+the running list at 03:24:07. Overlay injection is conclusively not the cause.
+
+Visual evidence from the two overlay tests is preserved as follows:
+
+```text
+steam-burnout-properties-dialog.png              3a0e7d92f74b9e4e8fe0ef76086b240f898242fffdb08dde7dd9b37b2d9525b4
+steam-burnout-overlay-off.png                    c40c0b394e78f375407bca25aecad35457c985d8874ee7c2e679258b4d7eda62
+steam-burnout-overlay-off-launch.png             187340a81b6cff6d811a2a2bb113d918f95800cb089e5c2e99eb3f429de8a0f3
+properties-before-remove-overlay-launch-option.png 78b88a02e95664ed6d85f1c70194b210a2c9f8403b78ce5c8f2c53bb4d6ff8d1
+properties-remove-overlay-launch-option-set-2.png 9c3bf5c4c3b9f3156f1898053d44ac3720244c868f5db83765c363cc70f29001
+canonical-remove-overlay-launching.png           187340a81b6cff6d811a2a2bb113d918f95800cb089e5c2e99eb3f429de8a0f3
+canonical-remove-overlay-failed.png              07a0c5322963b5673f267813dbfae8379757adba80fc50fe769fadd125f4fd2f
+```
+
+The last image still showed a stale `STOP` button after all tracked processes
+had exited; process and gameprocess-log evidence, not that transient UI label,
+establishes the failure state.
+
+Focused `deja` searches for the EA service timeout, Link2EA, overlay injection,
+Pressure Vessel filtering, Proton verb behavior, and the exact `d3d11.dll`
+base-address fault returned no reusable prior-session solution. Nothing from
+cross-session recall was reused for these changes.
+
+## 2026-08-09: direct Link2EA helper is diagnostic, not a Steam substitute
+
+`scripts/run-ea-link2ea-direct.sh` reproduces the narrow direct path through
+the prepared ARM Runtime 4 shadow and official Proton 11 `runinprefix`. It
+checks every required file, fails closed on an unreadable or contaminated
+runtime-shadow scan, and refuses to start while any wineserver is active.
+
+Without Steam API context, Link2EA reached EA's logger but deliberately
+fast-failed in its bundled `ucrtbase.dll` with `INT 0x29`. Setting
+`STEAM_STUB_COUNT=0` did not change that result. The isolated stub-zero
+transcript is:
+
+```text
+~/steam-arm64/logs/ea-link2ea-direct-stub0-20260809-032726.log
+SHA-256 060c28d8fc9614daf4b1119eddc2c5ffd291f7b9ed3b254f0495131019ea9a97
+```
+
+Its EA crash artifact has SHA-256
+`b75a352ccb8654fa7bd4d245000706cf22c0d2c2c21ed5df9ec1e3ec11591445`.
+The exact crashed child was validated before an ordinary SIGTERM was sent;
+the isolated subtree then exited without Wine or EA residue. This does not
+invalidate the earlier direct session that authenticated and installed the
+prerequisites: it shows that a reusable diagnostic invocation cannot replace
+Steam's live API/stub context.
+
+## 2026-08-09: ARM64EC import dispatch explains the DXVK image-base target
+
+The official ARM DXVK `d3d11.dll` is COFF ARM64EC with preferred image base
+`0x180000000`. Across five launches, its loaded base, faulting PC, return
+address, and stack pointer were stable. Relative to loaded base
+`0x6ff9340000`, LR `0x6ff94e9f98` is RVA `0x1a9f98`, exactly the instruction
+after:
+
+```text
+RVA 0x1a9f94: bl 0x1803a9b04 <#memmove>
+RVA 0x1a9f98: strb wzr, [x25, x21]
+```
+
+The ARM64EC `#memmove` thunk loads its target through the import/auxiliary
+slot and explicitly supplies image RVA zero in `x10` before calling
+`__icall_helper_arm64ec`. Microsoft's ARM64EC ABI defines `x10` as the exit
+thunk for an indirect call. Valve Wine's checker substitutes that exit thunk
+when the target is not classified as ARM64EC. Relocating RVA zero produces
+the observed `0x6ff9340000` target exactly, whose header mapping is not
+executable.
+
+The bundled UCRT is ARM64X and contains both neutral ARM64 `memmove` and an EC
+route, so the strong inference is a bad import target or Wine ARM64EC bitmap
+classification at this boundary. The live IAT value was not captured;
+therefore the exact loader mechanism is not yet proven. A conclusive debugger
+capture would read D3D11 base plus `0x3c4430` immediately before the call and
+compare it with the loaded UCRT routes.
+
+Primary references:
+
+- <https://learn.microsoft.com/en-us/windows/arm/arm64ec-abi>
+- <https://github.com/ValveSoftware/wine/blob/proton_11.0/dlls/ntdll/signal_arm64ec.c>
+- <https://github.com/ValveSoftware/wine/blob/proton_11.0/dlls/ntdll/unix/virtual.c>
+
+## 2026-08-09: WineD3D bypasses the DXVK crash and reaches EA Desktop
+
+Before the diagnostic, `localconfig.vdf` and all four tracked system32/syswow64
+D3D DLLs were preserved under:
+
+```text
+~/steam-arm64/backups/20260809-0335-before-wined3d-diagnostic/
+localconfig.vdf SHA-256 cf59b3d861020efdd388aed392a087b783e2ac194f126b991b711aa0122b3b5f
+```
+
+Steam's Properties UI persisted this exact launch option twice with stable
+configuration hash
+`8764267b1d5a98dcd80250e965142fd57e59146ed061930f682e49a0ea5dfa25`:
+
+```text
+PROTON_USE_WINED3D=1 PRESSURE_VESSEL_REMOVE_GAME_OVERLAY=1 %command%
+```
+
+The compatibility evaluator selected `proton_11_arm64_official`; the real
+launch began at 10:46:58 UTC with both variables, official ARM Runtime 4, and
+official Proton 11 ARM64. Downstream `pv-adverb`, Proton, Wine, and wineserver
+again had no overlay preload. Proton replaced the prefix files as follows:
+
+```text
+d3d11.dll 34c5ea361c18cfaba22bf94b2c2c41fc4b269b0e655890913e40440d8087f1bf
+dxgi.dll  6fd18f3672146bc0df65c26231082e4ad1517abe5d9894f71540cd597576fff4
+```
+
+Those hashes exactly match Proton's
+`files/lib/wine/aarch64-windows/{d3d11,dxgi}.dll` built-ins. The original
+prefix hashes exactly matched
+`files/lib/wine/dxvk/aarch64-windows/{d3d11,dxgi}.dll`. This proves that the
+test changed only Proton's supported D3D provider selection.
+
+The DXVK image-base crash did not recur. Instead, the canonical Steam launch
+created Link2EA, EABackgroundService, EADesktop, EALocalHostSvc, and CEF GPU,
+storage, and network subprocesses. EA's non-verbose logs confirm:
+
+- external Steam login, access-token acquisition, persona lookup, and account
+  link succeeded;
+- the catalog query for Steam App ID 1238080 returned HTTP 200 and one offer;
+- the pending and authenticated Link2EA actions were pushed and later popped;
+- EA Desktop reached `App ready`, LocalHost connected, and authentication
+  telemetry became true.
+
+No authentication codes, cookies, tokens, persona identifiers, or PLR payloads
+are copied into this repository.
+
+The next boundary is EA networking. At startup, EABackgroundService reported
+`server_timeout`; EA Desktop set network state 4, told LoginHandler
+`isOnline=false`, and entered `offlineAwaitingAuth`. Its
+`DirtySDKConnectDetectionJob` later timed out without DirtySDK reaching an
+online/offline/connecting state. This is not loss of tablet connectivity:
+from the same Debian runtime, DNS and TLS completed and unauthenticated HTTP
+requests reached all four observed hosts. `desktop-config.juno.ea.com` returned
+200, while Statsig, RATT, and SAL returned application-level 403/404 responses.
+EA's own earlier SAL and RATT requests also returned 200.
+
+The running EA processes produced no mapped or hidden EA application window;
+the only extra X11 objects were tiny unmapped DXGI device windows. KDE's visible
+tray likewise contained no EA item. By 04:02 PDT, EADesktop, BGS, and LocalHost
+were still alive and using CPU, but the non-verbose FSM log had not advanced
+past LocalHost connection and `BurnoutPR.exe` had not started.
+
+Visual evidence:
+
+```text
+wined3d-properties-before.png      d8e35c5c8be84d8cefb81d9896e833b5a66a3b8a9ba72f2c73270145886e01b0
+wined3d-properties-set.png         095a14b475c3b5d0204dd300b2476d55ae1d763ab36bf3eb1837569f62868f9b
+pre-wined3d-launch.png             ec6af22e196007cd0264752484c852a8178688acea9ffa13f5f62913cf9d2af3
+wined3d-real-launch.png            41b4a59b757f5e46e1ffbc24e2264a4d7b4782c03633bd5d2dbe72477868be17
+wined3d-link2ea-milestone.png      2acfaf9dc6584dee36a25346acb28e2e9f152b440181c0ed6a903c46de8924c8
+wined3d-ea-ready.png               cf747dee0c20a7815460c5026e92428b725c6d1e997eb2a7594f8a2ac7928e92
+wined3d-tray-open.png              c1a262de952bab5076da61188bbf1e5199cd28d5868ac1c568650bba9a0ecc25
+wined3d-final-stalled.png          c87836fadae21efa7940a74ca2bb8a0f3edcf04643a4edfc40f177302ebd5b5e
+wined3d-stop-dialog.png            afe479966f9dbb3d7dccfd02ef7466cef9ed1b5a03aae4846502c7d186adff53
+wined3d-after-confirm-stop.png     27518469c8db77249365bee306a54966d5091e02971213ae481f5e5fca740f95
+restore-properties-before.png     70479b92937f971c83339f58cb54f126407143bbdc4262cbfe08f3fa0df2d9ed
+restore-properties-after.png      9267852f193e3726fbd377a76710355bf9d9bcef01d3588628b998cb8706b7aa
+final-idle.png                     14a74e1cc693ee1f2d3adf82a43f40b60b0f1ab2840b95822911a7c42b6ada0b
+```
+
+After more than 15 minutes without another EA FSM transition or a
+`BurnoutPR.exe` process, Steam's visible **STOP** button was used. The
+confirmation dialog was captured and **Confirm** was clicked. At 11:08:59
+UTC, `gameprocess_log.txt` removed every tracked PID and then removed App ID
+1238080 from the running list; outer PID 8953 recorded exit code 143. No EA
+Desktop, EA Background Service, EA LocalHost, CEF, Burnout, or wineserver
+process remained. Steam itself stayed healthy under production PRoot without
+a restart, and the final screenshot visibly returned to **PLAY**.
+
+The diagnostic launch option was then restored through Steam Properties to:
+
+```text
+PRESSURE_VESSEL_REMOVE_GAME_OVERLAY=1 %command%
+```
+
+`localconfig.vdf` held that exact value with the same SHA-256
+`093f4376e8a101c17a0f1069784380a5c89596da8f880a109fbba43e90ac790e`
+in two reads eight seconds apart. `OverlayAppEnable` remained `0`. The prefix
+still contains the Wine built-ins selected by this diagnostic; they were not
+manually overwritten from the backup. A later ordinary Proton setup pass,
+without `PROTON_USE_WINED3D`, is responsible for restoring the normal DXVK
+links/files. Repeating that known-crashing path was not useful before the
+ARM64EC defect is fixed.
+
+Burnout did not start in this checkpoint. The confirmed forward blocker is
+EA Desktop's internal connectivity state after successful Steam
+authentication, account linking, catalog lookup, and external-action queue
+handoff.
+
+WineD3D is a diagnostic isolator, not the desired renderer. The final path
+must still return to official ARM DXVK plus Turnip after the ARM64EC dispatch
+defect is fixed. A focused `deja` query for the EA offline/external-action
+state returned no reusable session, so no cross-session workaround was used.

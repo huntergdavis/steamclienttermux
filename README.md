@@ -95,14 +95,39 @@ client binaries, games, Proton payloads, credentials, or Mesa binaries.
   Python entry point, created/upgraded the prefix, and started native ARM64
   Wine plus the bundled FEX bridge. This is confirmed process and log evidence,
   not an inference from tool registration.
-- Burnout's DirectX June 2010 prerequisite completed successfully in that
-  prefix. The remaining launch boundary is the EA App: its first install pass
-  unpacked and started the background service but rolled back after the
-  elevated installer lost its parent IPC channel (`0x800700e8`).
-- A later EA retry was invalidated by a stale ImageMagick screenshot helper
-  holding an X server grab while EA created its window. That attempt is not
-  evidence for an EA configuration workaround. Future captures must have a
-  short timeout and must never target a transient window that may disappear.
+- Burnout's DirectX June 2010 prerequisite completed successfully. The EA App
+  is installed, its background service is registered with a 60-second startup
+  allowance, and an isolated direct Link2EA session authenticated the linked
+  Steam/EA account, started EA Desktop and LocalHost, and completed all four
+  Visual C++ prerequisites. This proves the EA setup path, not game rendering.
+- Steam's normal DXVK command crashes Link2EA before its logger or UI starts.
+  The terminal fault is a jump to `0x6ff9340000`, the base of the official
+  Proton 11 ARM64 DXVK `windows/system32/d3d11.dll` copied into the prefix.
+  The return address is immediately after the DLL's ARM64EC `#memmove` import
+  call. The imported-call thunk supplies image RVA zero as its exit thunk, so
+  Wine's ARM64EC dispatch can reproduce the exact image-base target when the
+  imported function is classified as non-EC. A live IAT read is still needed
+  to prove the precise loader/classification defect.
+- Turning off Burnout's per-game overlay checkbox set `SteamNoOverlayUI=1` but
+  did not remove Steam's three `gameoverlayrenderer.so` preloads and did not
+  change the fault. A second launch with the installed Pressure Vessel's
+  supported `PRESSURE_VESSEL_REMOVE_GAME_OVERLAY=1` switch did remove every
+  downstream overlay preload; Link2EA nevertheless reproduced the identical
+  `d3d11.dll` fault. Overlay injection is therefore not the cause.
+- A backed-up canonical `PROTON_USE_WINED3D=1` isolation launch replaced both
+  prefix DLLs with Proton's hash-identical ARM64 Wine built-ins and eliminated
+  the DXVK image-base crash. That launch started Link2EA, authenticated the
+  linked account, started EA Background Service, EA Desktop, LocalHost, and CEF,
+  and handed the App ID 1238080 request to EA Desktop. EA then stalled in
+  `offlineAwaitingAuth`: its DirtySDK connectivity detector timed out even
+  though Linux-side DNS/TLS requests to the same EA endpoints succeeded. No EA
+  window or `BurnoutPR.exe` has appeared. WineD3D is diagnostic isolation, not
+  the final Turnip/DXVK solution. The test was stopped through Steam, all EA and
+  Wine processes exited, Steam returned to **PLAY**, and launch options were
+  restored to `PRESSURE_VESSEL_REMOVE_GAME_OVERLAY=1 %command%` only.
+- Every X11 evidence capture now uses a stable, validated window and a short
+  timeout. A previous unbounded ImageMagick helper demonstrated that a stale X
+  server grab can invalidate an EA launch attempt.
 - The ARM64 Pressure Vessel path now passes an end-to-end `/bin/true` smoke
   test with a clean, repository-built PRoot. The fixes normalize `.l2s`
   directory-entry metadata, force Pressure Vessel's copy fallback only inside
@@ -115,10 +140,13 @@ client binaries, games, Proton payloads, credentials, or Mesa binaries.
   conventional Runtime 4. A narrow outer PRoot bind exposes the shadow at the
   App-ID path Steam computes, without changing the installed ARM64 depot or its
   appmanifest, and gives mutable runtime copies their own private `var`
-  directory.
-- Burnout has not yet been proven on screen. Proton/FEX/Wine and the DirectX
-  prerequisite are now confirmed; the next boundary is completing the EA App,
-  followed by the game's DXVK and Turnip rendering path.
+  directory. Preparation now fails closed if donor, staged, or existing shadow
+  scans fail or contain any `.l2s` pseudo-hardlink symlink.
+- Burnout has not yet been proven on screen. Proton/FEX/Wine, DirectX, EA
+  installation, account authentication, and prerequisites are confirmed. The
+  normal path is blocked by official ARM DXVK's ARM64EC dispatch; the WineD3D
+  isolation path bypasses that fault but stalls in EA's offline connectivity
+  state. The game executable and its Turnip rendering path have not started.
 
 This is a precise, continuable engineering record, not yet a one-command finished
 installer.
@@ -139,6 +167,9 @@ installer.
   probes for spaced paths and shared-`/tmp` mount underlays.
 - `scripts/prepare-arm64-runtime-shadow.sh` — non-destructively prepares the
   official ARM64 runtime for PRoot's mutable-runtime copy path.
+- `scripts/run-ea-link2ea-direct.sh` — guarded diagnostic that runs the
+  installed Link2EA URI through official ARM Runtime 4 and Proton; it refuses
+  to collide with an active wineserver and is not a replacement game launcher.
 - `scripts/install-project-files.sh` — installs only this project's files.
 - `scripts/inventory.sh` and `scripts/verify-gpu.sh` — diagnostics.
 - `docs/TECHNICAL_LOG.md` — chronological fault/fix record.
