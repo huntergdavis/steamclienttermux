@@ -1554,3 +1554,96 @@ The next safe discriminator is one bounded launch with Valve's supported
 `PROTON_LOG=1` and a new private `PROTON_LOG_DIR`, with external file-size,
 free-space, PID-progress, and timeout guards. Do not change FEX TSO or kernel
 settings based only on the handled signal count.
+
+## 2026-08-09: EA license succeeds; Burnout exposes the FEX CPUID blocker
+
+Steam was restarted once after the crash-tracing correction and was then left
+running. The fresh compatibility job `7250488763318918964` completed at
+16:49:55. It posted callbacks for App IDs 4185400, 4628740, and 1238080 and
+again rejected the lower-priority automatic Proton Experimental mapping. The
+next launch used only `SteamLinuxRuntime_4-arm64`, Proton 11.0 (ARM64), and the
+expected Link2EA target. The installed Proton appmanifest recorded build ID
+`23303086` and a complete 3,596,743,348-byte depot.
+
+The launch ran without `PROOT_CRASH_LOG`. No crash-dump flood occurred, log
+files remained below 25 MiB, Steam stayed responsive, and Burnout eventually
+settled sleeping instead of pegging the tablet. This confirms that making the
+tracer opt-in removed the earlier instrumentation-amplified CPU stall without
+changing the game result.
+
+EA's visible CEF window displayed:
+
+```text
+Couldn't connect to servers
+We ran into a problem, but a quick restart should fix it.
+```
+
+Its background state independently remained online and authenticated. The EA
+logs recorded Steam external authentication, content readiness, Link2EA launch
+success, and `isGameRunning:true`. `BurnoutPR.exe` requested its license at
+17:10:37.280, and EA returned `RequestLicenseResponse` at 17:10:37.520. The
+cached activation signature was valid. Therefore the visible EA error is a CEF
+renderer/network-service failure, not a failure of the preserved network route,
+Steam-to-EA authentication, or game licensing. The exact EA screenshot had
+SHA-256
+`b7f2ab444e23298325c813990171852232b849259f5741bcd840cedd1f2b4529`.
+
+Burnout then created a 315x102 X11 dialog titled `CPU Error` with the exact text:
+
+```text
+This machine does not support the SSE2 Command Set which is required to run this game.
+The game will now terminate
+```
+
+The exact dialog screenshot had SHA-256
+`711a3b07ce6721512ac5acaf5de580b956d29ce4127356d12d655586b2dc18ed`.
+The running process mapped Proton's bundled `libwow64fex.dll` and
+`[anon:FEXMemJIT]`, making this a guest CPU-compatibility check reached through
+the intended official ARM64 Proton/FEX path. There was no gameplay window.
+
+Cleanup used the dialog's own exit path. Immediately before interaction, X11
+reported exactly one visible window titled `CPU Error`, owned by Burnout PID
+15946, class `steam_app_1238080`, with the observed 315x102 geometry. Its
+centered **OK** button was clicked using window-relative coordinates. Steam then
+logged removal of every App ID 1238080 tracked process at 17:34:12, recorded the
+outer launcher's exit code as zero, and removed the game from its running list.
+No process signal was used. Steam PID 31776 remained alive. The post-dismiss
+screenshot had SHA-256
+`96c940836b64bc158b8e83ac7da714ec67b7ce64a1a29ad2cc3e216bbfb5d6ea`
+and showed the intact Steam/KDE desktop with only EA's CEF network-error window
+remaining.
+
+Upstream source and issue history identify the exact cause:
+
+- Proton commit `0745bfbc4cf4365e8cf048b003990c59def29948` pins FEX commit
+  `a04b0241c2fe3911729842205cd8643981108aad`.
+- That FEX revision already advertises real SSE2 in CPUID leaf 1 EDX bit 26 and
+  through Wine's Win32 processor-feature path.
+- Burnout and Burnout Remastered incorrectly use CPUID leaf 1 EDX bit 2,
+  Debugging Extensions, as their SSE2 gate.
+- FEX issue [#5805](https://github.com/FEX-Emu/FEX/issues/5805) reproduces the
+  same dialog. Merged fix
+  [`9365e624`](https://github.com/FEX-Emu/FEX/commit/9365e6240b3b87466753cd989d257e5c93092578)
+  adds the legacy DE/PSE/1-GiB-page bits expected by these games; pull request
+  [#5807](https://github.com/FEX-Emu/FEX/pull/5807) carries the rationale.
+- Proton's generated per-game FEX configuration only controls TSO,
+  multiblocking, and logging; it has no supported CPUID feature-mask field.
+
+Consequently there is no launch-option, TSO, kernel, or host-CPU-mask remedy.
+The production-safe next step is an official Proton 11 ARM64 build whose bundled
+FEX contains `9365e624` or later. The installed App ID 4628740 payload was not
+modified. A private copied compatibility tool could prove the fix sooner, but
+would be explicitly non-official and must never overwrite Steam's managed
+depot.
+
+The source-only `diagnostics/cpuid-probe` records the relevant raw CPUID and
+Win32 checks for future validation. A standalone Proton attempt reached the
+ARM64EC FEX loader but aborted in Proton's injected `steamclient` initialization
+before the probe entry point, so no result from that attempt is treated as
+evidence. A focused `deja` query found no independent prior-session workaround;
+no recalled implementation was reused.
+
+This checkpoint still uses `PROTON_USE_WINED3D=1` for isolation. It proves the
+EA route, authentication, license response, and exact FEX CPUID blocker. It does
+**not** prove gameplay, DXVK, or Turnip rendering, and it does not resolve the
+separate official DXVK ARM64EC dispatch fault.

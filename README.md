@@ -164,13 +164,25 @@ client binaries, games, Proton payloads, credentials, or Mesa binaries.
   local service, and reported a successful Link2EA launch. Burnout's executable
   started through Proton's bundled FEX/WoW64 path for the first time. This was
   a diagnostic WineD3D run, not the final DXVK/Turnip configuration.
-- The milestone is not gameplay success. EA's CEF surface later displayed a
-  network-load error while its online background service remained healthy.
-  CEF then suffered renderer/network-service and GPU-process failures. Burnout
-  remained in activation/protected startup without a managed game window or a
-  mapped game renderer. The high-CPU FEX process emitted dense handled SIGBUS
-  guest-fault traffic before Steam exited on a fatal stalled cross-thread pipe.
-  No DXVK/Turnip frame has been captured yet.
+- A clean retest with PRoot crash tracing disabled again completed EA's Steam
+  authentication and license exchange. EA's CEF surface displayed **Couldn't
+  connect to servers** while the background service remained online and
+  authenticated, so the visible network error is a frontend CEF failure rather
+  than a return of the `/proc/net/route` blocker.
+- Burnout then opened an exact `CPU Error` dialog claiming that SSE2 was
+  missing. FEX does expose SSE2; Burnout incorrectly tests CPUID leaf 1 EDX bit
+  2 (Debugging Extensions). Proton 11 ARM64 pins FEX commit
+  `a04b0241c2fe3911729842205cd8643981108aad`, which predates FEX's merged
+  compatibility fix `9365e6240b3b87466753cd989d257e5c93092578`. FEX issue
+  [#5805](https://github.com/FEX-Emu/FEX/issues/5805) and merged pull request
+  [#5807](https://github.com/FEX-Emu/FEX/pull/5807) cover this exact Burnout
+  error. Proton's generated FEX configuration cannot add that CPUID bit, so
+  there is no launch-option workaround. The production-safe resolution is an
+  official Proton 11 ARM64 update containing that FEX fix; the Steam-managed
+  Proton payload has not been modified in place.
+- This milestone is not gameplay success. The current controlled run still uses
+  WineD3D, no managed Burnout gameplay window exists, and no DXVK/Turnip frame
+  has been captured.
 - `PROOT_CRASH_LOG` is now opt-in. Proton 11's bundled FEX deliberately handles
   SIGBUS for unaligned guest atomics in JIT code, so the previous production
   default turned a normal hot path into 59,989 register/procfs diagnostic
@@ -192,13 +204,12 @@ client binaries, games, Proton payloads, credentials, or Mesa binaries.
   appmanifest, and gives mutable runtime copies their own private `var`
   directory. Preparation now fails closed if donor, staged, or existing shadow
   scans fail or contain any `.l2s` pseudo-hardlink symlink.
-- Burnout has not yet been proven on screen. Proton/FEX/Wine, DirectX, EA
-  installation, account authentication, and prerequisites are confirmed. The
-  normal path is blocked by official ARM DXVK's ARM64EC dispatch; the WineD3D
-  isolation path bypasses that fault, and its EA offline state now has an
-  isolated, end-to-end validated network fix awaiting controlled deployment
-  and a canonical EA retest. The game executable and its Turnip rendering path
-  have not started.
+- Burnout gameplay has not yet been proven on screen. Proton/FEX/Wine, DirectX,
+  EA installation, account authentication, license response, and game-process
+  startup are confirmed. The WineD3D isolation path now stops at the exact FEX
+  CPUID compatibility bug above. After an official FEX-bearing Proton update,
+  the separate DXVK ARM64EC dispatch fault remains to be solved before the
+  final Turnip path can be claimed.
 
 This is a precise, continuable engineering record, not yet a one-command finished
 installer.
@@ -212,6 +223,8 @@ installer.
 - `diagnostics/pressure-vessel-route-bwrap.c` — validates the route snapshot
   and re-injects it by inherited directory FD after Pressure Vessel mounts its
   private procfs.
+- `diagnostics/cpuid-probe/` — source-only Windows AMD64 probe for raw CPUID
+  and Win32 SSE/SSE2 feature reporting under FEX.
 - `bin/lsof` — narrowly scoped Android `/proc/net` compatibility shim.
 - `config/steam-arm64-compatibilitytools.vdf.in` — local registrations for the
   official ARM64 Proton and runtime payloads.
