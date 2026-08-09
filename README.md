@@ -94,7 +94,9 @@ client binaries, games, Proton payloads, credentials, or Mesa binaries.
   test with a clean, repository-built PRoot. The fixes normalize `.l2s`
   directory-entry metadata, force Pressure Vessel's copy fallback only inside
   its private mutable-runtime prefix, preserve real symlink behavior, and
-  emulate Bubblewrap's bind/pivot sequence through its final root switch.
+  emulate Bubblewrap's bind/pivot sequence through its final root switch. The
+  latest isolated build also preserves covered runtime mounts, allowing
+  Bubblewrap to reach the shared Termux `/tmp` below its staging tmpfs.
 - A prepared runtime shadow keeps the official App ID and platform payload but
   supplies the hash-identical real-file ARM64 Pressure Vessel bundled in
   conventional Runtime 4. A narrow outer PRoot bind exposes the shadow at the
@@ -116,9 +118,11 @@ installer.
   official ARM64 Proton and runtime payloads.
 - `patches/proot-steam-android.patch` — exact custom PRoot changes.
 - `patches/proot-link2symlink-*.patch`, `patches/proot-pivot-*.patch`, and
-  `patches/proot-runtime-bind-exact-detranslate.patch` — focused Pressure
-  Vessel/Bubblewrap compatibility fixes.
+  `patches/proot-runtime-*.patch` — focused Pressure Vessel/Bubblewrap
+  compatibility fixes.
 - `scripts/build-proot.sh` — reproducibly rebuilds patched PRoot.
+- `scripts/probe-proot-bwrap-*.sh` — bundled ARM64 Bubblewrap regression
+  probes for spaced paths and shared-`/tmp` mount underlays.
 - `scripts/prepare-arm64-runtime-shadow.sh` — non-destructively prepares the
   official ARM64 runtime for PRoot's mutable-runtime copy path.
 - `scripts/install-project-files.sh` — installs only this project's files.

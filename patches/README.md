@@ -19,7 +19,7 @@ src/tracee/event.c                       |  58 +
 5 files changed, 244 insertions(+), 3 deletions(-)
 ```
 
-The production build applies six additional focused patches after the IPC
+The production build applies eight additional focused patches after the IPC
 patch:
 
 - `proot-link2symlink-getdents.patch` reports `DT_UNKNOWN` only for confirmed
@@ -37,7 +37,10 @@ patch:
   namespace so they cannot shadow the transient fd alias;
 - `proot-mountinfo-escape-paths.patch` emits Linux mountinfo octal escapes for
   whitespace and backslashes in synthetic mount points and sources, allowing
-  Bubblewrap to match compatibility-tool paths such as `Proton 11.0 (ARM64)`.
+  Bubblewrap to match compatibility-tool paths such as `Proton 11.0 (ARM64)`;
+- `proot-runtime-mount-stack.patch` retains covered equal-path runtime mounts,
+  so Bubblewrap's tmpfs-over-`/tmp` setup can still reach the original shared
+  Termux tmp directory below `/oldroot/tmp` after its first `pivot_root`.
 
 `proot-noderef-fastpath.patch` is a separate experimental performance patch. It
 adds an environment-gated fast path for a narrowly constrained metadata lookup

@@ -1,0 +1,292 @@
+--- a/src/path/binding.h
++++ b/src/path/binding.h
+@@ -47,6 +47,12 @@ typedef CIRCLEQ_HEAD(bindings, binding) Bindings;
+ 
+ extern Binding *insort_binding3(const Tracee *tracee, const TALLOC_CTX *context,
+ 				const char host_path[PATH_MAX], const char guest_path[PATH_MAX]);
++extern Binding *insort_binding3_stacked(const Tracee *tracee, const TALLOC_CTX *context,
++					const char host_path[PATH_MAX],
++					const char guest_path[PATH_MAX]);
++extern Binding *insort_binding3_underlay(const Tracee *tracee, const TALLOC_CTX *context,
++					 const char host_path[PATH_MAX],
++					 const char guest_path[PATH_MAX]);
+ extern Binding *new_binding(Tracee *tracee, const char *host, const char *guest, bool must_exist);
+ extern int initialize_bindings(Tracee *tracee);
+ extern const char *get_path_binding(const Tracee* tracee, Side side, const char path[PATH_MAX]);
+--- a/src/path/binding.c
++++ b/src/path/binding.c
+@@ -95,7 +95,13 @@ static int remove_bindings(Bindings *bindings);
+ 
++typedef enum {
++	REPLACE_EQUAL_GUEST,
++	STACK_EQUAL_GUEST_ACTIVE,
++	STACK_EQUAL_GUEST_UNDERLAY,
++} EqualGuestMode;
++
+ /**
+  * Print all bindings (verbose purpose).
+  */
+ static void print_bindings(const Tracee *tracee)
+ {
+ 	const Binding *binding;
+@@ -218,9 +224,10 @@ const char *get_root(const Tracee* tracee)
+ 
+ 	assert(!CIRCLEQ_EMPTY(tracee->fs->bindings.guest));
+ 
+-	binding = CIRCLEQ_LAST(tracee->fs->bindings.guest);
+-
+-	assert(strcmp(binding->guest.path, "/") == 0);
++	/* A runtime mount can temporarily cover "/".  get_binding() returns
++	 * the active (front-most) entry when equal guest paths are stacked. */
++	binding = get_binding(tracee, GUEST, "/");
++	assert(binding != NULL && strcmp(binding->guest.path, "/") == 0);
+ 
+ 	return binding->host.path;
+ }
+@@ -295,6 +302,7 @@ void remove_binding_from_all_lists(const Tracee *tracee, Binding *binding)
+  * Note: "nested" from the @side point-of-view.
+  */
+-static void insort_binding(const Tracee *tracee, Side side, Binding *binding)
++static void insort_binding(const Tracee *tracee, Side side, Binding *binding,
++			   EqualGuestMode equal_guest_mode)
+ {
+ 	Binding *iterator;
+ 	Binding *previous = NULL;
+@@ -330,9 +338,35 @@ static void insort_binding(const Tracee *tracee, Side side, Binding *binding)
+ 		case PATHS_ARE_EQUAL:
+ 			if (side == HOST) {
+ 				previous = iterator;
+ 				break;
+ 			}
+ 
++				/* Runtime mounts stack at an existing mount point.  Keep
++				 * the newest entry first so get_binding() sees it, while
++				 * retaining the covered entry for umount and pivot_root. */
++				if (equal_guest_mode == STACK_EQUAL_GUEST_ACTIVE) {
++					CIRCLEQ_INSERT_BEFORE_(tracee, iterator, binding,
++							       side);
++					return;
++				}
++
++				/* Namespace copies and pivot rebasing walk active entries
++				 * first.  Append later equal entries to reconstruct the
++				 * same active-to-covered order. */
++				if (equal_guest_mode == STACK_EQUAL_GUEST_UNDERLAY) {
++					Binding *last = iterator;
++					Binding *candidate = CIRCLEQ_NEXT(last, link.guest);
++
++					while (candidate != (void *) HEAD(tracee, side)
++					       && strcmp(candidate->guest.path,
++							 binding->guest.path) == 0) {
++						last = candidate;
++						candidate = CIRCLEQ_NEXT(last, link.guest);
++					}
++					CIRCLEQ_INSERT_AFTER_(tracee, last, binding, side);
++					return;
++				}
++
+ 			if (tracee->verbose > 0 && getenv("PROOT_IGNORE_MISSING_BINDINGS") == NULL) {
+ 				note(tracee, WARNING, USER,
+ 					"both '%s' and '%s' are bound to '%s', "
+@@ -379,13 +413,14 @@ static void insort_binding(const Tracee *tracee, Side side, Binding *binding)
+ /**
+  * c.f. function above.
+  */
+-static void insort_binding2(const Tracee *tracee, Binding *binding)
++static void insort_binding2(const Tracee *tracee, Binding *binding,
++			    EqualGuestMode equal_guest_mode)
+ {
+ 	binding->need_substitution =
+ 		compare_paths(binding->host.path, binding->guest.path) != PATHS_ARE_EQUAL;
+ 
+-	insort_binding(tracee, GUEST, binding);
+-	insort_binding(tracee, HOST, binding);
++	insort_binding(tracee, GUEST, binding, equal_guest_mode);
++	insort_binding(tracee, HOST, binding, REPLACE_EQUAL_GUEST);
+ }
+ 
+ /**
+@@ -394,9 +429,10 @@ static void insort_binding2(const Tracee *tracee, Binding *binding)
+  * is @context.  This function returns NULL if an error occurred,
+  * otherwise a pointer to the newly created binding.
+  */
+-Binding *insort_binding3(const Tracee *tracee, const TALLOC_CTX *context,
+-			const char host_path[PATH_MAX],
+-			const char guest_path[PATH_MAX])
++static Binding *insort_binding4(const Tracee *tracee, const TALLOC_CTX *context,
++				const char host_path[PATH_MAX],
++				const char guest_path[PATH_MAX],
++				EqualGuestMode equal_guest_mode)
+ {
+ 	Binding *binding;
+ 
+@@ -410,11 +446,35 @@ Binding *insort_binding3(const Tracee *tracee, const TALLOC_CTX *context,
+ 	binding->host.length = strlen(binding->host.path);
+ 	binding->guest.length = strlen(binding->guest.path);
+ 
+-	insort_binding2(tracee, binding);
++	insort_binding2(tracee, binding, equal_guest_mode);
+ 
+ 	return binding;
+ }
+ 
++Binding *insort_binding3(const Tracee *tracee, const TALLOC_CTX *context,
++			const char host_path[PATH_MAX],
++			const char guest_path[PATH_MAX])
++{
++	return insort_binding4(tracee, context, host_path, guest_path,
++				REPLACE_EQUAL_GUEST);
++}
++
++Binding *insort_binding3_stacked(const Tracee *tracee, const TALLOC_CTX *context,
++					const char host_path[PATH_MAX],
++					const char guest_path[PATH_MAX])
++{
++	return insort_binding4(tracee, context, host_path, guest_path,
++				STACK_EQUAL_GUEST_ACTIVE);
++}
++
++Binding *insort_binding3_underlay(const Tracee *tracee, const TALLOC_CTX *context,
++					 const char host_path[PATH_MAX],
++					 const char guest_path[PATH_MAX])
++{
++	return insort_binding4(tracee, context, host_path, guest_path,
++				STACK_EQUAL_GUEST_UNDERLAY);
++}
++
+ /**
+  * Free all bindings from @bindings.
+  *
+@@ -531,7 +591,7 @@ Binding *new_binding(Tracee *tracee, const char *host, const char *guest, bool m
+ 	/* Keep the list of bindings specified by the user ordered,
+ 	 * for the sake of consistency.  For instance binding to "/"
+ 	 * has to be the last in the list.  */
+-	insort_binding(tracee, PENDING, binding);
++	insort_binding(tracee, PENDING, binding, REPLACE_EQUAL_GUEST);
+ 
+ 	return binding;
+ 
+@@ -613,7 +673,7 @@ static void initialize_binding(Tracee *tracee, Binding *binding)
+ 
+ 	binding->guest.length = strlen(binding->guest.path);
+ 
+-	insort_binding2(tracee, binding);
++	insort_binding2(tracee, binding, REPLACE_EQUAL_GUEST);
+ }
+ 
+ /**
+@@ -700,7 +760,7 @@ static void add_induced_bindings(Tracee *tracee, const Binding *new_binding)
+ 			old_binding->host.path, old_binding->guest.path, path, new_binding->guest.path,
+ 			induced_binding->host.path, induced_binding->guest.path);
+ 
+-		insort_binding2(tracee, induced_binding);
++		insort_binding2(tracee, induced_binding, REPLACE_EQUAL_GUEST);
+ 	}
+ }
+ 
+--- a/src/syscall/enter.c
++++ b/src/syscall/enter.c
+@@ -262,7 +262,9 @@ static void emulate_mount(Tracee *tracee, const char *src_user,
+ 	if (guest_canonicalize(tracee, target_user, guest_path) < 0)
+ 		return;
+ 
+-	(void) insort_binding3(tracee, tracee->fs, host_path, guest_path);
++	/* A mount covers an existing mount point; umount must reveal it again. */
++	(void) insort_binding3_stacked(tracee, tracee->fs, host_path,
++					guest_path);
+ }
+ 
+ /**
+@@ -280,6 +282,7 @@ static void emulate_pivot_root(Tracee *tracee, const char *new_root_user,
+ 	char put_old_guest[PATH_MAX];
+ 	char old_root_host[PATH_MAX];
+ 	Binding *root_binding;
++	Binding *new_root_binding;
+ 	Binding **snapshot;
+ 	bool same_directory_pivot;
+ 	size_t new_root_len;
+@@ -308,6 +311,11 @@ static void emulate_pivot_root(Tracee *tracee, const char *new_root_user,
+ 
+ 	chop_finality(put_old_guest);
+ 	same_directory_pivot = strcmp(new_root_guest, put_old_guest) == 0;
++	new_root_binding = get_binding(tracee, GUEST, new_root_guest);
++	/* Only an exact mount is moved to become the new root. */
++	if (new_root_binding != NULL
++	    && strcmp(new_root_binding->guest.path, new_root_guest) != 0)
++		new_root_binding = NULL;
+ 	root_binding = get_binding(tracee, GUEST, "/");
+ 	if (root_binding == NULL)
+ 		return;
+@@ -379,6 +387,14 @@ static void emulate_pivot_root(Tracee *tracee, const char *new_root_user,
+ 		if (b == root_binding || strcmp(b->guest.path, "/") == 0)
+ 			continue;
+ 
++		/* The active exact binding is the mount being moved to "/".
++		 * Do not also expose it below oldroot; covered entries with the
++		 * same guest path are retained and processed after it. */
++		if (b == new_root_binding) {
++			remove_binding_from_all_lists(tracee, b);
++			continue;
++		}
++
+ 		blen = strlen(b->guest.path);
+ 
+ 		/* Bindings that live under the new root move *with* the pivot:
+@@ -393,7 +409,8 @@ static void emulate_pivot_root(Tracee *tracee, const char *new_root_user,
+ 		    && strncmp(b->guest.path, new_root_guest, new_root_len) == 0
+ 		    && b->guest.path[new_root_len] == '/') {
+-			(void) insort_binding3(tracee, tracee->fs, b->host.path,
+-					       b->guest.path + new_root_len);
++			(void) insort_binding3_underlay(tracee, tracee->fs,
++						b->host.path,
++						b->guest.path + new_root_len);
+ 			/* Drop the stale pre-pivot binding so it can't shadow
+ 			 * the rebased one (e.g. host->guest detranslation). */
+ 			remove_binding_from_all_lists(tracee, b);
+@@ -425,9 +442,9 @@ static void emulate_pivot_root(Tracee *tracee, const char *new_root_user,
+ 			if ((size_t) snprintf(aliased, sizeof(aliased), "%s%s",
+ 					      put_old_after, b->guest.path)
+ 			    >= sizeof(aliased))
+ 				continue;
+ 
+-			(void) insort_binding3(tracee, tracee->fs,
+-					       b->host.path, aliased);
++			(void) insort_binding3_underlay(tracee, tracee->fs,
++						b->host.path, aliased);
+ 		}
+ 	}
+--- a/src/tracee/tracee.c
++++ b/src/tracee/tracee.c
+@@ -561,7 +561,7 @@ int new_child(Tracee *parent, word_t clone_flags)
+ 			for (iter = CIRCLEQ_FIRST(parent->fs->bindings.guest);
+ 			     iter != (void *) parent->fs->bindings.guest;
+ 			     iter = CIRCLEQ_NEXT(iter, link.guest))
+-				(void) insort_binding3(child, child->fs,
++				(void) insort_binding3_underlay(child, child->fs,
+ 						       iter->host.path,
+ 						       iter->guest.path);
+ 		}
+--- a/src/extension/mountinfo/mountinfo.c
++++ b/src/extension/mountinfo/mountinfo.c
+@@ -45,5 +45,6 @@ static void append_runtime_binding_lines(Tracee *target_tracee, FILE *fp)
+ {
+ 	Binding *binding;
++	const char *previous_guest = NULL;
+ 	int next_id = 1000000;
+ 	int parent_id = 1;
+ 
+@@ -54,6 +55,14 @@ static void append_runtime_binding_lines(Tracee *target_tracee, FILE *fp)
+ 	for (binding = CIRCLEQ_FIRST(target_tracee->fs->bindings.guest);
+ 	     binding != (void *) target_tracee->fs->bindings.guest;
+ 	     binding = CIRCLEQ_NEXT(binding, link.guest)) {
++		/* Equal guest paths are ordered active first.  Covered mounts
++		 * remain in the binding stack for umount/pivot_root, but are not
++		 * visible in the current namespace's mount table. */
++		if (previous_guest != NULL
++		    && strcmp(previous_guest, binding->guest.path) == 0)
++			continue;
++		previous_guest = binding->guest.path;
++
+ 		/* Skip the root binding "/" — already present as the kernel root.  */
+ 		if (strcmp(binding->guest.path, "/") == 0)
+ 			continue;

@@ -612,3 +612,63 @@ links, and 27 GB remained free. The failed 370 MB temporary root
 `var/tmp-EJJ2T3` was retained for inspection. A full-resolution post-failure
 screenshot at `~/steam-arm64/post-x0-bind-failure.png` shows the authenticated
 Steam Store healthy with no game or EA window.
+
+## 2026-08-08: retain shared `/tmp` below Bubblewrap's staging mount
+
+The X0 failure was not specific to sockets. These required history searches
+returned no indexed match, so no previous-session solution was reused:
+
+```text
+deja "srt-bwrap PRoot Unix socket ro-bind X0 no such file Termux X11"
+deja "PRoot srt-bwrap X0 unix socket lstat ENOENT pivot_root path translation bind source"
+```
+
+With production PRoot, bundled `srt-bwrap --ro-bind / /` could bind `/tmp`
+itself, but every tested descendant of the shared Termux `/tmp` failed with
+`ENOENT`: a regular file, a child directory, the existing X0 socket, and a
+fresh AF_UNIX socket. The same regular file, directory, and exact live X0 inode
+all succeeded when the outer PRoot exposed them below `/mnt`. This ruled out
+file type, socket permissions, and the host source path.
+
+`PROOT_VERBOSE=9` showed the exact lifecycle. The outer namespace initially
+translated `/tmp` through `$PREFIX/tmp`. Bubblewrap then mounted a private
+tmpfs at guest `/tmp` for its staging root. PRoot's equal-guest insertion
+discarded the covered `$PREFIX/tmp:/tmp` binding. After the first
+`pivot_root`, Bubblewrap resolved its pre-opened source below
+`/oldroot/tmp/.X11-unix/X0`, but PRoot could only see the staging tmpfs and
+returned `ENOENT`.
+
+`proot-runtime-mount-stack.patch` gives emulated runtime mounts ordered stack
+semantics. The newest equal guest binding is active, `umount` reveals the
+covered entry, namespace copies preserve active-to-covered order, and
+`pivot_root` excludes the active new-root layer while re-exposing its covered
+underlay below `oldroot`. Root lookup now selects the active binding, and
+synthetic mountinfo emits only the active entry for duplicate guest paths.
+
+`probe-proot-bwrap-shared-tmp-bind.sh` creates a validated Termux-tmp fixture
+and checks both its regular file and containing directory through the bundled
+ARM64 `srt-bwrap`. The identical harness fails against production v3 with the
+original `No such file or directory`, and exits zero against isolated v4b.
+The v4b build also passes the mountinfo escape probe, both no-space and real
+`Proton 11.0 (ARM64)` binds, and `pivot-root-fd.py`.
+
+The isolated v4b build remains pinned to PRoot commit
+`a89b3732ec6ae1db674510f0843b2f3db54d0a2f`. Its provenance is:
+
+```text
+source tree:          ~/steam-arm64/src/mountstack-v4b-20260808-212006
+patch input SHA-256:  263d3db02e03ab90163d5080b26a806c4851af8c554ef33c81b57b2911a64ca9
+probe SHA-256:        8d5e7ac5881c03585dbe69a18385c0dbe3f7a9c2fbeacc11564372338116a52a
+patch-set SHA-256:    fa72be34b4317763eb6c7f0eeb048a475eb6be5a1ef33d1bc9d57cb174f71258
+source-diff SHA-256:  ceac3039e9321553b2faee363b71b26d54e3620b7c1a8e54f8e557bd3efb525a
+binary SHA-256:       981c304c7cf156ea7f7068fc2d3ed781aef1d2514c5d128b0ce0b57d52ad47ca
+```
+
+A complete isolated official `SteamLinuxRuntime_4-arm64` smoke using
+`_v2-entry-point --verb=run -- /bin/true` then exited zero. Its private
+`var/tmp-56SZT3` contains 5,371 regular files; Pressure Vessel, all isolated
+`var`, and the new temporary root contain zero `.l2s` links. The log contains
+only the expected guarded `EXDEV` copy warnings and no unexpected missing-path,
+permission, segmentation, fatal, or `E:` errors. The production binary remains
+v3 hash `c9ae8f9611b1009568ac18a8d83695440306e25e0f0b4223d09bf821ca2d6a53`
+until a guarded deployment, Steam remained alive, and 26 GB remained free.
