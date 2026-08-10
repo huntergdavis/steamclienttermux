@@ -246,6 +246,21 @@ if [[ "$removable_mount" != disabled ]]; then
     pd_args+=(--bind "$removable_common:$removable_target/steamapps/common")
     pd_args+=(--bind "$removable_compatdata:$removable_target/steamapps/compatdata")
     pd_args+=(--bind "$removable_downloads:$removable_target/steamapps/downloading")
+    removable_staging_mounts="$(
+        python3 "$removable_library_helper" --base "$base" staging-mount-info
+    )"
+    if [[ -n "$removable_staging_mounts" ]]; then
+        while IFS=$'\t' read -r staging_source staging_target staging_extra; do
+            if [[ -z "$staging_source" || -z "$staging_target" ||
+                    -n "$staging_extra" ]]; then
+                printf 'Invalid removable staging mount description\n' >&2
+                exit 1
+            fi
+            pd_args+=(--bind "$staging_source:$staging_target")
+            printf 'Removable staging bind: %s -> %s\n' \
+                "$staging_source" "$staging_target"
+        done <<<"$removable_staging_mounts"
+    fi
     printf 'Removable Windows game library: %s -> %s\n' \
         "$removable_source" "$removable_target"
 fi

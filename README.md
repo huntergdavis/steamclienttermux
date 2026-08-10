@@ -127,6 +127,38 @@ portable-storage FUSE does not implement the file locks Steam needs for manifest
 or patch state. The launcher fails early if the card is absent or the layout is
 unsafe.
 
+Large depots can make Steam's cross-filesystem commit path spend seconds per
+file under PRoot. With Steam stopped, copy one numeric `downloading/<appid>`
+tree to `<microSD-library>/staging/<appid>`, generate matching relative-path
+SHA-256 manifests for both trees, then enable the verified nested bind:
+
+```sh
+bin/steam-arm64-removable-library.py --base "$HOME/steam-arm64" \
+  enable-staging-bind 12210 --source-manifest source.sha256 \
+  --target-manifest target.sha256
+```
+
+Patch-state files remain internal and lock-safe; only the verified numeric
+payload tree is overlaid, making the final commit a same-filesystem rename.
+If Steam's own commit still stalls on per-file PRoot metadata, stop Steam and
+run the manifest-gated native merge:
+
+```sh
+bin/steam-arm64-removable-library.py --base "$HOME/steam-arm64" \
+  commit-staging 12210 --install-dir "Grand Theft Auto IV" \
+  --manifest source.sha256
+```
+
+The internal staging tree stays hidden as a temporary recovery copy. Keep it
+only until Steam has restarted and retained `StateFlags 4` and
+the target build. If the native merge bypassed Steam's final metadata write,
+run the offline `finalize-staging` action with one `--depot-manifest` argument
+for each current cached depot manifest; it validates their embedded IDs and
+sizes before backing up and atomically completing the appmanifest. The exact
+GTA IV example is in [`docs/TECHNICAL_LOG.md`](docs/TECHNICAL_LOG.md). After a
+verified restart, the redundant internal numeric App-ID tree can be removed
+with Steam stopped and its empty mountpoint recreated.
+
 `WINE_CPU_TOPOLOGY=4:4,5,6,7` is a candidate for making the affinity persistent,
 but it is intentionally not presented as confirmed until a clean launch proves
 the same per-thread masks and performance.

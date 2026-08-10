@@ -2146,3 +2146,159 @@ The previous deployed helper is preserved byte-for-byte at:
 With Steam still running, the promoted helper passed its live layout check and
 the next launcher invocation forwarded `steam://install/12210`. Steam logged
 both `ExecCommandLine` and `ExecuteSteamURL` for App ID 12210 without a restart.
+
+## 2026-08-10: GTA IV split staging and native microSD commit
+
+Grand Theft Auto IV: The Complete Edition (App ID 12210, target BuildID
+14009960) downloaded 21,023,910,704 bytes and staged 23,929,147,221 bytes.
+Steam's normal commit then attempted 5,933 updated files across the internal
+F2FS-to-microSD boundary. After about seven minutes it had committed only about
+34 MiB and 98 files. This was the same per-file PRoot metadata cost observed on
+Kingsway, scaled to a much larger tree; the content was not corrupt.
+
+The required recall queries for cross-filesystem commit behavior, numeric
+download binds, StateFlags recovery, identical overlap handling, appmanifest
+finalization, and ContentManifest metadata returned no matching prior session.
+No prior-session implementation was reused. The earlier documented forwarded
+`-shutdown` procedure was reused: when Steam was idle it again produced a
+natural exit, while a forward issued during the wedged commit remained queued
+until the worker released Steam's main loop.
+
+Steam was stopped before staging migration. The remaining internal tree had
+5,604 regular files, 242 directories, no links or special files, and
+23,894,672,552 bytes by `du -sb`. It was copied natively, without Unix
+owner/mode/xattr preservation, to:
+
+```text
+/storage/7376-B000/Android/data/com.termux/files/steam-arm64-library/staging/12210
+```
+
+Independent full SHA-256 inventories of the internal source and external copy
+matched byte-for-byte. Each contained 5,604 records and the manifest file hash
+was:
+
+```text
+62fdb31c21a4ccde9a157ee59480b20828ac8d5fabeae885169ac808b96f358f
+```
+
+The evidence is retained at
+`~/steam-arm64/diagnostics/gtaiv-staging-verify-20260810-1221/`. A production
+PRoot probe proved that the external staging tree and external `common` target
+both report device 1048616; a 1 MiB rename between the two completed in 0.446
+seconds including PRoot startup. The launcher therefore adds the whole internal
+downloads bind first and a narrower external `staging/12210` bind over only the
+numeric guest download tree.
+
+Configuration version 2 records each nested staging App ID with its verified
+file count, byte count, and manifest SHA. `enable-staging-bind` requires Steam
+and Wine to be stopped, identical source/target SHA manifest files, matching
+tree statistics, safe real-directory mountpoints, and the expected internal and
+external devices. Launcher startup validates only these fixed device and path
+boundaries; it deliberately does not rescan thousands of mutable staged files.
+
+The exact offline registration was:
+
+```sh
+bin/steam-arm64-removable-library.py --base "$HOME/steam-arm64" \
+  enable-staging-bind 12210 \
+  --source-manifest source.sha256 --target-manifest target.sha256
+```
+
+Steam resumed after a backup-first `StateFlags 1538` to `1026` correction,
+redownloaded about 26 MiB, restored the one actually missing staged file, and
+again reached the complete 23,929,147,221-byte stage. Its same-device view was
+correct but the PRoot commit still spent its time on metadata calls and made no
+useful progress.
+
+The offline `commit-staging` action validates the registered manifest digest,
+exact source inventory and byte total, source/target device equality, real
+directories, zero Steam/Wine processes, and the installed target before making
+same-filesystem `os.replace()` calls. Steam had already copied 61 paths without
+removing their staged sources. The helper now accepts such overlaps only when
+both files independently match the registered manifest digest; any mismatch is
+a hard pre-mutation failure. A regression test covers both identical reuse and
+mismatched refusal.
+
+```sh
+bin/steam-arm64-removable-library.py --base "$HOME/steam-arm64" \
+  commit-staging 12210 --install-dir "Grand Theft Auto IV" \
+  --manifest source.sha256
+```
+
+The live result was 5,543 same-device moves, 61 digest-verified reuses, and an
+empty external staging tree. The final target contained exactly 5,702 regular
+files and 23,929,147,221 bytes. The deployed helper SHA at that checkpoint was
+`6b269ee74257422d8b702e055670057bd66a9617ec31f9e9a81015e62255c26e`;
+its predecessor is preserved at
+`~/steam-arm64/backups/staging-identical-overlap-20260810-1327/`.
+
+The interrupted Steam commit also left `InstalledDepots` empty. Steam initially
+accepted the corrected build/size as fully installed, then changed state 4 to
+state 6 after appinfo added five depots. It logged 21,023,910,704 bytes to
+download but zero bytes to stage, proving a control-metadata inconsistency
+rather than absent installed content.
+
+The five cached Steam ContentManifest files use the standard payload marker
+`0x71f617d0` and metadata marker `0x1f4812be`. Their embedded protobuf fields
+matched each filename's depot ID and manifest GID. Field 5 supplied these
+original sizes:
+
+```text
+12218    5435507331887440070       6,554,576
+12211    8070600747380932868  16,332,847,585
+12213    7959739752369022030      37,487,453
+12212    5029883714475696364   7,312,739,354
+1899671  1378788310039702778     239,518,253
+                                      -----------
+                                   23,929,147,221
+```
+
+That exact sum equals both the completed stage and installed-target byte total.
+The new offline `finalize-staging` action codifies the live repair: it requires
+empty external staging, verifies every cached filename against its embedded
+depot/GID, requires the signed depot sizes to equal the installed tree, checks
+the app/build/counter state, creates a timestamped appmanifest backup, preserves
+LF or CRLF style, and atomically writes normal installed state and the depot
+block. For this build the reproducible command is:
+
+```sh
+bin/steam-arm64-removable-library.py --base "$HOME/steam-arm64" \
+  finalize-staging 12210 --install-dir "Grand Theft Auto IV" \
+  --depot-manifest "$HOME/steam-arm64/client/depotcache/12218_5435507331887440070.manifest" \
+  --depot-manifest "$HOME/steam-arm64/client/depotcache/12211_8070600747380932868.manifest" \
+  --depot-manifest "$HOME/steam-arm64/client/depotcache/12213_7959739752369022030.manifest" \
+  --depot-manifest "$HOME/steam-arm64/client/depotcache/12212_5029883714475696364.manifest" \
+  --depot-manifest "$HOME/steam-arm64/client/depotcache/1899671_1378788310039702778.manifest"
+```
+
+The live pre-finalization manifests are preserved at
+`~/steam-arm64/backups/gtaiv-finalize-20260810-1347/` and
+`~/steam-arm64/backups/gtaiv-depots-20260810-1359/`. After another Steam start,
+App ID 12210 remained state 4 with BuildID 14009960, size 23,929,147,221,
+`StagingSize 0`, all completed counters, schedule zero, and no new update event.
+
+Only after that restart proof was the redundant internal
+`removable-library-downloads/12210` tree deleted. The deletion revalidated the
+exact resolved path, 5,543 files, 242 directories, zero non-file/non-directory
+entries, 23,894,509,024 logical bytes, state 4, full installed size, empty
+external staging, and zero Steam/Wine processes in the same foreground shell.
+The empty mountpoint was recreated mode 0700. Internal free space increased by
+23,954,800,640 allocated bytes, from 3,322,888 KiB to 26,716,248 KiB.
+
+In the final Steam session, App 4628740 registered as
+`proton_11_arm64_official`, App 4185400 registered as
+`steamlinuxruntime_4_arm64_official`, and App 12210 mapped to the ARM Proton key
+at priority 250 while remaining state 4. The first `steam://rungameid/12210`
+forward was issued only after those lines appeared. The known slow historical
+tool scan then completed with `CCacheOffSteamPlayStateJob ... complete` and
+posted the ARM tool callbacks. The queued launch immediately entered official
+`Proton 11.0 (ARM64)` and Runtime 4 ARM64 to run
+`legacycompat/iscriptevaluator.exe` for App 12210.
+
+The evaluator created the expected ARM Proton/Wine tree (`wineserver`,
+`services.exe`, `rpcss.exe`, `iscriptevaluator.exe`, and SteamService) and is
+currently running Steamworks Shared's DirectX June 2010 `DXSETUP.exe /silent`.
+That leaf has accumulated hundreds of megabytes of read/write I/O and steadily
+increasing traced context switches, so it is slow but not stuck. GTA IV and
+Rockstar Launcher have not started yet; this section therefore claims the
+correct ARM prerequisite route, not game execution.

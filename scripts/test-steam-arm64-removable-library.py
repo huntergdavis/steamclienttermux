@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import stat
+import struct
 import tempfile
 
 
@@ -41,6 +42,33 @@ def fixture(temporary):
     return storage, external, link, base
 
 
+def protobuf_varint(value):
+    rendered = bytearray()
+    while value >= 0x80:
+        rendered.append((value & 0x7F) | 0x80)
+        value >>= 7
+    rendered.append(value)
+    return bytes(rendered)
+
+
+def write_depot_manifest(path, depot_id, manifest_gid, original_size):
+    metadata = b"".join(
+        (
+            protobuf_varint(1 << 3),
+            protobuf_varint(depot_id),
+            protobuf_varint(2 << 3),
+            protobuf_varint(manifest_gid),
+            protobuf_varint(5 << 3),
+            protobuf_varint(original_size),
+        )
+    )
+    path.write_bytes(
+        struct.pack("<II", 0x71F617D0, 0)
+        + struct.pack("<II", 0x1F4812BE, len(metadata))
+        + metadata
+    )
+
+
 def test_prepare_and_idempotence(module, temporary):
     storage, external, link, base = fixture(temporary)
     paths, backup = module.prepare_layout(base, link, storage)
@@ -49,6 +77,7 @@ def test_prepare_and_idempotence(module, temporary):
     assert paths["target"].is_dir()
     assert paths["steamapps_control"].is_dir()
     assert paths["external_common"].is_dir()
+    assert paths["external_staging"].is_dir()
     assert paths["compatdata"].is_dir()
     assert paths["download_state"].is_dir()
     assert (paths["steamapps_control"] / "common").is_dir()
@@ -58,7 +87,8 @@ def test_prepare_and_idempotence(module, temporary):
     assert stat.S_IMODE(config.stat().st_mode) == 0o600
     assert json.loads(config.read_text()) == {
         "source": str(external / module.LIBRARY_NAME),
-        "version": 1,
+        "staging_binds": {},
+        "version": 2,
     }
     loaded = module.load_layout(base, storage)
     assert loaded == paths
@@ -180,6 +210,7 @@ def test_removed_card(module, temporary):
     control.rmdir()
     paths["external_common"].rmdir()
     paths["external_steamapps"].rmdir()
+    paths["external_staging"].rmdir()
     library.rmdir()
     assert external.is_dir()
     try:
@@ -194,6 +225,182 @@ def test_disabled(module, temporary):
     base = temporary / "steam-arm64"
     base.mkdir()
     assert module.load_layout(base, temporary / "storage") is None
+
+
+def test_staging_bind(module, temporary):
+    storage, _external, link, base = fixture(temporary)
+    paths, _backup = module.prepare_layout(base, link, storage)
+    appid = "12210"
+    external_staging = paths["external_staging"] / appid
+    internal_staging = paths["download_state"] / appid
+    external_staging.mkdir()
+    internal_staging.mkdir()
+    (external_staging / "GTAIV").mkdir()
+    (internal_staging / "GTAIV").mkdir()
+    payload = b"verified staging payload"
+    (external_staging / "GTAIV/game.bin").write_bytes(payload)
+    (internal_staging / "GTAIV/game.bin").write_bytes(payload)
+    digest = __import__("hashlib").sha256(payload).hexdigest()
+    manifest_bytes = f"{digest}  ./GTAIV/game.bin\n".encode()
+    source_manifest = temporary / "source.sha256"
+    target_manifest = temporary / "target.sha256"
+    source_manifest.write_bytes(manifest_bytes)
+    target_manifest.write_bytes(manifest_bytes)
+    staging, backup = module.enable_staging_bind(
+        base, paths, appid, source_manifest, target_manifest, storage
+    )
+    assert backup is not None
+    assert staging["source"] == external_staging
+    assert staging["target"] == internal_staging
+    assert staging["files"] == 1
+    assert staging["bytes"] == len(payload)
+    assert staging["manifest_sha256"] == __import__("hashlib").sha256(
+        manifest_bytes
+    ).hexdigest()
+    loaded = module.load_layout(base, storage)
+    assert loaded["staging_binds"][appid] == staging
+    (external_staging / "GTAIV/game.bin").unlink()
+    assert module.load_layout(base, storage)["staging_binds"][appid] == staging
+    target_manifest.write_bytes(b"different\n")
+    try:
+        module.enable_staging_bind(
+            base, loaded, appid, source_manifest, target_manifest, storage
+        )
+    except RuntimeError as error:
+        assert "manifests do not match" in str(error)
+    else:
+        raise AssertionError("mismatched staging manifests were accepted")
+
+
+def test_commit_staging(module, temporary):
+    storage, _external, link, base = fixture(temporary)
+    paths, _backup = module.prepare_layout(base, link, storage)
+    appid = "12210"
+    external_staging = paths["external_staging"] / appid
+    internal_staging = paths["download_state"] / appid
+    install_target = paths["external_common"] / "Grand Theft Auto IV"
+    external_staging.mkdir()
+    internal_staging.mkdir()
+    install_target.mkdir()
+    payloads = {
+        "GTAIV/game.bin": b"game payload",
+        "Redistributables/setup.exe": b"setup payload",
+    }
+    manifest_lines = []
+    for relative, payload in payloads.items():
+        for root in (external_staging, internal_staging):
+            path = root / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(payload)
+        digest = __import__("hashlib").sha256(payload).hexdigest()
+        manifest_lines.append(f"{digest}  ./{relative}\n")
+    manifest_bytes = "".join(sorted(manifest_lines)).encode()
+    source_manifest = temporary / "source.sha256"
+    target_manifest = temporary / "target.sha256"
+    source_manifest.write_bytes(manifest_bytes)
+    target_manifest.write_bytes(manifest_bytes)
+    _staging, _backup = module.enable_staging_bind(
+        base, paths, appid, source_manifest, target_manifest, storage
+    )
+    reused = install_target / "GTAIV/game.bin"
+    reused.parent.mkdir(parents=True)
+    reused.write_bytes(payloads["GTAIV/game.bin"])
+    loaded = module.load_layout(base, storage)
+    source_stats, final_stats, reused_files = module.commit_staging(
+        loaded, appid, "Grand Theft Auto IV", source_manifest
+    )
+    assert source_stats == (2, sum(map(len, payloads.values())))
+    assert final_stats == source_stats
+    assert reused_files == 1
+    assert not any(external_staging.iterdir())
+    for relative, payload in payloads.items():
+        assert (install_target / relative).read_bytes() == payload
+        assert (internal_staging / relative).read_bytes() == payload
+
+    depot_manifests = []
+    for depot_id, (relative, payload) in zip((12211, 12212), payloads.items()):
+        manifest_gid = depot_id * 1000003
+        depot_manifest = temporary / f"{depot_id}_{manifest_gid}.manifest"
+        write_depot_manifest(depot_manifest, depot_id, manifest_gid, len(payload))
+        depot_manifests.append(depot_manifest)
+    appmanifest = paths["steamapps_control"] / "appmanifest_12210.acf"
+    appmanifest_original = (
+        '"AppState"\r\n{\r\n'
+        '\t"appid"\t\t"12210"\r\n'
+        '\t"StateFlags"\t\t"1026"\r\n'
+        '\t"installdir"\t\t"Grand Theft Auto IV"\r\n'
+        '\t"lastupdated"\t\t"0"\r\n'
+        '\t"SizeOnDisk"\t\t"0"\r\n'
+        f'\t"StagingSize"\t\t"{source_stats[1]}"\r\n'
+        '\t"buildid"\t\t"0"\r\n'
+        '\t"DownloadType"\t\t"1"\r\n'
+        '\t"BytesToDownload"\t\t"19"\r\n'
+        '\t"BytesDownloaded"\t\t"19"\r\n'
+        f'\t"BytesToStage"\t\t"{source_stats[1]}"\r\n'
+        f'\t"BytesStaged"\t\t"{source_stats[1]}"\r\n'
+        '\t"TargetBuildID"\t\t"14009960"\r\n'
+        '\t"ScheduledAutoUpdate"\t\t"123"\r\n'
+        '\t"InstalledDepots"\r\n\t{\r\n\t}\r\n'
+        '}\r\n'
+    ).encode()
+    appmanifest.write_bytes(appmanifest_original)
+    backup, build, finalized_stats, records = module.finalize_staging_manifest(
+        base,
+        loaded,
+        appid,
+        "Grand Theft Auto IV",
+        depot_manifests,
+    )
+    assert build == "14009960"
+    assert finalized_stats == source_stats
+    assert len(records) == 2
+    assert (backup / appmanifest.name).read_bytes() == appmanifest_original
+    finalized = appmanifest.read_bytes()
+    assert b'\t"StateFlags"\t\t"4"\r\n' in finalized
+    assert b'\t"SizeOnDisk"\t\t"25"\r\n' in finalized
+    assert b'\t"StagingSize"\t\t"0"\r\n' in finalized
+    assert b'\t"buildid"\t\t"14009960"\r\n' in finalized
+    for depot_id, manifest_gid, size in records:
+        assert f'\t\t"{depot_id}"\r\n'.encode() in finalized
+        assert f'\t\t\t"manifest"\t\t"{manifest_gid}"\r\n'.encode() in finalized
+        assert f'\t\t\t"size"\t\t"{size}"\r\n'.encode() in finalized
+
+
+def test_commit_staging_rejects_mismatched_overlap(module, temporary):
+    storage, _external, link, base = fixture(temporary)
+    paths, _backup = module.prepare_layout(base, link, storage)
+    appid = "12210"
+    external_staging = paths["external_staging"] / appid
+    internal_staging = paths["download_state"] / appid
+    install_target = paths["external_common"] / "Grand Theft Auto IV"
+    payload = b"verified payload"
+    for root in (external_staging, internal_staging):
+        path = root / "GTAIV/game.bin"
+        path.parent.mkdir(parents=True)
+        path.write_bytes(payload)
+    installed = install_target / "GTAIV/game.bin"
+    installed.parent.mkdir(parents=True)
+    installed.write_bytes(b"different bytes")
+    digest = __import__("hashlib").sha256(payload).hexdigest()
+    manifest_bytes = f"{digest}  ./GTAIV/game.bin\n".encode()
+    source_manifest = temporary / "source.sha256"
+    target_manifest = temporary / "target.sha256"
+    source_manifest.write_bytes(manifest_bytes)
+    target_manifest.write_bytes(manifest_bytes)
+    module.enable_staging_bind(
+        base, paths, appid, source_manifest, target_manifest, storage
+    )
+    loaded = module.load_layout(base, storage)
+    try:
+        module.commit_staging(
+            loaded, appid, "Grand Theft Auto IV", source_manifest
+        )
+    except RuntimeError as error:
+        assert "installed target differs from manifest" in str(error)
+    else:
+        raise AssertionError("mismatched installed overlap was accepted")
+    assert (external_staging / "GTAIV/game.bin").read_bytes() == payload
+    assert installed.read_bytes() == b"different bytes"
 
 
 def test_registration(module, temporary):
@@ -248,6 +455,9 @@ def main():
         test_configuration_refusals,
         test_removed_card,
         test_disabled,
+        test_staging_bind,
+        test_commit_staging,
+        test_commit_staging_rejects_mismatched_overlap,
         test_registration,
         test_registration_refusals,
     )
