@@ -33,6 +33,23 @@ def inspect_directory(path, label, *, require_empty=False):
     return metadata
 
 
+def inspect_directory_skeleton(path, label):
+    metadata = inspect_directory(path, label)
+    pending = [path]
+    while pending:
+        current = pending.pop()
+        for entry in current.iterdir():
+            entry_metadata = entry.lstat()
+            if stat.S_ISLNK(entry_metadata.st_mode) or not stat.S_ISDIR(
+                entry_metadata.st_mode
+            ):
+                raise RuntimeError(
+                    f"{label} contains non-directory data: {entry}"
+                )
+            pending.append(entry)
+    return metadata
+
+
 def inspect_config(path):
     try:
         metadata = path.lstat()
@@ -122,20 +139,17 @@ def validate_layout(base, source, storage_root=Path("/storage")):
     inspect_directory(paths["external_common"], "external common payload")
     inspect_directory(paths["compatdata"], "internal removable-library compatdata")
     inspect_directory(paths["download_state"], "internal removable-library downloads")
-    inspect_directory(
+    inspect_directory_skeleton(
         paths["steamapps_control"] / "common",
         "internal common mount point",
-        require_empty=True,
     )
-    inspect_directory(
+    inspect_directory_skeleton(
         paths["steamapps_control"] / "compatdata",
         "internal compatdata mount point",
-        require_empty=True,
     )
-    inspect_directory(
+    inspect_directory_skeleton(
         paths["steamapps_control"] / "downloading",
         "internal downloads mount point",
-        require_empty=True,
     )
     if not os.access(paths["source"], os.R_OK | os.W_OK | os.X_OK):
         raise RuntimeError(f"removable library is not readable and writable: {resolved_source}")

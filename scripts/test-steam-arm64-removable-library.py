@@ -88,30 +88,46 @@ def test_hidden_data_refusals(module, temporary):
     compatdata_mount = paths["steamapps_control"] / "compatdata"
     downloads_mount = paths["steamapps_control"] / "downloading"
     common_mount = paths["steamapps_control"] / "common"
-    (compatdata_mount / "unexpected-prefix").mkdir()
+    (compatdata_mount / "588950").mkdir()
+    (downloads_mount / "588951").mkdir()
+    (common_mount / "Kingsway").mkdir()
+    assert module.load_layout(base, storage) == paths
+    (compatdata_mount / "588950" / "unexpected-prefix").write_text("unsafe")
     try:
         module.load_layout(base, storage)
     except RuntimeError as error:
-        assert "internal compatdata mount point must be empty" in str(error)
+        assert "internal compatdata mount point contains non-directory data" in str(
+            error
+        )
     else:
-        raise AssertionError("nonempty internal compatdata mount was accepted")
-    (compatdata_mount / "unexpected-prefix").rmdir()
-    (downloads_mount / "unexpected-download").write_text("unsafe")
+        raise AssertionError("internal compatdata file was accepted")
+    (compatdata_mount / "588950" / "unexpected-prefix").unlink()
+    (downloads_mount / "588951" / "unexpected-download").write_text("unsafe")
     try:
         module.load_layout(base, storage)
     except RuntimeError as error:
-        assert "internal downloads mount point must be empty" in str(error)
+        assert "internal downloads mount point contains non-directory data" in str(error)
     else:
-        raise AssertionError("nonempty internal downloads mount was accepted")
-    (downloads_mount / "unexpected-download").unlink()
-    (common_mount / "unexpected-payload").write_text("unsafe")
+        raise AssertionError("internal downloads file was accepted")
+    (downloads_mount / "588951" / "unexpected-download").unlink()
+    (common_mount / "Kingsway" / "unexpected-payload").write_text("unsafe")
     try:
         module.load_layout(base, storage)
     except RuntimeError as error:
-        assert "internal common mount point must be empty" in str(error)
+        assert "internal common mount point contains non-directory data" in str(error)
     else:
-        raise AssertionError("nonempty internal common mount was accepted")
-    (common_mount / "unexpected-payload").unlink()
+        raise AssertionError("internal common file was accepted")
+    (common_mount / "Kingsway" / "unexpected-payload").unlink()
+    unsafe_target = temporary / "unsafe-target"
+    unsafe_target.mkdir()
+    (common_mount / "unsafe-link").symlink_to(unsafe_target)
+    try:
+        module.load_layout(base, storage)
+    except RuntimeError as error:
+        assert "internal common mount point contains non-directory data" in str(error)
+    else:
+        raise AssertionError("internal common symlink was accepted")
+    (common_mount / "unsafe-link").unlink()
     (paths["external_steamapps"] / "appmanifest_unsafe.acf").write_text("unsafe")
     try:
         module.load_layout(base, storage)

@@ -2115,3 +2115,34 @@ The captured PNG SHA-256 is:
 ```text
 ea65967482f8bb995ef83f715f46b194a881676311fc038650a2c4dde61663d3
 ```
+
+## 2026-08-10: forwarded Steam URLs tolerate empty mount shadows
+
+After Kingsway exited, forwarding `steam://install/12210` through the launcher
+was safely refused because PRoot had left empty covered directory skeletons at
+`removable-library-steamapps/common/Kingsway` and
+`removable-library-steamapps/compatdata/588950`. Both trees contained zero
+files, while the real 65 MiB Kingsway payload remained intact on the microSD.
+
+The required `deja "removable internal common mount point must be empty
+forwarded steam URI Steam running"` query returned no matches, so no
+prior-session fix was reused.
+
+The helper now allows recursively real-directory-only skeletons in the three
+nested mountpoints that are covered at launch. It continues to reject files,
+symlinks, devices, and every other non-directory entry at any depth; the
+top-level internal library mountpoint remains strictly empty. Tests reproduce
+the live empty Kingsway, compatdata, and download shadows and verify nested-file
+and symlink refusals.
+
+The live candidate SHA-256 was
+`08df3e3031b7ef9c9abda1796ffe88c95e089bd2cd195322ed26c6e137426f2f`.
+The previous deployed helper is preserved byte-for-byte at:
+
+```text
+~/steam-arm64/backups/removable-skeleton-helper-20260810-1103/steam-arm64-removable-library.py
+```
+
+With Steam still running, the promoted helper passed its live layout check and
+the next launcher invocation forwarded `steam://install/12210`. Steam logged
+both `ExecCommandLine` and `ExecuteSteamURL` for App ID 12210 without a restart.
