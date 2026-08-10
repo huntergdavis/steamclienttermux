@@ -47,10 +47,13 @@ def test_prepare_and_idempotence(module, temporary):
     assert backup is None
     assert paths["source"] == external / module.LIBRARY_NAME
     assert paths["target"].is_dir()
+    assert paths["steamapps_control"].is_dir()
+    assert paths["external_common"].is_dir()
     assert paths["compatdata"].is_dir()
     assert paths["download_state"].is_dir()
-    assert paths["compatdata_placeholder"].is_dir()
-    assert paths["download_placeholder"].is_dir()
+    assert (paths["steamapps_control"] / "common").is_dir()
+    assert (paths["steamapps_control"] / "compatdata").is_dir()
+    assert (paths["steamapps_control"] / "downloading").is_dir()
     config = paths["config"]
     assert stat.S_IMODE(config.stat().st_mode) == 0o600
     assert json.loads(config.read_text()) == {
@@ -82,22 +85,41 @@ def test_reconfiguration_backup(module, temporary):
 def test_hidden_data_refusals(module, temporary):
     storage, _external, link, base = fixture(temporary)
     paths, _backup = module.prepare_layout(base, link, storage)
-    (paths["compatdata_placeholder"] / "unexpected-prefix").mkdir()
+    compatdata_mount = paths["steamapps_control"] / "compatdata"
+    downloads_mount = paths["steamapps_control"] / "downloading"
+    common_mount = paths["steamapps_control"] / "common"
+    (compatdata_mount / "unexpected-prefix").mkdir()
     try:
         module.load_layout(base, storage)
     except RuntimeError as error:
-        assert "external compatdata mount point must be empty" in str(error)
+        assert "internal compatdata mount point must be empty" in str(error)
     else:
-        raise AssertionError("nonempty external compatdata was accepted")
-    (paths["compatdata_placeholder"] / "unexpected-prefix").rmdir()
-    (paths["download_placeholder"] / "unexpected-download").write_text("unsafe")
+        raise AssertionError("nonempty internal compatdata mount was accepted")
+    (compatdata_mount / "unexpected-prefix").rmdir()
+    (downloads_mount / "unexpected-download").write_text("unsafe")
     try:
         module.load_layout(base, storage)
     except RuntimeError as error:
-        assert "external downloads mount point must be empty" in str(error)
+        assert "internal downloads mount point must be empty" in str(error)
     else:
-        raise AssertionError("nonempty external downloads was accepted")
-    (paths["download_placeholder"] / "unexpected-download").unlink()
+        raise AssertionError("nonempty internal downloads mount was accepted")
+    (downloads_mount / "unexpected-download").unlink()
+    (common_mount / "unexpected-payload").write_text("unsafe")
+    try:
+        module.load_layout(base, storage)
+    except RuntimeError as error:
+        assert "internal common mount point must be empty" in str(error)
+    else:
+        raise AssertionError("nonempty internal common mount was accepted")
+    (common_mount / "unexpected-payload").unlink()
+    (paths["external_steamapps"] / "appmanifest_unsafe.acf").write_text("unsafe")
+    try:
+        module.load_layout(base, storage)
+    except RuntimeError as error:
+        assert "external Steam control data would be hidden" in str(error)
+    else:
+        raise AssertionError("external control data was accepted")
+    (paths["external_steamapps"] / "appmanifest_unsafe.acf").unlink()
     (paths["target"] / "unexpected-host-data").write_text("unsafe")
     try:
         module.load_layout(base, storage)
@@ -135,11 +157,13 @@ def test_removed_card(module, temporary):
     storage, external, link, base = fixture(temporary)
     paths, _backup = module.prepare_layout(base, link, storage)
     library = paths["source"]
-    compatdata_placeholder = paths["compatdata_placeholder"]
-    download_placeholder = paths["download_placeholder"]
-    compatdata_placeholder.rmdir()
-    download_placeholder.rmdir()
-    compatdata_placeholder.parent.rmdir()
+    control = paths["steamapps_control"]
+    (control / "common").rmdir()
+    (control / "compatdata").rmdir()
+    (control / "downloading").rmdir()
+    control.rmdir()
+    paths["external_common"].rmdir()
+    paths["external_steamapps"].rmdir()
     library.rmdir()
     assert external.is_dir()
     try:

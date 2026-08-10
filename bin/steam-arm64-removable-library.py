@@ -87,10 +87,11 @@ def layout_paths(base, source):
     return {
         "source": source,
         "target": base / "removable-library",
+        "steamapps_control": base / "removable-library-steamapps",
+        "external_steamapps": source / "steamapps",
+        "external_common": source / "steamapps" / "common",
         "compatdata": base / "removable-library-compatdata",
         "download_state": base / "removable-library-downloads",
-        "compatdata_placeholder": source / "steamapps" / "compatdata",
-        "download_placeholder": source / "steamapps" / "downloading",
         "config": base / "config" / CONFIG_NAME,
     }
 
@@ -106,16 +107,34 @@ def validate_layout(base, source, storage_root=Path("/storage")):
     paths = layout_paths(base, resolved_source)
     inspect_directory(paths["source"], "removable library")
     inspect_directory(paths["target"], "internal library mount point", require_empty=True)
+    inspect_directory(paths["steamapps_control"], "internal Steam control root")
+    inspect_directory(paths["external_steamapps"], "external steamapps root")
+    unexpected_external = sorted(
+        entry.name
+        for entry in paths["external_steamapps"].iterdir()
+        if entry.name != "common"
+    )
+    if unexpected_external:
+        raise RuntimeError(
+            "external Steam control data would be hidden: "
+            + ", ".join(unexpected_external)
+        )
+    inspect_directory(paths["external_common"], "external common payload")
     inspect_directory(paths["compatdata"], "internal removable-library compatdata")
     inspect_directory(paths["download_state"], "internal removable-library downloads")
     inspect_directory(
-        paths["compatdata_placeholder"],
-        "external compatdata mount point",
+        paths["steamapps_control"] / "common",
+        "internal common mount point",
         require_empty=True,
     )
     inspect_directory(
-        paths["download_placeholder"],
-        "external downloads mount point",
+        paths["steamapps_control"] / "compatdata",
+        "internal compatdata mount point",
+        require_empty=True,
+    )
+    inspect_directory(
+        paths["steamapps_control"] / "downloading",
+        "internal downloads mount point",
         require_empty=True,
     )
     if not os.access(paths["source"], os.R_OK | os.W_OK | os.X_OK):
@@ -301,12 +320,16 @@ def prepare_layout(base, external_parent, storage_root=Path("/storage")):
     source = parent / LIBRARY_NAME
     source.mkdir(mode=0o700, exist_ok=True)
     (source / "steamapps").mkdir(mode=0o700, exist_ok=True)
-    (source / "steamapps" / "compatdata").mkdir(mode=0o700, exist_ok=True)
-    (source / "steamapps" / "downloading").mkdir(mode=0o700, exist_ok=True)
+    (source / "steamapps" / "common").mkdir(mode=0o700, exist_ok=True)
     target = base / "removable-library"
+    steamapps_control = base / "removable-library-steamapps"
     compatdata = base / "removable-library-compatdata"
     download_state = base / "removable-library-downloads"
     target.mkdir(mode=0o700, exist_ok=True)
+    steamapps_control.mkdir(mode=0o700, exist_ok=True)
+    (steamapps_control / "common").mkdir(mode=0o700, exist_ok=True)
+    (steamapps_control / "compatdata").mkdir(mode=0o700, exist_ok=True)
+    (steamapps_control / "downloading").mkdir(mode=0o700, exist_ok=True)
     compatdata.mkdir(mode=0o700, exist_ok=True)
     download_state.mkdir(mode=0o700, exist_ok=True)
     paths = validate_layout(base, source, storage_root)
@@ -362,6 +385,7 @@ def main():
             )
             print(f"Removable Steam library prepared: {paths['source']}")
             print(f"Guest library path: {paths['target']}")
+            print(f"Internal Steam control root: {paths['steamapps_control']}")
             print(f"Internal compatdata: {paths['compatdata']}")
             print(f"Internal download state: {paths['download_state']}")
             if backup is not None:
@@ -375,8 +399,9 @@ def main():
                 print("disabled")
             else:
                 print(
-                    f"{paths['source']}\t{paths['target']}\t{paths['compatdata']}\t"
-                    f"{paths['download_state']}"
+                    f"{paths['source']}\t{paths['target']}\t"
+                    f"{paths['steamapps_control']}\t{paths['external_common']}\t"
+                    f"{paths['compatdata']}\t{paths['download_state']}"
                 )
             return 0
         if args.action == "register":
@@ -400,6 +425,7 @@ def main():
             return 1
         print(f"Removable Steam library: ready ({paths['source']})")
         print(f"Guest library path: {paths['target']}")
+        print(f"Internal Steam control root: {paths['steamapps_control']}")
         print(f"Internal compatdata: {paths['compatdata']}")
         print(f"Internal download state: {paths['download_state']}")
     except (OSError, RuntimeError, ValueError) as error:

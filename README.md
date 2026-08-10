@@ -17,9 +17,11 @@ official Proton 11 ARM64, and its bundled FEX/DXVK stack.
   PulseAudio output.
 - An optional microSD library keeps Windows game depots external while Proton,
   runtimes, active downloads, and per-game compatdata remain on internal F2FS.
-  Kingsway installs successfully through this split route.
+  Kingsway runs fullscreen with audio through this split route.
 - Burnout remains experimental; its detailed EA, FEX, and DXVK investigation is
   kept in [`docs/TECHNICAL_LOG.md`](docs/TECHNICAL_LOG.md), not duplicated here.
+
+![Kingsway running from the microSD through Proton ARM64 and FEX](docs/evidence/kingsway-running.png)
 
 ## What changed
 
@@ -118,12 +120,12 @@ scripts/install-project-files.sh
 
 `register` makes a byte-verified backup before atomically adding the library to
 Steam's `libraryfolders.vdf`, and refuses to run while Steam or Wine is active.
-Use this library only for Windows game depots; the launcher overlays its
-`steamapps/compatdata` with `~/steam-arm64/removable-library-compatdata` on
-internal storage. It also overlays `steamapps/downloading` with
-`~/steam-arm64/removable-library-downloads`, because Android's portable-storage
-FUSE does not implement the file locks Steam needs for patch state. The launcher
-fails early if the configured card is absent or the mount layout is unsafe.
+Use this library only for Windows game depots. The launcher keeps Steam's
+`steamapps` control metadata internal, binds only `steamapps/common` to the card,
+and uses dedicated internal compatdata and active-download directories. Android's
+portable-storage FUSE does not implement the file locks Steam needs for manifests
+or patch state. The launcher fails early if the card is absent or the layout is
+unsafe.
 
 `WINE_CPU_TOPOLOGY=4:4,5,6,7` is a candidate for making the affinity persistent,
 but it is intentionally not presented as confirmed until a clean launch proves

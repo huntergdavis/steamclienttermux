@@ -221,24 +221,29 @@ pd_args+=(--env "STEAM_ARM64_PROC_NET=$proc_net_shadow")
 pd_args+=(--bind "$arm_runtime:$arm_runtime_depot")
 # Android portable storage is exFAT/FUSE, noexec, and cannot hold Proton
 # prefixes. If explicitly configured, expose only the bulk game library at a
-# stable guest path, then cover its compatdata and active-download directories
-# with unique internal F2FS storage. Android's portable-storage FUSE does not
-# implement flock(2), which Steam requires for download patch-state files. The
-# helper fails before launch if the card or layout is unsafe.
+# stable guest path. Cover steamapps with internal F2FS control metadata, bind
+# only common back to the card for installed payloads, then cover compatdata and
+# active downloads with their unique internal directories. Android's portable-
+# storage FUSE does not implement flock(2), which Steam requires for manifests
+# and download patch-state files. The helper fails before launch if the card or
+# layout is unsafe.
 removable_mount="$(
     python3 "$removable_library_helper" --base "$base" mount-info
 )"
 if [[ "$removable_mount" != disabled ]]; then
     IFS=$'\t' read -r removable_source removable_target \
-        removable_compatdata removable_downloads removable_extra \
-        <<<"$removable_mount"
+        removable_steamapps removable_common removable_compatdata \
+        removable_downloads removable_extra <<<"$removable_mount"
     if [[ -z "$removable_source" || -z "$removable_target" ||
+            -z "$removable_steamapps" || -z "$removable_common" ||
             -z "$removable_compatdata" || -z "$removable_downloads" ||
             -n "$removable_extra" ]]; then
         printf 'Invalid removable-library mount description\n' >&2
         exit 1
     fi
     pd_args+=(--bind "$removable_source:$removable_target")
+    pd_args+=(--bind "$removable_steamapps:$removable_target/steamapps")
+    pd_args+=(--bind "$removable_common:$removable_target/steamapps/common")
     pd_args+=(--bind "$removable_compatdata:$removable_target/steamapps/compatdata")
     pd_args+=(--bind "$removable_downloads:$removable_target/steamapps/downloading")
     printf 'Removable Windows game library: %s -> %s\n' \

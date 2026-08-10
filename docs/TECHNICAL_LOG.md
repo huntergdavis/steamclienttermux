@@ -1982,6 +1982,7 @@ The opt-in `steam-arm64-removable-library.py` helper now prepares and validates:
 ```text
 external depot: /storage/7376-B000/Android/data/com.termux/files/steam-arm64-library
 guest path:     ~/steam-arm64/removable-library
+control root:   ~/steam-arm64/removable-library-steamapps
 compatdata:     ~/steam-arm64/removable-library-compatdata
 download state: ~/steam-arm64/removable-library-downloads
 configuration:  ~/steam-arm64/config/removable-library.json
@@ -1991,9 +1992,10 @@ It accepts only Termux's exact `/storage/UUID/Android/data/com.termux/files`
 boundary, mode-protects and atomically writes its configuration, backs up a
 changed configuration, requires empty mountpoints so data cannot be hidden,
 requires at least 1 GiB free, and fails if the card disappears. The launcher
-binds the external root first, then unique internal compatdata and active
-downloads. Linux executables, Proton, runtimes, prefixes, and native games
-remain internal; this route is limited to Windows depot payloads.
+binds the external root first, covers `steamapps` with internal control metadata,
+binds only `common` back to the card, then overlays unique internal compatdata
+and active downloads. Linux executables, Proton, runtimes, prefixes, and native
+games remain internal; this route is limited to Windows depot payloads.
 
 The helper's offline `register` action adds the stable guest path to
 `client/steamapps/libraryfolders.vdf`. It refuses the edit while Steam or Wine
@@ -2035,3 +2037,81 @@ bytes internally, and committed across the bind into the card. The final
 external manifest reports `StateFlags 4`, BuildID 7833329, and 60,322,784 bytes
 on disk; the internal staging tree drained to zero files. `content_log.txt`
 records `Fully Installed` and scheduler result `No Error` for App ID 588950.
+
+On the next startup Steam logged `Loaded 0 apps` for the external library and
+reset Kingsway to update-required even though all payload files remained on the
+card. Selecting the same SD library completed a second verification/install
+without error. This isolates the remaining FUSE limitation to Steam's lockable
+control metadata, including `appmanifest_588950.acf`, rather than game payloads.
+The final layout therefore keeps the whole small `steamapps` control root on
+internal F2FS and rebinds only `steamapps/common` to the card.
+
+The required `deja "Steam external library appmanifest loaded 0 apps FUSE flock
+internal metadata common bind"` query returned no matches, so no prior-session
+implementation was reused.
+
+## 2026-08-10: Kingsway survives restart and runs from the microSD
+
+Steam was stopped for one backup-first migration of the removable library's
+small control plane. All external `steamapps` entries except the untouched
+`common/Kingsway` payload were moved into the recoverable same-card directory:
+
+```text
+/storage/7376-B000/Android/data/com.termux/files/steam-arm64-library/steamapps-control.pre-internal-f2fs-20260810-1044
+```
+
+The live launcher then exposed the removable library in this order:
+
+```text
+external library root -> ~/steam-arm64/removable-library
+internal control root -> removable-library/steamapps
+external common       -> removable-library/steamapps/common
+internal compatdata   -> removable-library/steamapps/compatdata
+internal downloads    -> removable-library/steamapps/downloading
+```
+
+After the required restart, Steam logged `Loaded 1 apps` for the removable
+library. `appmanifest_588950.acf` remained fully installed with `StateFlags 4`,
+BuildID 7833329, and 60,322,784 bytes, and `libraryfolders.vdf` retained App ID
+588950. This proves that internal F2FS control metadata fixes the restart-time
+reset without moving the game payload off the microSD.
+
+Kingsway was mapped at priority 250 to the confirmed internal tool key
+`proton_11_arm64_official`. The pre-edit Steam configuration is preserved at:
+
+```text
+~/steam-arm64/backups/kingsway-compat-20260810-1032/config.vdf
+```
+
+The next launch selected only the intended route:
+
+```text
+~/steam-arm64/removable-library/steamapps/common/Kingsway/Kingsway.exe
+SteamLinuxRuntime_4-arm64/_v2-entry-point --verb=waitforexitandrun
+Proton 11.0 (ARM64)/proton waitforexitandrun
+```
+
+Pressure Vessel performed its known guarded `EXDEV` copy fallback while
+assembling the 5,371-file temporary runtime. This matched the earlier isolated
+Runtime 4 smoke recorded in this log, so that proven diagnosis was reused and
+no speculative runtime change was applied. It then entered the patched route
+wrapper, upgraded the new internal prefix to Proton `11.0-100`, and started
+`S:\\common\\Kingsway\\Kingsway.exe` as PID 30467.
+
+The running game environment provided `FEX_APP_CONFIG` from bundled official
+Proton, selected the Turnip `freedreno-private.json` Vulkan ICD, and pointed
+`PULSE_SERVER` at the project's TCP endpoint. PulseAudio reported an active
+stereo 44.1 kHz sink input. X11 reported a fullscreen 2800x1586 window titled
+`Kingsway`, class `steam_app_588950`, owned by PID 30467.
+
+The exact game window was captured without the desktop or Steam UI. Visual
+inspection confirms the rendered Kingsway `New Adventurer` screen and no Steam
+account or friends-list names:
+
+![Kingsway running fullscreen from the microSD](evidence/kingsway-running.png)
+
+The captured PNG SHA-256 is:
+
+```text
+ea65967482f8bb995ef83f715f46b194a881676311fc038650a2c4dde61663d3
+```
