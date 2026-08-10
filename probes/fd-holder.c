@@ -37,9 +37,9 @@ int main(int argc, char **argv)
         struct dirent *fe;
         while ((fe = readdir(fds))) {
             if (!numeric(fe->d_name)) continue;
-            char link_path[PATH_MAX], target[PATH_MAX];
-            snprintf(link_path, sizeof(link_path), "%s/%s", fd_dir, fe->d_name);
-            ssize_t n = readlink(link_path, target, sizeof(target) - 1);
+            char target[PATH_MAX];
+            ssize_t n = readlinkat(dirfd(fds), fe->d_name,
+                                   target, sizeof(target) - 1);
             if (n < 0) continue;
             target[n] = '\0';
             if (strcmp(target, argv[1]) != 0) continue;

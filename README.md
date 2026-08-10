@@ -178,6 +178,15 @@ client binaries, games, Proton payloads, credentials, or Mesa binaries.
   loaded Wine's Pulse driver, created a `wine-preloader` sink input, and drove
   Termux's `OpenSL_ES_sink` in the `RUNNING` state. The end-to-end game audio
   stream is confirmed.
+- Superflight now uses a backed-up, exact-section Unity PlayerPrefs profile:
+  fullscreen 1280x720, quality level zero, and antialiasing, motion blur,
+  post-processing, shadow distance, and shadow quality disabled. The lower
+  internal resolution scales correctly to the tablet's 2800x1586 X desktop.
+- Superflight initially pinned all 72 game, Unity, and DXVK threads to CPUs
+  0-3. A live, reversible `taskset -apc 4-7` A/B moved them to the tablet's
+  higher-capacity cores; game CPU use fell from about 157% to 97% in the same
+  menu scene, GPU busy rose slightly, and the user reported that play felt
+  faster. This is a confirmed device-local improvement, not an FPS benchmark.
 - The deployed route fix cleared the former EA offline blocker. EA reached its
   online state, authenticated through Steam, linked the account, connected its
   local service, and reported a successful Link2EA launch. Burnout's executable
@@ -267,6 +276,13 @@ installer.
   `diagnostics/win-network-status-probe.c` — build the credential-free ARM64
   Windows probe used to compare Wine IP Helper/NLM behavior with and without
   the Android route shadow.
+- `scripts/configure-superflight-performance.py` — backup-first, atomic,
+  exact-section editor for the confirmed Superflight Unity settings. It refuses
+  to write while Steam, Wine, or the game is active and supports read-only
+  `--check` validation.
+- `scripts/set-superflight-affinity.py` — identifies exactly one live App ID
+  732430 process, validates the measured Tab S9+ CPU topology, and applies or
+  checks the confirmed CPU 4-7 game-thread affinity.
 - `scripts/install-project-files.sh` — installs only this project's files.
 - `scripts/inventory.sh` and `scripts/verify-gpu.sh` — diagnostics.
 - `docs/TECHNICAL_LOG.md` — chronological fault/fix record.
@@ -297,6 +313,88 @@ installer.
 
 Read the technical log first. Several fixes are Android-sandbox and Steam-build
 specific.
+
+## Reproduce the confirmed Superflight profile
+
+These steps assume Superflight is already explicitly mapped to
+`proton_11_arm64_official` and Steam resolves it through
+`SteamLinuxRuntime_4-arm64` as described above.
+
+1. Exit Superflight and Steam cleanly. The registry tool intentionally refuses
+   to write if it detects Steam, Wine, or the game. Apply and verify the exact
+   Unity profile from the repository clone:
+
+   ```sh
+   scripts/configure-superflight-performance.py --base "$HOME/steam-arm64"
+   scripts/configure-superflight-performance.py --base "$HOME/steam-arm64" --check
+   ```
+
+   A changed registry is first copied to a unique mode-700 directory below
+   `~/steam-arm64/backups`; the copy is byte-verified before an atomic
+   same-directory replacement. A second apply is idempotent and creates no new
+   backup. The resulting settings are fullscreen, 1280x720, Unity quality zero,
+   and disabled antialiasing, motion blur, post-processing, shadow distance,
+   and shadow quality. To roll back, first exit Steam/Wine again and restore the
+   `user.reg` from the exact backup path printed by the tool.
+
+2. In Steam's normal Superflight Properties page, keep this confirmed launch
+   option so Wine can reach Termux PulseAudio:
+
+   ```text
+   PULSE_SERVER=tcp:127.0.0.1:4713 %command%
+   ```
+
+3. Launch Superflight normally. Once its window appears, apply the confirmed
+   live affinity and then validate every readable game thread:
+
+   ```sh
+   scripts/set-superflight-affinity.py
+   scripts/set-superflight-affinity.py --check
+   ```
+
+   This helper is intentionally specific to the Galaxy Tab S9+ observation. It
+   requires exactly one `superflight.exe` with App ID 732430 and the expected
+   compatdata path, exactly eight visible CPUs, and a higher-capacity CPU 4-7
+   cluster. It refuses ambiguous or different machines instead of guessing.
+   The affinity is process-local and disappears when the game exits.
+
+4. Capture independent renderer, process, and audio evidence. The Unity log
+   should identify D3D11 and Turnip, the live environment should contain the
+   canonical Pulse URI, and Pulse should show a Superflight sink input on the
+   Android OpenSL sink:
+
+   ```sh
+   game_pid="$(pgrep -xo superflight.exe)"
+   tr '\0' '\n' < "/proc/$game_pid/environ" |
+     grep -E '^(STEAM_COMPAT_APP_ID|STEAM_COMPAT_DATA_PATH|PULSE_SERVER)='
+   grep -E '^(Name|State|Threads|Cpus_allowed_list):' "/proc/$game_pid/status"
+   pactl list short sink-inputs
+   pactl list short sinks
+   ```
+
+   Also inspect the newest Steam `gameprocess_log.txt`, `compat_log.txt`, and
+   Unity `output_log.txt`. A valid run uses `SteamLinuxRuntime_4-arm64`,
+   `Proton 11.0 (ARM64)`, FEX/Wine, DXVK, and Turnip; it must not fall back to
+   Proton Experimental, the x86-64 `SteamLinuxRuntime_4`, or WineD3D.
+
+5. For visual evidence, capture X only with the bounded method documented in
+   the technical log and inspect the image before claiming success. The
+   confirmed fullscreen state was a 2800x1586 window backed by the saved
+   1280x720 internal resolution.
+
+The installed Proton Wine recognizes `WINE_CPU_TOPOLOGY`, and the candidate
+`WINE_CPU_TOPOLOGY=4:4,5,6,7` follows Valve's `count:host-cpu-list` syntax. Do
+not add it to the durable launch option yet: only the live `taskset` route has
+been validated. A clean next-launch comparison must prove that the environment
+form produces the same per-thread masks and performance before this guide calls
+it confirmed.
+
+The source-only reproducibility checks for this profile are:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-configure-superflight-performance.py
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-set-superflight-affinity.py
+```
 
 ## Safety
 

@@ -1816,3 +1816,145 @@ continued drain with capped or closed stdout, child status 23 propagation, and
 24 concurrent unique session-log creations. The required `deja "Termux X11
 Steam CPU pegged disk full giant logs steamwebhelper cleanup prevention"` query
 returned no matches, so no prior-session implementation was reused.
+
+## 2026-08-10: Superflight low-resolution fullscreen performance profile
+
+After the first audio-confirmed run, the apparent UI freeze was cleared by a
+user-controlled KDE stop/start. X display `:0` returned to 2800x1586 at 120 Hz,
+the machine was idle, and 25 GiB remained free. Superflight's saved Unity
+PlayerPrefs explained its avoidable rendering cost: the keyboard-resized run
+had left a 2800x876 target together with 4x antialiasing, motion blur,
+post-processing, 4000-unit shadows, and enabled shadow quality. Unity's global
+quality index was already zero.
+
+With Steam and Wine stopped, the original `user.reg` was byte-verified and
+preserved at:
+
+```text
+~/steam-arm64/backups/20260810-before-superflight-performance.fd0S7o/user.reg
+```
+
+An atomic replacement changed exactly eight Superflight DWORDs: windowed
+1280x720, zero antialiasing, motion blur, post-processing, shadow distance, and
+shadow quality. No other prefix registry value changed. The user then completed
+a run and reported that it played much better and that audio worked well. This
+is direct play feedback, not an instrumented FPS claim.
+
+The live window was an exact 1280x720 at X=760/Y=446. Its post-run screenshot,
+`~/steam-arm64/superflight-performance-window.png`, has SHA-256
+`f6ab8b4b669b4d60ed0f035213be994f7fa9ce72ff2fe8313a76b4774ab65331`.
+At the visible crash-result menu, Unity's standard Alt+Enter toggle expanded the
+window to 2800x1586 while preserving the saved 1280x720 internal resolution and
+all disabled effects. The full-screen screenshot has SHA-256
+`bda0aaf106f94e6b331044a5150d6d497c51dd8ab1f06408409e13b6958e7acb`;
+it shows correct aspect scaling without cropping.
+
+Live process and file evidence preserves the intended stack. Unity reports
+Direct3D 11.0 level 11.1 and `Turnip Adreno (TM) 730` with 5469 MiB VRAM. The
+prefix `d3d11.dll` and `dxgi.dll` hashes exactly match the official Proton 11
+ARM64 files under `files/lib/wine/dxvk/aarch64-windows`. The game maps
+`libarm64ecfex.dll`, Wine Vulkan, private `libvulkan_freedreno.so`, Wine Pulse,
+and the Turnip shader cache. Pulse's `OpenSL_ES_sink` was `RUNNING`, unmuted at
+100%, with sink input 2 owned by `superflight.exe` PID 15964 at stereo 48 kHz.
+The bounded Steam session log was only 5,541,850 bytes during this check.
+
+The required `deja "Superflight small window fullscreen FSR Proton ARM64
+Termux X11"` query returned no matches. No recalled implementation was reused;
+the fullscreen choice was validated against the installed Proton payload and
+the live window rather than assuming an unsupported FSR variable.
+
+The full-screen window advertises `_NET_WM_BYPASS_COMPOSITOR=1`; KWin consumed
+zero CPU in repeated samples, so disabling the compositor cannot explain or
+improve the remaining frame rate. KGSL reported roughly 18--36% GPU busy at the
+minimum 220 MHz GPU frequency, while `superflight.exe` consumed about 157% CPU
+and the outer PRoot about 48%. This identifies a CPU/translation limit rather
+than a Turnip fill-rate limit.
+
+Every hot Superflight thread, including the main thread, Unity workers,
+`UnityGfxDeviceW`, and DXVK submit/queue threads, had affinity `0-3`. Those are
+the Snapdragon's four 1.785 GHz efficiency CPUs, each reported with scheduler
+capacity 261. The game-local mask was not imposed by Android's foreground
+cpuset, PRoot, Steam, Wine server, or Proton's generated FEX configuration:
+parents allowed CPUs 0-7 and `proton-fex-config.json` had an empty `Config`.
+
+A reversible live A/B applied `taskset -apc 4-7` only to Superflight PID 15964.
+All 72 existing threads were verified at mask `4-7`; future threads inherit the
+same mask. CPUs 4-6 have capacity 805 and a 2.496 GHz maximum, while CPU 7 has
+capacity 1024 and a 2.995 GHz maximum. In the same menu scene, game CPU fell
+from about 157% to 97%, big cores reached 1.65--1.88 GHz, and GPU busy rose from
+about 32% to 36%. The user then completed another live feel test and reported
+that it was faster. The original `0-3` mask remains the immediate rollback.
+
+The installed Proton 11 ARM64 Wine `ntdll.so` contains support for
+`WINE_CPU_TOPOLOGY`. Valve's documented syntax uses `count:host-cpu-list`, so
+`WINE_CPU_TOPOLOGY=4:4,5,6,7` is the production candidate for persisting this
+mapping in Superflight's launch options. It has not yet been claimed as a
+confirmed fix: the current improvement comes from the live `taskset` A/B, and
+the environment form still requires a clean next-launch validation.
+
+### Reproducibility automation and validation
+
+`scripts/configure-superflight-performance.py` turns the confirmed Unity
+PlayerPrefs values into a fail-closed, idempotent operation. It accepts only one
+exact Superflight registry section (including Wine's optional numeric section
+timestamp) and exactly one DWORD for each of the nine settings: fullscreen,
+1280x720, Unity quality zero, and disabled antialiasing, motion blur,
+post-processing, shadow distance, and shadow quality. It refuses symlinks,
+non-regular files, unexpected hard links, missing or duplicate values, and any
+write while Steam, Wine, or the game is active. A change creates a unique
+mode-700 backup directory, byte-verifies the copied `user.reg`, writes and
+`fsync`s a same-directory mode-preserving temporary file, atomically replaces
+the original, and `fsync`s its directory. An already-current profile creates no
+backup. Read-only `--check` is safe during a game.
+
+`scripts/set-superflight-affinity.py` makes the live A/B repeatable without a
+PID guess. It requires exactly one `superflight.exe`, mandatory
+`STEAM_COMPAT_APP_ID=732430`, no conflicting optional Steam IDs, the exact App
+ID compatdata suffix, CPU IDs 0-7, and a measured higher-capacity CPU 4-7
+cluster. It applies `taskset -apc 4-7` and then rejects any readable thread that
+did not acquire that mask. Its read-only `--check` mode reports drift.
+
+Both uncommitted tools were streamed over SSH and executed read-only against the
+still-running tablet session. The settings check reported current registry
+SHA-256 `78379083f691d00b5f9a45a8129fa2ed40294cc8b6426784fdad17e3c105155d`.
+The affinity check independently resolved PID 15964 and reported all 72 threads
+at `4-7`. At the same checkpoint, the filesystem retained 25 GiB free,
+`~/steam-arm64/logs` used 656 MiB, and client logs used 13 MiB.
+
+A final bounded X capture completed in 6.8 seconds at 09:01 local time. The
+2800x1586 PNG has SHA-256
+`497a6571e948b9992dcddb5b09414cbb81c3931d08f55f04195bcb780a5c2ada`.
+Visual inspection shows Superflight's live 3D crash/menu scene covering the
+desktop without a window border, keyboard resize, dialog, or rendering
+corruption. This is final visual confirmation of the fullscreen state; it is
+not by itself an FPS measurement.
+
+The repository-wide validation matrix for this checkpoint is:
+
+- Python compilation passed for all eight Python entry points and tests;
+- Bash syntax parsing passed for all 16 shell entry points;
+- ShellCheck's warning/error gate passed all 16 shell files; its unrestricted
+  mode reported only seven existing informational SC2009/SC2016 notes;
+- all five retained Python suites passed: settings, affinity, PulseAudio,
+  Pressure Vessel route wrapper, and bounded session logging;
+- `git diff --check` passed;
+- `diagnostics/pressure-vessel-route-bwrap.c`, `probes/fd-holder.c`, and
+  `probes/robust-list.c` all compiled with
+  `-std=c11 -O2 -Wall -Wextra -Werror` into inspected temporary ELF files;
+- the unchanged Windows ARM64 network probe was not rebuilt on this workstation
+  because its declared Clang/LLVM cross-toolchain is absent. Its earlier tablet
+  candidate and independent reproduction build remain byte-identical as logged
+  in the 2026-08-09 route-probe section; no new claim is based on a skipped
+  build.
+
+The strict native compilation found one latent `-Wformat-truncation` failure in
+`probes/fd-holder.c`. The probe now calls `readlinkat()` relative to its already
+open `/proc/<pid>/fd` directory instead of concatenating the directory and
+entry name into a fixed `PATH_MAX` buffer. This removes the truncation path and
+the corrected probe passes the strict compile gate. The required
+`deja "steamclienttermux fd-holder.c format-truncation PATH_MAX compile Werror"`
+query returned no matches, so no prior-session implementation was reused.
+
+The required `deja "Superflight fullscreen frame rate DXVK Turnip FEX KWin
+compositor Termux X11"` query returned no matches. No prior-session affinity
+implementation was reused.
