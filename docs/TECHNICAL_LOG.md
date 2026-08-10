@@ -53,8 +53,9 @@ bus first, passes its address into Debian, and cleans it up on exit. Evidence:
 CEF GPU compositing under Termux:X11 produced partial/stale surfaces, flicker,
 and bad hit testing. `-cef-disable-gpu` stabilized Steam's HTML UI. This affects
 the client UI only; games remain on Turnip. `-no-cef-sandbox` is also required
-inside this PRoot/app-sandbox arrangement. See `flicker-1.png`,
-`software-stable-3.png`, and `cef-software-fixed-20260807-162701.log`.
+inside this PRoot/app-sandbox arrangement. See `flicker-1.png` and
+`cef-software-fixed-20260807-162701.log`. The stable-UI screenshot was removed
+because it exposed private account information.
 
 ## Missing Steam network bridge methods
 

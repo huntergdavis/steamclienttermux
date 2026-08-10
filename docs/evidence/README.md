@@ -4,7 +4,6 @@ These screenshots capture milestones and failures from the original tablet.
 
 - `steam-visible-now.png`: conventional ARM64 Steam client visibly running.
 - `flicker-1.png`: CEF GPU-compositing flicker/partial-surface failure.
-- `software-stable-3.png`: stable client UI after disabling CEF GPU compositing.
 - `superflight-fullscreen.png`: Superflight running fullscreen through official
   Proton 11 ARM64, FEX, DXVK, and Turnip after the performance profile and
   CPU-affinity change.

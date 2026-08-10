@@ -4,7 +4,7 @@ Run Valve's conventional native ARM64 Linux Steam client on an **unrooted**
 Samsung Galaxy Tab S9+ using Termux, Debian PRoot, Termux:X11/KDE, Mesa Turnip,
 official Proton 11 ARM64, and its bundled FEX/DXVK stack.
 
-![Native ARM64 Steam running in Termux:X11](docs/evidence/software-stable-3.png)
+![Superflight fullscreen through Proton ARM64, FEX, DXVK, and Turnip](docs/evidence/superflight-fullscreen.png)
 
 ## Current status
 
@@ -67,8 +67,6 @@ validates the game/App ID and the measured CPU topology before moving all game
 threads to CPUs 4-7. In the same menu scene, observed game CPU use fell from
 about 157% to 97%, and play felt noticeably smoother. This affinity is
 process-local and must currently be applied after each launch.
-
-![Superflight fullscreen through Proton ARM64, FEX, DXVK, and Turnip](docs/evidence/superflight-fullscreen.png)
 
 ## Reproduce
 
