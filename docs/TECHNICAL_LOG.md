@@ -1648,7 +1648,7 @@ EA route, authentication, license response, and exact FEX CPUID blocker. It does
 **not** prove gameplay, DXVK, or Turnip rendering, and it does not resolve the
 separate official DXVK ARM64EC dispatch fault.
 
-## 2026-08-09: Superflight proves DXVK/Turnip; Pulse retest pending
+## 2026-08-09: Superflight proves DXVK/Turnip and working Pulse audio
 
 Superflight's installed manifest identifies App ID 732430. Steam first mapped
 it to conventional Proton Experimental, reproducing the known x86-64 Runtime 4
@@ -1708,8 +1708,8 @@ copied and byte-verified at:
 ```
 
 With Steam offline, the only staged full-file difference in
-`~/steam-arm64/client/userdata/10546184/config/localconfig.vdf` was a new App ID
-732430 `LaunchOptions` block containing:
+`~/steam-arm64/client/userdata/10546184/config/localconfig.vdf` was initially a
+new App ID 732430 `LaunchOptions` block containing:
 
 ```text
 PULSE_SERVER=tcp:127.0.0.1:4713 %command%
@@ -1717,19 +1717,54 @@ PULSE_SERVER=tcp:127.0.0.1:4713 %command%
 
 The staged file's SHA-256 before Steam normalization was
 `6ab1317f49d1733ea1a4eb6aeb5ea0c23c20f4f0f41099c907389a7cffd807ca`.
+That block was placed under the one-tab top-level `apps` section, not Steam's
+four-tab `Software/Valve/Steam/apps` hierarchy. Steam retained but ignored it.
+The resulting discriminator launch at 02:59 still started without the explicit
+prefix, and its wrapper children inherited only the launcher's older
+`PULSE_SERVER=127.0.0.1` value. This disproved the assumed VDF placement before
+any audio success was claimed.
+
 Steam restarted cleanly in
 `~/steam-arm64/logs/steam-20260809-192748.log`. Both official ARM64 tools
 registered at 02:27:55 UTC on 2026-08-10. The first historical-tool pass ran
-from 02:28:23 through 02:48:07, mappings were processed, and the required
-second pass began at 02:49:03. Superflight has not been relaunched while that
-pass remains active, so the launch option and audio path are not yet validated.
+from 02:28:23 through 02:48:07, mappings were processed, and the second pass
+began at 02:49:03. The queued Superflight discriminator delayed but did not
+break that worker. The job completed at 03:07:58, released the ARM tool and
+App ID 732430 callbacks, and did not restart.
+
+Once the full Steam UI rendered, Superflight's normal Properties page showed
+an empty Launch Options field. Entering the same string through that supported
+UI wrote it inside the real six-tab App ID 732430 block under
+`Software/Valve/Steam/apps`. The inert top-level duplicate remains for removal
+at a future clean shutdown; it is not consulted for launch options.
+
+The next launch started session `6b66ff24a201c73b` at 03:16:14. Steam's tracked
+command begins with the exact assignment:
+
+```text
+PULSE_SERVER=tcp:127.0.0.1:4713 steam-launch-wrapper ...
+```
+
+Every child after the assignment shell inherited the full URI. Live Unity PID
+32705 had the same `PULSE_SERVER`, mapped `winepulse.so`, `winepulse.drv`, and
+`libpulse`, and exposed the visible `SUPERFLIGHT` window. Pulse client 148
+(`wine-preloader`) owned sink input 23 at stereo 48 kHz, while Termux's
+`OpenSL_ES_sink` was `RUNNING` at stereo 44.1 kHz. Repeated samples preserved
+that chain, and neither the Steam session log nor Unity's `output_log.txt`
+contained an audio failure. This proves the game is producing an end-to-end
+Wine-to-Pulse-to-Android OpenSL audio stream.
+
+The live main-menu screenshot was captured and inspected at local path
+`/tmp/superflight-pulse-live.png`, SHA-256
+`e274a8762b4180591f19ed75b9a9abb229d0730dfb592654c59223b57e253d95`.
 
 Repository checkpoint `69d18a6` independently replaces the launcher's repeated
 Pulse module loads with a tested, idempotent preflight and exports the canonical
 `tcp:127.0.0.1:4713` URI. It is pushed but has not been deployed to the tablet;
-the current Steam session still uses the prior deployed launcher. The per-game
-option above is the next controlled live discriminator, not evidence that the
-repository checkpoint or audio fix already works in production.
+the current Steam session still uses the prior deployed launcher. The confirmed
+audio stream comes from the per-game option and validates the canonical endpoint,
+not the new launcher helper in production. That repository checkpoint remains
+prepared for a controlled future deployment.
 
 The required `deja "Superflight Termux Proton ARM64 PulseAudio ALSA
 PULSE_SERVER"` query returned no matches. No cross-session solution or wording

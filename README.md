@@ -165,13 +165,16 @@ client binaries, games, Proton payloads, credentials, or Mesa binaries.
   device through official DXVK and rendered on Turnip. This is the first
   conventional Windows game in this project confirmed to reach the DXVK/Turnip
   rendering path.
-- That Superflight run had no audio because the live game environment lacked
-  `PULSE_SERVER`. Wine retained only its ALSA driver state, then failed to find
-  card 0 or open the default PCM; no Pulse client or sink input appeared.
-  PulseAudio itself is healthy at `tcp:127.0.0.1:4713` from native Termux and
-  Debian PRoot. A backed-up per-game launch option now supplies that exact
-  endpoint, but its live retest is still waiting for Steam's second
-  compatibility-cache pass. Audio success has not been demonstrated.
+- The first Superflight run had no audio because the live game environment
+  lacked `PULSE_SERVER`. Wine retained only its ALSA driver state, then failed
+  to find card 0 or open the default PCM; no Pulse client or sink input
+  appeared. PulseAudio itself was healthy at `tcp:127.0.0.1:4713` from native
+  Termux and Debian PRoot. After the registry rebuild completed, Steam's normal
+  Properties UI stored `PULSE_SERVER=tcp:127.0.0.1:4713 %command%` in the real
+  per-app configuration. The next live game process inherited that exact URI,
+  loaded Wine's Pulse driver, created a `wine-preloader` sink input, and drove
+  Termux's `OpenSL_ES_sink` in the `RUNNING` state. The end-to-end game audio
+  stream is confirmed.
 - The deployed route fix cleared the former EA offline blocker. EA reached its
   online state, authenticated through Steam, linked the account, connected its
   local service, and reported a successful Link2EA launch. Burnout's executable
