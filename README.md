@@ -159,6 +159,19 @@ client binaries, games, Proton payloads, credentials, or Mesa binaries.
   completed at 15:15:49, after rejecting the automatic priority-100
   `proton-experimental` mapping. A live launch then used only
   `SteamLinuxRuntime_4-arm64` and `Proton 11.0 (ARM64)`.
+- Superflight (App ID 732430) is a smaller, EA-free positive control. Its
+  explicit priority-250 mapping to `proton_11_arm64_official` launched through
+  `SteamLinuxRuntime_4-arm64`; Unity 2017 created a Direct3D 11.0 level-11.1
+  device through official DXVK and rendered on Turnip. This is the first
+  conventional Windows game in this project confirmed to reach the DXVK/Turnip
+  rendering path.
+- That Superflight run had no audio because the live game environment lacked
+  `PULSE_SERVER`. Wine retained only its ALSA driver state, then failed to find
+  card 0 or open the default PCM; no Pulse client or sink input appeared.
+  PulseAudio itself is healthy at `tcp:127.0.0.1:4713` from native Termux and
+  Debian PRoot. A backed-up per-game launch option now supplies that exact
+  endpoint, but its live retest is still waiting for Steam's second
+  compatibility-cache pass. Audio success has not been demonstrated.
 - The deployed route fix cleared the former EA offline blocker. EA reached its
   online state, authenticated through Steam, linked the account, connected its
   local service, and reported a successful Link2EA launch. Burnout's executable

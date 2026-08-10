@@ -1647,3 +1647,90 @@ This checkpoint still uses `PROTON_USE_WINED3D=1` for isolation. It proves the
 EA route, authentication, license response, and exact FEX CPUID blocker. It does
 **not** prove gameplay, DXVK, or Turnip rendering, and it does not resolve the
 separate official DXVK ARM64EC dispatch fault.
+
+## 2026-08-09: Superflight proves DXVK/Turnip; Pulse retest pending
+
+Superflight's installed manifest identifies App ID 732430. Steam first mapped
+it to conventional Proton Experimental, reproducing the known x86-64 Runtime 4
+loader failure before Proton. The mapping was then replaced with this explicit
+entry at priority 250:
+
+```text
+732430 -> proton_11_arm64_official
+```
+
+The corrected launch used only the intended paths:
+
+```text
+SteamLinuxRuntime_4-arm64/_v2-entry-point --verb=waitforexitandrun
+Proton 11.0 (ARM64)/proton waitforexitandrun
+SuperFlight/superflight.exe
+```
+
+The tracked session ran from 01:40:01 through 01:46:25 UTC on 2026-08-10.
+Unity's `output_log.txt` proves a real graphics device rather than a registry or
+process-only milestone:
+
+```text
+Initialize engine version: 2017.2.0f3
+Direct3D: Version: Direct3D 11.0 [level 11.1]
+Renderer: Turnip Adreno (TM) 730
+VRAM: 5469 MB
+```
+
+The game rendered through official Proton 11 ARM64's DXVK and the private
+Turnip stack. Superflight is therefore the first conventional Windows game in
+this project confirmed on the DXVK/Turnip path. This result is independent of
+Burnout's ARM64EC `d3d11.dll` and FEX CPUID blockers.
+
+Audio did not work. Inspection while the game was live established the complete
+failure chain:
+
+- `PULSE_SERVER` was absent from the game environment;
+- no Superflight PulseAudio client or sink input appeared;
+- the prefix recorded only `Software\\Wine\\Drivers\\winealsa.drv` and no
+  MMDevice render or capture endpoint;
+- Wine's ALSA fallback reported `cannot find card '0'` and
+  `Unknown PCM default` twice.
+
+The ARM64 `winepulse.drv` and `winepulse.so` payloads are installed. The audio
+server is also healthy: read-only `pactl info` checks against
+`tcp:127.0.0.1:4713` succeeded from native Termux and Debian PRoot and reported
+the Termux `OpenSL_ES_sink`. The missing game environment variable, not absent
+Wine drivers, a dead Pulse server, or an Android ALSA device, is the confirmed
+cause of this run's silence.
+
+Before changing Steam's per-game configuration, the 295,280-byte live file was
+copied and byte-verified at:
+
+```text
+~/steam-arm64/backups/localconfig.vdf.before-superflight-pulse-edit-20260809-1924
+```
+
+With Steam offline, the only staged full-file difference in
+`~/steam-arm64/client/userdata/10546184/config/localconfig.vdf` was a new App ID
+732430 `LaunchOptions` block containing:
+
+```text
+PULSE_SERVER=tcp:127.0.0.1:4713 %command%
+```
+
+The staged file's SHA-256 before Steam normalization was
+`6ab1317f49d1733ea1a4eb6aeb5ea0c23c20f4f0f41099c907389a7cffd807ca`.
+Steam restarted cleanly in
+`~/steam-arm64/logs/steam-20260809-192748.log`. Both official ARM64 tools
+registered at 02:27:55 UTC on 2026-08-10. The first historical-tool pass ran
+from 02:28:23 through 02:48:07, mappings were processed, and the required
+second pass began at 02:49:03. Superflight has not been relaunched while that
+pass remains active, so the launch option and audio path are not yet validated.
+
+Repository checkpoint `69d18a6` independently replaces the launcher's repeated
+Pulse module loads with a tested, idempotent preflight and exports the canonical
+`tcp:127.0.0.1:4713` URI. It is pushed but has not been deployed to the tablet;
+the current Steam session still uses the prior deployed launcher. The per-game
+option above is the next controlled live discriminator, not evidence that the
+repository checkpoint or audio fix already works in production.
+
+The required `deja "Superflight Termux Proton ARM64 PulseAudio ALSA
+PULSE_SERVER"` query returned no matches. No cross-session solution or wording
+was reused for this checkpoint.
