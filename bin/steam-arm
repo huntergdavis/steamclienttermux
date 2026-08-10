@@ -16,6 +16,7 @@ ui_patch="$base/patch-steam-network-ui.sh"
 proc_net_prep="$base/prepare-proc-net-shadow.sh"
 pulse_prep="$base/prepare-pulseaudio-tcp.sh"
 session_guard="$base/compat-bin/steam-arm64-session-guard.py"
+removable_library_helper="$base/compat-bin/steam-arm64-removable-library.py"
 proc_net_shadow="$base/config/proc-net"
 pressure_vessel_bwrap="$base/compat-bin/steam-arm64-bwrap-route"
 real_pressure_vessel_bwrap="$arm_runtime/pressure-vessel/libexec/steam-runtime-tools-0/srt-bwrap"
@@ -94,6 +95,12 @@ if [[ ! -x "$pulse_prep" ]]; then
 fi
 if [[ ! -f "$session_guard" ]]; then
     printf 'Steam session guard not found: %s\n' "$session_guard" >&2
+    printf 'Run scripts/install-project-files.sh before starting Steam.\n' >&2
+    exit 1
+fi
+if [[ ! -f "$removable_library_helper" ]]; then
+    printf 'Steam removable-library helper not found: %s\n' \
+        "$removable_library_helper" >&2
     printf 'Run scripts/install-project-files.sh before starting Steam.\n' >&2
     exit 1
 fi
@@ -212,6 +219,26 @@ pd_args+=(--env "STEAM_ARM64_PROC_NET=$proc_net_shadow")
 # that expected guest directory with the prepared shadow. The official depot
 # and appmanifest remain untouched on the host.
 pd_args+=(--bind "$arm_runtime:$arm_runtime_depot")
+# Android portable storage is exFAT/FUSE, noexec, and cannot hold Proton
+# prefixes. If explicitly configured, expose only the bulk game library at a
+# stable guest path, then cover its compatdata directory with unique internal
+# F2FS storage. The helper fails before launch if the card or layout is unsafe.
+removable_mount="$(
+    python3 "$removable_library_helper" --base "$base" mount-info
+)"
+if [[ "$removable_mount" != disabled ]]; then
+    IFS=$'\t' read -r removable_source removable_target \
+        removable_compatdata removable_extra <<<"$removable_mount"
+    if [[ -z "$removable_source" || -z "$removable_target" ||
+            -z "$removable_compatdata" || -n "$removable_extra" ]]; then
+        printf 'Invalid removable-library mount description\n' >&2
+        exit 1
+    fi
+    pd_args+=(--bind "$removable_source:$removable_target")
+    pd_args+=(--bind "$removable_compatdata:$removable_target/steamapps/compatdata")
+    printf 'Removable Windows game library: %s -> %s\n' \
+        "$removable_source" "$removable_target"
+fi
 pd_args+=(--env "DBUS_SESSION_BUS_ADDRESS=$dbus_address")
 if [[ -n "${PROOT_SYSVIPC_LOG:-}" ]]; then
     pd_args+=(--env "PROOT_SYSVIPC_LOG=$PROOT_SYSVIPC_LOG")

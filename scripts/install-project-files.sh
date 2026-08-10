@@ -60,6 +60,8 @@ install_one "$repo_root/bin/prepare-pulseaudio-tcp.sh" "$base/prepare-pulseaudio
 install_one "$repo_root/bin/lsof" "$base/compat-bin/lsof" 700
 install_one "$repo_root/bin/steam-arm64-session-guard.py" \
     "$base/compat-bin/steam-arm64-session-guard.py" 700
+install_one "$repo_root/bin/steam-arm64-removable-library.py" \
+    "$base/compat-bin/steam-arm64-removable-library.py" 700
 install_one "$wrapper_stage" "$base/compat-bin/steam-arm64-bwrap-route" 700
 unlink -- "$wrapper_stage"
 wrapper_stage=""

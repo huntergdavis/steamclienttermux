@@ -15,6 +15,8 @@ official Proton 11 ARM64, and its bundled FEX/DXVK stack.
   launch through the correct ARM64 paths.
 - Superflight runs fullscreen through FEX, Wine, DXVK, and Turnip with working
   PulseAudio output.
+- An optional microSD library keeps Windows game depots external while Proton,
+  runtimes, and per-game compatdata remain on internal F2FS.
 - Burnout remains experimental; its detailed EA, FEX, and DXVK investigation is
   kept in [`docs/TECHNICAL_LOG.md`](docs/TECHNICAL_LOG.md), not duplicated here.
 
@@ -103,6 +105,19 @@ After Superflight starts, apply and verify the confirmed live affinity:
 scripts/set-superflight-affinity.py
 scripts/set-superflight-affinity.py --check
 ```
+
+To prepare the removable Windows-game library before a Steam restart:
+
+```sh
+bin/steam-arm64-removable-library.py --base "$HOME/steam-arm64" prepare
+scripts/install-project-files.sh
+```
+
+After restarting Steam, add
+`~/steam-arm64/removable-library` in Settings → Storage. Use it only for Windows
+game depots; the launcher overlays that library's `steamapps/compatdata` with
+`~/steam-arm64/removable-library-compatdata` on internal storage. The launcher
+fails early if the configured card is absent or the mount layout is unsafe.
 
 `WINE_CPU_TOPOLOGY=4:4,5,6,7` is a candidate for making the affinity persistent,
 but it is intentionally not presented as confirmed until a clean launch proves

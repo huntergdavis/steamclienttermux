@@ -1959,3 +1959,47 @@ query returned no matches, so no prior-session implementation was reused.
 The required `deja "Superflight fullscreen frame rate DXVK Turnip FEX KWin
 compositor Termux X11"` query returned no matches. No prior-session affinity
 implementation was reused.
+
+## 2026-08-10: removable Windows-game library
+
+The tablet's removable card is visible to native Termux at
+`~/storage/external-1`, resolving to the app-specific directory
+`/storage/7376-B000/Android/data/com.termux/files`. It has 606 GiB free. Android
+mounts the underlying 924 GiB exFAT card through FUSE with `noexec` and
+`symlink=0`; the live Steam PRoot initially had no bind exposing it. Steam knew
+only the internal client root in `steamapps/libraryfolders.vdf`.
+
+A disposable live probe used the production patched PRoot with an external
+library bind followed by a nested internal compatdata bind. The library and
+`steamapps/common` reported FUSE, while `steamapps/compatdata` reported F2FS.
+External symlink creation failed as expected, executing a copied native ELF
+returned 126, and a symlink inside the overlaid compatdata succeeded. Host-side
+markers proved bulk data reached the card and prefix data reached internal
+storage. All uniquely named probe directories were removed afterward.
+
+The opt-in `steam-arm64-removable-library.py` helper now prepares and validates:
+
+```text
+external depot: /storage/7376-B000/Android/data/com.termux/files/steam-arm64-library
+guest path:     ~/steam-arm64/removable-library
+compatdata:     ~/steam-arm64/removable-library-compatdata
+configuration:  ~/steam-arm64/config/removable-library.json
+```
+
+It accepts only Termux's exact `/storage/UUID/Android/data/com.termux/files`
+boundary, mode-protects and atomically writes its configuration, backs up a
+changed configuration, requires empty mountpoints so data cannot be hidden,
+requires at least 1 GiB free, and fails if the card disappears. The launcher
+binds the external root first and unique internal compatdata second. Linux
+executables, Proton, runtimes, prefixes, and native games remain internal; this
+route is limited to Windows depot payloads.
+
+The actual tablet layout was prepared while the old Steam launcher remained
+running. Read-only validation reported all four paths ready, configuration mode
+600, internal directory modes 700, and 606 GiB free. Steam has not yet been
+restarted or told about the guest library path.
+
+Kingsway is the first planned end-to-end validation target: App ID 588950,
+Windows-only depot 588951, approximately 45.67 MiB downloaded and 57.53 MiB on
+disk. The required `deja "Kingsway Steam Proton Termux ARM64 FEX microSD"`
+query returned no matches, so no prior-session implementation was reused.
