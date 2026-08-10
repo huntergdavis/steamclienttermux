@@ -220,6 +220,8 @@ installer.
 - `bin/patch-steam-network-ui.sh` — version-specific Steam UI API guard.
 - `bin/prepare-proc-net-shadow.sh` — validates the active Termux network and
   prepares the minimal route snapshot required by Wine's IP Helper APIs.
+- `bin/prepare-pulseaudio-tcp.sh` — idempotently prepares the canonical
+  loopback PulseAudio endpoint used by Steam, Proton, and Wine.
 - `diagnostics/pressure-vessel-route-bwrap.c` — validates the route snapshot
   and re-injects it by inherited directory FD after Pressure Vessel mounts its
   private procfs.

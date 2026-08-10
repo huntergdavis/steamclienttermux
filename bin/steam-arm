@@ -14,6 +14,7 @@ arm_runtime_depot="$client_root/steamapps/common/SteamLinuxRuntime_4-arm64"
 compat_bin="$base/compat-bin"
 ui_patch="$base/patch-steam-network-ui.sh"
 proc_net_prep="$base/prepare-proc-net-shadow.sh"
+pulse_prep="$base/prepare-pulseaudio-tcp.sh"
 proc_net_shadow="$base/config/proc-net"
 pressure_vessel_bwrap="$base/compat-bin/steam-arm64-bwrap-route"
 real_pressure_vessel_bwrap="$arm_runtime/pressure-vessel/libexec/steam-runtime-tools-0/srt-bwrap"
@@ -84,6 +85,10 @@ if [[ ! -x "$proc_net_prep" ]]; then
     printf 'Synthetic /proc/net preparer not found: %s\n' "$proc_net_prep" >&2
     exit 1
 fi
+if [[ ! -x "$pulse_prep" ]]; then
+    printf 'PulseAudio TCP preparer not found: %s\n' "$pulse_prep" >&2
+    exit 1
+fi
 if [[ ! -x "$pressure_vessel_bwrap" ]]; then
     printf 'Pressure Vessel /proc/net wrapper not found: %s\n' \
         "$pressure_vessel_bwrap" >&2
@@ -123,9 +128,7 @@ for noisy_log in "${noisy_logs[@]}"; do
     ln -sfn /dev/null "$noisy_log"
 done
 
-pulseaudio --check >/dev/null 2>&1 || pulseaudio --start --exit-idle-time=-1
-pactl load-module module-native-protocol-tcp \
-    auth-ip-acl=127.0.0.1 auth-anonymous=1 >/dev/null 2>&1 || true
+"$pulse_prep" "$base"
 
 display="${DISPLAY:-:0}"
 log="$base/logs/steam-$(date +%Y%m%d-%H%M%S).log"
@@ -240,7 +243,7 @@ proot-distro "${pd_args[@]}" -- /bin/bash -lc '
     export LANG=C.UTF-8
     export LC_ALL=C.UTF-8
     export XDG_RUNTIME_DIR=/tmp/steam-runtime
-    export PULSE_SERVER=127.0.0.1
+    export PULSE_SERVER=tcp:127.0.0.1:4713
     export LD_LIBRARY_PATH="$3"
     export VK_DRIVER_FILES="$4"
     export LIBGL_DRIVERS_PATH="$3/dri"
