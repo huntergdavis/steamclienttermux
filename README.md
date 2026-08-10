@@ -45,9 +45,12 @@ compatibility problems remained:
 Finally, Steam's file preallocation was disastrously slow through ptrace PRoot,
 so `-chromeosnopreallocate` was needed for practical downloads. Runaway CEF
 debug streams also required a launcher-level log guard after they consumed about
-25 GiB. The launcher also uses `-noverifyfiles`: Steam still checks for client
-updates, but it does not replace the intentional, version-specific UI guard on
-every start.
+25 GiB. The two known CEF paths are pinned to `/dev/null`, each canonical
+session log is capped at 64 MiB, mirrored terminal output is capped at 1 MiB,
+and the stream reader continues draining after either cap so a noisy child
+cannot block. A preflight also reserves 1 GiB of free space. The launcher uses
+`-noverifyfiles`: Steam still checks for client updates, but it does not replace
+the intentional, version-specific UI guard on every start.
 
 In short:
 

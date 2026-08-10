@@ -32,6 +32,7 @@ compat="$client/steamapps/compatdata/1238080"
 hosts="$base/config/hosts-ipv4"
 custom_proot_dir="$base/src/proot-production/src"
 script_path="$base/compat-bin/steam-arm64-ea-link2ea-direct"
+session_guard="$base/compat-bin/steam-arm64-session-guard.py"
 
 required_files=(
     "$client/steamapps/common/Proton 11.0 (ARM64)/proton"
@@ -39,6 +40,7 @@ required_files=(
     "$shadow/pressure-vessel/bin/pressure-vessel-wrap"
     "$hosts"
     "$script_path"
+    "$session_guard"
 )
 for required_file in "${required_files[@]}"; do
     if [[ ! -f "$required_file" ]]; then
@@ -49,6 +51,15 @@ done
 if [[ ! -x "$custom_proot_dir/proot" ]]; then
     printf 'Required patched PRoot is missing: %s\n' "$custom_proot_dir/proot" >&2
     exit 1
+fi
+command -v python3 >/dev/null || { echo 'python3 is required' >&2; exit 1; }
+crash_log_mode="$(
+    python3 "$session_guard" crash-mode "${PROOT_CRASH_LOG-}"
+)"
+if [[ "$crash_log_mode" == enabled ]]; then
+    export PROOT_CRASH_LOG=1
+else
+    unset PROOT_CRASH_LOG
 fi
 if pgrep -x wineserver >/dev/null; then
     printf 'Refusing direct launch while a Wine prefix session is active\n' >&2
@@ -71,7 +82,9 @@ pd_args=(login debian --shared-tmp)
 pd_args+=(--bind "$hosts:/etc/hosts")
 pd_args+=(--bind "$shadow:$depot")
 pd_args+=(--env "PROOT_L2S_EXDEV_PREFIX=$depot/var/tmp-")
-pd_args+=(--env PROOT_CRASH_LOG=1)
+if [[ "$crash_log_mode" == enabled ]]; then
+    pd_args+=(--env PROOT_CRASH_LOG=1)
+fi
 pd_args+=(--env "DISPLAY=${DISPLAY:-:0}")
 pd_args+=(--env XDG_RUNTIME_DIR=/tmp/steam-runtime)
 pd_args+=(--env PULSE_SERVER=127.0.0.1)

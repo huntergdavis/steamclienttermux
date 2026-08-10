@@ -1769,3 +1769,50 @@ prepared for a controlled future deployment.
 The required `deja "Superflight Termux Proton ARM64 PulseAudio ALSA
 PULSE_SERVER"` query returned no matches. No cross-session solution or wording
 was reused for this checkpoint.
+
+## 2026-08-10: keyboard-resize incident and bounded session logging
+
+An apparent Termux:X11 freeze after the Superflight audio run was not CPU or
+storage exhaustion. Android's on-screen keyboard had resized X display `:0`
+from the previously observed 2800x1586 desktop to 2800x876. `xdpyinfo`,
+`xrandr`, and `xdotool` still completed, the eight CPUs were reported as 800%
+idle, and the filesystem retained 25 GiB free. SSH cannot dismiss the Android
+IME without the platform's input-injection permission, so the safe recovery is
+the tablet's keyboard-hide/down control; restarting X11 is unnecessary.
+
+The audit did find residue from the separate 03:16 Superflight session. Its
+Pressure Vessel path spent roughly two hours in PRoot metadata work and emitted
+12,320 `Invalid cross-device link` hard-link warnings plus 18,481
+`pressure-vessel-wrap` lines before `pv-adverb: wait: Function not implemented`
+and `Real-time signal 1`. The game and native Steam were already gone. Nine
+sleeping App ID 732430 Wine/route processes were revalidated through their
+environments and stopped with `SIGTERM`; no force signal was used and X11/KDE
+were left running.
+
+Five uncited outer wrapper logs were byte-verified as a short prefix followed by
+an already preserved canonical session log. Removing only those redundant
+copies recovered 115,801,781 bytes and reduced `~/steam-arm64/logs` from about
+761 MiB to 651 MiB. Two documented 164 MiB wrapper/canonical files were retained,
+as were every game, compatdata, credential, and normal Steam log. The known CEF
+paths remained exact `/dev/null` symlinks, no deleted file was held open, and a
+12-second sample showed no ongoing scoped log growth.
+
+Repository prevention now replaces the launcher's unbounded `tee` with
+`steam-arm64-session-guard.py`. The guard creates collision-safe mode-600 log
+files, caps the canonical log at 64 MiB and mirrored stdout at 1 MiB, writes a
+visible marker inside each cap, and continues reading all remaining child output.
+With Bash `pipefail`, Steam's exit status remains the pipeline status even if
+stdout closes. Preflight requires a 1 GiB free-space floor plus the session-log
+budget. It treats only an exact `/dev/null` symlink as a valid CEF guard; an
+incorrect path fails unchanged while Steam is running, and only missing or
+closed regular files can be replaced while stopped. `PROOT_CRASH_LOG` accepts
+only unset/`0`/`1`, actively removes disabled values from the outer environment,
+and the direct EA diagnostic route no longer enables it unconditionally.
+
+Syntax checks, ShellCheck, Python compilation, the PulseAudio and Pressure
+Vessel regression suites, and the new guard tests all pass. The new tests prove
+free-space rejection before CEF mutation, all accepted/refused CEF states,
+continued drain with capped or closed stdout, child status 23 propagation, and
+24 concurrent unique session-log creations. The required `deja "Termux X11
+Steam CPU pegged disk full giant logs steamwebhelper cleanup prevention"` query
+returned no matches, so no prior-session implementation was reused.

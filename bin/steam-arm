@@ -15,6 +15,7 @@ compat_bin="$base/compat-bin"
 ui_patch="$base/patch-steam-network-ui.sh"
 proc_net_prep="$base/prepare-proc-net-shadow.sh"
 pulse_prep="$base/prepare-pulseaudio-tcp.sh"
+session_guard="$base/compat-bin/steam-arm64-session-guard.py"
 proc_net_shadow="$base/config/proc-net"
 pressure_vessel_bwrap="$base/compat-bin/steam-arm64-bwrap-route"
 real_pressure_vessel_bwrap="$arm_runtime/pressure-vessel/libexec/steam-runtime-tools-0/srt-bwrap"
@@ -24,6 +25,8 @@ proot_patch_stamp="$base/src/proot-production/.steamclienttermux-patchset"
 required_proot_patch="proot-runtime-directory-bind-target.patch"
 
 command -v sha256sum >/dev/null || { echo 'sha256sum is required' >&2; exit 1; }
+command -v pgrep >/dev/null || { echo 'pgrep is required' >&2; exit 1; }
+command -v python3 >/dev/null || { echo 'python3 is required' >&2; exit 1; }
 
 if [[ ! -x "$client/steam" ]]; then
     printf 'Steam ARM64 executable not found: %s\n' "$client/steam" >&2
@@ -89,6 +92,11 @@ if [[ ! -x "$pulse_prep" ]]; then
     printf 'PulseAudio TCP preparer not found: %s\n' "$pulse_prep" >&2
     exit 1
 fi
+if [[ ! -f "$session_guard" ]]; then
+    printf 'Steam session guard not found: %s\n' "$session_guard" >&2
+    printf 'Run scripts/install-project-files.sh before starting Steam.\n' >&2
+    exit 1
+fi
 if [[ ! -x "$pressure_vessel_bwrap" ]]; then
     printf 'Pressure Vessel /proc/net wrapper not found: %s\n' \
         "$pressure_vessel_bwrap" >&2
@@ -109,29 +117,46 @@ if [[ ! -f "$proc_net_shadow/route" ]] ||
     exit 1
 fi
 
-mkdir -p "$base/logs"
-
 # Steam's ARM64 CEF build can emit these debug streams continuously when its
 # compatibility workarounds are active.  They have grown by tens of gigabytes
-# in a single session, so discard only these two noisy files.  Normal Steam
-# logs and our timestamped launcher log remain available under $base/logs.
-noisy_logs=(
-    "$client_root/logs/steamwebhelper.log"
-    "$client_root/config/htmlcache/chrome_debug.log"
-)
-for noisy_log in "${noisy_logs[@]}"; do
-    mkdir -p "$(dirname "$noisy_log")"
-    if [[ -e "$noisy_log" && ! -L "$noisy_log" ]]; then
-        truncate -s 0 -- "$noisy_log"
-        rm -f -- "$noisy_log"
+# in a single session. The guard replaces only missing or closed regular files
+# while Steam is stopped, and refuses to unlink any unexpected or live path.
+session_log_cap="${STEAM_ARM64_SESSION_LOG_CAP_BYTES:-67108864}"
+session_stdout_cap="${STEAM_ARM64_STDOUT_CAP_BYTES:-1048576}"
+minimum_free="${STEAM_ARM64_MIN_FREE_BYTES:-1073741824}"
+crash_log_mode="$(
+    python3 "$session_guard" crash-mode "${PROOT_CRASH_LOG-}"
+)"
+if [[ "$crash_log_mode" == enabled ]]; then
+    export PROOT_CRASH_LOG=1
+else
+    # PRoot tests only for presence, so an inherited value of 0 still enables
+    # its tracer unless it is removed from the outer process environment.
+    unset PROOT_CRASH_LOG
+fi
+steam_running=no
+if pgrep -f 'steamrtarm64[/]steam|[/]proot.*steam-arm' >/dev/null 2>&1; then
+    steam_running=yes
+else
+    pgrep_status=$?
+    if ((pgrep_status != 1)); then
+        printf 'Unable to inspect existing Steam processes (pgrep status %d)\n' \
+            "$pgrep_status" >&2
+        exit 1
     fi
-    ln -sfn /dev/null "$noisy_log"
-done
+fi
+python3 "$session_guard" preflight \
+    --client-root "$client_root" \
+    --logs-dir "$base/logs" \
+    --min-free-bytes "$minimum_free" \
+    --log-cap-bytes "$session_log_cap" \
+    --stdout-cap-bytes "$session_stdout_cap" \
+    --steam-running "$steam_running"
 
 "$pulse_prep" "$base"
 
 display="${DISPLAY:-:0}"
-log="$base/logs/steam-$(date +%Y%m%d-%H%M%S).log"
+log="$(python3 "$session_guard" create-log --logs-dir "$base/logs")"
 # PRoot's crash tracer is intentionally opt-in. FEX uses handled SIGBUS traps
 # for unaligned guest atomics during normal execution; logging each stop fetches
 # registers and scans procfs, flooding the Steam log and magnifying hot loops.
@@ -194,8 +219,8 @@ fi
 if [[ -n "${PROOT_VERBOSE:-}" ]]; then
     pd_args+=(--env "PROOT_VERBOSE=$PROOT_VERBOSE")
 fi
-if [[ -n "${PROOT_CRASH_LOG:-}" ]]; then
-    pd_args+=(--env "PROOT_CRASH_LOG=$PROOT_CRASH_LOG")
+if [[ "$crash_log_mode" == enabled ]]; then
+    pd_args+=(--env PROOT_CRASH_LOG=1)
 fi
 # Pressure Vessel normally hard-links every mutable-runtime file. PRoot's
 # link2symlink representation is unsuitable as a Bubblewrap bind source, so
@@ -207,6 +232,8 @@ pd_args+=(--env "PROOT_L2S_EXDEV_PREFIX=$PROOT_L2S_EXDEV_PREFIX")
 
 export PATH="$custom_proot_dir:$PATH"
 
+# The single-quoted program is expanded by the guest Bash, not this launcher.
+# shellcheck disable=SC2016
 proot-distro "${pd_args[@]}" -- /bin/bash -lc '
     set -eo pipefail
     mkdir -p "$1/.steam" "$6/compatibilitytools.d/steam-arm64-official" /tmp/steam-runtime
@@ -260,4 +287,7 @@ proot-distro "${pd_args[@]}" -- /bin/bash -lc '
     # pathologically slow under ptrace and can hold downloads at 2 percent.
     exec "$steam_exe" -no-cef-sandbox -cef-disable-gpu -chromeosnopreallocate -noverifyfiles "$@"
 ' steam-arm "$steam_home" "$display" "$mesa_lib" "$icd" "$client/steam" "$client_root" "$compat_bin" "$arm_compat_template" "$@" \
-    2>&1 | tee "$log"
+    2>&1 | python3 "$session_guard" stream \
+        --log "$log" \
+        --log-cap-bytes "$session_log_cap" \
+        --stdout-cap-bytes "$session_stdout_cap"
