@@ -2302,3 +2302,115 @@ That leaf has accumulated hundreds of megabytes of read/write I/O and steadily
 increasing traced context switches, so it is slow but not stuck. GTA IV and
 Rockstar Launcher have not started yet; this section therefore claims the
 correct ARM prerequisite route, not game execution.
+
+## 2026-08-10: GTA IV first launch and signed registry workaround
+
+After DirectX setup completed, the next launch produced the required tracked
+command without any x86 fallback:
+
+```text
+SteamLinuxRuntime_4-arm64/_v2-entry-point --verb=waitforexitandrun
+Proton 11.0 (ARM64)/proton waitforexitandrun
+Grand Theft Auto IV/GTAIV/PlayGTAIV.exe
+```
+
+The live tree progressed through `srt-bwrap`, `pv-adverb`, official ARM Proton,
+`wineserver`, and `PlayGTAIV.exe`. Runtime 4 performed the same guarded `EXDEV`
+hard-link-to-copy fallback already proven by Kingsway. `PlayGTAIV.exe` then
+started the bundled 112,072,312-byte x86-64
+`Rockstar-Games-Launcher.exe /s /t` through FEX/Wine.
+
+The exact Rockstar installer window was captured instead of the desktop. It
+showed only the Rockstar logo and progress bar, with no Steam account or friend
+data. Tablet and local copies matched SHA-256:
+
+```text
+83acd34a4652f0b21182cb21614ce92f45b910cb012f48f68080972c6c41a789
+```
+
+Four minutes later a second capture was byte-identical. The installer remained
+at four sleeping threads with flat context-switch counters, no TCP connection,
+no created Launcher executable, and no crash log. Its 653-byte
+`installer_log.txt` ended at `Load Init Page`. A standard SIGTERM to only the
+validated `srt-bwrap` game-container supervisor removed all ten GTA, Proton,
+and Rockstar processes in five seconds; main Steam remained running and no
+SIGKILL was used.
+
+The same launch exposed a separate deterministic error in
+`installscript_log.txt`: Steam tried to load the signed file at a Linux pathname
+ending in the literal filename `GTAIV\installscript.vdf`. The real 566-byte
+depot file is `GTAIV/installscript.vdf`, SHA-256:
+
+```text
+58de41add79ba9753b4a73b00a1ad7e7e1e14770c959beb4c8b78155607ed498
+```
+
+The failed evaluator left the GTA IV registry keys absent. Android's exFAT/FUSE
+mount refused creation of a literal backslash filename with `EPERM`; the
+byte-verified temporary copy was removed and the signed original remained
+unchanged. The required
+`deja "PRoot file bind nonexistent target backslash path"` search returned no
+matching prior session, so no prior implementation was reused.
+
+An isolated read-only Debian PRoot probe bound the real slash-path source onto
+the nonexistent literal-backslash guest target. An exact `stat`/open of that
+guest path returned the real 566-byte file with the same SHA. However,
+`readdir()` on the parent did not contain the alias: it returned only `GTAIV`,
+`Redistributables`, and `installscript_sdk.vdf`. PRoot can redirect an exact
+lookup but does not synthesize a nonexistent bind target into directory
+enumeration.
+
+Steam shut down naturally before deployment. The previous launcher/helper are
+preserved at:
+
+```text
+~/steam-arm64/backups/gtaiv-installscript-bind-20260810-1423
+```
+
+The experimental deployed launcher SHA was
+`5b9f2d4345e47193b475fec1c0f0504a79f75a5bce091d8c2e3ab338b13ee2a1`;
+the deployed finalizer-capable removable helper SHA is
+`0f5a50963d2b2ab8e0fa82837c08ec970d4e680f81e3ec980062d88ca6c5ff42`.
+On restart the launcher printed the exact GTA IV path bind, Steam again
+registered both official ARM tools, and App 12210 retained its priority-250 ARM
+mapping. After compatibility registration completed, the 21:26:33 retry still
+logged the identical installscript load failure and created neither registry
+key. The production PRoot argument contained exactly one backslash and the bind
+followed its parent mounts, confirming directory enumeration—not quoting or
+ordering—as the failure. The ineffective launcher bind is therefore removed
+from the repository.
+
+The signed VDF contains no prerequisite executable. Its complete effect is:
+
+```text
+HKLM\SOFTWARE\Rockstar Games\Grand Theft Auto IV
+  InstallFolder = S:\common\Grand Theft Auto IV\GTAIV
+HKLM\SOFTWARE\Rockstar Games\Grand Theft Auto IV\1.00.0000
+```
+
+The `S:` dosdevice was verified as a symlink to the removable library's
+internal `steamapps` control path, which exposes the external `common` bind in
+the game container. A required
+`deja "Proton reg.exe HKLM registry PRoot FEX Termux"` search found no prior
+session to reuse. Instead,
+`scripts/configure-gtaiv-registry.py` reuses the already tested backup, staged
+write, `fsync`, atomic replace, and post-write verification pattern from the
+Superflight registry helper. It additionally refuses a changed signed-VDF
+hash, wrong `S:` mapping, symlink/multi-link registry, duplicate/partial/wrong
+keys, or any live Wine, Proton, FEX, Runtime, GTA, or Rockstar process.
+
+While Steam's one-time GTA shader replay was active but no prefix writer or
+game container existed, the helper applied the two entries. Evidence:
+
+```text
+signed VDF SHA-256: 58de41add79ba9753b4a73b00a1ad7e7e1e14770c959beb4c8b78155607ed498
+backup: ~/steam-arm64/backups/gtaiv-registry-20260810-144159-aupo4ih6/system.reg
+backup SHA-256: c96836b6257de18e592b0c4d2c34aa66d19233a242c0b787f6151ddb5831f9e3
+installed SHA-256: 5acf092fc006e661ba41698168ea118db8c8538845a8ae21c0714fcc0b934afc
+deployed helper SHA-256: 74705507e1dbc58982197889ea47530411ee9fa0e6f9f2f54c8437c2b54583a6
+```
+
+An immediate idempotent `--check` and literal inspection confirmed both exact
+sections. This proves the signed installscript state is present; it does not
+yet prove that Rockstar Launcher gets past `Load Init Page` or that GTA IV
+renders.

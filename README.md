@@ -18,6 +18,9 @@ official Proton 11 ARM64, and its bundled FEX/DXVK stack.
 - An optional microSD library keeps Windows game depots external while Proton,
   runtimes, active downloads, and per-game compatdata remain on internal F2FS.
   Kingsway runs fullscreen with audio through this split route.
+- GTA IV is installed on the microSD and reaches its bundled Rockstar installer
+  through official ARM Proton/FEX; Rockstar startup and game rendering remain
+  in progress.
 - Burnout remains experimental; its detailed EA, FEX, and DXVK investigation is
   kept in [`docs/TECHNICAL_LOG.md`](docs/TECHNICAL_LOG.md), not duplicated here.
 
@@ -159,6 +162,20 @@ GTA IV example is in [`docs/TECHNICAL_LOG.md`](docs/TECHNICAL_LOG.md). After a
 verified restart, the redundant internal numeric App-ID tree can be removed
 with Steam stopped and its empty mountpoint recreated.
 
+GTA IV's signed depot metadata currently spells its installscript path with a
+Windows separator that native Linux Steam cannot enumerate on Android's
+portable-storage filesystem. With no Wine, Proton, or game container running,
+apply the signed script's two registry entries using the hash- and
+mapping-guarded helper:
+
+```sh
+scripts/configure-gtaiv-registry.py --base "$HOME/steam-arm64" \
+  --installscript "/storage/7376-B000/Android/data/com.termux/files/steam-arm64-library/steamapps/common/Grand Theft Auto IV/GTAIV/installscript.vdf"
+```
+
+The helper verifies the exact signed VDF, `S:` mapping, and existing registry
+state; it makes a byte-verified backup before an atomic `system.reg` update.
+
 `WINE_CPU_TOPOLOGY=4:4,5,6,7` is a candidate for making the affinity persistent,
 but it is intentionally not presented as confirmed until a clean launch proves
 the same per-thread masks and performance.
@@ -172,7 +189,8 @@ done
 ```
 
 The retained tests cover the launcher log guard, PulseAudio preparation,
-Pressure Vessel route injection, Superflight settings, and affinity validation.
+Pressure Vessel route injection, Superflight settings and affinity, removable
+storage, and GTA IV's signed registry state.
 
 ## Key paths
 
