@@ -27,6 +27,17 @@ def fixture(temporary):
     link.symlink_to(external)
     base = temporary / "steam-arm64"
     base.mkdir()
+    steamapps = base / "client" / "steamapps"
+    steamapps.mkdir(parents=True)
+    (steamapps / "libraryfolders.vdf").write_bytes(
+        b'"libraryfolders"\r\n{\r\n\t"0"\r\n\t{\r\n'
+        b'\t\t"path"\t\t"/internal/client"\r\n'
+        b'\t\t"label"\t\t""\r\n'
+        b'\t\t"contentid"\t\t"123"\r\n'
+        b'\t\t"apps"\r\n\t\t{\r\n'
+        b'\t\t\t"732430"\t\t"1"\r\n'
+        b'\t\t}\r\n\t}\r\n}\r\n'
+    )
     return storage, external, link, base
 
 
@@ -133,6 +144,49 @@ def test_disabled(module, temporary):
     assert module.load_layout(base, temporary / "storage") is None
 
 
+def test_registration(module, temporary):
+    storage, _external, link, base = fixture(temporary)
+    paths, _backup = module.prepare_layout(base, link, storage)
+    libraryfolders = base / "client/steamapps/libraryfolders.vdf"
+    original = libraryfolders.read_bytes()
+    backup, index = module.register_library(base, paths)
+    assert index == 1
+    assert backup is not None
+    assert (backup / "libraryfolders.vdf").read_bytes() == original
+    rendered = libraryfolders.read_bytes()
+    assert rendered.count(str(paths["target"]).encode()) == 1
+    assert b'"microSD Windows games"' in rendered
+    assert rendered.endswith(b"}\r\n")
+    second_backup, second_index = module.register_library(base, paths)
+    assert second_backup is None
+    assert second_index is None
+    assert libraryfolders.read_bytes() == rendered
+
+
+def test_registration_refusals(module, temporary):
+    storage, _external, link, base = fixture(temporary)
+    paths, _backup = module.prepare_layout(base, link, storage)
+    libraryfolders = base / "client/steamapps/libraryfolders.vdf"
+    before = libraryfolders.read_bytes()
+    try:
+        module.render_libraryfolders(b'"wrong"\n{\n}\n', paths["target"], "123")
+    except RuntimeError as error:
+        assert "no libraryfolders root" in str(error)
+    else:
+        raise AssertionError("invalid library root was accepted")
+    target = temporary / "library-target"
+    target.write_bytes(before)
+    libraryfolders.unlink()
+    libraryfolders.symlink_to(target)
+    try:
+        module.register_library(base, paths)
+    except RuntimeError as error:
+        assert "non-symlink" in str(error)
+    else:
+        raise AssertionError("symlink library configuration was accepted")
+    assert target.read_bytes() == before
+
+
 def main():
     module = load_tool()
     tests = (
@@ -142,6 +196,8 @@ def main():
         test_configuration_refusals,
         test_removed_card,
         test_disabled,
+        test_registration,
+        test_registration_refusals,
     )
     for test in tests:
         with tempfile.TemporaryDirectory() as directory:

@@ -1994,6 +1994,12 @@ binds the external root first and unique internal compatdata second. Linux
 executables, Proton, runtimes, prefixes, and native games remain internal; this
 route is limited to Windows depot payloads.
 
+The helper's offline `register` action adds the stable guest path to
+`client/steamapps/libraryfolders.vdf`. It refuses the edit while Steam or Wine
+is active, rejects non-regular and multiply linked VDFs, preserves the source
+newline style and mode, makes a byte-verified timestamped backup, detects a
+concurrent source change, installs with an atomic rename, and is idempotent.
+
 The actual tablet layout was prepared while the old Steam launcher remained
 running. Read-only validation reported all four paths ready, configuration mode
 600, internal directory modes 700, and 606 GiB free. Steam has not yet been

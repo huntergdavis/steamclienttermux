@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import re
+import secrets
 import shutil
 import stat
 import sys
@@ -17,6 +18,7 @@ import tempfile
 CONFIG_NAME = "removable-library.json"
 LIBRARY_NAME = "steam-arm64-library"
 UUID_PATTERN = re.compile(r"^[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}$")
+RUNNING_COMMS = {"steam", "steamwebhelper", "wineserver"}
 
 
 def inspect_directory(path, label, *, require_empty=False):
@@ -44,6 +46,18 @@ def inspect_config(path):
         raise RuntimeError(f"configuration has an unexpected owner: {path}")
     if stat.S_IMODE(metadata.st_mode) & 0o077:
         raise RuntimeError(f"configuration permissions are too broad: {path}")
+    return metadata
+
+
+def inspect_regular_file(path, label):
+    try:
+        metadata = path.lstat()
+    except FileNotFoundError as error:
+        raise RuntimeError(f"{label} is missing: {path}") from error
+    if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
+        raise RuntimeError(f"{label} is not a regular non-symlink file: {path}")
+    if metadata.st_nlink != 1:
+        raise RuntimeError(f"{label} has an unexpected link count: {path}")
     return metadata
 
 
@@ -120,6 +134,35 @@ def fsync_directory(path):
         os.close(descriptor)
 
 
+def atomic_replace(path, rendered, mode):
+    descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    temporary = Path(temporary_name)
+    try:
+        os.fchmod(descriptor, mode)
+        offset = 0
+        while offset < len(rendered):
+            written = os.write(descriptor, rendered[offset:])
+            if written == 0:
+                raise OSError("zero-byte atomic write")
+            offset += written
+        os.fsync(descriptor)
+        os.close(descriptor)
+        descriptor = -1
+        if temporary.read_bytes() != rendered:
+            raise RuntimeError(f"staged file verification failed: {temporary}")
+        os.replace(temporary, path)
+        fsync_directory(path.parent)
+    finally:
+        if descriptor >= 0:
+            os.close(descriptor)
+        try:
+            temporary.unlink()
+        except FileNotFoundError:
+            pass
+    if path.read_bytes() != rendered:
+        raise RuntimeError(f"installed file verification failed: {path}")
+
+
 def write_config(path, rendered, backups_dir):
     existing = inspect_config(path)
     if existing is not None and path.read_bytes() == rendered:
@@ -138,33 +181,108 @@ def write_config(path, rendered, backups_dir):
             raise RuntimeError(f"configuration backup verification failed: {backup_config}")
 
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
-    temporary = Path(temporary_name)
-    try:
-        os.fchmod(descriptor, 0o600)
-        offset = 0
-        while offset < len(rendered):
-            written = os.write(descriptor, rendered[offset:])
-            if written == 0:
-                raise OSError("zero-byte configuration write")
-            offset += written
-        os.fsync(descriptor)
-        os.close(descriptor)
-        descriptor = -1
-        if temporary.read_bytes() != rendered:
-            raise RuntimeError(f"staged configuration verification failed: {temporary}")
-        os.replace(temporary, path)
-        fsync_directory(path.parent)
-    finally:
-        if descriptor >= 0:
-            os.close(descriptor)
-        try:
-            temporary.unlink()
-        except FileNotFoundError:
-            pass
-    if path.read_bytes() != rendered:
-        raise RuntimeError(f"installed configuration verification failed: {path}")
+    atomic_replace(path, rendered, 0o600)
     return backup
+
+
+def find_running_processes(proc_root=Path("/proc")):
+    matches = []
+    for entry in proc_root.iterdir():
+        if not entry.name.isdigit():
+            continue
+        try:
+            comm = (entry / "comm").read_text().strip()
+            cmdline = (entry / "cmdline").read_bytes().replace(b"\0", b" ")
+        except (FileNotFoundError, PermissionError, ProcessLookupError):
+            continue
+        if (
+            comm in RUNNING_COMMS
+            or b"steamrtarm64/steam" in cmdline
+            or b"/wineserver" in cmdline
+        ):
+            matches.append((int(entry.name), comm))
+    return sorted(matches)
+
+
+def render_libraryfolders(original, target, content_id):
+    try:
+        text = original.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise RuntimeError("libraryfolders.vdf is not valid UTF-8") from error
+    target_text = str(target)
+    if any(character in target_text for character in '"\r\n\t\0'):
+        raise RuntimeError(f"invalid guest library path: {target}")
+    if not re.fullmatch(r"[1-9][0-9]{0,19}", content_id):
+        raise RuntimeError(f"invalid library content ID: {content_id}")
+    if not re.search(r'^"libraryfolders"\s*$', text, re.MULTILINE):
+        raise RuntimeError("libraryfolders.vdf has no libraryfolders root")
+
+    paths = re.findall(r'^\t\t"path"\s+"([^"\r\n]+)"\s*$', text, re.MULTILINE)
+    target_count = paths.count(target_text)
+    if target_count == 1:
+        return original, None
+    if target_count != 0:
+        raise RuntimeError(f"guest library path appears {target_count} times")
+
+    indexes = [
+        int(value)
+        for value in re.findall(r'^\t"([0-9]+)"\s*$', text, re.MULTILINE)
+    ]
+    if not indexes:
+        raise RuntimeError("libraryfolders.vdf has no numeric library entries")
+    index = max(indexes) + 1
+    stripped = text.rstrip()
+    if not stripped.endswith("}"):
+        raise RuntimeError("libraryfolders.vdf has no final root closure")
+    closing = text.rfind("}", 0, len(stripped))
+    newline = "\r\n" if "\r\n" in text else "\n"
+    entry = newline.join(
+        (
+            f'\t"{index}"',
+            "\t{",
+            f'\t\t"path"\t\t"{target_text}"',
+            '\t\t"label"\t\t"microSD Windows games"',
+            f'\t\t"contentid"\t\t"{content_id}"',
+            '\t\t"totalsize"\t\t"0"',
+            '\t\t"update_clean_bytes_tally"\t\t"0"',
+            '\t\t"time_last_update_verified"\t\t"0"',
+            '\t\t"apps"',
+            "\t\t{",
+            "\t\t}",
+            "\t}",
+            "",
+        )
+    )
+    rendered = text[:closing] + entry + text[closing:]
+    return rendered.encode(), index
+
+
+def register_library(base, paths):
+    libraryfolders = base / "client" / "steamapps" / "libraryfolders.vdf"
+    metadata = inspect_regular_file(libraryfolders, "Steam library configuration")
+    original = libraryfolders.read_bytes()
+    content_id = str(secrets.randbelow((1 << 62) - 1) + 1)
+    rendered, index = render_libraryfolders(original, paths["target"], content_id)
+    if index is None:
+        return None, None
+
+    backups_dir = base / "backups"
+    backups_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+    stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    backup = Path(
+        tempfile.mkdtemp(prefix=f"removable-library-registration-{stamp}-", dir=backups_dir)
+    )
+    backup_file = backup / libraryfolders.name
+    shutil.copy2(libraryfolders, backup_file, follow_symlinks=False)
+    if backup_file.read_bytes() != original:
+        raise RuntimeError(f"library configuration backup failed: {backup_file}")
+    current = inspect_regular_file(libraryfolders, "Steam library configuration")
+    if (current.st_dev, current.st_ino) != (metadata.st_dev, metadata.st_ino):
+        raise RuntimeError("Steam library configuration changed during registration")
+    if libraryfolders.read_bytes() != original:
+        raise RuntimeError("Steam library configuration changed during registration")
+    atomic_replace(libraryfolders, rendered, stat.S_IMODE(metadata.st_mode))
+    return backup, index
 
 
 def prepare_layout(base, external_parent, storage_root=Path("/storage")):
@@ -216,6 +334,7 @@ def build_parser():
     )
     subparsers.add_parser("check")
     subparsers.add_parser("mount-info")
+    subparsers.add_parser("register")
     return parser
 
 
@@ -244,6 +363,22 @@ def main():
                 print(
                     f"{paths['source']}\t{paths['target']}\t{paths['compatdata']}"
                 )
+            return 0
+        if args.action == "register":
+            if paths is None:
+                raise RuntimeError("prepare the removable library before registration")
+            running = find_running_processes()
+            if running:
+                details = ", ".join(f"{pid}:{comm}" for pid, comm in running)
+                raise RuntimeError(
+                    f"refusing to edit Steam libraries while processes are active: {details}"
+                )
+            backup, index = register_library(base, paths)
+            if index is None:
+                print(f"Removable Steam library already registered: {paths['target']}")
+            else:
+                print(f"Registered removable Steam library as entry {index}: {paths['target']}")
+                print(f"Previous library configuration backup: {backup}")
             return 0
         if paths is None:
             print("Removable Steam library: disabled")

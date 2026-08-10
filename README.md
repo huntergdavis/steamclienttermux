@@ -106,18 +106,21 @@ scripts/set-superflight-affinity.py
 scripts/set-superflight-affinity.py --check
 ```
 
-To prepare the removable Windows-game library before a Steam restart:
+With Steam fully stopped, prepare and register the removable Windows-game
+library before the next Steam start:
 
 ```sh
 bin/steam-arm64-removable-library.py --base "$HOME/steam-arm64" prepare
+bin/steam-arm64-removable-library.py --base "$HOME/steam-arm64" register
 scripts/install-project-files.sh
 ```
 
-After restarting Steam, add
-`~/steam-arm64/removable-library` in Settings → Storage. Use it only for Windows
-game depots; the launcher overlays that library's `steamapps/compatdata` with
-`~/steam-arm64/removable-library-compatdata` on internal storage. The launcher
-fails early if the configured card is absent or the mount layout is unsafe.
+`register` makes a byte-verified backup before atomically adding the library to
+Steam's `libraryfolders.vdf`, and refuses to run while Steam or Wine is active.
+Use this library only for Windows game depots; the launcher overlays its
+`steamapps/compatdata` with `~/steam-arm64/removable-library-compatdata` on
+internal storage. The launcher fails early if the configured card is absent or
+the mount layout is unsafe.
 
 `WINE_CPU_TOPOLOGY=4:4,5,6,7` is a candidate for making the affinity persistent,
 but it is intentionally not presented as confirmed until a clean launch proves
