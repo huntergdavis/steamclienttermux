@@ -88,7 +88,9 @@ def layout_paths(base, source):
         "source": source,
         "target": base / "removable-library",
         "compatdata": base / "removable-library-compatdata",
-        "placeholder": source / "steamapps" / "compatdata",
+        "download_state": base / "removable-library-downloads",
+        "compatdata_placeholder": source / "steamapps" / "compatdata",
+        "download_placeholder": source / "steamapps" / "downloading",
         "config": base / "config" / CONFIG_NAME,
     }
 
@@ -105,8 +107,16 @@ def validate_layout(base, source, storage_root=Path("/storage")):
     inspect_directory(paths["source"], "removable library")
     inspect_directory(paths["target"], "internal library mount point", require_empty=True)
     inspect_directory(paths["compatdata"], "internal removable-library compatdata")
+    inspect_directory(paths["download_state"], "internal removable-library downloads")
     inspect_directory(
-        paths["placeholder"], "external compatdata mount point", require_empty=True
+        paths["compatdata_placeholder"],
+        "external compatdata mount point",
+        require_empty=True,
+    )
+    inspect_directory(
+        paths["download_placeholder"],
+        "external downloads mount point",
+        require_empty=True,
     )
     if not os.access(paths["source"], os.R_OK | os.W_OK | os.X_OK):
         raise RuntimeError(f"removable library is not readable and writable: {resolved_source}")
@@ -292,10 +302,13 @@ def prepare_layout(base, external_parent, storage_root=Path("/storage")):
     source.mkdir(mode=0o700, exist_ok=True)
     (source / "steamapps").mkdir(mode=0o700, exist_ok=True)
     (source / "steamapps" / "compatdata").mkdir(mode=0o700, exist_ok=True)
+    (source / "steamapps" / "downloading").mkdir(mode=0o700, exist_ok=True)
     target = base / "removable-library"
     compatdata = base / "removable-library-compatdata"
+    download_state = base / "removable-library-downloads"
     target.mkdir(mode=0o700, exist_ok=True)
     compatdata.mkdir(mode=0o700, exist_ok=True)
+    download_state.mkdir(mode=0o700, exist_ok=True)
     paths = validate_layout(base, source, storage_root)
     backup = write_config(
         paths["config"], config_bytes(paths["source"]), base / "backups"
@@ -350,9 +363,10 @@ def main():
             print(f"Removable Steam library prepared: {paths['source']}")
             print(f"Guest library path: {paths['target']}")
             print(f"Internal compatdata: {paths['compatdata']}")
+            print(f"Internal download state: {paths['download_state']}")
             if backup is not None:
                 print(f"Previous configuration backup: {backup}")
-            print("Restart Steam, add the guest library path, and use it only for Windows games.")
+            print("With Steam stopped, run register and deploy the launcher before starting Steam.")
             return 0
 
         paths = load_layout(base, storage_root)
@@ -361,7 +375,8 @@ def main():
                 print("disabled")
             else:
                 print(
-                    f"{paths['source']}\t{paths['target']}\t{paths['compatdata']}"
+                    f"{paths['source']}\t{paths['target']}\t{paths['compatdata']}\t"
+                    f"{paths['download_state']}"
                 )
             return 0
         if args.action == "register":
@@ -386,6 +401,7 @@ def main():
         print(f"Removable Steam library: ready ({paths['source']})")
         print(f"Guest library path: {paths['target']}")
         print(f"Internal compatdata: {paths['compatdata']}")
+        print(f"Internal download state: {paths['download_state']}")
     except (OSError, RuntimeError, ValueError) as error:
         print(f"steam-arm64-removable-library: {error}", file=sys.stderr)
         return 2

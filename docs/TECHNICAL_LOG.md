@@ -1983,6 +1983,7 @@ The opt-in `steam-arm64-removable-library.py` helper now prepares and validates:
 external depot: /storage/7376-B000/Android/data/com.termux/files/steam-arm64-library
 guest path:     ~/steam-arm64/removable-library
 compatdata:     ~/steam-arm64/removable-library-compatdata
+download state: ~/steam-arm64/removable-library-downloads
 configuration:  ~/steam-arm64/config/removable-library.json
 ```
 
@@ -1990,9 +1991,9 @@ It accepts only Termux's exact `/storage/UUID/Android/data/com.termux/files`
 boundary, mode-protects and atomically writes its configuration, backs up a
 changed configuration, requires empty mountpoints so data cannot be hidden,
 requires at least 1 GiB free, and fails if the card disappears. The launcher
-binds the external root first and unique internal compatdata second. Linux
-executables, Proton, runtimes, prefixes, and native games remain internal; this
-route is limited to Windows depot payloads.
+binds the external root first, then unique internal compatdata and active
+downloads. Linux executables, Proton, runtimes, prefixes, and native games
+remain internal; this route is limited to Windows depot payloads.
 
 The helper's offline `register` action adds the stable guest path to
 `client/steamapps/libraryfolders.vdf`. It refuses the edit while Steam or Wine
@@ -2000,12 +2001,37 @@ is active, rejects non-regular and multiply linked VDFs, preserves the source
 newline style and mode, makes a byte-verified timestamped backup, detects a
 concurrent source change, installs with an atomic rename, and is idempotent.
 
-The actual tablet layout was prepared while the old Steam launcher remained
-running. Read-only validation reported all four paths ready, configuration mode
-600, internal directory modes 700, and 606 GiB free. Steam has not yet been
-restarted or told about the guest library path.
+The initial tablet layout was prepared while the old Steam launcher remained
+running. After a graceful shutdown, the offline registration added guest entry
+1 with label `microSD Windows games`; its timestamped backup has the exact
+pre-edit SHA. Steam retained the entry on restart, measured 991,757,860,864
+bytes, and logged two library folders.
 
 Kingsway is the first planned end-to-end validation target: App ID 588950,
 Windows-only depot 588951, approximately 45.67 MiB downloaded and 57.53 MiB on
 disk. The required `deja "Kingsway Steam Proton Termux ARM64 FEX microSD"`
 query returned no matches, so no prior-session implementation was reused.
+
+The first install correctly selected the removable library and fetched depot
+588951's manifest, but stopped before downloading payload bytes. Native Termux
+reproduced the exact blocker: `flock` succeeds on internal F2FS and returns
+`ENOSYS` on the card's Android FUSE mount. Steam consequently reported `Failed
+to write patch state file (Disk write failure)` for
+`steamapps/downloading/state_588950_588951.patch`. The mount design therefore
+keeps the active `steamapps/downloading` tree on internal F2FS as a second
+nested bind, alongside compatdata, while the installed Windows payload and
+appmanifest remain external.
+
+The required `deja "Steam removable library flock errno 38 FUSE Android state
+patch disk write failure"` query returned no matches, so no prior-session fix
+was reused.
+
+The failed zero-byte staging skeleton was preserved at
+`steamapps/downloading.pre-internal-f2fs-20260810-1013`, copied to the new
+internal staging root, and verified by relative tree and file SHA before the
+new empty external mountpoint was exposed. With the nested bind active, Steam
+wrote a valid patch-state file, downloaded 47,883,776 bytes, staged 60,322,784
+bytes internally, and committed across the bind into the card. The final
+external manifest reports `StateFlags 4`, BuildID 7833329, and 60,322,784 bytes
+on disk; the internal staging tree drained to zero files. `content_log.txt`
+records `Fully Installed` and scheduler result `No Error` for App ID 588950.

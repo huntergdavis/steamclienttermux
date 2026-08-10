@@ -48,7 +48,9 @@ def test_prepare_and_idempotence(module, temporary):
     assert paths["source"] == external / module.LIBRARY_NAME
     assert paths["target"].is_dir()
     assert paths["compatdata"].is_dir()
-    assert paths["placeholder"].is_dir()
+    assert paths["download_state"].is_dir()
+    assert paths["compatdata_placeholder"].is_dir()
+    assert paths["download_placeholder"].is_dir()
     config = paths["config"]
     assert stat.S_IMODE(config.stat().st_mode) == 0o600
     assert json.loads(config.read_text()) == {
@@ -80,14 +82,22 @@ def test_reconfiguration_backup(module, temporary):
 def test_hidden_data_refusals(module, temporary):
     storage, _external, link, base = fixture(temporary)
     paths, _backup = module.prepare_layout(base, link, storage)
-    (paths["placeholder"] / "unexpected-prefix").mkdir()
+    (paths["compatdata_placeholder"] / "unexpected-prefix").mkdir()
     try:
         module.load_layout(base, storage)
     except RuntimeError as error:
         assert "external compatdata mount point must be empty" in str(error)
     else:
         raise AssertionError("nonempty external compatdata was accepted")
-    (paths["placeholder"] / "unexpected-prefix").rmdir()
+    (paths["compatdata_placeholder"] / "unexpected-prefix").rmdir()
+    (paths["download_placeholder"] / "unexpected-download").write_text("unsafe")
+    try:
+        module.load_layout(base, storage)
+    except RuntimeError as error:
+        assert "external downloads mount point must be empty" in str(error)
+    else:
+        raise AssertionError("nonempty external downloads was accepted")
+    (paths["download_placeholder"] / "unexpected-download").unlink()
     (paths["target"] / "unexpected-host-data").write_text("unsafe")
     try:
         module.load_layout(base, storage)
@@ -125,9 +135,11 @@ def test_removed_card(module, temporary):
     storage, external, link, base = fixture(temporary)
     paths, _backup = module.prepare_layout(base, link, storage)
     library = paths["source"]
-    placeholder = paths["placeholder"]
-    placeholder.rmdir()
-    placeholder.parent.rmdir()
+    compatdata_placeholder = paths["compatdata_placeholder"]
+    download_placeholder = paths["download_placeholder"]
+    compatdata_placeholder.rmdir()
+    download_placeholder.rmdir()
+    compatdata_placeholder.parent.rmdir()
     library.rmdir()
     assert external.is_dir()
     try:

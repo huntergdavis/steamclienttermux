@@ -16,7 +16,8 @@ official Proton 11 ARM64, and its bundled FEX/DXVK stack.
 - Superflight runs fullscreen through FEX, Wine, DXVK, and Turnip with working
   PulseAudio output.
 - An optional microSD library keeps Windows game depots external while Proton,
-  runtimes, and per-game compatdata remain on internal F2FS.
+  runtimes, active downloads, and per-game compatdata remain on internal F2FS.
+  Kingsway installs successfully through this split route.
 - Burnout remains experimental; its detailed EA, FEX, and DXVK investigation is
   kept in [`docs/TECHNICAL_LOG.md`](docs/TECHNICAL_LOG.md), not duplicated here.
 
@@ -119,8 +120,10 @@ scripts/install-project-files.sh
 Steam's `libraryfolders.vdf`, and refuses to run while Steam or Wine is active.
 Use this library only for Windows game depots; the launcher overlays its
 `steamapps/compatdata` with `~/steam-arm64/removable-library-compatdata` on
-internal storage. The launcher fails early if the configured card is absent or
-the mount layout is unsafe.
+internal storage. It also overlays `steamapps/downloading` with
+`~/steam-arm64/removable-library-downloads`, because Android's portable-storage
+FUSE does not implement the file locks Steam needs for patch state. The launcher
+fails early if the configured card is absent or the mount layout is unsafe.
 
 `WINE_CPU_TOPOLOGY=4:4,5,6,7` is a candidate for making the affinity persistent,
 but it is intentionally not presented as confirmed until a clean launch proves
