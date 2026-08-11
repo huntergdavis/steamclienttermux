@@ -2500,3 +2500,65 @@ exact Steam environment and stopped with normal SIGTERM; SIGKILL was never
 used and native Steam survived. The restored baseline has empty GTA launch
 options, default fsync, hardware acceleration enabled, the Rockstar Vulkan
 layer enabled, and Wine virtual desktop disabled. GTA IV is not yet running.
+
+Three follow-up diagnostics narrowed the remaining failure further.
+
+First, a bounded Proton trace used an isolated directory and the exact launch
+environment `PROTON_LOG=1` with
+`WINEDEBUG=+timestamp,+pid,+tid,err+all,warn+all`. A two-second watcher enforced
+a 64 MiB ceiling; the log stopped at 19,824,105 bytes, SHA-256:
+
+```text
+408e14cc7bdcb942ef73b36b6919cb4c7c9b0955ca186cdd206dfe6acce7a473
+```
+
+This instrumentation changed the failure and is not suitable for Code 17
+analysis. It emitted 61,227 `seh:virtual_unwind` and 45,921
+`virtual:virtual_setup_exception` warnings, then Rockstar `Launcher.exe`
+(Windows PID `0138`) hit an explicit `virtual_setup_exception` stack overflow.
+The UI showed the distinct 311x82 message "Unable to launch game, please try
+reinstalling the game" before any `SocialClubHelper.exe` existed. Dismissing
+that validated dialog caused App 12210 to exit naturally. The diagnostic
+screenshot was deleted from both machines; the trace remains outside Git.
+
+Second, the 1920x1080 Wine virtual desktop and Rockstar's supported
+`-scDisableGpu` option were tested together. The final Steam command carried
+the option, and `CrBrowserMain` received both `--disable-gpu` and
+`--disable-gpu-compositing` inside the live Wine desktop. GPU subprocesses still
+restarted, and the combination ended at the same 940x318 Code 17 dialog with
+three timeout markers and no `GTAIV.exe`. The interaction therefore provides
+no workaround. Both values were removed and idempotently verified; the
+post-test prefix backup is:
+
+```text
+~/steam-arm64/backups/gtaiv-virtual-desktop-20260811-025015-rxjdcokn
+```
+
+Third, an unmodified baseline launch inspected only CEF argument names and
+kernel descriptor categories. Browser main grew to 129 pipes and five sockets.
+Renderer received a numeric `--mojo-platform-channel-handle` and a
+`--field-trial-handle`, then grew to 69 pipes and three sockets. Browser and
+renderer shared six pipe/socket/anonymous kernel objects. GPU, network, and
+storage subprocesses also received Mojo and field-trial handles. The numeric
+Mojo value was not a Linux FD, which is expected for a Windows handle mediated
+by Wine and is not itself an error.
+
+That baseline remained alive for a 701-second watcher with browser, renderer,
+GPU, and utility processes present. Rockstar's open log nevertheless recorded
+Code 17, three timeouts, zero ready markers, and no `GTAIV.exe`; its visible
+window had already disappeared. Basic subprocess creation, Mojo argument
+delivery, and all browser-to-renderer kernel-object sharing are therefore not
+missing. The remaining blocker is above channel construction: CEF renderer
+execution or browser event/page-completion delivery under the ARM64
+Wine/FEX/PRoot stack.
+
+Existing FEX single-step and `MaxInstPerBlock` 32/256 diagnostics were also
+audited before proposing another translator knob. They failed before CEF and
+did not advance the Rockstar service log, so they are not evidence for the
+current callback failure. `socialclub.dll` contains `scDebugLogging`, but it is
+in a generic protobuf/XML literal area with no adjacent debug-port, level, or
+file controls; it was not guessed as a launch switch.
+
+After these diagnostics the clean baseline was restored again: no App 12210
+process, empty launch options, Wine virtual desktop disabled, and native Steam
+alive. Internal free space remained 23 GiB.
