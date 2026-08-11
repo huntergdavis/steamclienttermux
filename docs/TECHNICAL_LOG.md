@@ -2414,3 +2414,89 @@ An immediate idempotent `--check` and literal inspection confirmed both exact
 sections. This proves the signed installscript state is present; it does not
 yet prove that Rockstar Launcher gets past `Load Init Page` or that GTA IV
 renders.
+
+## 2026-08-11: GTA IV Rockstar CEF Code 17 matrix
+
+GTA IV now reproducibly reaches its current Rockstar stack through the normal
+Steam URI and the official ARM tools. The tracked command uses
+`SteamLinuxRuntime_4-arm64`, `Proton 11.0 (ARM64)`, and `PlayGTAIV.exe`; it does
+not fall back to an x86 Runtime or Proton Experimental. The installed launcher
+is 1.0.108.2970, Social Club is 2.4.0.216, and its CEF is 143.0.0.0.
+
+Rockstar Service connectivity is not the first failure. Launcher logs show
+successful HTTP work and `GetDefaultApps`, then Social Club connects its CEF
+browser but receives no page-load callback for either the online page or its
+packed offline `default.html`. Each path receives a 60-second window before
+Category 3, Code 17, `SC_INIT_ERR_WEBSITE_FAILED_LOAD`. The browser already
+uses `--no-sandbox`; the renderer uses `--no-sandbox`; and the GPU process uses
+`--disable-gpu-sandbox`, so repeating sandbox switches is not justified.
+
+The following controlled tests all preserved the same official Steam/Proton
+route and were rolled back after failure:
+
+| Test | Confirmed effect | Functional result |
+| --- | --- | --- |
+| CEF `hardware_acceleration_mode.enabled=false` | Correct active `Local State` changed and restored | Code 17 |
+| SocialClub-only WineD3D overrides | `d3d11`/`dxgi` builtins were present in live mappings | Code 17 |
+| Strict bundled-FEX TSO JSON | Reduced `titles.dat` queued-write latency from about 176 seconds to 8–12 seconds | Code 17 |
+| `PROTON_NO_FSYNC=1` | `WINEFSYNC` absent from the live Wine environment | Regression: browser helper did not start |
+| Disable Rockstar Vulkan overlay layer | Layer absent from GPU mappings; Turnip remained | Longer helper lifetime, then a white window and no GTA |
+| `%command% -scDisableGpu` | Rockstar translated it to `--disable-gpu` plus `--disable-gpu-compositing`; steady GPU count became zero | Exact Code 17 at 120 seconds |
+| Wine virtual desktop, 1920x1080 | CEF visibly painted the Rockstar connection screen inside `Wine Desktop` | Internal Code 17, window disappeared, no GTA |
+
+The virtual-desktop route came from the primary Proton launcher report
+<https://github.com/ValveSoftware/Proton/issues/5882>, which reports that Wine
+virtual desktop fixes similar Chromium launcher hangs. Termux:X11 reports one
+`builtin` monitor at 2800x1586, not the issue's multi-monitor topology. On this
+tablet virtual desktop fixed presentation only: the launcher rendered
+"Connecting to Rockstar Games Services" and ran beyond the normal external
+error-dialog deadline, but its open log still contained Code 17, three timeout
+markers, no ready marker, and no `GTAIV.exe`.
+
+The privacy-safe 1920x1080 diagnostic capture contains no Steam account,
+friends list, or Rockstar username. Tablet and local copies matched SHA-256:
+
+```text
+5288160e45bce8c213cf365c35c697cee74205662ea39a21978867b1c62364a2
+```
+
+The failed final blank capture was deleted from both machines. The safe image
+is retained outside Git until there is a successful game milestone.
+
+The new `scripts/configure-gtaiv-virtual-desktop.py` tool exists to reproduce
+or remove this diagnostic without hand-editing `user.reg`:
+
+```sh
+scripts/configure-gtaiv-virtual-desktop.py --enable --size 1920x1080
+scripts/configure-gtaiv-virtual-desktop.py --check --size 1920x1080
+scripts/configure-gtaiv-virtual-desktop.py --disable --size 1920x1080
+```
+
+It refuses symlink/multi-link registries, duplicate or unexpected values, and
+any live Wine/Proton/FEX/Runtime/Rockstar process. Changes use a byte-verified
+backup, same-directory staged write, `fsync`, atomic replace, and post-write
+verification. Disable removes only the exact values it owns and preserves any
+later Wine state. Enable and post-test backups are:
+
+```text
+~/steam-arm64/backups/gtaiv-virtual-desktop-20260811-020450-qt8eb6jo
+~/steam-arm64/backups/gtaiv-virtual-desktop-20260811-021801-7gilqep7
+```
+
+The required `deja` searches for the CEF/FEX white-window symptom and Wine
+virtual-desktop route returned no matching prior session. The helper reuses the
+repository's tested GTA registry atomic-write/process-guard pattern; the
+display workaround itself is attributed to the Proton issue above.
+
+The dominant cold-launch delay is separate from Code 17. After shader replay
+is skipped, `pressure-vessel-wrap` spends roughly three to five minutes in
+`aarch64-linux-gnu-capsule-capture-libs` through production PRoot before Wine
+starts. The tracer consumes CPU and its traced child normally sits in
+`ptrace_stop`; this is slow forward progress, not a deadlock. Optimizing or
+caching that capture is the next startup-performance target.
+
+After every failed test, only App 12210 processes were enumerated from their
+exact Steam environment and stopped with normal SIGTERM; SIGKILL was never
+used and native Steam survived. The restored baseline has empty GTA launch
+options, default fsync, hardware acceleration enabled, the Rockstar Vulkan
+layer enabled, and Wine virtual desktop disabled. GTA IV is not yet running.
