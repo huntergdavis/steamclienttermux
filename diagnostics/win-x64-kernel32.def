@@ -1,0 +1,15 @@
+LIBRARY KERNEL32.dll
+EXPORTS
+    CloseHandle
+    CreateEventW
+    CreateFileW
+    CreateThread
+    ExitProcess
+    GetCurrentThreadId
+    GetStdHandle
+    OpenThread
+    QueueUserAPC
+    SetEvent
+    Sleep
+    WaitForSingleObject
+    WriteFile

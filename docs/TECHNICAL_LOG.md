@@ -2562,3 +2562,146 @@ file controls; it was not guessed as a launch switch.
 After these diagnostics the clean baseline was restored again: no App 12210
 process, empty launch options, Wine virtual desktop disabled, and native Steam
 alive. Internal free space remained 23 GiB.
+
+## 2026-08-11: credential-free Chromium/FEX callback boundary
+
+The remaining Rockstar Code 17 failure was separated from account state with
+two credential-free Windows diagnostics. Required `deja` searches for a CEF
+143/FEX reproducer, delayed callback queues, and a Wine `wkscli` shim returned
+no matching prior session. The implementation instead reused two already
+proven repository patterns: the freestanding Termux LLVM PE build used by
+`win-network-status-probe.c`, and the removable-library topology that binds an
+external SD directory onto an ordinary internal Termux path before Wine sees
+it.
+
+First, `diagnostics/win-x64-message-loop-probe.c` exercises the Windows
+primitives used by Chromium's message pump without loading CEF. It creates a
+worker-signaled kernel event, delivers and removes a posted thread message,
+and queues an APC to an alertable `MsgWaitForMultipleObjectsEx` call. The
+freestanding executable imports only the explicit Kernel32/User32 symbols in
+`diagnostics/win-x64-kernel32.def` and
+`diagnostics/win-x64-user32.def`. It is reproducibly built on the tablet with:
+
+```sh
+scripts/build-win-x64-message-loop-probe.sh /path/to/output
+```
+
+Termux Clang 21.1.8 and LLD produced a 4,608-byte AMD64 PE with zero timestamp,
+SHA-256:
+
+```text
+3c875b361634cbff85ea063163cfeed63756f3ab39caf5d425a150a28821521c
+```
+
+It ran through official Proton `11.0-1-beta5-unstripped` using the supported
+`runinprefix` verb and a new scratch compatdata directory. The exact transcript
+has SHA-256
+`a9e3e8953e3750b1da7e412d7d3f2cd802500b30cfb10b2c37e5235580363223`
+and ended:
+
+```text
+EVENT_WAIT_RC=0x00000000
+EVENT_SET_RC=1
+MESSAGE_WAIT_RC=0x00000000
+MESSAGE_POST_RC=1
+MESSAGE_FOUND=1
+APC_WAIT_RC=0x000000c0
+APC_QUEUE_RC=1
+APC_CALLBACKS=1
+EVENT_PASS=1
+MESSAGE_PASS=1
+APC_PASS=1
+PASS=1
+```
+
+This rules out a broad failure of kernel-event wakeups, posted-message
+delivery, APC dispatch, or alertable message waits in AMD64 PE code translated
+by the bundled FEX. The probe exited zero and left no scratch Wine/FEX process.
+
+Second, the official Google Chrome for Testing manifest resolved milestone 143
+to `143.0.7499.192`. Its public Windows x64 headless-shell archive came from:
+
+<https://storage.googleapis.com/chrome-for-testing-public/143.0.7499.192/win64/chrome-headless-shell-win64.zip>
+
+The 111,718,755-byte ZIP has SHA-256
+`5c6a6b71acc58f51d17c243e8e09e392753f95ea01bc7ec9a715eb3e1fd9e6fb`.
+Its 187,059,200-byte `chrome-headless-shell.exe` is AMD64 and has SHA-256
+`e05c08952f663b375a797b71812c609d223cab2e50bef3a7ff91669ca62810e9`.
+The archive and extracted 387 MiB payload remain outside Git on the removable
+card under `steam-arm64-diagnostics/chrome143-renderer-20260811-0730`.
+Google documents Chrome for Testing's version/download API and headless-shell
+artifacts at <https://github.com/GoogleChromeLabs/chrome-for-testing>.
+
+`diagnostics/chromium-renderer-probe.html` is the offline input. Its final PASS
+marker requires JavaScript arithmetic, Promise delivery, a WebAssembly export
+returning 42, a `data:` fetch, and a timer callback before updating the DOM.
+The file's tablet and repository copies match SHA-256
+`3a9327a88e4614bc7b226eff5ed7c9710b98bacc051c7c59be0d4f05def82804`.
+
+The first loader trace exposed a separate Proton gap before Chromium started:
+the PE imports only `NetGetJoinInformation` from `wkscli.dll`, but Proton 11
+ARM64 ships no such module. Wine mapped the Chrome PE and then stopped with
+`c0000135`. The bounded `-all,+loaddll,+module,+seh` trace was 627,189 bytes,
+SHA-256
+`dee5549a69667e4b1277558d194d64f1893a43e061f4d0e40fb00cd0ee2ed219`.
+It did not reach a browser process and left no residue.
+
+`diagnostics/win-x64-wkscli-shim.c` provides only that one app-local diagnostic
+symbol. It returns system error 50 (`ERROR_NOT_SUPPORTED`) after setting the
+name buffer to null and join status to unknown. This follows the documented
+API contract without inventing domain membership or allocating a buffer:
+<https://learn.microsoft.com/en-us/windows/win32/api/lmjoin/nf-lmjoin-netgetjoininformation>.
+The shim is built with:
+
+```sh
+scripts/build-win-x64-wkscli-shim.sh /path/to/output
+```
+
+The resulting 2,048-byte AMD64 DLL has no imports, exactly one export, and
+SHA-256
+`ad701bde2cff9aca038797c784e19af98303db416c45545dccde5f15d506ad15`.
+Only that binary was placed beside the public Chrome diagnostic on SD; it was
+not installed into Proton, GTA, or either Wine prefix and is not tracked in
+Git.
+
+After the shim, Chrome passed PE import initialization and created browser
+main. Matching the live environment required two additional controls:
+
+- `PD_PROOT_BIN` selected the production patched PRoot, SHA-256
+  `0378e0631dbf7a8bd0061b54fc167bb881c70a76109f567b682f7262a063166c`,
+  instead of stock Termux PRoot, SHA-256
+  `6ffdff4117c571d07aa7e6f940001f050c97adb920660c984b72d4a537b4f60a`.
+- The existing 173-byte route shadow, SHA-256
+  `4b3a3e8bed570a9f39e2bca75b86e1023e3ecded31f4efe046469b63be53c648`,
+  was bound at `/proc/net`. A guest-side hash check proved the bind before
+  Chrome started.
+
+The matched multiprocess run used a fresh profile, no sandbox, disabled GPU
+and background networking, a two-second virtual-time budget, and a 180-second
+normal-TERM ceiling. Browser main appeared, and a GPU subprocess appeared
+about 92 seconds later. No renderer process was sampled, the PASS image was
+never created, and the run timed out with no residual scratch process. The
+route shadow removed repeated DNS-configuration warnings. The only remaining
+Chrome log entry was:
+
+```text
+WSALookupServiceBegin failed with: 8
+```
+
+Chromium 143 handles that call failure by logging it and immediately returning
+`CONNECTION_UNKNOWN`; it does not block in the notifier function:
+<https://chromium.googlesource.com/chromium/src/+/refs/tags/143.0.7499.192/net/base/network_change_notifier_win.cc#188>.
+A fresh `--single-process` control under the same production PRoot and route
+shadow also retained only browser main for 180 seconds and produced no image.
+It therefore did not demonstrate page, Blink, V8, or WebAssembly execution.
+
+This clean reproducer narrows the remaining issue without proving an exact
+Rockstar cause. Basic Windows callback/message primitives work, while a
+same-generation Chromium browser does not reach useful page execution under
+the matched Proton ARM64/FEX/PRoot environment. Rockstar's CEF can create and
+retain a renderer but never reports page completion, so the common boundary is
+now Chromium browser/renderer startup and event delivery above generic Wine
+wait primitives—not Steam authentication, Rockstar HTTP reachability, DXVK,
+or Turnip. Native Steam remained alive throughout; GTA App 12210 was never
+launched or modified in this checkpoint, and internal free space remained
+23 GiB.
