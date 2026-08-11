@@ -21,6 +21,17 @@ patches=(
     proot-runtime-mount-stack.patch
     proot-runtime-directory-bind-target.patch
 )
+case "${PROOT_ENABLE_NODEREF_FASTPATH:-0}" in
+    0)
+        ;;
+    1)
+        patches+=(proot-noderef-fastpath.patch)
+        ;;
+    *)
+        printf 'PROOT_ENABLE_NODEREF_FASTPATH must be 0 or 1\n' >&2
+        exit 1
+        ;;
+esac
 patch_names="${patches[*]}"
 
 if [[ ! -d "$source_dir/.git" ]]; then

@@ -2705,3 +2705,79 @@ wait primitives—not Steam authentication, Rockstar HTTP reachability, DXVK,
 or Turnip. Native Steam remained alive throughout; GTA App 12210 was never
 launched or modified in this checkpoint, and internal free space remained
 23 GiB.
+
+## 2026-08-11: combined production/metadata-fastpath PRoot candidate
+
+A required `deja` query for the exact message-loop/Proton/PRoot launch recipe
+returned no matching prior session. This work reused the repository's stamped
+PRoot builder, isolated diagnostics directories, explicit `PD_PROOT_BIN`
+selection, four production regression probes, and official Proton
+`runinprefix` pattern. No live source tree was hand-merged.
+
+`scripts/build-proot.sh` now accepts the opt-in build-time switch
+`PROOT_ENABLE_NODEREF_FASTPATH=1`. It appends
+`proot-noderef-fastpath.patch` after the ten production patches and therefore
+includes it in the ordered patch-list, patch-set, diff, and executable hashes.
+The default remains the production patch set; any value other than `0` or `1`
+fails before creating a target tree.
+
+The isolated tablet build is:
+
+```text
+source       ~/steam-arm64/src/proot-production-fastpath-candidate
+commit       a89b3732ec6ae1db674510f0843b2f3db54d0a2f
+patch set    e30b8179fe50fca210e59e5379b63d8c0596bec58dc371b041b372d9c2e25898
+binary diff  5aeaf544250f8d57ffd84254b187009cf289303ac815e8abbbcd1ce544cae953
+binary       4d38e8a989df054ea119cf9b0981ff74cd41af03e62453c24081f485c275032a
+```
+
+The combined source has 12 modified files, 665 insertions, and 33 deletions.
+It was rebuilt from clean objects against its stamp and reproduced the same
+binary hash. The production executable remained
+`0378e0631dbf7a8bd0061b54fc167bb881c70a76109f567b682f7262a063166c`;
+`bin/steam-arm` continued to select that production path.
+
+The candidate then passed the current spaced-path, shared-`/tmp`,
+post-`--proc` `/proc/net`, and mountinfo-escaping probes. Their combined
+transcript has SHA-256
+`bf836f4f080640197d25b841d341ced1d4e15a09a0455242cf92ed0d80faa909`.
+The existing AMD64 message-loop PE, SHA-256
+`3c875b361634cbff85ea063163cfeed63756f3ab39caf5d425a150a28821521c`,
+ran through official Proton 11 ARM64 and bundled FEX with the candidate. It
+exited zero, left no Wine/FEX process, and reproduced the exact prior all-PASS
+transcript SHA-256
+`a9e3e8953e3750b1da7e412d7d3f2cd802500b30cfb10b2c37e5235580363223`.
+
+The credential-free public Chrome control was attempted with the trusted SD
+bind supplied through `proot-distro --env`. Candidate v6 and a production-only
+v7 control both created fresh profiles, exited with code 3 after 41
+seconds, produced no image, emitted only the normal wineserver synchronization
+line, and left no process. Because the production control behaved identically,
+this is not a candidate regression. The literal earlier v4 command was not
+preserved, so these reconstructed runs also do not supersede v4's 180-second
+browser/GPU timeout or measure a candidate renderer improvement.
+
+`scripts/benchmark-proot-filesystem.sh` now accepts `PROOT_BUILD_DIR` and
+`PROOT_BENCHMARK_TARGET`. It also passes `PROOT_NODEREF_FAST_PATH` via
+`proot-distro --env`. A first alternating benchmark accidentally supplied that
+variable only to the outer Termux shell. Inspection of the actual candidate
+PRoot process showed an empty value, invalidating that transcript as a speed
+measurement. A second process-environment probe with `--env` exposed the exact
+trusted Proton Experimental path and passed.
+
+The corrected three-pair benchmark counted 5,601 files in every case. Median
+long-path time fell from 1.733 to 1.589 seconds (8.3%); median explicit-bind
+time fell from 1.742 to 1.527 seconds (12.3%). The corrected transcript SHA-256
+is `582f407dc655a3a483de1bb1a5ffe970c97f74cc550d915dfedfb10b7c3e0d09`.
+These measurements are materially faster but smaller than the first prototype
+delta, and do not justify claiming a Chromium or GTA fix.
+
+The closing health check found no GTA, Rockstar, Chrome-control, Wine, or FEX
+process. Internal storage had 23 GiB free, the SD card had 576 GiB free, and
+the two guarded CEF logs were zero bytes. The 18-hour Steam session did have
+two leaf CEF children consuming roughly 1.7 CPU cores through PRoot. After
+their names, parents, tracer, arguments, and lack of descendants were
+revalidated, normal TERM removed only those two leaves. Steam immediately
+respawned replacements which remained CPU-heavy, proving that blind child
+reaping is not a remedy. Main Steam stayed alive; no stronger signal or Steam
+restart was performed in this checkpoint.

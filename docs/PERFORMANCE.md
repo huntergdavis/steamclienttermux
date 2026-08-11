@@ -48,6 +48,65 @@ The experimental source change is retained as
 launcher. It requires `PROOT_NODEREF_FAST_PATH` to name the trusted host-visible
 tree and otherwise leaves path translation unchanged.
 
+Build a stamped candidate that combines the complete production patch set with
+this experimental patch in a separate source directory:
+
+```sh
+PROOT_ENABLE_NODEREF_FASTPATH=1 \
+  scripts/build-proot.sh ~/steam-arm64/src/proot-production-fastpath-candidate
+```
+
+The default remains the production patch set. The builder accepts only `0` or
+`1`, includes the optional patch in its ordered patch-set/diff/binary hashes,
+and refuses to reuse a candidate whose stamp or binary has changed. Building a
+candidate does not select it in `bin/steam-arm`; tests must set `PD_PROOT_BIN`
+or `PROOT_BUILD_DIR` explicitly.
+
+`scripts/benchmark-proot-filesystem.sh` accepts `PROOT_BUILD_DIR` and
+`PROOT_BENCHMARK_TARGET` so production and candidate binaries can be compared
+against the same tree. When `PROOT_NODEREF_FAST_PATH` is set, the script also
+forwards it with `proot-distro --env`. Setting it only in the outer Termux
+environment is insufficient because `proot-distro` sanitizes that environment
+before it starts PRoot.
+
+## Combined candidate results
+
+On 2026-08-11, the complete production patch set plus the no-dereference patch
+was built twice from the pinned `a89b3732ec6ae1db674510f0843b2f3db54d0a2f`
+commit. Both builds produced the same candidate binary, SHA-256
+`4d38e8a989df054ea119cf9b0981ff74cd41af03e62453c24081f485c275032a`.
+The stamped combined diff changes 12 files and includes all ten production
+patches followed by `proot-noderef-fastpath.patch`.
+
+All four production PRoot regression probes passed under the candidate:
+spaced compatibility-tool paths, shared `/tmp` file and directory binds,
+post-`--proc` `/proc/net`, and escaped mountinfo paths. The AMD64 Windows
+message-loop control also produced its byte-identical all-PASS transcript
+through official Proton 11 ARM64 and bundled FEX.
+
+Three alternating production/candidate trials enumerated the same 5,601 files
+in Proton Experimental. The candidate used the exact benchmark tree as its
+trusted prefix. Median results were:
+
+| Execution path | Production | Candidate | Improvement |
+|---|---:|---:|---:|
+| Debian through PRoot, original path | 1.733 s | 1.589 s | 8.3% |
+| Debian through PRoot, short explicit bind | 1.742 s | 1.527 s | 12.3% |
+
+The corrected benchmark transcript has SHA-256
+`582f407dc655a3a483de1bb1a5ffe970c97f74cc550d915dfedfb10b7c3e0d09`.
+An earlier transcript with SHA-256
+`91a098316c7f343abbf757120356c487dcbc8abbe1431238de97ea6ea356cb12`
+is an inactive control and must not be used to estimate the patch: it set the
+variable only outside `proot-distro`. Direct `/proc/<pid>/environ` inspection
+proved the candidate received the trusted prefix only after `--env` was added.
+
+This is a real metadata improvement, but the candidate is still not selected
+by the live launcher. It did not clear the credential-free Chromium renderer
+control, so it is not a fix for GTA IV's Rockstar Code 17 boundary. A live
+switch still requires a controlled Steam restart and end-to-end cache,
+download, and game-launch validation.
+
 ### 1. Profile and optimize PRoot path translation
 
 Add low-overhead per-syscall counters to the custom PRoot build, reproduce the
