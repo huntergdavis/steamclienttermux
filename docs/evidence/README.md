@@ -13,6 +13,11 @@ These screenshots capture milestones and failures from the original tablet.
 - `gtaiv-main-menu-2026-08-13.png`: the focused fullscreen GTA IV main menu,
   with `Start` selected and the Social Club panel connected, proving that the
   real game passed the earlier GTA IV/EFLC selector boundary.
+- `gtaiv-loading-art-industrial-2026-08-13.png` through
+  `gtaiv-loading-art-highway-2026-08-13.png`: five distinct native-resolution
+  frames from the animated GTA IV loading-art sequence after choosing `Start`.
+  They prove the game advanced beyond its main menu and began loading a game,
+  but do not by themselves prove a playable scene completed loading.
 - `burnout-after-install-confirm.png`: Burnout installation confirmation.
 - `steam-relaunched-installed.png`: client relaunched with completed installs.
 - `2026-08-08-live-debugging-compat-timeout.png`: live debugging session with

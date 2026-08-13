@@ -2912,3 +2912,37 @@ saved-login preservation patterns from session
 `019ff310-e8ac-7212-9f2f-5ba9005b97bd`. The required new `deja` query,
 `Termux X11 KDE launch-only Steam ARM tablet full process kill GTA IV saved
 login`, returned no additional indexed match.
+
+### Game-loading sequence and whole-Termux process loss
+
+Choosing `Start` advanced GTA IV beyond its main menu into the rotating game
+loading-art sequence. Twenty-one complete 2800x1586 composed frames were
+captured locally; five visually distinct, privacy-safe originals are retained
+under `docs/evidence/gtaiv-loading-art-*-2026-08-13.png`. Sound was present but
+stuttered during this run. Audio and performance tuning are deliberately
+deferred until a playable scene is repeatable.
+
+At 11:47:46 PDT, Termux:X11 still logged 3.2 frames per second and the real
+`GTAIV.exe` remained alive with 57 threads and affinity 4-5. Shortly afterward,
+the SSH listener refused a connection. Android then created a fresh
+`com.termux` process at 11:48:21 and the SSH service was listening again by
+11:48:26. The former X, KDE, Steam, GTA IV, Wine, and Rockstar processes were
+all absent; the X0 filesystem socket remained but had no server behind it.
+There was no orderly GTA/Rockstar shutdown record.
+
+This evidence identifies a whole Termux native-process-tree loss rather than a
+normal game exit. It does not yet identify the trigger. No retained `lmkd`,
+kernel OOM, or `am_kill` line was visible to the Termux user, and the observed
+3.9 GiB `MemAvailable` value was measured only after the former process tree
+had already been reclaimed. Repeated ImageMagick root captures overlap the
+failure window but are correlation, not proof of causation. The required
+`deja "Termux X11 ImageMagick import root screenshot repeated capture kills X
+server GTA IV"` query returned no indexed match.
+
+`scripts/monitor-termux-game-session.sh` is a bounded, read-only sampler for the
+next run. Every five seconds it records memory and swap availability, total
+Termux-UID RSS/process count, load, and the presence of the critical X, KDE,
+Steam, GTA IV, Rockstar, Wine, and PRoot processes. Its log is written with
+mode 0600 outside Git. This should distinguish memory/swap exhaustion from a
+display-only or ordinary game-process failure without polling X or touching
+saved authentication.
