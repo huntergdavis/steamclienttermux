@@ -2831,14 +2831,16 @@ threads, roughly 1,350 to 1,874 mappings, and about 30 MiB to 448 MiB resident
 memory before creating a focused fullscreen X11 window titled `GTAIV`.
 
 An exact-window capture showed a fully rendered GTA IV / Episodes from Liberty
-City selector rather than a black surface. GTA IV's Play control was selected;
-Enter was sent only after validating the focused window and its owning process.
-The same process then rebuilt to 56 threads and more than 2,000 mappings while
-CPU time continued to advance. The tablet remained reachable by ICMP, but its
-Termux `sshd` stopped accepting connections before a second frame could be
-retrieved. Therefore the current proven milestone is authenticated online
-launcher plus rendered game selector and accepted GTA IV selection—not an
-in-game scene.
+City selector rather than a black surface. GTA IV's Play control was visibly
+highlighted and Enter was sent only after validating the focused window and its
+owning process. Later, more complete timing evidence invalidated the initial
+interpretation that the input had been accepted: the game remained on the
+selector and Social Club recorded `[00600157] Shutting down...`, the exact
+roughly 600-second idle boundary, followed by a clean launcher exit. The thread
+and mapping growth after the attempted input was therefore continuing selector
+startup, not proof of a selection. The proven milestone is authenticated online
+launcher plus rendered game selector—not an accepted selection or in-game
+scene.
 
 The generic Rockstar splash captured immediately after email verification is
 retained as privacy-safe context under
@@ -2861,7 +2863,20 @@ fullscreen frame lives at the root/KWin surface. A root capture produced a
 fully rendered selector and was byte-identical to the previous selector
 milestone. The privacy-safe image is retained as
 `docs/evidence/gtaiv-selector-2026-08-13.png` and is the lead README screenshot.
-Selecting the native GTA IV Play region caused the current game process to exit
-before a main-menu or in-game frame could be verified. The remaining fault is
-therefore downstream of the repeatably rendered selector, not Rockstar login,
-online presence, cloud sync, executable routing, or initial D3D9/Vulkan setup.
+Synthetic XTest input and events injected directly through the live Lorie X11
+devices were visible to XInput diagnostics but did not reach the selector's
+game input path. The process later reached the same exact 600-second idle
+shutdown rather than exiting in response to the attempted Play input. The
+remaining boundary is therefore selector input delivery, downstream of the
+repeatably working Rockstar login, online presence, cloud sync, executable
+routing, and initial D3D9/Vulkan setup.
+
+A bounded Windows ARM64 diagnostic now addresses that boundary without relying
+on XTest. `diagnostics/win-arm64-gtaiv-selector-input.c` enumerates only visible
+top-level windows, requires the exact title `GTAIV`, focuses that window, and
+places one Return press/release pair into Wine's Win32 input queue with
+`SendInput`. It exits with status 2 if the exact window is absent and status 3
+if Wine does not accept both input records. The reproducible freestanding build
+is `scripts/build-win-arm64-gtaiv-selector-input.sh`; the generated PE imports
+only `ExitProcess` and the six declared User32 calls. Live selector validation
+is still required before this helper can be called a fix.

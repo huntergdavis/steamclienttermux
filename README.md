@@ -23,8 +23,9 @@ official Proton 11 ARM64, and its bundled FEX/DXVK stack.
 - GTA IV is installed on the microSD, completes Rockstar authentication and
   online presence, launches the real `GTAIV.exe`, and renders the GTA IV/EFLC
   selector through official ARM Proton/FEX and Turnip. The selector milestone
-  is repeatable with preserved saved authentication; an in-game scene is not
-  yet verified because the current process exits after selecting GTA IV.
+  is repeatable with preserved saved authentication. An in-game scene is not
+  yet verified because synthetic X11 input did not reach the selector; the
+  first observed process then performed its exact 600-second idle shutdown.
 - Burnout remains experimental; its detailed EA, FEX, and DXVK investigation is
   kept in [`docs/TECHNICAL_LOG.md`](docs/TECHNICAL_LOG.md), not duplicated here.
 
@@ -99,8 +100,10 @@ The validated online runs logged `Auth -> MainWindow`, `Presence Event - Signed
 In`, and `Presence Event :: Went Online`. Rockstar then launched the genuine
 `GTAIV.exe`; X11 reported a focused fullscreen `GTAIV` window and the rendered
 frame showed the GTA IV/EFLC selector. A fresh run reproduced that selector
-without another 2FA prompt. Selecting GTA IV currently ends the process before
-an in-game frame, so this checkpoint deliberately does not claim gameplay yet.
+without another 2FA prompt. XTest and direct Lorie-device events reached X11
+but not the game's input path; the process later shut down cleanly at its exact
+600-second idle boundary. This checkpoint therefore does not claim an accepted
+selection or gameplay yet.
 
 The internal executable view and the service-first batch are still an
 experimental, machine-specific setup. The wrapper validates their exact file

@@ -1,0 +1,8 @@
+LIBRARY user32.dll
+EXPORTS
+    EnumWindows
+    GetWindowTextW
+    IsWindowVisible
+    SetFocus
+    SetForegroundWindow
+    SendInput
