@@ -26,10 +26,8 @@ printf 'monitor_start=%s uid=%s interval_seconds=%s duration_seconds=%s\n' \
 
 while (( $(date +%s) < deadline )); do
     {
-        printf '\nsample=%s uptime=' "$(date --iso-8601=seconds)"
-        cat /proc/uptime
-        printf 'load='
-        cat /proc/loadavg
+        printf '\nsample=%s ' "$(date --iso-8601=seconds)"
+        uptime | sed 's/^/uptime=/'
         awk '
             /^(MemTotal|MemFree|MemAvailable|Cached|SwapCached|AnonPages|Mapped|Shmem|Slab|PageTables|SwapTotal|SwapFree):/ {
                 printf "%s=%s%s ", substr($1, 1, length($1)-1), $2, $3
