@@ -43,7 +43,8 @@ while (( $(date +%s) < deadline )); do
 
         for name in termux-x11 kwin_x11 plasmashell steam GTAIV.exe \
                 RockstarService wineserver proot; do
-            pids="$(pgrep -x "$name" 2>/dev/null | paste -sd, - || true)"
+            pids="$(pgrep -f "(^|/)$name( |$)" 2>/dev/null |
+                paste -sd, - || true)"
             printf 'watch_%s=%s\n' "$name" "${pids:-absent}"
         done
     } >>"$output"
