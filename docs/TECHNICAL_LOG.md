@@ -2946,3 +2946,68 @@ Steam, GTA IV, Rockstar, Wine, and PRoot processes. Its log is written with
 mode 0600 outside Git. This should distinguish memory/swap exhaustion from a
 display-only or ordinary game-process failure without polling X or touching
 saved authentication.
+
+### Android foreground scheduling and Rockstar's deadline
+
+The next recovery used a launch-only X/KDE path to preserve the authenticated
+Rockstar prefix. The live `startplasma-x11` process was orphaned under PID 1
+rather than remaining the foreground job of a Termux terminal. Inspection of
+the installed `~/start-kde` established that it contains no `taskset`, wake
+lock, Android importance adjustment, or general process timeout override. Its
+`pulseaudio --exit-idle-time=-1` setting prevents only PulseAudio's idle exit;
+its final `exec startplasma-x11` keeps Plasma attached to the terminal that ran
+the script.
+
+The launch-only session exposed a separate, exactly reproducible Android
+scheduling effect. While Termux:X11 was the foreground Android activity, the
+Termux application PID and all inspected native children reported:
+
+```text
+cpuset: /moderate
+cpu: /background
+Cpus_allowed_list: 0-3
+```
+
+The tablet has CPUs 0-7 online. A one-variable live A/B brought the existing
+Termux activity forward without restarting any native process:
+
+```sh
+am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER \
+  -n com.termux/.app.TermuxActivity
+```
+
+The same Steam PRoot immediately changed to `/cpuset/top-app`, `cpu:/top-app`,
+and `Cpus_allowed_list: 0-7`. Bringing the existing X11 activity forward with
+the corresponding `com.termux.x11/.MainActivity` component immediately moved
+it back to `/moderate`, `cpu:/background`, and CPUs 0-3. A separately acquired
+`termux-wake-lock` returned success and created Termux's ongoing service
+notification, but correctly did not change the cpuset: a wake lock prevents
+CPU sleep and is not a scheduling-class control.
+
+This launch then distinguished a timeout from a kill. Steam completed the GTA
+IV install evaluator, the optional Vulkan shader dialog was skipped, Pressure
+Vessel built its runtime view, Wine started, and both `RockstarService.exe` and
+`Launcher.exe` appeared. Rockstar downloads returned HTTP 200. Confined to
+CPUs 0-3, however, launcher background-service transactions grew from 61 to
+152 seconds. At 20:13:29 UTC, almost exactly five minutes after Launcher began,
+it reported `SC_INIT_ERR_WEBSITE_FAILED_LOAD` (Code 17) and the visible error
+said that both online and offline content had timed out. At that point X, KDE,
+Steam, PRoot, Wine, PlayGTAIV, Rockstar Service, and Launcher were all alive,
+and the sampler still recorded about 1.99 GiB `MemAvailable`. This failure was
+therefore Rockstar's UI deadline, not Android killing the process tree.
+
+The result does not prove that background scheduling caused the earlier
+whole-Termux loss. It does prove that foreground scheduling can determine
+whether Rockstar completes before its own deadline, so future launches should
+acquire the wake lock and keep the Termux activity foregrounded during the
+nonvisual launcher initialization. Termux:X11 should be restored only after
+`launcher.log` reports `Social Club UI has started` and `Client is ready to
+attempt a launch`. The monitor now also records the effective CPU list,
+cpuset/cpu cgroups, Termux application PID, and its readable OOM adjustment so
+the next process-tree loss can be correlated with Android scheduling state.
+
+This investigation reused the foreground-component command and prior
+`background/moderate` versus `top-app` measurements from Codex session
+`019fe348-1247-7530-bc25-8a573aaf4252`. The required `deja "start-kde"` and
+`deja "Termux foreground cpuset"` searches found that session; no timeout-pin
+implementation was reused because the installed script has no such mechanism.

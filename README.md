@@ -105,6 +105,42 @@ main menu. The exact 2800x1586 composed frame shows `Start` selected, the GTA IV
 title art, and the connected Social Club panel. Gameplay beyond this menu is
 not yet claimed.
 
+#### Keep the Android session alive and scheduled
+
+On the tested Samsung Android build, the foreground app changes scheduling for
+the whole Termux UID. With Termux:X11 visible, Steam, PRoot, Wine, and Rockstar
+were placed in `cpu:/background` and `/cpuset/moderate`, with only CPUs 0-3.
+Bringing `com.termux/.app.TermuxActivity` forward moved those same live
+processes to `top-app` on CPUs 0-7; returning to
+`com.termux.x11/.MainActivity` immediately restored the four-core restriction.
+
+This can be a correctness issue, not just a performance issue. One Rockstar
+start completed its network downloads but spent 61-152 seconds in background
+service transactions and reached Code 17 almost exactly five minutes after the
+launcher began. KDE, Steam, Wine, and Rockstar were all still alive, so that
+event was a launcher deadline rather than an Android process kill.
+
+Before a long session, run `termux-wake-lock`. It prevents CPU sleep, but it
+does **not** move the UID out of the background cpuset. The installed
+`~/start-kde` likewise has no hidden `taskset` or Android timeout override:
+`pulseaudio --exit-idle-time=-1` only keeps audio alive, while its final
+`exec startplasma-x11` keeps Plasma attached to the launching terminal. For a
+diagnostic launch, Termux can be brought forward during Rockstar's nonvisual
+initialization and Termux:X11 restored after the log reports `Social Club UI
+has started` and `Client is ready to attempt a launch`:
+
+```sh
+am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER \
+  -n com.termux/.app.TermuxActivity
+# Wait for the two launcher.log readiness markers above.
+am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER \
+  -n com.termux.x11/.MainActivity
+```
+
+This foreground sequence is a measured diagnostic workaround, not yet a
+claimed fix for the separate whole-Termux process-tree loss described in the
+technical log.
+
 The internal executable view and the service-first batch are still an
 experimental, machine-specific setup. The wrapper validates their exact file
 set and ownership instead of silently creating them. With the prefix stopped,

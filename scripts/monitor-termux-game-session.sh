@@ -35,6 +35,22 @@ while (( $(date +%s) < deadline )); do
             END { print "" }
         ' /proc/meminfo
 
+        scheduler_cpus="$(sed -n 's/^Cpus_allowed_list:[[:space:]]*//p' /proc/self/status)"
+        scheduler_cpuset="$(awk -F: '$2 == "cpuset" { print $3 }' /proc/self/cgroup)"
+        scheduler_cpu="$(awk -F: '$2 == "cpu" { print $3 }' /proc/self/cgroup)"
+        printf 'scheduler_cpus=%s scheduler_cpuset=%s scheduler_cpu=%s\n' \
+            "${scheduler_cpus:-unknown}" "${scheduler_cpuset:-unknown}" \
+            "${scheduler_cpu:-unknown}"
+
+        termux_app_pids="$(pgrep -x com.termux 2>/dev/null | paste -sd, - || true)"
+        printf 'android_termux_pid=%s' "${termux_app_pids:-absent}"
+        if [[ "$termux_app_pids" =~ ^[0-9]+$ ]] &&
+                [[ -r "/proc/$termux_app_pids/oom_score_adj" ]]; then
+            printf ' android_termux_oom_score_adj=%s' \
+                "$(<"/proc/$termux_app_pids/oom_score_adj")"
+        fi
+        printf '\n'
+
         ps -u "$uid" -o pid=,ppid=,rss=,stat=,comm= 2>/dev/null |
             awk '
                 { count += 1; rss += $3 }
