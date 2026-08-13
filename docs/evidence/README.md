@@ -13,3 +13,8 @@ These screenshots capture milestones and failures from the original tablet.
   Burnout visibly in `Launching` state. Steam had accepted the launch request,
   but its compatibility-cache rebuild was serially registering historical Proton
   versions and had not yet resolved Steam Linux Runtime 4.0.
+- `gtaiv-rockstar-email-verified-2026-08-12.png`: privacy-safe Rockstar splash
+  captured immediately after the email-verification milestone. It records the
+  session context but, by itself, is not evidence of authenticated launcher or
+  game state; those later states are supported by the exact launcher log and
+  X11 process/window observations in `docs/TECHNICAL_LOG.md`.

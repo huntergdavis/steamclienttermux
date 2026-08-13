@@ -64,6 +64,12 @@ install_one "$repo_root/bin/steam-arm64-removable-library.py" \
     "$base/compat-bin/steam-arm64-removable-library.py" 700
 install_one "$repo_root/scripts/configure-gtaiv-registry.py" \
     "$base/compat-bin/configure-gtaiv-registry.py" 700
+install_one "$repo_root/scripts/configure-gtaiv-virtual-desktop.py" \
+    "$base/compat-bin/configure-gtaiv-virtual-desktop.py" 700
+install_one "$repo_root/scripts/configure-gtaiv-socialclub-wined3d.py" \
+    "$base/compat-bin/configure-gtaiv-socialclub-wined3d.py" 700
+install_one "$repo_root/scripts/configure-gtaiv-service-timeout.py" \
+    "$base/compat-bin/configure-gtaiv-service-timeout.py" 700
 install_one "$wrapper_stage" "$base/compat-bin/steam-arm64-bwrap-route" 700
 unlink -- "$wrapper_stage"
 wrapper_stage=""

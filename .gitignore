@@ -11,4 +11,4 @@ config.vdf
 htmlcache/
 steamapps/
 client/
-
+__pycache__/

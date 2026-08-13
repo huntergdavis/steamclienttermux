@@ -18,9 +18,10 @@ official Proton 11 ARM64, and its bundled FEX/DXVK stack.
 - An optional microSD library keeps Windows game depots external while Proton,
   runtimes, active downloads, and per-game compatdata remain on internal F2FS.
   Kingsway runs fullscreen with audio through this split route.
-- GTA IV is installed on the microSD and reaches its bundled Rockstar installer
-  through official ARM Proton/FEX; Rockstar startup and game rendering remain
-  in progress.
+- GTA IV is installed on the microSD, completes Rockstar authentication and
+  online presence, launches the real `GTAIV.exe`, and renders the GTA IV/EFLC
+  selector through official ARM Proton/FEX and Turnip. The transition after
+  selecting GTA IV started successfully; an in-game scene is not yet verified.
 - Burnout remains experimental; its detailed EA, FEX, and DXVK investigation is
   kept in [`docs/TECHNICAL_LOG.md`](docs/TECHNICAL_LOG.md), not duplicated here.
 
@@ -75,6 +76,46 @@ validates the game/App ID and the measured CPU topology before moving all game
 threads to CPUs 4-7. In the same menu scene, observed game CPU use fell from
 about 157% to 97%, and play felt noticeably smoother. This affinity is
 process-local and must currently be applied after each launch.
+
+### Reached the GTA IV game selector
+
+GTA IV now passes the Rockstar boundary that previously ended at CEF Code 17.
+The working checkpoint combines four narrowly scoped pieces:
+
+- the Pressure Vessel route wrapper validates a private internal copy of GTA
+  IV's executable files, overlays it at the normal game path, and keeps the
+  large game-data directories on the microSD;
+- the initial `PlayGTAIV.exe` payload is changed to a service-first batch that
+  starts `Rockstar Service` before handing control back to the signed game
+  launcher;
+- Wine's service startup timeout is raised to 60 seconds; and
+- only `SocialClubHelper.exe` receives Wine's builtin D3D11/DXGI renderer,
+  leaving the game itself on its accelerated D3D9/Vulkan route.
+
+The validated online run logged `Auth -> MainWindow`, `Presence Event - Signed
+In`, and `Presence Event :: Went Online`. Rockstar then launched the genuine
+`GTAIV.exe`; X11 reported a focused fullscreen `GTAIV` window and the rendered
+frame showed the GTA IV/EFLC selector. Selecting GTA IV was accepted and began
+a fresh initialization phase. SSH service loss interrupted observation before
+an in-game frame, so this checkpoint deliberately does not claim gameplay yet.
+
+The internal executable view and the service-first batch are still an
+experimental, machine-specific setup. The wrapper validates their exact file
+set and ownership instead of silently creating them. With the prefix stopped,
+the two registry changes are reproduced by:
+
+```sh
+system_reg="$HOME/steam-arm64/removable-library-compatdata/12210/pfx/system.reg"
+scripts/configure-gtaiv-service-timeout.py \
+  --registry "$system_reg" --backups-dir "$HOME/steam-arm64/backups" \
+  --expected-sha "$(sha256sum "$system_reg" | awk '{print $1}')"
+scripts/configure-gtaiv-socialclub-wined3d.py \
+  --base "$HOME/steam-arm64" --enable
+```
+
+Both tools refuse unsafe registry shapes, preserve byte-verified backups, use
+atomic replacement, and refuse changes while Wine/Proton/container processes
+are active.
 
 ## Reproduce
 
@@ -190,7 +231,8 @@ done
 
 The retained tests cover the launcher log guard, PulseAudio preparation,
 Pressure Vessel route injection, Superflight settings and affinity, removable
-storage, and GTA IV's signed registry state.
+storage, and GTA IV's signed registry, service timeout, and scoped Social Club
+WineD3D state.
 
 ## Key paths
 

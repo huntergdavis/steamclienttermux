@@ -2781,3 +2781,67 @@ revalidated, normal TERM removed only those two leaves. Steam immediately
 respawned replacements which remained CPU-heavy, proving that blind child
 reaping is not a remedy. Main Steam stayed alive; no stronger signal or Steam
 restart was performed in this checkpoint.
+
+## 2026-08-13: Rockstar authenticated and GTA IV selector rendered
+
+This checkpoint crossed the prior Code 17/authentication boundary without
+restarting native Steam, X11, KDE, or Termux. The required `deja` searches did
+not return an indexed match. The launch procedure reused the exact
+`steam://rungameid/12210` URI and descendant-affinity method from Codex session
+`019fe348-1247-7530-bc25-8a573aaf4252`, plus the scoped Social Club WineD3D and
+saved-login preservation patterns from session
+`019ff310-e8ac-7212-9f2f-5ba9005b97bd`.
+
+The working route had four relevant controls. The Pressure Vessel wrapper
+validated and overlaid a private internal GTA IV executable view while binding
+the large data directories from the original microSD install. Its final
+`PlayGTAIV.exe` payload became `cmd.exe /d /c C:\\gtaiv-service-first.cmd`,
+which started `Rockstar Service` before the signed launcher. Wine's
+`ServicesPipeTimeout` was 60 seconds. Finally, only
+`SocialClubHelper.exe` used builtin `d3d11` and `dxgi`; the actual game retained
+the accelerated D3D9/Vulkan path. No Rockstar account/profile tree was deleted
+or cleared, and the known-good authenticated data remained backed up outside
+Git.
+
+The online CEF renderer completed its page state and launcher startup. The
+decisive launcher records were:
+
+```text
+UiWindowController::SetContext: Auth -> MainWindow
+Presence Event - Signed In
+Presence Event :: Went Online
+Attempting Steam launch.
+Begin game launch: gta4
+Launching game...
+Path: S:\\common\\Grand Theft Auto IV\\GTAIV\\GTAIV.exe
+```
+
+The real `GTAIV.exe` appeared as a distinct process. `/proc/<pid>/maps` proved
+that `GTAIV.exe`, `binkw32.dll`, and `steam_api.dll` came from the validated
+internal executable view; Wine's `d3d9.dll`, `winevulkan`, Turnip's
+`libvulkan_freedreno.so`, and App 12210's shader caches were also mapped. This
+run did not capture an `MTLX.dll` mapping, so none is claimed.
+
+The game initially had no window after Rockstar's 60-second warning. A
+read-only CPU sample showed the outer PRoot tracer using about 82% of one core
+and `RockstarService` about 124%, both eligible for the same performance cores.
+A reversible process-local split placed PRoot on CPU 7, Rockstar Service on CPU
+6, and wineserver/GTA IV on CPUs 4-5. GTA IV then advanced from 28 to 54
+threads, roughly 1,350 to 1,874 mappings, and about 30 MiB to 448 MiB resident
+memory before creating a focused fullscreen X11 window titled `GTAIV`.
+
+An exact-window capture showed a fully rendered GTA IV / Episodes from Liberty
+City selector rather than a black surface. GTA IV's Play control was selected;
+Enter was sent only after validating the focused window and its owning process.
+The same process then rebuilt to 56 threads and more than 2,000 mappings while
+CPU time continued to advance. The tablet remained reachable by ICMP, but its
+Termux `sshd` stopped accepting connections before a second frame could be
+retrieved. Therefore the current proven milestone is authenticated online
+launcher plus rendered game selector and accepted GTA IV selection—not an
+in-game scene.
+
+The generic Rockstar splash captured immediately after email verification is
+retained as privacy-safe context under
+`docs/evidence/gtaiv-rockstar-email-verified-2026-08-12.png`. It contains no
+account identifier and is not treated as proof of the later authenticated or
+game states.

@@ -1,0 +1,11 @@
+echo === GTAIV JIT CAPTURE BEGIN ===
+info reg
+bt
+echo === EXCEPTION RECORD CANDIDATE ===
+x/20x $x19
+echo === WOW64 CONTEXT AND STACK CANDIDATE ===
+x/208x $x20
+echo === WOW64 MODULES ===
+info wow share
+detach
+quit

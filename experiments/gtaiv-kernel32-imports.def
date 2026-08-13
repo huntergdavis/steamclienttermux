@@ -1,0 +1,12 @@
+LIBRARY KERNEL32.dll
+EXPORTS
+  AddVectoredExceptionHandler=AddVectoredExceptionHandler@8
+  CloseHandle=CloseHandle@4
+  CreateFileA=CreateFileA@28
+  DisableThreadLibraryCalls=DisableThreadLibraryCalls@4
+  GetCurrentProcessId=GetCurrentProcessId@0
+  GetCurrentProcess=GetCurrentProcess@0
+  GetCurrentThreadId=GetCurrentThreadId@0
+  GetModuleFileNameA=GetModuleFileNameA@12
+  ReadProcessMemory=ReadProcessMemory@20
+  WriteFile=WriteFile@20

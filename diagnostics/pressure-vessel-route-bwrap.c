@@ -16,6 +16,39 @@
 
 #define MAX_ARGS_DATA (16U * 1024U * 1024U)
 #define MAX_ROUTE_DATA (64U * 1024U)
+#define GTAIV_APP_ID "12210"
+#define GTAIV_VIEW_SUFFIX "/gtaiv-exec-view-12210"
+#define GTAIV_PLAY_SUFFIX "/Grand Theft Auto IV/GTAIV/PlayGTAIV.exe"
+#define GTAIV_SERVICE_FIRST_BATCH "C:\\gtaiv-service-first.cmd"
+#define PROC_NET_SUFFIX "/config/proc-net"
+
+struct expected_file
+{
+  const char *name;
+  off_t size;
+};
+
+static const struct expected_file gtaiv_files[] = {
+  { "GTAIV.exe", 17425752 },
+  { "MTLX.dll", 593240 },
+  { "PlayGTAIV.exe", 264176 },
+  { "binkw32.dll", 176640 },
+  { "gtaEncoder.exe", 47960 },
+  { "installscript.vdf", 566 },
+  { "metadata.dat", 472036 },
+  { "steam_api.dll", 261072 },
+  { "title.rgl", 1104 },
+};
+
+static const char *gtaiv_directories[] = {
+  "Manuals",
+  "Redistributables",
+  "TBoGT",
+  "TLAD",
+  "common",
+  "movies",
+  "pc",
+};
 
 static void
 fail (const char *format, ...)
@@ -140,6 +173,29 @@ find_proc_mount_end (const unsigned char *data, size_t size)
   return proc_mount_end;
 }
 
+static size_t
+find_payload_terminator (const unsigned char *data, size_t size)
+{
+  size_t offset = 0;
+
+  while (offset < size)
+    {
+      const char *arg = (const char *) data + offset;
+      const unsigned char *end = memchr (arg, '\0', size - offset);
+      size_t length;
+
+      if (end == NULL)
+        fail ("malformed --args data");
+
+      length = (size_t) (end - (const unsigned char *) arg);
+      if (strcmp (arg, "--") == 0)
+        return offset;
+      offset += length + 1;
+    }
+
+  return 0;
+}
+
 static void
 validate_regular_file (int fd, const char *description, bool allow_empty)
 {
@@ -157,6 +213,196 @@ validate_regular_file (int fd, const char *description, bool allow_empty)
 
   if ((st.st_mode & 0022) != 0)
     fail ("%s must not be group- or other-writable", description);
+}
+
+static bool
+is_expected_gtaiv_entry (const char *name)
+{
+  size_t i;
+
+  for (i = 0; i < sizeof (gtaiv_files) / sizeof (gtaiv_files[0]); i++)
+    if (strcmp (name, gtaiv_files[i].name) == 0)
+      return true;
+
+  for (i = 0;
+       i < sizeof (gtaiv_directories) / sizeof (gtaiv_directories[0]);
+       i++)
+    if (strcmp (name, gtaiv_directories[i]) == 0)
+      return true;
+
+  return false;
+}
+
+static int
+validate_gtaiv_view (const char *proc_net_path, int proc_net_fd,
+                     char *target, size_t target_size,
+                     int directory_fds[], size_t directory_fds_count)
+{
+  static const char install_tail[] =
+    "/steamapps/common/Grand Theft Auto IV";
+  const char *app_id = getenv ("STEAM_COMPAT_APP_ID");
+  const char *install_path = getenv ("STEAM_COMPAT_INSTALL_PATH");
+  struct stat proc_net_stat;
+  struct stat view_stat;
+  char source[PATH_MAX];
+  size_t proc_net_length;
+  size_t install_length;
+  int directory_fd;
+  int scan_fd;
+  DIR *directory;
+  struct dirent *entry;
+  size_t i;
+
+  if (directory_fds_count
+      != sizeof (gtaiv_directories) / sizeof (gtaiv_directories[0]))
+    fail ("unexpected GTA IV directory fd array size");
+  for (i = 0; i < directory_fds_count; i++)
+    directory_fds[i] = -1;
+
+  if (app_id == NULL || strcmp (app_id, GTAIV_APP_ID) != 0)
+    return -1;
+
+  proc_net_length = strlen (proc_net_path);
+  if (proc_net_length <= strlen (PROC_NET_SUFFIX)
+      || strcmp (proc_net_path + proc_net_length - strlen (PROC_NET_SUFFIX),
+                 PROC_NET_SUFFIX) != 0)
+    return -1;
+
+  if (snprintf (source, sizeof (source), "%.*s%s",
+                (int) (proc_net_length - strlen (PROC_NET_SUFFIX)),
+                proc_net_path, GTAIV_VIEW_SUFFIX) < 0
+      || strlen (source) >= sizeof (source))
+    fail ("GTA IV view path is too long");
+
+  if (lstat (source, &view_stat) < 0)
+    {
+      if (errno == ENOENT)
+        return -1;
+      fail ("cannot inspect GTA IV view: %s", strerror (errno));
+    }
+
+  if (install_path == NULL || install_path[0] != '/')
+    fail ("GTA IV install path is missing or not absolute");
+  install_length = strlen (install_path);
+  if (install_length <= strlen (install_tail)
+      || strcmp (install_path + install_length - strlen (install_tail),
+                 install_tail) != 0)
+    fail ("unexpected GTA IV install path: %s", install_path);
+  if (snprintf (target, target_size, "%s/GTAIV", install_path) < 0
+      || strlen (target) >= target_size)
+    fail ("GTA IV target path is too long");
+
+  if (!S_ISDIR (view_stat.st_mode) || view_stat.st_uid != geteuid ()
+      || (view_stat.st_mode & 0077) != 0)
+    fail ("GTA IV view must be a private directory owned by the current user");
+
+  directory_fd = open (source,
+                       O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_DIRECTORY);
+  if (directory_fd < 0)
+    fail ("cannot open GTA IV view: %s", strerror (errno));
+  if (fstat (directory_fd, &view_stat) < 0
+      || fstat (proc_net_fd, &proc_net_stat) < 0)
+    fail ("cannot stat GTA IV view: %s", strerror (errno));
+  if (view_stat.st_dev != proc_net_stat.st_dev)
+    fail ("GTA IV view is not on the internal Steam filesystem");
+
+  for (i = 0; i < sizeof (gtaiv_files) / sizeof (gtaiv_files[0]); i++)
+    {
+      struct stat st;
+      int fd = openat (directory_fd, gtaiv_files[i].name,
+                       O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
+
+      if (fd < 0 || fstat (fd, &st) < 0)
+        fail ("cannot inspect GTA IV view file %s: %s",
+              gtaiv_files[i].name, strerror (errno));
+      if (!S_ISREG (st.st_mode) || st.st_uid != geteuid ()
+          || (st.st_mode & 0022) != 0 || st.st_nlink != 1
+          || st.st_size != gtaiv_files[i].size)
+        fail ("unexpected GTA IV view file: %s", gtaiv_files[i].name);
+      close (fd);
+    }
+
+  for (i = 0;
+       i < sizeof (gtaiv_directories) / sizeof (gtaiv_directories[0]);
+       i++)
+    {
+      struct stat st;
+      char original[PATH_MAX];
+      int mountpoint_fd;
+      int original_fd;
+      DIR *mountpoint;
+      struct dirent *mountpoint_entry;
+
+      if (fstatat (directory_fd, gtaiv_directories[i], &st,
+                   AT_SYMLINK_NOFOLLOW) < 0
+          || !S_ISDIR (st.st_mode) || st.st_uid != geteuid ()
+          || st.st_dev != view_stat.st_dev || (st.st_mode & 0077) != 0)
+        fail ("GTA IV view mountpoint is not a private internal directory: %s",
+              gtaiv_directories[i]);
+
+      mountpoint_fd = openat (directory_fd, gtaiv_directories[i],
+                              O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_DIRECTORY);
+      if (mountpoint_fd < 0)
+        fail ("cannot open GTA IV view mountpoint %s: %s",
+              gtaiv_directories[i], strerror (errno));
+      mountpoint = fdopendir (mountpoint_fd);
+      if (mountpoint == NULL)
+        {
+          close (mountpoint_fd);
+          fail ("cannot scan GTA IV view mountpoint %s: %s",
+                gtaiv_directories[i], strerror (errno));
+        }
+      errno = 0;
+      while ((mountpoint_entry = readdir (mountpoint)) != NULL)
+        {
+          if (strcmp (mountpoint_entry->d_name, ".") == 0
+              || strcmp (mountpoint_entry->d_name, "..") == 0)
+            continue;
+          fail ("GTA IV view mountpoint is not empty: %s",
+                gtaiv_directories[i]);
+        }
+      if (errno != 0)
+        fail ("cannot finish scanning GTA IV view mountpoint %s: %s",
+              gtaiv_directories[i], strerror (errno));
+      closedir (mountpoint);
+
+      if (snprintf (original, sizeof (original), "%s/GTAIV/%s",
+                    install_path, gtaiv_directories[i]) < 0
+          || strlen (original) >= sizeof (original))
+        fail ("GTA IV original directory path is too long");
+      original_fd = open (original,
+                          O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_DIRECTORY);
+      if (original_fd < 0 || fstat (original_fd, &st) < 0
+          || !S_ISDIR (st.st_mode))
+        fail ("cannot open original GTA IV directory %s: %s",
+              gtaiv_directories[i], strerror (errno));
+      set_inherited (original_fd, gtaiv_directories[i]);
+      directory_fds[i] = original_fd;
+    }
+
+  scan_fd = dup (directory_fd);
+  if (scan_fd < 0)
+    fail ("cannot duplicate GTA IV view fd: %s", strerror (errno));
+  directory = fdopendir (scan_fd);
+  if (directory == NULL)
+    {
+      close (scan_fd);
+      fail ("cannot scan GTA IV view: %s", strerror (errno));
+    }
+  errno = 0;
+  while ((entry = readdir (directory)) != NULL)
+    {
+      if (strcmp (entry->d_name, ".") == 0
+          || strcmp (entry->d_name, "..") == 0
+          || is_expected_gtaiv_entry (entry->d_name))
+        continue;
+      fail ("unexpected entry in GTA IV view: %s", entry->d_name);
+    }
+  if (errno != 0)
+    fail ("cannot finish scanning GTA IV view: %s", strerror (errno));
+  closedir (directory);
+  set_inherited (directory_fd, "GTA IV view");
+  return directory_fd;
 }
 
 static int
@@ -276,6 +522,81 @@ parse_fd (const char *value, int *fd_out)
   return true;
 }
 
+static bool
+is_decimal_app_id (const char *value)
+{
+  size_t length;
+  size_t i;
+
+  if (value == NULL || value[0] == '\0')
+    return false;
+
+  length = strlen (value);
+  if (length > 20)
+    return false;
+
+  for (i = 0; i < length; i++)
+    {
+      if (value[i] < '0' || value[i] > '9')
+        return false;
+    }
+
+  return true;
+}
+
+static bool
+has_suffix (const char *value, const char *suffix)
+{
+  size_t value_length;
+  size_t suffix_length;
+
+  if (value == NULL || suffix == NULL)
+    return false;
+
+  value_length = strlen (value);
+  suffix_length = strlen (suffix);
+  return value_length >= suffix_length
+    && strcmp (value + value_length - suffix_length, suffix) == 0;
+}
+
+static bool
+is_gtaiv_play_payload (int argc, char **argv, int args_index,
+                       int gtaiv_view_fd)
+{
+  int payload_start = args_index + 1;
+
+  if (gtaiv_view_fd < 0)
+    return false;
+
+  if (strcmp (argv[args_index], "--args") == 0)
+    payload_start++;
+
+  return argc - payload_start >= 2
+    && strcmp (argv[argc - 2], "waitforexitandrun") == 0
+    && has_suffix (argv[argc - 1], GTAIV_PLAY_SUFFIX);
+}
+
+static void
+ensure_steam_game_id (void)
+{
+  const char *game_id = getenv ("SteamGameId");
+  const char *fallback;
+
+  /* Steam prerequisite/install-script launches can omit SteamGameId.  The
+   * ARM64 Proton FEX setup currently dereferences it unconditionally, even
+   * though STEAM_COMPAT_APP_ID remains available for the same launch. */
+  if (game_id != NULL && game_id[0] != '\0')
+    return;
+
+  fallback = getenv ("STEAM_COMPAT_APP_ID");
+  if (!is_decimal_app_id (fallback))
+    fallback = getenv ("SteamAppId");
+
+  if (is_decimal_app_id (fallback)
+      && setenv ("SteamGameId", fallback, 1) < 0)
+    fail ("cannot set SteamGameId fallback: %s", strerror (errno));
+}
+
 int
 main (int argc, char **argv)
 {
@@ -287,10 +608,17 @@ main (int argc, char **argv)
   unsigned char *args_data;
   size_t args_size;
   size_t insertion_offset;
+  size_t payload_offset;
   int args_index = -1;
   int args_fd = -1;
   int proc_net_fd;
+  int gtaiv_view_fd;
+  int gtaiv_directory_fds[
+    sizeof (gtaiv_directories) / sizeof (gtaiv_directories[0])];
   int replacement_fd;
+  bool gtaiv_service_first;
+  char gtaiv_target[PATH_MAX];
+  char gtaiv_directory_target[PATH_MAX];
   int i;
 
   if (real_bwrap == NULL || real_bwrap[0] != '/')
@@ -298,6 +626,8 @@ main (int argc, char **argv)
 
   if (strcmp (real_bwrap, argv[0]) == 0)
     fail ("real bwrap path would recurse into this wrapper");
+
+  ensure_steam_game_id ();
 
   for (i = 1; i < argc; i++)
     {
@@ -342,6 +672,24 @@ main (int argc, char **argv)
     }
 
   proc_net_fd = validate_proc_net (proc_net_path);
+  gtaiv_view_fd = validate_gtaiv_view (proc_net_path, proc_net_fd,
+                                       gtaiv_target, sizeof (gtaiv_target),
+                                       gtaiv_directory_fds,
+                                       sizeof (gtaiv_directory_fds)
+                                         / sizeof (gtaiv_directory_fds[0]));
+  payload_offset = gtaiv_view_fd >= 0
+    ? find_payload_terminator (args_data, args_size)
+    : 0;
+  /* Current Pressure Vessel puts the payload in ordinary argv after
+   * --args, so the NUL stream can contain mounts only. Appending to that
+   * stream is then the last-mount-wins position. Older forms can include a
+   * literal -- terminator in the stream; insert immediately before it. */
+  if (gtaiv_view_fd >= 0 && payload_offset == 0)
+    payload_offset = args_size;
+  if (gtaiv_view_fd >= 0 && payload_offset < insertion_offset)
+    fail ("cannot locate GTA IV payload boundary");
+  gtaiv_service_first = is_gtaiv_play_payload (argc, argv, args_index,
+                                               gtaiv_view_fd);
   replacement_fd = create_args_fd ();
   write_all (replacement_fd, args_data, insertion_offset);
 
@@ -350,8 +698,38 @@ main (int argc, char **argv)
   write_arg (replacement_fd, "--ro-bind-fd");
   write_arg (replacement_fd, replacement_fd_value);
   write_arg (replacement_fd, "/proc/net");
-  write_all (replacement_fd, args_data + insertion_offset,
-             args_size - insertion_offset);
+  if (gtaiv_view_fd >= 0)
+    {
+      write_all (replacement_fd, args_data + insertion_offset,
+                 payload_offset - insertion_offset);
+      snprintf (replacement_fd_value, sizeof (replacement_fd_value), "%d",
+                gtaiv_view_fd);
+      write_arg (replacement_fd, "--ro-bind-fd");
+      write_arg (replacement_fd, replacement_fd_value);
+      write_arg (replacement_fd, gtaiv_target);
+      for (i = 0;
+           i < (int) (sizeof (gtaiv_directories)
+                      / sizeof (gtaiv_directories[0]));
+           i++)
+        {
+          if (snprintf (gtaiv_directory_target,
+                        sizeof (gtaiv_directory_target), "%s/%s",
+                        gtaiv_target, gtaiv_directories[i]) < 0
+              || strlen (gtaiv_directory_target)
+                   >= sizeof (gtaiv_directory_target))
+            fail ("GTA IV directory target path is too long");
+          snprintf (replacement_fd_value, sizeof (replacement_fd_value),
+                    "%d", gtaiv_directory_fds[i]);
+          write_arg (replacement_fd, "--ro-bind-fd");
+          write_arg (replacement_fd, replacement_fd_value);
+          write_arg (replacement_fd, gtaiv_directory_target);
+        }
+      write_all (replacement_fd, args_data + payload_offset,
+                 args_size - payload_offset);
+    }
+  else
+    write_all (replacement_fd, args_data + insertion_offset,
+               args_size - insertion_offset);
   free (args_data);
 
   if (lseek (replacement_fd, 0, SEEK_SET) < 0)
@@ -359,7 +737,7 @@ main (int argc, char **argv)
 
   snprintf (replacement_fd_value, sizeof (replacement_fd_value), "%d",
             replacement_fd);
-  replacement_argv = calloc ((size_t) argc + 1, sizeof (*replacement_argv));
+  replacement_argv = calloc ((size_t) argc + 4, sizeof (*replacement_argv));
   if (replacement_argv == NULL)
     fail ("out of memory building bwrap argv");
 
@@ -380,6 +758,14 @@ main (int argc, char **argv)
   else
     {
       replacement_argv[args_index] = replacement_fd_value;
+    }
+
+  if (gtaiv_service_first)
+    {
+      replacement_argv[argc - 1] = "cmd.exe";
+      replacement_argv[argc] = "/d";
+      replacement_argv[argc + 1] = "/c";
+      replacement_argv[argc + 2] = GTAIV_SERVICE_FIRST_BATCH;
     }
 
   /* The replacement stream is complete and inherited. Do not leak Pressure
