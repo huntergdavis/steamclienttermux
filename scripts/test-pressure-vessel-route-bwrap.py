@@ -13,6 +13,7 @@ GTAIV_FILES = {
     "MTLX.dll": 593240,
     "PlayGTAIV.exe": 264176,
     "binkw32.dll": 176640,
+    "commandline.txt": 34,
     "gtaEncoder.exe": 47960,
     "installscript.vdf": 566,
     "metadata.dat": 472036,
