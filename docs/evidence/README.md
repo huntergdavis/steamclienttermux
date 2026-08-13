@@ -10,6 +10,9 @@ These screenshots capture milestones and failures from the original tablet.
 - `gtaiv-selector-2026-08-13.png`: the focused fullscreen GTA IV / Episodes
   from Liberty City selector rendered by the real `GTAIV.exe` after saved
   Rockstar authentication, online presence, and cloud sync completed.
+- `gtaiv-main-menu-2026-08-13.png`: the focused fullscreen GTA IV main menu,
+  with `Start` selected and the Social Club panel connected, proving that the
+  real game passed the earlier GTA IV/EFLC selector boundary.
 - `burnout-after-install-confirm.png`: Burnout installation confirmation.
 - `steam-relaunched-installed.png`: client relaunched with completed installs.
 - `2026-08-08-live-debugging-compat-timeout.png`: live debugging session with

@@ -2880,3 +2880,35 @@ if Wine does not accept both input records. The reproducible freestanding build
 is `scripts/build-win-arm64-gtaiv-selector-input.sh`; the generated PE imports
 only `ExitProcess` and the six declared User32 calls. Live selector validation
 is still required before this helper can be called a fix.
+
+### Main-menu milestone after full desktop recovery
+
+Later on 2026-08-13, the whole Termux:X11/KDE/Steam display stack had to be
+recreated after an unrelated process loss. The authenticated Rockstar prefix
+and its backup were left untouched. Native ARM64 Steam reused its saved login,
+Rockstar again reached `Auth -> MainWindow`, signed-in and online presence, and
+cloud sync without another 2FA challenge, and the genuine `GTAIV.exe` launched
+again.
+
+The one-shot game affinity had reset during startup, so a bounded maintainer
+validated the exact GTA IV, wineserver, Rockstar Service, and outer PRoot
+processes before keeping their previously measured process-local CPU split.
+With GTA IV on CPUs 4-5, it advanced from 25 to 57 threads and rendered the
+legal screen, GTA IV logo, selector, and finally the actual GTA IV main menu.
+No account/profile files were deleted or reset.
+
+The retained 2800x1586 composed frame visibly shows the GTA IV title art,
+`Start` selected, and the connected Social Club panel. Its SHA-256 is
+`0eec82f4317efd0943410ed93a67560018b8cc92a26c638100f24271f40486f2` and it is
+stored as `docs/evidence/gtaiv-main-menu-2026-08-13.png`. At capture time the
+real `GTAIV.exe` was still alive with 57 threads and CPU affinity 4-5. This is
+proof that the run passed the earlier selector boundary and reached the game
+menu; it is not yet evidence of a loaded gameplay scene.
+
+This recovery continued to reuse the exact `steam://rungameid/12210` launch and
+descendant-affinity method from Codex session
+`019fe348-1247-7530-bc25-8a573aaf4252`, plus the scoped Social Club WineD3D and
+saved-login preservation patterns from session
+`019ff310-e8ac-7212-9f2f-5ba9005b97bd`. The required new `deja` query,
+`Termux X11 KDE launch-only Steam ARM tablet full process kill GTA IV saved
+login`, returned no additional indexed match.

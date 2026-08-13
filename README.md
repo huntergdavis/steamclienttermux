@@ -4,7 +4,7 @@ Run Valve's conventional native ARM64 Linux Steam client on an **unrooted**
 Samsung Galaxy Tab S9+ using Termux, Debian PRoot, Termux:X11/KDE, Mesa Turnip,
 official Proton 11 ARM64, and its bundled FEX/DXVK stack.
 
-![GTA IV and Episodes from Liberty City selector running through Proton ARM64, FEX, DXVK, and Turnip](docs/evidence/gtaiv-selector-2026-08-13.png)
+![GTA IV main menu running through Proton ARM64, FEX, DXVK, and Turnip](docs/evidence/gtaiv-main-menu-2026-08-13.png)
 
 ![Superflight fullscreen through Proton ARM64, FEX, DXVK, and Turnip](docs/evidence/superflight-fullscreen.png)
 
@@ -21,11 +21,11 @@ official Proton 11 ARM64, and its bundled FEX/DXVK stack.
   runtimes, active downloads, and per-game compatdata remain on internal F2FS.
   Kingsway runs fullscreen with audio through this split route.
 - GTA IV is installed on the microSD, completes Rockstar authentication and
-  online presence, launches the real `GTAIV.exe`, and renders the GTA IV/EFLC
-  selector through official ARM Proton/FEX and Turnip. The selector milestone
-  is repeatable with preserved saved authentication. An in-game scene is not
-  yet verified because synthetic X11 input did not reach the selector; the
-  first observed process then performed its exact 600-second idle shutdown.
+  online presence, launches the real `GTAIV.exe`, passes the GTA IV/EFLC
+  selector, and renders the GTA IV main menu through official ARM Proton/FEX
+  and Turnip. Saved authentication survived a full X/KDE/Steam recovery and no
+  additional 2FA was required. Gameplay beyond the main menu is not yet
+  verified.
 - Burnout remains experimental; its detailed EA, FEX, and DXVK investigation is
   kept in [`docs/TECHNICAL_LOG.md`](docs/TECHNICAL_LOG.md), not duplicated here.
 
@@ -81,7 +81,7 @@ threads to CPUs 4-7. In the same menu scene, observed game CPU use fell from
 about 157% to 97%, and play felt noticeably smoother. This affinity is
 process-local and must currently be applied after each launch.
 
-### Reached the GTA IV game selector
+### Reached the GTA IV main menu
 
 GTA IV now passes the Rockstar boundary that previously ended at CEF Code 17.
 The working checkpoint combines four narrowly scoped pieces:
@@ -99,11 +99,11 @@ The working checkpoint combines four narrowly scoped pieces:
 The validated online runs logged `Auth -> MainWindow`, `Presence Event - Signed
 In`, and `Presence Event :: Went Online`. Rockstar then launched the genuine
 `GTAIV.exe`; X11 reported a focused fullscreen `GTAIV` window and the rendered
-frame showed the GTA IV/EFLC selector. A fresh run reproduced that selector
-without another 2FA prompt. XTest and direct Lorie-device events reached X11
-but not the game's input path; the process later shut down cleanly at its exact
-600-second idle boundary. This checkpoint therefore does not claim an accepted
-selection or gameplay yet.
+frame first showed the GTA IV/EFLC selector. A fresh run reproduced the launch
+without another 2FA prompt and then passed the selector into the real GTA IV
+main menu. The exact 2800x1586 composed frame shows `Start` selected, the GTA IV
+title art, and the connected Social Club panel. Gameplay beyond this menu is
+not yet claimed.
 
 The internal executable view and the service-first batch are still an
 experimental, machine-specific setup. The wrapper validates their exact file
