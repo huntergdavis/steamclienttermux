@@ -4,6 +4,8 @@ Run Valve's conventional native ARM64 Linux Steam client on an **unrooted**
 Samsung Galaxy Tab S9+ using Termux, Debian PRoot, Termux:X11/KDE, Mesa Turnip,
 official Proton 11 ARM64, and its bundled FEX/DXVK stack.
 
+![GTA IV and Episodes from Liberty City selector running through Proton ARM64, FEX, DXVK, and Turnip](docs/evidence/gtaiv-selector-2026-08-13.png)
+
 ![Superflight fullscreen through Proton ARM64, FEX, DXVK, and Turnip](docs/evidence/superflight-fullscreen.png)
 
 ## Current status
@@ -20,8 +22,9 @@ official Proton 11 ARM64, and its bundled FEX/DXVK stack.
   Kingsway runs fullscreen with audio through this split route.
 - GTA IV is installed on the microSD, completes Rockstar authentication and
   online presence, launches the real `GTAIV.exe`, and renders the GTA IV/EFLC
-  selector through official ARM Proton/FEX and Turnip. The transition after
-  selecting GTA IV started successfully; an in-game scene is not yet verified.
+  selector through official ARM Proton/FEX and Turnip. The selector milestone
+  is repeatable with preserved saved authentication; an in-game scene is not
+  yet verified because the current process exits after selecting GTA IV.
 - Burnout remains experimental; its detailed EA, FEX, and DXVK investigation is
   kept in [`docs/TECHNICAL_LOG.md`](docs/TECHNICAL_LOG.md), not duplicated here.
 
@@ -92,11 +95,11 @@ The working checkpoint combines four narrowly scoped pieces:
 - only `SocialClubHelper.exe` receives Wine's builtin D3D11/DXGI renderer,
   leaving the game itself on its accelerated D3D9/Vulkan route.
 
-The validated online run logged `Auth -> MainWindow`, `Presence Event - Signed
+The validated online runs logged `Auth -> MainWindow`, `Presence Event - Signed
 In`, and `Presence Event :: Went Online`. Rockstar then launched the genuine
 `GTAIV.exe`; X11 reported a focused fullscreen `GTAIV` window and the rendered
-frame showed the GTA IV/EFLC selector. Selecting GTA IV was accepted and began
-a fresh initialization phase. SSH service loss interrupted observation before
+frame showed the GTA IV/EFLC selector. A fresh run reproduced that selector
+without another 2FA prompt. Selecting GTA IV currently ends the process before
 an in-game frame, so this checkpoint deliberately does not claim gameplay yet.
 
 The internal executable view and the service-first batch are still an

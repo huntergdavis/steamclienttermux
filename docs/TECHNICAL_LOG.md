@@ -2845,3 +2845,23 @@ retained as privacy-safe context under
 `docs/evidence/gtaiv-rockstar-email-verified-2026-08-12.png`. It contains no
 account identifier and is not treated as proof of the later authenticated or
 game states.
+
+### Repeat confirmation and retained selector evidence
+
+A fresh launch later on 2026-08-13 preserved the existing Rockstar login and
+again reached `Auth -> MainWindow`, signed-in presence, online presence, cloud
+sync completion, and the genuine `GTAIV.exe` without another 2FA prompt. This
+time `/proc/<pid>/maps` also captured executable mappings for `MTLX.dll` from
+the validated internal executable view. The process grew from 3 to 25 and then
+54 threads, opened the game audio archives and App 12210 shader/pipeline caches,
+and created a focused fullscreen 2800x1586 X11 window.
+
+Capturing the direct game child returned a black surface because the composed
+fullscreen frame lives at the root/KWin surface. A root capture produced a
+fully rendered selector and was byte-identical to the previous selector
+milestone. The privacy-safe image is retained as
+`docs/evidence/gtaiv-selector-2026-08-13.png` and is the lead README screenshot.
+Selecting the native GTA IV Play region caused the current game process to exit
+before a main-menu or in-game frame could be verified. The remaining fault is
+therefore downstream of the repeatably rendered selector, not Rockstar login,
+online presence, cloud sync, executable routing, or initial D3D9/Vulkan setup.

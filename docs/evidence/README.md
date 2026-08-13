@@ -7,6 +7,9 @@ These screenshots capture milestones and failures from the original tablet.
 - `superflight-fullscreen.png`: Superflight running fullscreen through official
   Proton 11 ARM64, FEX, DXVK, and Turnip after the performance profile and
   CPU-affinity change.
+- `gtaiv-selector-2026-08-13.png`: the focused fullscreen GTA IV / Episodes
+  from Liberty City selector rendered by the real `GTAIV.exe` after saved
+  Rockstar authentication, online presence, and cloud sync completed.
 - `burnout-after-install-confirm.png`: Burnout installation confirmation.
 - `steam-relaunched-installed.png`: client relaunched with completed installs.
 - `2026-08-08-live-debugging-compat-timeout.png`: live debugging session with
@@ -17,4 +20,5 @@ These screenshots capture milestones and failures from the original tablet.
   captured immediately after the email-verification milestone. It records the
   session context but, by itself, is not evidence of authenticated launcher or
   game state; those later states are supported by the exact launcher log and
-  X11 process/window observations in `docs/TECHNICAL_LOG.md`.
+  X11 process/window observations in `docs/TECHNICAL_LOG.md` and the selector
+  screenshot above.
