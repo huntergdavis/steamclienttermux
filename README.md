@@ -22,10 +22,11 @@ official Proton 11 ARM64, and its bundled FEX/DXVK stack.
   Kingsway runs fullscreen with audio through this split route.
 - GTA IV is installed on the microSD, completes Rockstar authentication and
   online presence, launches the real `GTAIV.exe`, passes the GTA IV/EFLC
-  selector, renders the GTA IV main menu, and begins the animated loading-art
-  sequence through official ARM Proton/FEX and Turnip. Saved authentication
-  survived full X/KDE/Steam recovery and repeated launches without another 2FA
-  prompt. A completed playable scene is not yet verified.
+  selector and main menu, completes the animated loading-art sequence, and
+  starts the first mission, **The Cousins Bellic**, through official ARM
+  Proton/FEX and Turnip. Saved authentication survived full X/KDE/Steam
+  recovery and repeated launches without another 2FA prompt. Interactive
+  control after the opening mission transition is not yet verified.
 - Burnout remains experimental; its detailed EA, FEX, and DXVK investigation is
   kept in [`docs/TECHNICAL_LOG.md`](docs/TECHNICAL_LOG.md), not duplicated here.
 
@@ -81,7 +82,7 @@ threads to CPUs 4-7. In the same menu scene, observed game CPU use fell from
 about 157% to 97%, and play felt noticeably smoother. This affinity is
 process-local and must currently be applied after each launch.
 
-### Reached the GTA IV main menu
+### Reached GTA IV's first mission
 
 GTA IV now passes the Rockstar boundary that previously ended at CEF Code 17.
 The working checkpoint combines four narrowly scoped pieces:
@@ -103,8 +104,12 @@ In`, and `Presence Event :: Went Online`. Rockstar then launched the genuine
 frame first showed the GTA IV/EFLC selector. A fresh run reproduced the launch
 without another 2FA prompt and then passed the selector into the real GTA IV
 main menu. The exact 2800x1586 composed frame shows `Start` selected, the GTA IV
-title art, and the connected Social Club panel. Gameplay beyond this menu is
-not yet claimed.
+title art, and the connected Social Club panel. A later lean launch passed the
+same selector and menu, accepted GTA IV's own saved-session sign-in prompt,
+cycled through the loading art, and rendered the first-mission title **The
+Cousins Bellic**. The retained mission-title frame is the first proof that a
+new game started; interactive control after the opening transition remains the
+next boundary.
 
 The repository retains a purpose-built Windows ARM64 selector helper in
 [`diagnostics/win-arm64-gtaiv-selector-play.c`](diagnostics/win-arm64-gtaiv-selector-play.c).
@@ -158,14 +163,34 @@ does **not** move the UID out of the background cpuset. The installed
 `exec startplasma-x11` keeps Plasma attached to the launching terminal. For a
 diagnostic launch, Termux can be brought forward during Rockstar's nonvisual
 initialization and Termux:X11 restored after the log reports `Social Club UI
-has started` and `Client is ready to attempt a launch`. On the tested tablet,
-calling Android's activity manager from the Termux UID was rejected with a
-package/permission mismatch; the reliable operation was to tap Termux
-physically, then tap Termux:X11 after launch readiness.
+has started` and `Client is ready to attempt a launch`. The current tablet
+environment accepted these exact activity switches from an SSH shell without
+restarting X, Wine, or the game:
+
+```sh
+am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER \
+  -n com.termux/.app.TermuxActivity
+am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER \
+  -n com.termux.x11/.MainActivity
+```
+
+Always verify `Cpus_allowed_list` after switching: an earlier environment
+returned a package/permission mismatch, in which case physically tapping the
+two activities remains the fallback.
 
 This foreground sequence is a measured diagnostic workaround, not yet a
 claimed fix for the separate whole-Termux process-tree loss described in the
 technical log.
+
+The successful first-mission launch also started Steam with shader cache
+management disabled and the supported `-noshaders` client flag. That removed
+the repeatedly growing 96-percent Vulkan preprocessing gate without changing
+the App 12210 Proton/runtime route:
+
+```sh
+STEAM_ENABLE_SHADER_CACHE_MANAGEMENT=0 \
+  ~/bin/steam-arm -no-browser -console -noshaders
+```
 
 #### Keep SSH supervised
 

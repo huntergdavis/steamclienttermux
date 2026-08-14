@@ -3141,3 +3141,66 @@ sessions `019ff310-e8ac-7212-9f2f-5ba9005b97bd` and
 Steam-unload command; its recorded mechanism was direct `steam.pipe` launch,
 not unloading Steam. The required `deja` queries for the selector and
 `SIGSTOP` experiment returned no additional indexed matches.
+
+### Action 14: lean launch, saved authentication, and first-mission start
+
+The next launch retained Termux:X11, KWin, and PulseAudio but stopped Plasma
+shell and its unrelated background services. Steam reused its saved login and
+was started with `STEAM_ENABLE_SHADER_CACHE_MANAGEMENT=0` and `-noshaders`.
+The prior Vulkan preprocessing dialog and its repeatedly growing 96-percent
+queue did not return. Native Steam still registered the official ARM64 Proton
+11 and Steam Linux Runtime 4 tools, then dispatched App 12210 through the same
+validated executable view and Pressure Vessel route.
+
+Termux:X11 initially left the Termux UID in `/cpuset/moderate`, CPUs 0-3.
+Rockstar's first service transactions reached 31-64 seconds even though its
+HTTP requests returned 200. Bringing `com.termux/.app.TermuxActivity` forward
+through `am start` moved the live UID to `/cpuset/top-app`, CPUs 0-7, without
+restarting X, Wine, or Steam. A live process-local split kept Steam UI on CPUs
+0-3, launcher/Wine on 4-5, Rockstar Service on 6, and the outer PRoot tracer on
+7. Rockstar then logged `Social Club UI has started`, `Client is ready to
+attempt a launch`, completed cloud synchronization, and launched the real
+`GTAIV.exe`. Cached authentication completed without another password or 2FA
+challenge.
+
+The game exposed the normal 2800x1586 fullscreen X11 surface. The installed
+executable-view `commandline.txt` was simultaneously verified as the exact
+24-byte repository file containing `-width 1280` and `-height 720`; the large
+surface was therefore fullscreen scaling, not a return to native internal
+rendering. Alternating short nonvisual `top-app` bursts with X11 checks moved
+GTA from 27 to 40 and then 59 threads. Exact active-window validation followed
+by untargeted native XTest Return events crossed the highlighted selector into
+the main menu and selected `Start`. GTA's own legacy prompt then reported that
+it was not currently signed in and offered `Enter` for Yes. One validated
+Return accepted that choice, after which the rotating loading art began.
+
+Memory remained the limiting resource. At the first danger point only about
+150 MiB of swap was free. One exact Steam `steamwebhelper` zygote held roughly
+406 MiB, mostly swap; normal `TERM` left only a zombie and raised free swap to
+about 736 MiB without terminating Steam core or any Rockstar process. GTA
+continued from roughly 756 MiB to 1.47 GiB of process read I/O while its
+loading frames changed. Rockstar CEF remained alive throughout because the
+earlier controlled test proved that removing it terminates the game.
+
+At 09:36 PDT the composed frame changed from loading art to the first-mission
+title **The Cousins Bellic**. The privacy-safe 2800x1586 frame is retained as
+`docs/evidence/gtaiv-new-game-2026-08-14.png`, SHA-256
+`21c8f78fdee83ee3765be5fd8ac21324ac39cbc4b778c5aecd94c0b15e4c4762`.
+This is proof that a new game started, beyond the previous main-menu/loading
+milestones; it is not yet proof of interactive control after the opening
+transition.
+
+A second capture attempt overlapped the next whole-Termux loss. The final
+successful sampler record immediately beforehand still showed about 532 MiB
+`MemAvailable`, 674 MiB free swap, active GTA CPU, and advancing reads. X11,
+GTA, and SSH then all disappeared and runit could not restore SSH. This does
+not support a conventional kernel OOM at the final sample, but it is consistent
+with Android evicting the background Termux UID under sustained memory
+pressure before Linux exhausts RAM and zram. The capture overlap remains a
+correlation, not a proven cause; future high-pressure transitions should avoid
+captures and keep Termux foregrounded until loading completes.
+
+This action reused the saved-login, foreground-component, and affinity
+findings from Codex sessions `019ff310-e8ac-7212-9f2f-5ba9005b97bd` and
+`019fe348-1247-7530-bc25-8a573aaf4252`. The required `deja` searches for the
+new combined eviction signature returned no additional indexed match.
