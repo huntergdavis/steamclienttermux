@@ -161,21 +161,22 @@ are active.
 
 The tablet's native 2800x1586 desktop also made GTA IV create a roughly
 2800x1550 render window. The repository therefore installs a minimal,
-plain-text 1280x720 profile as the validated executable view's
+plain-text 1280x720 fullscreen profile as the validated executable view's
 `commandline.txt`:
 
 ```text
--windowed
 -width 1280
 -height 720
 ```
 
-These three names are present in this exact installed GTA IV executable's own
-command-line help strings. The profile leaves the opaque binary `SETTINGS.CFG`
-and the Rockstar login/profile tree untouched. `scripts/install-project-files.sh`
-backs up an existing view file before installing the repo-owned version; run it
-only with the GTA IV Wine/Proton stack stopped so the next launch receives the
-new profile.
+Width and height are present in this exact installed GTA IV executable's own
+command-line help strings. Omitting `-windowed` keeps the game's default
+fullscreen presentation while limiting its internal render size to 1280x720;
+Wine's separate virtual desktop should remain disabled for this profile. The
+profile leaves the opaque binary `SETTINGS.CFG` and the Rockstar login/profile
+tree untouched. `scripts/install-project-files.sh` backs up an existing view
+file before installing the repo-owned version; run it only with the GTA IV
+Wine/Proton stack stopped so the next launch receives the new profile.
 
 ## Reproduce
 
