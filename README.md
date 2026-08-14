@@ -200,20 +200,22 @@ With `termux-services` and OpenSSH installed, enable the runit service once:
 sv-enable sshd
 ```
 
-The tested tablet also keeps this idempotent fallback in its interactive
+The repository installs a bounded startup helper at
+`~/bin/ensure-sshd-supervised`. Keep this idempotent fallback in interactive
 `~/.bashrc`, so opening Termux restores the service supervisor if needed and
-always asks runit to bring SSH up:
+waits for runit before asking it to bring SSH up:
 
 ```sh
 if [[ $- == *i* ]] && [[ -n ${PREFIX:-} ]]; then
-    export SVDIR="${PREFIX}/var/service"
-    export LOGDIR="${PREFIX}/var/log"
-    if ! pgrep -f "^${PREFIX}/bin/runsvdir ${SVDIR}$" >/dev/null 2>&1; then
-        (service-daemon start >/dev/null 2>&1 &)
-    fi
-    sv up "${SVDIR}/sshd" >/dev/null 2>&1 || true
+    "$HOME/bin/ensure-sshd-supervised" ||
+        printf 'warning: supervised sshd did not start\n' >&2
 fi
 ```
+
+The helper validates the service installation, starts `runsvdir` without an
+extra backgrounding race, waits at most ten seconds for the exact supervisor,
+then requires `sv status` to report `run:`. The stock Termux profile also starts
+`service-daemon`; concurrent calls are safe and the helper verifies the result.
 
 A live test sent `TERM` to the supervised `sshd`; runit replaced it
 immediately and a fresh port-8022 connection succeeded. This handles an SSH

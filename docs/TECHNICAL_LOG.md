@@ -3204,3 +3204,29 @@ This action reused the saved-login, foreground-component, and affinity
 findings from Codex sessions `019ff310-e8ac-7212-9f2f-5ba9005b97bd` and
 `019fe348-1247-7530-bc25-8a573aaf4252`. The required `deja` searches for the
 new combined eviction signature returned no additional indexed match.
+
+### Bounded SSH cold-start supervision
+
+After the Action 14 whole-UID loss, opening Termux created the Android app,
+interactive `bash -l`, `runsvdir`, the `sshd` service supervisor, and the
+supervised listener within roughly one second. The listener's parent was the
+exact `runsv sshd` process and the service log recorded both IPv4 and IPv6 port
+8022 listeners. This shows the existing profile path did run; a manually typed
+standalone `sshd` command was redundant on that recovery.
+
+The fallback still contained a race: both Termux's stock profile and `.bashrc`
+backgrounded `service-daemon`, while `.bashrc` immediately called `sv up` and
+silently ignored a failure before `runsvdir` was ready. The repository now
+installs `~/bin/ensure-sshd-supervised`. It validates the exact service tree,
+starts `service-daemon` without another backgrounding layer when needed, waits
+at most ten seconds for the exact `runsvdir` argument pair, calls bounded
+`sv up`, and requires the final status to begin with `run:`. The tablet's
+`.bashrc` calls this helper and retains a mode-preserving backup of the prior
+guard.
+
+A live verification sent normal `TERM` only to the exact `sshd` child of the
+validated `runsv sshd` supervisor. Runit replaced listener PID 4034 with PID
+5567 in under one second; a new port-8022 connection and a second helper call
+both succeeded. This verifies daemon-crash recovery and removes the startup
+race. It still cannot resurrect an Android-evicted Termux app until an external
+event opens Termux.

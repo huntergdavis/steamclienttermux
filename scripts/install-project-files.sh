@@ -54,6 +54,8 @@ trap cleanup_wrapper_stage EXIT
     -o "$wrapper_stage"
 
 install_one "$repo_root/bin/steam-arm" "$HOME/bin/steam-arm" 700
+install_one "$repo_root/bin/ensure-sshd-supervised.sh" \
+    "$HOME/bin/ensure-sshd-supervised" 700
 install_one "$repo_root/bin/patch-steam-network-ui.sh" "$base/patch-steam-network-ui.sh" 700
 install_one "$repo_root/bin/prepare-proc-net-shadow.sh" "$base/prepare-proc-net-shadow.sh" 700
 install_one "$repo_root/bin/prepare-pulseaudio-tcp.sh" "$base/prepare-pulseaudio-tcp.sh" 700
