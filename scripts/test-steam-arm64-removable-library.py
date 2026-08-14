@@ -259,6 +259,22 @@ def test_staging_bind(module, temporary):
     ).hexdigest()
     loaded = module.load_layout(base, storage)
     assert loaded["staging_binds"][appid] == staging
+    assert module.staging_mounts(loaded) == [
+        (
+            external_staging,
+            paths["target"] / "steamapps" / "downloading" / appid,
+        )
+    ]
+    assert module.staging_mounts(loaded)[0][1] != internal_staging
+    disable_backup = module.disable_staging_bind(base, loaded, appid, storage)
+    assert disable_backup is not None
+    disabled = module.load_layout(base, storage)
+    assert disabled["staging_binds"] == {}
+    assert module.staging_mounts(disabled) == []
+    assert module.disable_staging_bind(base, disabled, appid, storage) is None
+    staging, _backup = module.enable_staging_bind(
+        base, disabled, appid, source_manifest, target_manifest, storage
+    )
     (external_staging / "GTAIV/game.bin").unlink()
     assert module.load_layout(base, storage)["staging_binds"][appid] == staging
     target_manifest.write_bytes(b"different\n")

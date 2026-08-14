@@ -3321,3 +3321,84 @@ assumption in Codex session `019fe348-1247-7530-bc25-8a573aaf4252`; searches for
 a prior same-device Sleeping Dogs/GameHub benchmark returned no match. The
 benchmark choice therefore records a plan to measure, not reused performance
 evidence.
+
+## 2026-08-14: Tomb Raider staging and the guest bind target
+
+Tomb Raider (2013), App ID 203160, was assigned to the registered `microSD
+Windows games` library. Steam's appmanifest requested 14,277,288,736 download
+bytes and 16,583,266,183 staged bytes. The first controlled stop preserved 11
+regular files totaling 4,195,157,363 bytes. Independent internal/card SHA-256
+inventories matched with manifest digest
+`13ef2d7163f06af3acff00c6b27195edd88acc84aaacea6dc6058bfe636d32be`.
+
+That migration exposed an error in `staging-mount-info`. It emitted the card
+source with the internal backing directory as its PRoot target. A production
+read-only probe showed that this did cover the backing path on card device
+1048616, but Steam's actual
+`removable-library/steamapps/downloading/203160` view remained on internal
+device 65082. The resumed internal tree consequently grew to 25 files and
+11,881,856,311 bytes while the card copy did not grow. The newer tree was
+copied with the original card tree preserved, and independent inventories
+matched with digest
+`a1e367d0caf761265ff748d426d967ed623a0458a6a6e936d002795a04d49d35`.
+
+The helper now emits the Steam-visible guest download path for each nested
+bind. A regression test requires that target to differ from the internal
+backing directory. The corrected PRoot probe reported device 1048616 through
+Steam's exact guest path, and a live retry changed only the card tree while the
+internal byte count stayed fixed. This proves that PRoot bind sources are not
+transitively overlaid by targeting the source path of an earlier bind.
+
+Direct active staging on the corrected card path then failed for soundtrack
+files in `CGenericAsyncFileIOThread::AllocateResource` with `errno 38` and a
+Steam disk-write failure. A bounded temporary probe independently showed that
+`fallocate` is unsupported both natively on the portable-storage mount and
+through the production PRoot view. Patch-state files remained internal; this
+was allocation of numeric payload files, distinct from the earlier card-FUSE
+`flock` failure. The safe workflow is therefore to complete active staging on
+internal F2FS, copy and hash-verify it offline, then use the card bind only for
+commit or call the native manifest-gated commit directly.
+
+`disable-staging-bind <appid>` was added as a guarded, backup-first operation
+for this recovery. It refuses active Steam/Wine processes, removes only the
+requested registration, is idempotent, and does not alter either payload tree.
+Steam resumed from the 11,881,856,311-byte internal tree, completed the exact
+16,583,266,183-byte stage, and naturally committed it to the microSD library.
+The final appmanifest reported `StateFlags 4`, build ID 9573671, 420 installed
+files, 11 mounted depots, and `No Error`; both active staging trees were empty.
+
+That first completed payload was Feral's native Linux build because the app had
+been installed before it had an explicit compatibility-tool mapping. With
+Steam stopped, a guarded atomic `config.vdf` edit mapped App ID 203160 to
+`proton_11_arm64_official` at priority 250. The next Steam start logged that
+exact mapping and converted the library in place to Windows depots 203161,
+203162, 203163, 203176, 203179, 208810, 208811, 208812, 208813, 208814, and
+208816. The conversion finalized as fully installed with `No Error`, and the
+target now contains `TombRaider.exe` rather than the Feral i386 launcher.
+
+Launching `steam://rungameid/203160` then produced the expected ARM64 chain:
+Steam Linux Runtime 4 ARM64's pressure-vessel entry point, Proton 11 ARM64's
+`proton waitforexitandrun`, Wine services, and the real `TombRaider.exe`. The
+Windows pre-game launcher rendered, accepted pointer input, saved fullscreen
+1280x720 with the Normal quality profile, and opened the real renderer. At the
+first-run Square Enix terms screen, 2,321,760 KiB remained available and
+5,403,720 KiB of swap remained free. The 2800x1586 X window is the tablet-sized
+exclusive-fullscreen surface; the game render resolution remains the saved
+1280x720 setting.
+
+Android scheduling also reproduced the earlier GTA IV measurement. One
+background compatibility registration took 199 seconds in `/cpuset/moderate`
+on CPUs 0-3. The full documented Termux activity intent moved the same live
+Steam process to `/cpuset/top-app` on CPUs 0-7, after which several registrations
+completed in 7-10 seconds. This reuses the foreground-component finding from
+Codex sessions `019fe348-1247-7530-bc25-8a573aaf4252` and
+`019ff310-e8ac-7212-9f2f-5ba9005b97bd`. The required `deja
+"CGenericAsyncFileIOThread AllocateResource errno 38 Disk write failure Steam
+FUSE fallocate"` query returned no indexed match, so the allocation result and
+guest-target correction are new measurements from this run.
+
+The same foreground boundary remained visible after launch: while Termux was
+top-app, `TombRaider.exe` was allowed on CPUs 0-7 and could be pinned to CPUs
+4-7; foregrounding Termux:X11 moved it back to `/cpuset/moderate` and CPUs 0-3.
+This is an Android component-scheduling constraint, not a game resolution
+setting, and remains a separate performance item for the benchmark runs.

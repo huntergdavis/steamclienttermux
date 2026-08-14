@@ -486,6 +486,15 @@ def load_layout(base, storage_root=Path("/storage")):
     return validate_layout(base, source, storage_root, payload["staging_binds"])
 
 
+def staging_mounts(paths):
+    """Return external staging sources and their Steam-visible guest targets."""
+    guest_downloads = paths["target"] / "steamapps" / "downloading"
+    return [
+        (staging["source"], guest_downloads / appid)
+        for appid, staging in paths["staging_binds"].items()
+    ]
+
+
 def enable_staging_bind(
     base,
     paths,
@@ -534,6 +543,25 @@ def enable_staging_bind(
     )
     loaded = load_layout(base, storage_root)
     return loaded["staging_binds"][appid], backup
+
+
+def disable_staging_bind(base, paths, appid, storage_root=Path("/storage")):
+    if not re.fullmatch(r"[1-9][0-9]{0,9}", appid):
+        raise RuntimeError(f"invalid staging App ID: {appid!r}")
+    payload = load_config_payload(paths["config"])
+    staging_binds = dict(payload["staging_binds"])
+    if appid not in staging_binds:
+        return None
+    del staging_binds[appid]
+    backup = write_config(
+        paths["config"],
+        config_bytes(paths["source"], staging_binds),
+        base / "backups",
+    )
+    loaded = load_layout(base, storage_root)
+    if appid in loaded["staging_binds"]:
+        raise RuntimeError(f"staging bind remained enabled for App ID {appid}")
+    return backup
 
 
 def parse_staging_manifest(path, expected_sha256, expected_files):
@@ -905,6 +933,8 @@ def build_parser():
     staging.add_argument("appid")
     staging.add_argument("--source-manifest", required=True)
     staging.add_argument("--target-manifest", required=True)
+    disable_staging = subparsers.add_parser("disable-staging-bind")
+    disable_staging.add_argument("appid")
     commit = subparsers.add_parser("commit-staging")
     commit.add_argument("appid")
     commit.add_argument("--install-dir", required=True)
@@ -948,8 +978,8 @@ def main():
             return 0
         if args.action == "staging-mount-info":
             if paths is not None:
-                for staging in paths["staging_binds"].values():
-                    print(f"{staging['source']}\t{staging['target']}")
+                for source, target in staging_mounts(paths):
+                    print(f"{source}\t{target}")
             return 0
         if args.action == "enable-staging-bind":
             if paths is None:
@@ -977,6 +1007,22 @@ def main():
                 f"manifest {staging['manifest_sha256']}"
             )
             if backup is not None:
+                print(f"Previous configuration backup: {backup}")
+            return 0
+        if args.action == "disable-staging-bind":
+            if paths is None:
+                raise RuntimeError("prepare the removable library before disabling staging")
+            running = find_running_processes()
+            if running:
+                details = ", ".join(f"{pid}:{comm}" for pid, comm in running)
+                raise RuntimeError(
+                    f"refusing to edit staging binds while processes are active: {details}"
+                )
+            backup = disable_staging_bind(base, paths, args.appid, storage_root)
+            if backup is None:
+                print(f"Removable staging bind already disabled for App ID {args.appid}")
+            else:
+                print(f"Disabled removable staging bind for App ID {args.appid}")
                 print(f"Previous configuration backup: {backup}")
             return 0
         if args.action == "commit-staging":

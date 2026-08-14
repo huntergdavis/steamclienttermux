@@ -27,26 +27,30 @@ Mesa Turnip, official Proton 11 ARM64, and its bundled FEX/DXVK stack.
   Proton/FEX and Turnip. Saved authentication survived full X/KDE/Steam
   recovery and repeated launches without another 2FA prompt. Interactive
   control after the opening mission transition is not yet verified.
+- Tomb Raider (2013) is installed on the microSD as the Windows depot set and
+  launches the real `TombRaider.exe` through Steam Linux Runtime 4 ARM64,
+  official Proton 11 ARM64, FEX, DXVK, and Turnip. Its launcher and first-run
+  renderer both work, and its built-in Normal profile is configured for
+  fullscreen 1280x720. Benchmark measurement is in progress.
 - Burnout remains experimental; its detailed EA, FEX, and DXVK investigation is
   kept in [`docs/TECHNICAL_LOG.md`](docs/TECHNICAL_LOG.md), not duplicated here.
 
-### Next controlled comparison: Sleeping Dogs
+### Current benchmark target: Tomb Raider (2013)
 
-Sleeping Dogs: Definitive Edition is the next planned control game; it has not
-yet been measured on this tablet. It avoids GTA IV's separate Rockstar launcher,
-targets a 4 GB minimum-memory PC, and includes a benchmark that reports minimum,
-maximum, and average FPS. That makes it a useful open-world comparison between
-GameHub and this Termux/Proton/FEX stack on the **same** Tab S8+ rather than
-extrapolating from newer Snapdragon devices. GameNative can be measured as a
-third path after the two-way baseline.
+Tomb Raider replaces the earlier planned Sleeping Dogs control for the first
+measurement. It avoids GTA IV's separate Rockstar launcher, has named graphics
+quality profiles and an integrated benchmark, and has now crossed the real
+Windows executable boundary on this exact Tab S8+. The first pass uses its
+Normal profile at fullscreen 1280x720; lower profiles can then separate CPU,
+GPU, and memory pressure without changing the game or translation stack.
 
-The fixed protocol is the same Steam build, fullscreen 1280x720, Low preset,
-VSync off, FPS limiter off, one warm-up pass, and three recorded benchmark
-passes. Alongside FPS, record peak memory, time to the main menu, launch success
-rate, and any Android UID eviction. See the game's
-[official benchmark instructions](https://www.feralinteractive.com/en/faqs/sleepingdogs/latest/steam/).
+The measurement protocol is one warm-up and three recorded passes per profile.
+Alongside the benchmark result, record peak memory, time to the main menu,
+launch success rate, and any Android whole-UID eviction.
 
 ![Kingsway running from the microSD through Proton ARM64 and FEX](docs/evidence/kingsway-running.png)
+
+![Tomb Raider Windows launcher running through Proton ARM64 and FEX](docs/evidence/tombraider-main-menu-2026-08-14.png)
 
 ## What changed
 
@@ -344,7 +348,23 @@ bin/steam-arm64-removable-library.py --base "$HOME/steam-arm64" \
 ```
 
 Patch-state files remain internal and lock-safe; only the verified numeric
-payload tree is overlaid, making the final commit a same-filesystem rename.
+payload tree is overlaid, making the final commit a same-filesystem rename. The
+per-App-ID overlay must target Steam's visible
+`removable-library/steamapps/downloading/<appid>` path. Targeting the internal
+backing directory does not transitively cover that earlier PRoot bind.
+
+Do not use this overlay to extend an incomplete download directly on Android
+portable storage. Steam's file allocator can return `ENOSYS`/disk-write failure
+on that FUSE path even though ordinary writes work. Complete active staging on
+internal F2FS, stop Steam, make and hash-verify the card copy, then enable the
+overlay only for commit—or use the offline native commit below. If an
+incomplete test enabled the overlay, disable it without touching either copy:
+
+```sh
+bin/steam-arm64-removable-library.py --base "$HOME/steam-arm64" \
+  disable-staging-bind 203160
+```
+
 If Steam's own commit still stalls on per-file PRoot metadata, stop Steam and
 run the manifest-gated native merge:
 
