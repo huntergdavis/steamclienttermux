@@ -3079,11 +3079,65 @@ reached `Went Online`: Rockstar transactions rose from 36.7 seconds to roughly
 180 seconds even though the service, Wine server, launcher, and CEF processes
 all remained alive. Expanding launcher/CEF affinity from CPUs 1-2 to every
 available moderate CPU (0-2) and closing the Steam UI recovered about 1 GiB of
-`MemAvailable`, but could not drain the existing service backlog. The launch
-must begin while Termux is the visible Android activity; foregrounding it only
-after those transactions accumulate is not a recovery mechanism.
+`MemAvailable`. Physically foregrounding Termux later drained most accumulated
+transactions from about 214 to 36 seconds, but one transaction remained blocked
+for more than 1,223 seconds and saved-login initialization still did not reach
+`Went Online`. The launch should begin while Termux is visible; foregrounding
+after a backlog forms can help but is not a dependable recovery mechanism.
 
 At the measurement point, nine Steam webhelpers held only about 85 MiB resident
 while four Rockstar CEF processes held about 765 MiB. This confirms two separate
 facts: Steam UI can be hidden after dispatch for useful headroom, but Rockstar
 CEF must not be terminated because it is part of the live launcher contract.
+
+### Action 10: repeat main-menu transition, loading I/O, and whole-app eviction
+
+Action 10 began with Termux physically in Android's `/top-app` group and kept
+the saved Rockstar prefix unchanged. The launcher completed `Auth ->
+MainWindow`, `Went Online`, cloud synchronization, and game dispatch without
+another 2FA prompt. `GTAIV.exe` PID 23488 appeared five seconds after the
+launcher requested the game, built a 57-thread process, and exposed the exact
+fullscreen X11 window `GTAIV`, class `steam_app_12210`, at 2800x1586. Captures
+showed the legal screen, title logo, and GTA IV/EFLC selector while
+`RockstarService.exe` remained alive.
+
+A fixed-coordinate Windows ARM64 PE was tested only after external validation
+of the exact title, PID, class, and geometry. Wine returned status 5, the X11
+cursor remained at the top-left corner, and the selector frame did not change,
+so that helper was rejected and is not retained. The focused selector already
+had GTA IV's Play choice highlighted. One XTest Return press/release sent with
+`xdotool` changed the next captured frame to the real GTA IV main menu; a second
+validated Return on the highlighted `Start` item entered the animated loading
+art. This repeat run therefore confirms that XTest keyboard input can reach
+this game state even though earlier synthetic mouse and key attempts were not
+accepted. Exact window validation and following-frame evidence remain required.
+
+The loader remained active at 57 threads and increased process read I/O from
+about 877 MiB to 1.39 GiB while cycling through distinct loading frames. Memory
+pressure, not a fixed launcher timeout, then became the limiting failure.
+Required Rockstar CEF could not be removed. Terminating only exact
+`steamwebhelper` processes temporarily raised free swap from 38 MiB to roughly
+530 MiB, but native Steam respawned nine helpers, recreated its UI, stole X11
+focus, and minimized GTA. Mapping and activating the exact GTA window restored
+the still-running loader each time. Closing Steam's UI through
+`WM_DELETE_WINDOW` did not prevent that respawn. A reversible `SIGSTOP` attempt
+on Steam core did not take effect through PRoot's ptrace supervision, so Steam
+core was never killed.
+
+Immediately before the final loss, `/proc/meminfo` reported only 96 KiB of free
+swap while GTA and Rockstar Service were alive and GTA's I/O was still
+advancing. Twenty seconds later port 8022 refused connections twice; runit's
+verified sshd supervision did not recover it. This is consistent with Android
+evicting the whole Termux UID under exhausted memory, beyond the reach of an
+in-app service supervisor. It is not evidence of the prior hypothesized
+`start-kde` timeout. The next run should reduce the persistent Steam UI memory
+contract before dispatch rather than repeatedly killing helpers after GTA has
+started.
+
+This run reused the authenticated-launch and CPU-affinity findings from Codex
+sessions `019ff310-e8ac-7212-9f2f-5ba9005b97bd` and
+`019fe348-1247-7530-bc25-8a573aaf4252`. The exact Nintendo Switch session
+`a1837cd4-ab7b-411b-a83f-6e900a7ed053` was recalled to check the remembered
+Steam-unload command; its recorded mechanism was direct `steam.pipe` launch,
+not unloading Steam. The required `deja` queries for the selector and
+`SIGSTOP` experiment returned no additional indexed matches.

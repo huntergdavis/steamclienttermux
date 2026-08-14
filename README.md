@@ -22,10 +22,10 @@ official Proton 11 ARM64, and its bundled FEX/DXVK stack.
   Kingsway runs fullscreen with audio through this split route.
 - GTA IV is installed on the microSD, completes Rockstar authentication and
   online presence, launches the real `GTAIV.exe`, passes the GTA IV/EFLC
-  selector, and renders the GTA IV main menu through official ARM Proton/FEX
-  and Turnip. Saved authentication survived a full X/KDE/Steam recovery and no
-  additional 2FA was required. Gameplay beyond the main menu is not yet
-  verified.
+  selector, renders the GTA IV main menu, and begins the animated loading-art
+  sequence through official ARM Proton/FEX and Turnip. Saved authentication
+  survived full X/KDE/Steam recovery and repeated launches without another 2FA
+  prompt. A completed playable scene is not yet verified.
 - Burnout remains experimental; its detailed EA, FEX, and DXVK investigation is
   kept in [`docs/TECHNICAL_LOG.md`](docs/TECHNICAL_LOG.md), not duplicated here.
 
@@ -106,15 +106,18 @@ main menu. The exact 2800x1586 composed frame shows `Start` selected, the GTA IV
 title art, and the connected Social Club panel. Gameplay beyond this menu is
 not yet claimed.
 
-The selector is now handled by the purpose-built Windows ARM64 helper in
+The repository retains a purpose-built Windows ARM64 selector helper in
 [`diagnostics/win-arm64-gtaiv-selector-play.c`](diagnostics/win-arm64-gtaiv-selector-play.c).
 It accepts only an exact visible `GTAIV` top-level window, rejects client areas
 smaller than 640x480, derives the GTA IV-side Play target from the current
 fullscreen dimensions, and injects one Win32 left click. This avoids Wine's
-unreliable cross-process `ClientToScreen` and `GetWindowRect` paths. The input
-side effect, the following frame, and the GTA process transition are the live
-success criteria: the separately attached ARM64 PE can still fault during Wine
-teardown after delivering its click. Build it reproducibly with
+unreliable cross-process `ClientToScreen` and `GetWindowRect` paths. It remains
+a diagnostic rather than a guaranteed launch step: in one repeat run the
+separately attached PE returned status 5 without moving the cursor or changing
+the frame. After revalidating the exact focused X11 window, one XTest Return
+press crossed the highlighted selector into the main menu and a second started
+the loading sequence. The following frame and GTA process transition—not a
+helper exit status—remain the live success criteria. Build the mouse helper with
 [`scripts/build-win-arm64-gtaiv-selector-play.sh`](scripts/build-win-arm64-gtaiv-selector-play.sh).
 
 Do not terminate Rockstar's CEF processes after GTA starts. A measured test
@@ -141,10 +144,12 @@ event was a launcher deadline rather than an Android process kill.
 A follow-up run started entirely in `/cpuset/moderate`: Rockstar service
 transactions climbed from 37 seconds to about 180 seconds and saved-login
 initialization never reached `Went Online`. Giving the launcher all available
-moderate cores and closing Steam's UI recovered roughly 1 GiB, but did not
-repair the already-backlogged service queue. Start the launch while Termux is
-the visible Android activity; moving it forward after the backlog forms is too
-late.
+moderate cores and closing Steam's UI recovered roughly 1 GiB. Physically
+foregrounding Termux later drained most queued transactions from about 214 to
+36 seconds, but one already-stalled transaction remained blocked for more than
+1,200 seconds and the launch still did not reach `Went Online`. Start the
+launch while Termux is the visible Android activity; late foregrounding is not
+a dependable recovery for an already-backlogged run.
 
 Before a long session, run `termux-wake-lock`. It prevents CPU sleep, but it
 does **not** move the UID out of the background cpuset. The installed
@@ -153,15 +158,10 @@ does **not** move the UID out of the background cpuset. The installed
 `exec startplasma-x11` keeps Plasma attached to the launching terminal. For a
 diagnostic launch, Termux can be brought forward during Rockstar's nonvisual
 initialization and Termux:X11 restored after the log reports `Social Club UI
-has started` and `Client is ready to attempt a launch`:
-
-```sh
-am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER \
-  -n com.termux/.app.TermuxActivity
-# Wait for the two launcher.log readiness markers above.
-am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER \
-  -n com.termux.x11/.MainActivity
-```
+has started` and `Client is ready to attempt a launch`. On the tested tablet,
+calling Android's activity manager from the Termux UID was rejected with a
+package/permission mismatch; the reliable operation was to tap Termux
+physically, then tap Termux:X11 after launch readiness.
 
 This foreground sequence is a measured diagnostic workaround, not yet a
 claimed fix for the separate whole-Termux process-tree loss described in the
@@ -193,7 +193,10 @@ fi
 A live test sent `TERM` to the supervised `sshd`; runit replaced it
 immediately and a fresh port-8022 connection succeeded. This handles an SSH
 daemon crash. It cannot restart Termux after Android force-stops the entire app
-or after a reboot; that requires an external launcher such as Termux:Boot.
+or evicts its UID under memory pressure, nor after a reboot; that requires an
+external launcher such as Termux:Boot. A GTA IV loading run exhausted zram to
+less than 100 KiB free and then made port 8022 refuse connections despite the
+supervisor, demonstrating this whole-app boundary.
 
 The internal executable view and the service-first batch are still an
 experimental, machine-specific setup. The wrapper validates their exact file
