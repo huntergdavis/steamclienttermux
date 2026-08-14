@@ -1,8 +1,8 @@
 # Steam ARM64 on Termux/X11
 
 Run Valve's conventional native ARM64 Linux Steam client on an **unrooted**
-Samsung Galaxy Tab S9+ using Termux, Debian PRoot, Termux:X11/KDE, Mesa Turnip,
-official Proton 11 ARM64, and its bundled FEX/DXVK stack.
+Samsung Galaxy Tab S8+ (SM-X808U) using Termux, Debian PRoot, Termux:X11/KDE,
+Mesa Turnip, official Proton 11 ARM64, and its bundled FEX/DXVK stack.
 
 ![GTA IV main menu running through Proton ARM64, FEX, DXVK, and Turnip](docs/evidence/gtaiv-main-menu-2026-08-13.png)
 
@@ -29,6 +29,22 @@ official Proton 11 ARM64, and its bundled FEX/DXVK stack.
   control after the opening mission transition is not yet verified.
 - Burnout remains experimental; its detailed EA, FEX, and DXVK investigation is
   kept in [`docs/TECHNICAL_LOG.md`](docs/TECHNICAL_LOG.md), not duplicated here.
+
+### Next controlled comparison: Sleeping Dogs
+
+Sleeping Dogs: Definitive Edition is the next planned control game; it has not
+yet been measured on this tablet. It avoids GTA IV's separate Rockstar launcher,
+targets a 4 GB minimum-memory PC, and includes a benchmark that reports minimum,
+maximum, and average FPS. That makes it a useful open-world comparison between
+GameHub and this Termux/Proton/FEX stack on the **same** Tab S8+ rather than
+extrapolating from newer Snapdragon devices. GameNative can be measured as a
+third path after the two-way baseline.
+
+The fixed protocol is the same Steam build, fullscreen 1280x720, Low preset,
+VSync off, FPS limiter off, one warm-up pass, and three recorded benchmark
+passes. Alongside FPS, record peak memory, time to the main menu, launch success
+rate, and any Android UID eviction. See the game's
+[official benchmark instructions](https://www.feralinteractive.com/en/faqs/sleepingdogs/latest/steam/).
 
 ![Kingsway running from the microSD through Proton ARM64 and FEX](docs/evidence/kingsway-running.png)
 
@@ -392,7 +408,8 @@ WineD3D state.
 
 ## Observed platform
 
-- Samsung Galaxy Tab S9+, Snapdragon 8 Gen 2 / Adreno 740
+- Samsung Galaxy Tab S8+ (SM-X808U / `gts8p`), Snapdragon 8 Gen 1 (SM8450) /
+  Adreno 730, with 7.12 GiB usable RAM and Android 16
 - Debian 13 under Termux PRoot
 - ARM64 Steam build `1785799196`
 - Mesa Turnip `26.2.0-devel (git-9452d1daec)`

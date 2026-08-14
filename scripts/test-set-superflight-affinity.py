@@ -64,10 +64,10 @@ def test_layout(module, temporary):
         else:
             add_cpu(sys_root, number, 805 if number < 7 else 1024, 2496000)
     layout = module.read_cpu_layout(sys_root)
-    module.validate_tab_s9_plus_layout(layout)
+    module.validate_tab_s8_plus_layout(layout)
     layout[4] = (200, 2496000)
     try:
-        module.validate_tab_s9_plus_layout(layout)
+        module.validate_tab_s8_plus_layout(layout)
     except RuntimeError as error:
         assert "higher-capacity cluster" in str(error)
     else:

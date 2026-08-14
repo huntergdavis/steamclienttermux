@@ -9,7 +9,7 @@ Linux. The decisive changes were robust-list syscall emulation and more complete
 SysV semaphore semantics, especially waking blocked `semop` callers when another
 process changes a semaphore.
 
-The graphics issue is separate: Turnip can accelerate Vulkan on Adreno 740, but
+The graphics issue is separate: Turnip can accelerate Vulkan on Adreno 730, but
 Steam's Chromium compositor did not interact correctly with Termux:X11. The
 working configuration deliberately splits those paths—software-rendered CEF for
 the Steam interface, private Turnip Vulkan for games.

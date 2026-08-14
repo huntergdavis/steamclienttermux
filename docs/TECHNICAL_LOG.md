@@ -3289,3 +3289,35 @@ session `a1837cd4-ab7b-411b-a83f-6e900a7ed053` to verify that the remembered
 mechanism was a direct `steam.pipe` launch, not unloading Steam. The required
 `deja` searches for the Action 15 compatibility timeout, memory signature, and
 Termux supervision produced no additional indexed match.
+
+### Hardware identity correction and next comparison
+
+Direct Android properties identify this tablet as model `SM-X808U`, device
+`gts8p`, and SoC `SM8450`: a Samsung Galaxy Tab S8+ with Snapdragon 8 Gen 1 and
+Adreno 730. Android reports 7.12 GiB of usable RAM and Android 16. Earlier
+references to a Galaxy Tab S9+, Snapdragon 8 Gen 2, or Adreno 740 came from an
+incorrect assumed device description and are not measurements from this
+hardware. Repository-facing descriptions and the Superflight affinity helper
+now use the measured identity. The generated Termux inventory independently
+records `SM-X808U` in `docs/inventory/termux-info.txt`. The companion
+2026-08-09 hunterdavis.com post was corrected to the same exact identity.
+
+Sleeping Dogs: Definitive Edition is the selected apples-to-apples control for
+the next phase, but no result is claimed yet. It removes GTA IV's Rockstar
+launcher/account overhead, has a 4 GB minimum-memory target, and exposes an
+integrated benchmark with minimum, maximum, and average FPS. The initial A/B is
+GameHub versus this repository's Termux/Proton/FEX path on this exact tablet;
+GameNative is an optional third path after that baseline.
+
+Both paths must use the same Steam build and fullscreen 1280x720 Low settings,
+with VSync and the FPS limiter disabled. Run one warm-up followed by three
+measured benchmark passes. Preserve each pass's minimum, maximum, and average
+FPS plus peak memory, time to main menu, successful launches per attempt, and
+any Android whole-UID eviction. Do not substitute results from Tab S9 or
+Snapdragon 8 Gen 2 devices for measurements on this tablet.
+
+The required `deja "Galaxy Tab S9"` recall found the earlier incorrect device
+assumption in Codex session `019fe348-1247-7530-bc25-8a573aaf4252`; searches for
+a prior same-device Sleeping Dogs/GameHub benchmark returned no match. The
+benchmark choice therefore records a plan to measure, not reused performance
+evidence.

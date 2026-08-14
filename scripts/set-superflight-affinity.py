@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Validate or apply the confirmed Tab S9+ Superflight CPU affinity."""
+"""Validate or apply the confirmed Tab S8+ Superflight CPU affinity."""
 
 import argparse
 from pathlib import Path
@@ -81,7 +81,7 @@ def read_cpu_layout(sys_cpu_root=Path("/sys/devices/system/cpu")):
     return layout
 
 
-def validate_tab_s9_plus_layout(layout):
+def validate_tab_s8_plus_layout(layout):
     if set(layout) != set(range(8)):
         raise RuntimeError(f"expected CPU IDs 0-7, found {sorted(layout)}")
     efficiency = [layout[cpu] for cpu in range(4)]
@@ -119,7 +119,7 @@ def main():
     args = build_parser().parse_args()
     try:
         layout = read_cpu_layout(Path(args.sys_cpu_root))
-        validate_tab_s9_plus_layout(layout)
+        validate_tab_s8_plus_layout(layout)
         matches = find_game_processes(Path(args.proc_root))
         if len(matches) != 1:
             raise RuntimeError(
