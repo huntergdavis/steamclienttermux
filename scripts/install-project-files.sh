@@ -80,6 +80,11 @@ trap - EXIT
 install_one "$repo_root/config/hosts-ipv4" "$base/config/hosts-ipv4" 600
 install_one "$repo_root/config/gtaiv-commandline-720p.txt" \
     "$base/gtaiv-exec-view-12210/commandline.txt" 600
+gtaiv_prefix="$base/removable-library-compatdata/12210/pfx"
+if [[ -d "$gtaiv_prefix/drive_c" ]]; then
+    install_one "$repo_root/config/gtaiv-service-first.cmd" \
+        "$gtaiv_prefix/drive_c/gtaiv-service-first.cmd" 600
+fi
 install_one "$repo_root/config/steam-arm64-compatibilitytools.vdf.in" "$base/config/steam-arm64-compatibilitytools.vdf.in" 600
 install_one "$repo_root/desktop/steam-arm.desktop" "$HOME/.local/share/applications/steam-arm.desktop" 600
 

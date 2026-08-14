@@ -90,8 +90,9 @@ The working checkpoint combines four narrowly scoped pieces:
   IV's executable files, overlays it at the normal game path, and keeps the
   large game-data directories on the microSD;
 - the initial `PlayGTAIV.exe` payload is changed to a service-first batch that
-  starts `Rockstar Service` before handing control back to the signed game
-  launcher;
+  attempts to start `Rockstar Service` before handing control back to the
+  signed game launcher; a nonzero service-control result is logged but does not
+  suppress `PlayGTAIV.exe`;
 - Wine's service startup timeout is raised to 60 seconds; and
 - only `SocialClubHelper.exe` receives Wine's builtin D3D11/DXGI renderer,
   leaving the game itself on its accelerated D3D9/Vulkan route.
@@ -104,6 +105,23 @@ without another 2FA prompt and then passed the selector into the real GTA IV
 main menu. The exact 2800x1586 composed frame shows `Start` selected, the GTA IV
 title art, and the connected Social Club panel. Gameplay beyond this menu is
 not yet claimed.
+
+The selector is now handled by the purpose-built Windows ARM64 helper in
+[`diagnostics/win-arm64-gtaiv-selector-play.c`](diagnostics/win-arm64-gtaiv-selector-play.c).
+It accepts only an exact visible `GTAIV` top-level window, rejects client areas
+smaller than 640x480, derives the GTA IV-side Play target from the current
+fullscreen dimensions, and injects one Win32 left click. This avoids Wine's
+unreliable cross-process `ClientToScreen` and `GetWindowRect` paths. The input
+side effect, the following frame, and the GTA process transition are the live
+success criteria: the separately attached ARM64 PE can still fault during Wine
+teardown after delivering its click. Build it reproducibly with
+[`scripts/build-win-arm64-gtaiv-selector-play.sh`](scripts/build-win-arm64-gtaiv-selector-play.sh).
+
+Do not terminate Rockstar's CEF processes after GTA starts. A measured test
+freed about 1.6 GiB of available RAM and 2.8 GiB of swap, but the launcher then
+reported `Browser unavailable`, forced its own shutdown after 14 seconds, and
+cleanly stopped GTA. The browser subprocesses are therefore part of the live
+launcher/game contract, not disposable UI once the title process exists.
 
 #### Keep the Android session alive and scheduled
 
@@ -119,6 +137,14 @@ start completed its network downloads but spent 61-152 seconds in background
 service transactions and reached Code 17 almost exactly five minutes after the
 launcher began. KDE, Steam, Wine, and Rockstar were all still alive, so that
 event was a launcher deadline rather than an Android process kill.
+
+A follow-up run started entirely in `/cpuset/moderate`: Rockstar service
+transactions climbed from 37 seconds to about 180 seconds and saved-login
+initialization never reached `Went Online`. Giving the launcher all available
+moderate cores and closing Steam's UI recovered roughly 1 GiB, but did not
+repair the already-backlogged service queue. Start the launch while Termux is
+the visible Android activity; moving it forward after the backlog forms is too
+late.
 
 Before a long session, run `termux-wake-lock`. It prevents CPU sleep, but it
 does **not** move the UID out of the background cpuset. The installed
@@ -140,6 +166,34 @@ am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER \
 This foreground sequence is a measured diagnostic workaround, not yet a
 claimed fix for the separate whole-Termux process-tree loss described in the
 technical log.
+
+#### Keep SSH supervised
+
+With `termux-services` and OpenSSH installed, enable the runit service once:
+
+```sh
+sv-enable sshd
+```
+
+The tested tablet also keeps this idempotent fallback in its interactive
+`~/.bashrc`, so opening Termux restores the service supervisor if needed and
+always asks runit to bring SSH up:
+
+```sh
+if [[ $- == *i* ]] && [[ -n ${PREFIX:-} ]]; then
+    export SVDIR="${PREFIX}/var/service"
+    export LOGDIR="${PREFIX}/var/log"
+    if ! pgrep -f "^${PREFIX}/bin/runsvdir ${SVDIR}$" >/dev/null 2>&1; then
+        (service-daemon start >/dev/null 2>&1 &)
+    fi
+    sv up "${SVDIR}/sshd" >/dev/null 2>&1 || true
+fi
+```
+
+A live test sent `TERM` to the supervised `sshd`; runit replaced it
+immediately and a fresh port-8022 connection succeeded. This handles an SSH
+daemon crash. It cannot restart Termux after Android force-stops the entire app
+or after a reboot; that requires an external launcher such as Termux:Boot.
 
 The internal executable view and the service-first batch are still an
 experimental, machine-specific setup. The wrapper validates their exact file

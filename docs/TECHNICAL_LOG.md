@@ -3011,3 +3011,79 @@ This investigation reused the foreground-component command and prior
 `019fe348-1247-7530-bc25-8a573aaf4252`. The required `deja "start-kde"` and
 `deja "Termux foreground cpuset"` searches found that session; no timeout-pin
 implementation was reused because the installed script has no such mechanism.
+
+### Fullscreen 720p launch, selector click, and CEF lifetime
+
+A later clean run preserved both Steam and Rockstar authentication and used the
+plain `-width 1280` / `-height 720` profile with Wine virtual desktop disabled.
+The game still exposed a display-sized X11 window because fullscreen scaling is
+handled by the presentation path; the internal render profile was not reverted
+to the native 2800-pixel desktop size. After Termux:X11 returned to the Android
+foreground, GTA grew from 25 to 38 threads and produced its first non-black
+frame.
+
+The new `win-arm64-gtaiv-selector-play.exe` requires the exact visible `GTAIV`
+window and a fullscreen display of at least 640x480, calculates the retained
+left Play target as 28 percent across and 79 percent down the current screen,
+and sends one Win32 mouse click. Earlier rectangle-based revisions were not
+reliable: Wine could reject both `ClientToScreen` and `GetWindowRect`, and the
+separately attached ARM64 PE could finish with an access violation after its
+input side effect. The implementation therefore avoids cross-process rectangle
+queries, and validation uses the following frame and process transition rather
+than the Wine loader's teardown status. GTA rendered its legal screen and title
+logo with 43-52 threads after the input path was exercised. Privacy-safe
+captures are retained as
+`docs/evidence/gtaiv-fullscreen-legal-2026-08-13.png` and
+`docs/evidence/gtaiv-fullscreen-logo-2026-08-13.png`.
+
+The same run established an important negative result for memory tuning. At
+peak pressure, GTA was alive with 57 threads while four Rockstar CEF processes
+held about 2.2 GiB of swap. Sending normal `TERM` only to those four exact,
+App-12210-validated CEF processes raised `MemAvailable` from roughly 0.9 to
+2.5 GiB and free swap from 0.33 to 3.16 GiB. The launcher immediately began
+reporting `Browser unavailable`, forced shutdown 14 seconds later, and then
+reported GTA's exit code zero as a clean shutdown. Rockstar CEF must therefore
+remain alive for this launch path; unloading it is not a safe memory fix.
+
+This run reused the saved-login preservation and service/launcher CPU split
+from Codex sessions `019ff310-e8ac-7212-9f2f-5ba9005b97bd` and
+`019fe348-1247-7530-bc25-8a573aaf4252`. The required `deja "RockstarService
+CPU6"` query returned no newly indexed match, so the retained session evidence
+and new live measurements above were used directly.
+
+### Supervised SSH recovery
+
+The installed runit tree was already active, but `$PREFIX/var/service/sshd/down`
+kept SSH outside supervision. `sv-enable sshd` removed that marker, and an
+interactive `~/.bashrc` guard now starts `service-daemon` only when the exact
+`runsvdir $PREFIX/var/service` process is absent, then calls `sv up` for the
+SSH service. Killing the supervised listener with `TERM` caused an immediate
+runit replacement and a new port-8022 connection succeeded. This protects an
+ongoing diagnostic session from an `sshd` daemon exit; without Termux:Boot it
+does not resurrect the whole Termux app after an Android force-stop or reboot.
+
+### Foreground launch timing and the Rockstar transaction backlog
+
+Action 8 kept Termux in Android's `top-app` group and preserved the saved
+Rockstar login. `RockstarService`, the launcher, and GTA all started; GTA
+reached the logo and selector while the service remained alive. Delaying the
+selector input during diagnostics nevertheless let launcher service work queue
+for 64-128 seconds. By the time the GTA IV Play choice was accepted, Social
+Club initialization failed and the launcher later classified GTA's exit as a
+clean shutdown. This separates the visible selector success from the online
+service deadline.
+
+Action 9 supplied the selector input helper in advance but began while the
+Termux UID was already in `/cpuset/moderate`. Saved-login initialization never
+reached `Went Online`: Rockstar transactions rose from 36.7 seconds to roughly
+180 seconds even though the service, Wine server, launcher, and CEF processes
+all remained alive. Expanding launcher/CEF affinity from CPUs 1-2 to every
+available moderate CPU (0-2) and closing the Steam UI recovered about 1 GiB of
+`MemAvailable`, but could not drain the existing service backlog. The launch
+must begin while Termux is the visible Android activity; foregrounding it only
+after those transactions accumulate is not a recovery mechanism.
+
+At the measurement point, nine Steam webhelpers held only about 85 MiB resident
+while four Rockstar CEF processes held about 765 MiB. This confirms two separate
+facts: Steam UI can be hidden after dispatch for useful headroom, but Rockstar
+CEF must not be terminated because it is part of the live launcher contract.
