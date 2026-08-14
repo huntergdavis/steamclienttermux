@@ -3230,3 +3230,62 @@ validated `runsv sshd` supervisor. Runit replaced listener PID 4034 with PID
 both succeeded. This verifies daemon-crash recovery and removes the startup
 race. It still cannot resurrect an Android-evicted Termux app until an external
 event opens Termux.
+
+### Action 15: repeat launch, all-thread affinity, and foreground eviction
+
+The first cold launch after the SSH fix used only Termux:X11, KWin, PulseAudio,
+and native Steam; Plasma shell and its background services remained absent.
+Steam reused its cached login without another password or 2FA prompt. Its
+compatibility-manager scan completed in about six minutes, after which App
+12210 entered Pressure Vessel, Wine started, and Rockstar's service and
+launcher completed their HTTP requests. Rockstar restored the saved account,
+reported `Went Online`, synchronized cloud saves, and launched the real
+`GTAIV.exe` with the installed 1280x720 command-line profile.
+
+This run corrected an affinity detail hidden by earlier process-leader samples.
+Plain `taskset -pc` changes only the selected task; already-created worker
+threads can retain their old masks. Reapplying the known split with
+`taskset -apc` verified every live thread: all 9 Rockstar Service threads used
+CPU 6, all 57 launcher threads used CPUs 4-5, all 24 initial GTA threads used
+CPUs 4-5, Steam UI stayed on CPUs 0-3, and the outer PRoot tracer used CPU 7.
+After a Termux `top-app` burst, GTA moved from its long 24-thread black-window
+plateau to 37 threads. A short X11 interval advanced it to 45 threads and
+rendered the GTA IV title logo; the next top-app burst reached the full
+57-thread state.
+
+The exact focused `GTAIV` / `steam_app_12210` window then rendered the normal
+GTA IV/EFLC selector with GTA IV highlighted. The first untargeted XTest Return
+did not change the captured frame and was not counted as accepted. Reasserting
+the exact active window and sending one more untargeted Return changed the next
+frame to GTA IV loading art. While Termux remained foregrounded, GTA continued
+reading data; two consecutive 15-second samples advanced by about 181 MiB and
+109 MiB. Later X11 checks showed distinct loading-art frames, so the game was
+not hung.
+
+Steam UI pressure was again independently reclaimable. Before GTA dispatch,
+one exact Steam-only `steamwebhelper --type=zygote` held about 428 MiB and a
+normal `TERM` returned about 429 MiB of swap without affecting Steam core or
+Rockstar. A respawned exact Steam zygote later held about 421 MiB; terminating
+only that validated process returned another 272 MiB while GTA continued.
+Rockstar CEF was never touched.
+
+The remaining failure again occurred at the Android process-importance
+boundary. Immediately before the last visual check, GTA was alive with 57
+threads and advancing reads, while `/proc/meminfo` still showed about 1.0 GiB
+`MemAvailable` and 1.45 GiB free swap. After Termux:X11 was brought forward to
+display another loading frame, the command to restore the Termux activity lost
+its SSH connection. A second connection was refused while the tablet continued
+answering ICMP. Because the verified runit listener did not return, Android had
+evicted the entire Termux UID rather than only `sshd`; neither Linux RAM nor
+zram had reached zero. This repeat narrows the active blocker to Android
+background-app retention under combined GTA, Rockstar CEF, and Steam UI
+pressure. The authenticated Steam/Rockstar path, 720p game configuration,
+renderer, selector, and input path are all repeatable.
+
+The run reused the saved-authentication, Android foreground-component, and CPU
+split findings from Codex sessions `019ff310-e8ac-7212-9f2f-5ba9005b97bd` and
+`019fe348-1247-7530-bc25-8a573aaf4252`. It also reused the Nintendo Switch
+session `a1837cd4-ab7b-411b-a83f-6e900a7ed053` to verify that the remembered
+mechanism was a direct `steam.pipe` launch, not unloading Steam. The required
+`deja` searches for the Action 15 compatibility timeout, memory signature, and
+Termux supervision produced no additional indexed match.
