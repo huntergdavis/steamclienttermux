@@ -71,6 +71,12 @@ PRoot tracer and 31%-CPU wineserver were still free to contend with game work
 on the fast cores. Because several scheduling changes were applied together,
 the report does not assign the gain to one component.
 
+The first `STEAM_ARM64_FEX_PROFILE=safe` series is in progress under the same
+scheduling state. Its user-read warm-up reported 18.0/30.9/25.5 FPS, and the
+first captured clean pass reported 17.7/30.8/25.7 FPS. Both ran at the same
+1.325/1.613 GHz CPU policy ceilings as the bundled-FEX scheduling baseline.
+Two more clean passes are required before interpreting the profile.
+
 The measurement protocol is one warm-up and three recorded passes per profile.
 Alongside the benchmark result, record peak memory, time to the main menu,
 launch success rate, and any Android whole-UID eviction.

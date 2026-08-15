@@ -3671,3 +3671,55 @@ The device was hotter at 57-60 C than after the 24 FPS pass and had 2,187,340
 KiB available RAM. This further rules out a simple hotter-device or lower-free-
 memory explanation for the middle run. The complete set is now the bundled-
 FEX scheduling baseline; the next controlled variable is FEX `safe`.
+
+## 2026-08-15: FEX safe profile startup and first clean pass
+
+Steam shut down through its own forwarded `-shutdown` action one second after
+Tomb Raider exited. Project files were installed backup-first at
+`repo-install-20260815-074634`, and Steam restarted with
+`STEAM_ARM64_FEX_PROFILE=safe`. The stored login automatically reached
+`Loading user data` and then the authenticated client; no credential or 2FA
+entry was required.
+
+The real Steam environment contained the complete safe profile: 5000-
+instruction blocks, full L1/L2 caches, no sampling stats, reduced x87
+precision, multiblock, and TSO/half-barrier TSO retained. The real
+`TombRaider.exe` inherited the same values, and Proton generated
+`TSOEnabled=1` plus `Multiblock=1` in the per-game FEX JSON.
+
+Steam spent about 6.5 minutes rebuilding the compatibility registry and
+deliberately delayed App 203160 callbacks after its 60-second post-login wait
+expired. Repeated `steam://rungameid/203160` forwards created no app session,
+including after the registry completed. `-applaunch 203160` immediately
+created the expected tracked Steam Linux Runtime 4 ARM64 / Proton 11 ARM64
+session. This launch behavior extends, rather than silently contradicts, the
+earlier direct-URI workflow recalled from the August 11 Codex session.
+
+The startup cpuset transiently removed one performance CPU at a time from
+`sched_setaffinity`, and the guard refused the reduced masks. Once Android
+moved the workload into `top-app`, CPUs 1-7 became available. The renderer
+later reached 56 threads; three late DXVK/game threads reset to CPUs 0-7 and
+were caught by the verification pass. Reapplying at the stable 56-thread state
+left 55 threads on CPUs 1-7 and `Raknet-RecvFrom` on CPU 1.
+
+The safe warm-up reported **18.0/30.9/25.5 FPS**, read by the user. Its window
+capture was black and the root retry reached the menu, so no result screenshot
+is claimed. One late `dxvk-cache` thread was found on CPUs 0-7 afterward; it
+was restored before the measured series.
+
+Safe Clean 1 then reported **17.7 FPS minimum, 30.8 FPS maximum, and 25.7 FPS
+average**, captured in `tombraider-fex-safe-run1-2026-08-15.png`. All masks
+verified afterward. CPU policy maxima were the baseline-matching 1,324,800 kHz
+for CPUs 4-6 and 1,612,800 kHz for CPU 7. Available RAM was 2,275,692 KiB and
+free swap 5,052,556 KiB. The first clean average is 10.5% below the bundled-FEX
+scheduling mean, but the profile remains open until two more clean passes.
+
+The tablet reports SM-X808U, Android 16, and One UI 8, with Samsung Gaming Hub,
+Game Booster, Game Optimizing Service, and the SM8450 game-driver package
+installed. The required `deja "Samsung Tab S8 Plus Game Booster performance
+mode thermal CPU GPU"` search found no prior-session result. Samsung's current
+official guidance supports manually adding apps and selecting Game
+optimisation → Performance, with increased heat/power as the tradeoff. Because
+the renderer uses Termux's UID while Termux:X11 is the visible package, both
+must be added and the outcome measured as a separate post-safe profile rather
+than assumed.

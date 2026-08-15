@@ -44,6 +44,9 @@ These screenshots capture milestones and failures from the original tablet.
 - `tombraider-affinity-1-7-run3-2026-08-15.png`: the captured third result for
   the CPUs 1-7/RakNet CPU 1/Steam-helper CPU 0 profile, visibly reporting
   21.0 FPS minimum, 39.8 maximum, and 31.1 average.
+- `tombraider-fex-safe-run1-2026-08-15.png`: the first clean result for the FEX
+  `safe` profile under the same scheduling state, visibly reporting 17.7 FPS
+  minimum, 30.8 maximum, and 25.7 average.
 - `burnout-after-install-confirm.png`: Burnout installation confirmation.
 - `steam-relaunched-installed.png`: client relaunched with completed installs.
 - `2026-08-08-live-debugging-compat-timeout.png`: live debugging session with

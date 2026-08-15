@@ -139,6 +139,66 @@ mask, wineserver used 31% with a CPUs 1-7 mask, and both ended the sample on
 CPU 4 alongside game work. This is a plausible contention mechanism, not yet
 proven causality; the first pass did not capture their processor placement.
 
+## FEX `safe` profile
+
+The `safe` session was launched with `MaxInst=5000`, full JIT caches, and FEX
+sampling disabled while retaining TSO and half-barrier TSO. Every setting was
+verified in the real game environment. Proton's generated per-game JSON
+contained `TSOEnabled=1` and `Multiblock=1`, agreeing with the environment.
+
+| Pass | Minimum | Maximum | Average |
+|---|---:|---:|---:|
+| Warm-up | 18.0 | 30.9 | 25.5 |
+| Clean 1 | **17.7** | **30.8** | **25.7** |
+
+The warm-up values were read directly by the user; its exclusive-window
+capture was black and the root capture reached the menu after the dialog had
+closed. Clean 1 is preserved as
+[`tombraider-fex-safe-run1-2026-08-15.png`](evidence/tombraider-fex-safe-run1-2026-08-15.png).
+No screenshot or profiler ran in either timed scene.
+
+Before and after Clean 1, all 56 threads verified on CPUs 1-7 except
+`Raknet-RecvFrom` on CPU 1, all Steam web helpers used CPU 0, and Termux:X11
+used CPUs 0-3. CPU policy maxima were 1.325 GHz for CPUs 4-6 and 1.613 GHz for
+CPU 7, exactly matching the scheduling-baseline ceiling. Available RAM after
+the pass was 2,275,692 KiB and free swap was 5,052,556 KiB.
+
+Clean 1 is 10.5% below the bundled-FEX scheduling mean of 28.7 FPS and 17.1%
+below its 31.0 FPS median. One clean pass is not enough to accept or reject the
+profile; two more unchanged passes remain.
+
+The clean restart also exposed two launch details. Steam ignored repeated
+`steam://rungameid/203160` actions while rebuilding and even after completing
+its compatibility registry, whereas `-applaunch 203160` immediately created
+the tracked ARM64 Runtime/Proton session. During renderer startup, three late
+threads reset themselves to CPUs 0-7; the guarded helper caught them, and a
+second application at the stable 56-thread state remained verified.
+
+## Samsung Game Booster candidate
+
+The measured tablet is an SM-X808U on Android 16 / One UI 8. Its installed
+Samsung stack includes Gaming Hub, Game Booster, Game Optimizing Service, and
+the SM8450 Samsung game-driver package. The Windows renderer runs under
+Termux's Android UID while Termux:X11 is the visible Android package, so Game
+Booster might not classify this as a game automatically.
+
+Samsung documents manually adding apps through **Gaming Hub → My games → More
+→ Add games**. The controlled candidate is to add both Termux and Termux:X11,
+then select **Gaming Hub → More → Game Booster → Game optimisation →
+Performance**. Per-game resolution must remain at 100% and Frame Booster off,
+because this project already controls the 1280x720 surface and the built-in
+benchmark must not include synthetic frames. Samsung also documents Pause USB
+PD charging for the Tab S8 series; when a suitable charger is connected, it
+can avoid adding battery-charging heat during a run.
+
+Performance mode is not enabled during the FEX `safe` set. It will be a
+separate A/B profile because Samsung warns that it can increase heat and power
+use, and because recognition of this split Termux/Termux:X11 workload remains
+to be proven:
+[Samsung Game Booster guide](https://www.samsung.com/us/support/answer/ANS10002536/),
+[manual app-add guide](https://www.samsung.com/ca/support/apps-services/how-to-add-and-remove-apps-in-the-gaming-hub-app/),
+and [current Game Booster layout](https://www.samsung.com/latin/support/apps-services/updates-to-game-booster-settings-and-features-on-the-samsung-galaxy-devices/).
+
 ## What the percentage difference means
 
 The closest built-in benchmark recording found during this research used
