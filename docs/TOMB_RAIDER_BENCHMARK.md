@@ -74,6 +74,50 @@ the `Turnip Adreno (TM) 730` DX11 adapter. The repository therefore records
 the exact X root and window but does not claim an internally logged swapchain
 extent.
 
+## CPU-affinity/RakNet diagnostic pass
+
+On 2026-08-15, the first live scheduling pass reported the following values,
+read directly by the user from Tomb Raider's result dialog:
+
+| Pass | Minimum | Maximum | Average |
+|---|---:|---:|---:|
+| CPUs 1-7 + RakNet CPU 1 | **23** | **41** | **31** |
+
+The game remained at exact 1280x720, Low, and V-Sync off. A post-pass audit
+found 56 game threads: 55 allowed on CPUs 1-7 and the continuously runnable
+`Raknet-RecvFrom` thread allowed only on CPU 1. Nine Steam web-helper processes
+were confined to CPU 0, while Termux:X11 retained the CPUs 0-3 mask used by the
+earlier passes. This was a combined scheduling change, so the result does not
+yet separate the benefit of the wider game mask, RakNet isolation, and Steam
+helper isolation.
+
+The per-game FEX JSON still contained an empty `Config` object, and the active
+global Proton configuration still used `ProfileStats=1`, `MaxInst=500`, TSO
+and half-barrier TSO on, and multiblock on. No `safe` or `fast` launcher-profile
+variables were present in the game environment. This result therefore belongs
+to the bundled Proton FEX profile, not to the later translator tuning.
+
+Relative to the three-pass 8.0/16.63/13.7 clean mean, the diagnostic pass
+improved minimum by 187.5%, maximum by 146.5%, and average by 126.3%; average
+throughput was **2.26x** as high. The non-matching Snapdragon 8+ Gen 1 Turnip
+comparison's 63 FPS average is now 2.03x this pass rather than 4.60x the clean
+baseline, but it remains an upper comparison with unverified settings and a
+different SoC.
+
+The game had already returned to its main menu before capture. The retained
+[`post-pass menu frame`](evidence/tombraider-affinity-1-7-menu-2026-08-15.png)
+is evidence of the live 1280x720 game state, not a result screenshot. At the
+post-pass audit, 2,063,264 KiB RAM and 4,575,800 KiB swap remained available;
+the game itself used about 264-275 MiB resident and 363 MiB swapped. CPU policy
+maxima were still only 1.325 GHz on CPUs 4-6 and 1.613 GHz on CPU 7, versus
+2.496 and 2.995 GHz hardware maxima. KGSL exposed the full 818 MHz GPU maximum,
+reported thermal power level zero, and was about 16.6% busy in the menu sample.
+
+This is one diagnostic result, not a replacement three-pass mean. The next two
+passes must run in the identical live state with no profiler or screenshot in
+the timed scene. If they replicate, the resulting three-pass set becomes the
+scheduling baseline for one-variable FEX `safe` and then `fast` comparisons.
+
 ## What the percentage difference means
 
 The closest built-in benchmark recording found during this research used
@@ -182,8 +226,8 @@ staying at 100%. The comparison visibly uses v1.01.748.0; our installed PE is
 dated September 2022 and reaches the disabled online-service path, but its
 exact semantic version has not been extracted. A live, reversible isolation
 placed the game on CPUs 1-7 and that thread alone on CPU 1, preventing it from
-occupying the 2.995 GHz prime core. This state has not yet produced a built-in
-benchmark and is not reported as an FPS improvement.
+occupying the 2.995 GHz prime core. That state subsequently produced the
+23/41/31 FPS pass recorded above, together with the Steam-helper isolation.
 
 Proton's bundled FEX `Config.json` explicitly uses `MaxInst=500`, TSO and half-
 barrier TSO on, and `ProfileStats=1`; unset upstream defaults disable the JIT
@@ -199,18 +243,21 @@ multithreaded applications, so the two profiles must be tested separately:
 
 Continue to use one warm-up plus three recorded passes per profile:
 
-1. Reject thermally capped starts, then benchmark the recording-matched CPUs
-   1-7 state against the existing 4-7 baseline. Keep the RakNet isolation as a
-   separately identified sub-variant.
+1. Run two more clean passes in the exact 31 FPS state: CPUs 1-7, RakNet receive
+   thread on CPU 1, Steam web helpers on CPU 0, and bundled Proton FEX. Reject
+   starts whose policy maxima differ materially, and do not sample the timed
+   scene.
 2. Benchmark `STEAM_ARM64_FEX_PROFILE=safe`, then `fast`, changing no graphics,
    affinity, or presentation variable between them.
-3. Measure a launch-only session with KDE/Plasma and nonessential Steam CEF
+3. Separate the scheduling changes only after replication: first remove RakNet
+   isolation, then restore Steam helper scheduling, one variable per set.
+4. Measure a launch-only session with KDE/Plasma and nonessential Steam CEF
    processes absent. `SIGSTOP` is not a solution under PRoot: it leaves traced
    helpers accumulating CPU time even though `kill` succeeds.
-4. Back up Termux and evaluate the official integrated Termux:X11 build for the
+5. Back up Termux and evaluate the official integrated Termux:X11 build for the
    Samsung foreground-cpuset fix. Do not replace the live app without a
    recovery plan.
-5. Then compare a controlled translator or driver change. Do not infer a
+6. Then compare a controlled translator or driver change. Do not infer a
    benefit merely from version numbers.
 
 The required `deja "Snapdragon 8 Gen 1 Adreno 730 Tomb Raider GameHub

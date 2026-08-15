@@ -3595,3 +3595,44 @@ process-affinity and failed traced-`SIGSTOP` interpretation reuses the retained
 foreground work from Codex sessions `019fe348-1247-7530-bc25-8a573aaf4252`
 and `019ff310-e8ac-7212-9f2f-5ba9005b97bd`; the direct game launch continues
 to reuse the August 11 `steam://rungameid/<appid>` route.
+
+## 2026-08-15: first 31 FPS Tomb Raider scheduling pass
+
+The first built-in benchmark after the live CPU scheduling changes reported
+**23 FPS minimum, 41 FPS maximum, and 31 FPS average**, read directly by the
+user. The result dialog had returned to the menu before capture, so
+`tombraider-affinity-1-7-menu-2026-08-15.png` is explicitly retained as a
+post-pass 1280x720 menu frame rather than mislabeled as a result screenshot.
+
+The immediate post-pass audit froze the state that produced the result:
+
+- `TombRaider.exe` had 56 threads and a CPUs 1-7 process mask;
+- 55 threads retained CPUs 1-7, while `Raknet-RecvFrom` alone used CPU 1;
+- the second `Raknet-UpdateNe` thread retained CPUs 1-7;
+- nine `steamwebhelper` processes used CPU 0 and Termux:X11 retained CPUs 0-3;
+- the game environment exposed only the Proton FEX app-config locations, with
+  no opt-in `safe` or `fast` environment values;
+- the generated per-game FEX JSON was `{ "Config": {}, "ThunksDB": {} }`;
+  Proton's active global FEX JSON therefore still supplied `ProfileStats=1`,
+  `MaxInst=500`, TSO/half-barrier TSO on, and multiblock on; and
+- 2,063,264 KiB RAM and 4,575,800 KiB swap remained available. The game used
+  264-275 MiB RSS and 371,352 KiB swap in the two adjacent reads.
+
+CPU policy maxima remained 1,324,800 kHz on CPUs 4-6 and 1,612,800 kHz on CPU
+7, far below hardware maxima of 2,496,000 and 2,995,200 kHz. The GPU exposed
+its full 818 MHz maximum, reported `thermal_pwrlevel=0`, and its cumulative busy
+counters corresponded to about 16.6% at the menu. The large result therefore
+did not come from recovered peak CPU policy clocks.
+
+Against the exact-X/V-Sync-off clean mean, minimum rose 187.5%, maximum 146.5%,
+and average 126.3%; the 31 FPS average is 2.26x the earlier 13.7 FPS. Because
+the wider game mask, RakNet isolation, and Steam-helper isolation changed
+together, causality is not yet assigned to one component. Two more clean runs
+in this identical state are required before testing FEX `safe`, FEX `fast`, or
+removing one scheduling change at a time.
+
+The required `deja "31 FPS Tomb Raider Raknet CPU affinity"` search had no
+match. A broader `deja "Tomb Raider benchmark"` search recovered Codex session
+`019ff310-e8ac-7212-9f2f-5ba9005b97bd`; this pass reuses that session's real
+built-in-benchmark workflow and the already documented live-affinity method,
+while all numerical results and process state above were measured in this run.

@@ -34,7 +34,12 @@ Mesa Turnip, official Proton 11 ARM64, and its bundled FEX/DXVK stack.
   5.8 minimum, 18.0 maximum, and 13.6 average FPS. A follow-up used a real
   1280x720 Termux:X11 root, V-Sync off, one warm-up, and three clean passes.
   The clean mean was 8.0 minimum, 16.63 maximum, and 13.7 average FPS, so the
-  lower X surface did not materially improve average throughput. See the
+  lower X surface did not materially improve average throughput. A first
+  live-tuned CPU pass then reached **23 minimum, 41 maximum, and 31 average
+  FPS** with the game on CPUs 1-7, its continuously runnable
+  `Raknet-RecvFrom` thread isolated to CPU 1, and Steam web helpers on CPU 0.
+  That single diagnostic pass is 2.26x the clean baseline average; it still
+  needs two clean repetitions before being treated as a stable mean. See the
   [comparison and next-pass protocol](docs/TOMB_RAIDER_BENCHMARK.md).
 - Burnout remains experimental; its detailed EA, FEX, and DXVK investigation is
   kept in [`docs/TECHNICAL_LOG.md`](docs/TECHNICAL_LOG.md), not duplicated here.
@@ -54,6 +59,15 @@ variables changed together, it does not isolate their individual effects, but
 it rules out the earlier hypothesis that merely shrinking the 4.8186-times-
 larger native X surface would multiply game throughput.
 
+The first combined scheduling pass changed the game mask to CPUs 1-7, pinned
+only the busy `Raknet-RecvFrom` thread to CPU 1, and moved Steam CEF helpers to
+CPU 0. It produced 23/41/31 FPS while still using Proton's unmodified bundled
+FEX profile. This raises average throughput by 126.3% over the 13.7 FPS clean
+mean. Because several scheduling changes were applied together and this is
+only one user-read pass, the next action is replication in the identical live
+state before separating the affinity variables or enabling the new FEX
+profiles.
+
 The measurement protocol is one warm-up and three recorded passes per profile.
 Alongside the benchmark result, record peak memory, time to the main menu,
 launch success rate, and any Android whole-UID eviction.
@@ -63,6 +77,8 @@ launch success rate, and any Android whole-UID eviction.
 ![Tomb Raider Windows launcher running through Proton ARM64 and FEX](docs/evidence/tombraider-main-menu-2026-08-14.png)
 
 ![Tomb Raider exact-720p V-Sync-off benchmark result](docs/evidence/tombraider-exact720-vsync-off-run3-2026-08-14.png)
+
+![Tomb Raider 720p menu after the 31 FPS scheduling pass](docs/evidence/tombraider-affinity-1-7-menu-2026-08-15.png)
 
 ## What changed
 

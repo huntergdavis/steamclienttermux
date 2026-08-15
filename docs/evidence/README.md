@@ -37,6 +37,10 @@ These screenshots capture milestones and failures from the original tablet.
   dialogs for the combined exact-X/V-Sync-off profile: 9.6/16.9/13.8,
   5.6/16.3/13.5, and 8.8/16.7/13.8 FPS. No sampler or screenshot ran during
   these timed scenes.
+- `tombraider-affinity-1-7-menu-2026-08-15.png`: the 1280x720 game menu
+  captured immediately after the user-read 23/41/31 FPS scheduling pass. The
+  game had already dismissed its result dialog, so this is post-pass state
+  evidence and is deliberately not labeled as a result screenshot.
 - `burnout-after-install-confirm.png`: Burnout installation confirmation.
 - `steam-relaunched-installed.png`: client relaunched with completed installs.
 - `2026-08-08-live-debugging-compat-timeout.png`: live debugging session with
