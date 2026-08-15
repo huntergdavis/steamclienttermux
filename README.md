@@ -38,9 +38,10 @@ Mesa Turnip, official Proton 11 ARM64, and its bundled FEX/DXVK stack.
   live-tuned CPU pass then reached **23 minimum, 41 maximum, and 31 average
   FPS** with the game on CPUs 1-7, its continuously runnable
   `Raknet-RecvFrom` thread isolated to CPU 1, and Steam web helpers on CPU 0.
-  That single diagnostic pass is 2.26x the clean baseline average; it still
-  needs two clean repetitions before being treated as a stable mean. See the
-  [comparison and next-pass protocol](docs/TOMB_RAIDER_BENCHMARK.md).
+  That diagnostic pass was 2.26x the clean baseline average. A second pass in
+  the same requested state reported 11/28/24 FPS; the two-pass average is now
+  27.5 FPS, 2.01x baseline, but the spread requires another unchanged run. See
+  the [comparison and next-pass protocol](docs/TOMB_RAIDER_BENCHMARK.md).
 - Burnout remains experimental; its detailed EA, FEX, and DXVK investigation is
   kept in [`docs/TECHNICAL_LOG.md`](docs/TECHNICAL_LOG.md), not duplicated here.
 
@@ -63,10 +64,12 @@ The first combined scheduling pass changed the game mask to CPUs 1-7, pinned
 only the busy `Raknet-RecvFrom` thread to CPU 1, and moved Steam CEF helpers to
 CPU 0. It produced 23/41/31 FPS while still using Proton's unmodified bundled
 FEX profile. This raises average throughput by 126.3% over the 13.7 FPS clean
-mean. Because several scheduling changes were applied together and this is
-only one user-read pass, the next action is replication in the identical live
+mean. Because several scheduling changes were applied together, the next
+action is replication in the identical live
 state before separating the affinity variables or enabling the new FEX
-profiles.
+profiles. The second pass reached 11/28/24 FPS. Its lower result exposed an
+uncontrolled scheduling variable: the 63.5%-CPU PRoot tracer and 31%-CPU
+wineserver were still free to contend with game work on the fast cores.
 
 The measurement protocol is one warm-up and three recorded passes per profile.
 Alongside the benchmark result, record peak memory, time to the main menu,

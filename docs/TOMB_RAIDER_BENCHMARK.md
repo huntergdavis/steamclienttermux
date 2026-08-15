@@ -81,7 +81,9 @@ read directly by the user from Tomb Raider's result dialog:
 
 | Pass | Minimum | Maximum | Average |
 |---|---:|---:|---:|
-| CPUs 1-7 + RakNet CPU 1 | **23** | **41** | **31** |
+| Scheduling pass 1 | **23** | **41** | **31** |
+| Scheduling pass 2 | **11** | **28** | **24** |
+| **Two-pass mean** | **17** | **34.5** | **27.5** |
 
 The game remained at exact 1280x720, Low, and V-Sync off. A post-pass audit
 found 56 game threads: 55 allowed on CPUs 1-7 and the continuously runnable
@@ -113,10 +115,22 @@ maxima were still only 1.325 GHz on CPUs 4-6 and 1.613 GHz on CPU 7, versus
 2.496 and 2.995 GHz hardware maxima. KGSL exposed the full 818 MHz GPU maximum,
 reported thermal power level zero, and was about 16.6% busy in the menu sample.
 
-This is one diagnostic result, not a replacement three-pass mean. The next two
-passes must run in the identical live state with no profiler or screenshot in
-the timed scene. If they replicate, the resulting three-pass set becomes the
-scheduling baseline for one-variable FEX `safe` and then `fast` comparisons.
+The first value was one diagnostic result, not a replacement three-pass mean.
+Two repetitions were therefore requested in the identical live state with no
+profiler or screenshot in the timed scene. The first repetition reported
+11/28/24 FPS.
+That is still 1.75x the 13.7 FPS clean baseline average, but it is 22.6% below
+the first scheduling pass. The two tuned passes average 17/34.5/27.5 FPS;
+average throughput is 2.01x baseline. One more unchanged pass is required to
+quantify variance before this becomes the scheduling baseline for one-variable
+FEX `safe` and then `fast` comparisons.
+
+The post-second-pass masks, CPU policy limits, X11 affinity, and Steam-helper
+affinity were unchanged. A two-second menu profile exposed a remaining source
+of scheduler variance: the outer PRoot tracer used 63.5% CPU with a CPUs 0-7
+mask, wineserver used 31% with a CPUs 1-7 mask, and both ended the sample on
+CPU 4 alongside game work. This is a plausible contention mechanism, not yet
+proven causality; the first pass did not capture their processor placement.
 
 ## What the percentage difference means
 
@@ -243,7 +257,7 @@ multithreaded applications, so the two profiles must be tested separately:
 
 Continue to use one warm-up plus three recorded passes per profile:
 
-1. Run two more clean passes in the exact 31 FPS state: CPUs 1-7, RakNet receive
+1. Run one more clean pass in the original tuned state: CPUs 1-7, RakNet receive
    thread on CPU 1, Steam web helpers on CPU 0, and bundled Proton FEX. Reject
    starts whose policy maxima differ materially, and do not sample the timed
    scene.

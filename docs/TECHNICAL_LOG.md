@@ -3636,3 +3636,21 @@ match. A broader `deja "Tomb Raider benchmark"` search recovered Codex session
 `019ff310-e8ac-7212-9f2f-5ba9005b97bd`; this pass reuses that session's real
 built-in-benchmark workflow and the already documented live-affinity method,
 while all numerical results and process state above were measured in this run.
+
+The first unchanged repetition then reported **11 FPS minimum, 28 FPS maximum,
+and 24 FPS average**. Its game-thread masks, X11 CPUs 0-3 mask, nine CPU-0
+Steam-helper masks, CPU policy ceilings, and Proton-default FEX state all
+matched the first pass. It was cooler at roughly 52-54 C and had 2,212,152 KiB
+available RAM, so neither a lost requested mask, hotter sensors, nor lower
+available memory explains the regression.
+
+The two tuned passes now average 17/34.5/27.5 FPS. Their mean average is 2.01x
+the earlier 13.7 FPS clean baseline, but the 31-to-24 spread proves the combined
+state is not yet repeatable. A menu-only two-second profile found a concrete
+uncontrolled scheduler input: the outer PRoot tracer consumed 63.5% CPU with
+CPUs 0-7 allowed, wineserver consumed 31% with CPUs 1-7 allowed, and both were
+last observed on CPU 4 beside game work. The game itself consumed 213%, with
+`Raknet-RecvFrom` accounting for 99% on its isolated CPU 1. This placement is a
+plausible explanation for variance but remains a hypothesis because equivalent
+processor-placement data was not captured after the 31 FPS pass. One more
+unchanged run precedes any explicit PRoot/wineserver partition.
