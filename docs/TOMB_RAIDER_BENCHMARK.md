@@ -121,6 +121,15 @@ fullscreen on, and motion blur and screen effects off. Sampled gameplay frames
 showed the on-screen counter between 35.9 and 62.7 FPS:
 [primary same-chip recording](https://www.youtube.com/watch?v=LN5PWI8DcR4&t=73s).
 
+Frame-by-frame inspection of the recording's setup section adds important
+details. It uses current game build **v1.01.748.0**, CPUs **1-7** with CPU 0
+excluded, FEX TSO mode `Fastest`, x87 mode `Fast`, multiblock enabled,
+`Aggressive (Stop services on startup)`, and DXVK 2.4.1 ARM64EC GPLAsync with
+async/cache enabled. The matching Ludashi preset table maps its performance
+mode to TSO and half-barrier TSO off, reduced x87 precision on, and multiblock
+on; its exposed defaults use `MaxInst=5000` and full JIT caches:
+[Ludashi source-analysis table](https://github.com/The412Banner/Ludashi-plus/blob/3.0/LUDASHI_3.0_MASTER_REPORT.md#t-box64--fexcore-named-presets).
+
 That is instantaneous gameplay, not the built-in benchmark, so comparing it
 directly with the 13.7 FPS clean mean would overstate precision. The important
 result is not a precise percentage; it is that the same silicon has
@@ -156,20 +165,51 @@ FEXCore 2508 same-chip recording, and the private Turnip is Mesa 26.2-devel.
 That makes controlled CPU and translation comparisons higher priority than
 another presentation-only change.
 
+## Live bottleneck profile
+
+A bounded three-second `/proc` profile at the real game menu found the game at
+215-233% CPU, PRoot at 60-65%, wineserver at 31-33%, and Steam/CEF at roughly
+another full core. GPU busy was only 12-16%. The tablet was also thermally
+limited: CPUs 4-6 were capped at 1.325 GHz versus a 2.496 GHz hardware maximum,
+CPU 7 at 1.613 versus 2.995 GHz, and the GPU at 492 versus 818 MHz. The new
+profiler records both policy and hardware limits so a throttled pass can be
+rejected before interpreting FPS.
+
+One `Raknet-RecvFrom` thread remained runnable in every sample and consumed
+98-100% of one core without sleeping or being observed in a syscall. Reports
+from the v1.01.748.0 online-services update independently describe the first
+core staying at 100%; the comparison uses that same game build, so the payload
+version alone is not the full gap. A live, reversible isolation placed the
+game on CPUs 1-7 and that thread alone on CPU 1, preventing it from occupying
+the 2.995 GHz prime core. This state has not yet produced a built-in benchmark
+and is not reported as an FPS improvement.
+
+Proton's bundled FEX `Config.json` explicitly uses `MaxInst=500`, TSO and half-
+barrier TSO on, and `ProfileStats=1`; unset upstream defaults disable the JIT
+L2 cache and dynamically shrink L1. The comparison ecosystem exposes
+`MaxInst=5000`, full caches, and a TSO-off performance mode. The production
+launcher therefore provides `STEAM_ARM64_FEX_PROFILE=safe` for the block/cache/
+sampler changes with TSO retained, and `fast` for the comparison-matched TSO-
+off state. FEX upstream explicitly warns that disabling TSO is likely to break
+multithreaded applications, so the two profiles must be tested separately:
+[official FEX configuration definitions](https://github.com/FEX-Emu/FEX/blob/main/FEXCore/Source/Interface/Config/Config.json.in).
+
 ## Next controlled passes
 
 Continue to use one warm-up plus three recorded passes per profile:
 
-1. Compare the present game-on-4-7/X11-on-0-3 split against a deliberate
-   all-core game control. The current affinity is informed but not yet
-   benchmarked against an all-core run for Tomb Raider.
-2. Measure a launch-only session with KDE/Plasma and nonessential Steam CEF
-   processes absent. Preserve Steam authentication and first verify that the
-   client can close without terminating the game.
-3. Back up Termux and evaluate the official integrated Termux:X11 build for the
+1. Reject thermally capped starts, then benchmark the recording-matched CPUs
+   1-7 state against the existing 4-7 baseline. Keep the RakNet isolation as a
+   separately identified sub-variant.
+2. Benchmark `STEAM_ARM64_FEX_PROFILE=safe`, then `fast`, changing no graphics,
+   affinity, or presentation variable between them.
+3. Measure a launch-only session with KDE/Plasma and nonessential Steam CEF
+   processes absent. `SIGSTOP` is not a solution under PRoot: it leaves traced
+   helpers accumulating CPU time even though `kill` succeeds.
+4. Back up Termux and evaluate the official integrated Termux:X11 build for the
    Samsung foreground-cpuset fix. Do not replace the live app without a
    recovery plan.
-4. Then compare a controlled translator or driver change. Do not infer a
+5. Then compare a controlled translator or driver change. Do not infer a
    benefit merely from version numbers.
 
 The required `deja "Snapdragon 8 Gen 1 Adreno 730 Tomb Raider GameHub

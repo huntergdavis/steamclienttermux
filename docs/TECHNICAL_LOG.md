@@ -3517,3 +3517,80 @@ URL launch reused the established `steam://rungameid/<appid>` route from the
 2026-08-11 Codex session, while the foreground/affinity interpretation reuses
 Codex sessions `019fe348-1247-7530-bc25-8a573aaf4252` and
 `019ff310-e8ac-7212-9f2f-5ba9005b97bd`.
+
+## 2026-08-14: Tomb Raider translator and thermal profile
+
+The exact-X result ruled out presentation size, so the next investigation used
+bounded read-only `/proc` and KGSL snapshots at the real v1.01.748.0 game menu.
+Linux process-name discovery required scanning `/proc/[0-9]*/status`: exact
+`pgrep -x` returned false negatives for both `TombRaider.exe` and several
+`steamwebhelper` processes under this Android/PRoot process view. The new
+profiler parses `/proc/*/stat` after its closing parenthesis, validates process
+start ticks against PID reuse, samples twice for three seconds, and records no
+command lines, account data, or continuous stream.
+
+The profile showed a CPU-side bottleneck:
+
+- `TombRaider.exe`: 215-233% CPU across 56 threads;
+- outer PRoot tracer: 60-65%;
+- wineserver: 31-33%;
+- Steam core plus CEF: roughly another full CPU core;
+- Termux:X11: 8-11%; and
+- KGSL GPU busy: only 12-16%.
+
+Python was not in this hot path. The short-lived `proton` Python launcher had
+already handed control to Pressure Vessel/Wine/FEX; the live game translation
+is the bundled C++/assembly FEX unixlib, the graphics path is translated 32-bit
+x86 DXVK plus native Wine Vulkan/Turnip, and the compatibility boundary is the
+C PRoot tracer. Rewriting session/configuration Python cannot produce a frame-
+rate-order improvement.
+
+The device was simultaneously in a severe thermal policy state. CPUs 4-6 were
+capped at 1,324,800 kHz versus their 2,496,000 kHz hardware maximum, CPU 7 at
+1,612,800 versus 2,995,200 kHz, and Adreno at 492 MHz versus its available
+818 MHz state. KGSL reported `thermal_pwrlevel=6`; the hottest readable CPU
+sensors were 59-62 C. Attempts to cool by sending `SIGSTOP` were rejected as
+measurements: PRoot left traced CEF tasks in lowercase `t` tracing-stop state
+while their CPU ticks continued to advance. This reproduces the earlier GTA IV
+finding that a successful `kill(2)` return does not prove a traced Steam task
+stopped. No benchmark should be interpreted until policy maxima recover.
+
+One game thread, `Raknet-RecvFrom`, remained runnable in all 20 syscall samples,
+reported `wchan=0`, and consumed 98-100% of one core. The current Tomb Raider
+online-services update has independent reports of the first core staying at
+100%. The exact comparison recording visibly uses the same v1.01.748.0 build,
+so this is an optimization target but not a different-payload explanation.
+A reversible live experiment widened all game threads from CPUs 4-7 to 1-7,
+matching the comparison, and then confined only `Raknet-RecvFrom` to CPU 1.
+All 56 masks and the Android `/foreground-boost` cgroup were verified. Steam
+core was placed on 0-3, nine validated CEF processes on CPU 0, and wineserver/
+explorer on 1-7; the game remained live. No built-in result is yet attributed
+to that state.
+
+Frame extraction from the primary same-chip recording established its exact
+visible profile: Snapdragon 8 Gen 1, 1280x720, current game v1.01.748.0, Turnip
+26.0 R1, DXVK 2.4.1 ARM64EC GPLAsync with async/cache enabled, FEX 2508, TSO
+`Fastest`, x87 `Fast`, multiblock, aggressive service shutdown, and CPUs 1-7.
+The recording's menu/startup overlay was already about 45-60 FPS:
+<https://www.youtube.com/watch?v=LN5PWI8DcR4>.
+
+The installed Proton 11.0-2-rc5 global FEX configuration instead sets
+`ProfileStats=1`, `MaxInst=500`, TSO and half-barrier TSO on, and multiblock on.
+Unset upstream defaults disable FEX's JIT L2 lookup and dynamically size L1 to
+save memory. The comparison ecosystem exposes `MaxInst=5000`, full caches, and
+a performance preset with TSO/half-barrier TSO off. `bin/steam-arm` therefore
+gained opt-in `safe` and `fast` profiles. `safe` changes the block/cache/sampler
+choices while retaining TSO; `fast` adds the recording-matched memory-order
+settings. It also supplies `STEAM_FEX_TSOENABLED` and
+`STEAM_FEX_MULTIBLOCK`, so Proton's generated per-game FEX JSON records the
+same TSO/multiblock choice rather than relying only on environment precedence.
+Upstream's own option definition says disabling TSO is highly likely to break
+multithreaded applications, so clean `safe` runs must precede `fast`:
+<https://github.com/FEX-Emu/FEX/blob/main/FEXCore/Source/Interface/Config/Config.json.in>.
+
+The required `deja "FEX Python process performance profiling DXVK Turnip Tomb
+Raider Termux"` and topology queries returned no indexed match. The exact
+process-affinity and failed traced-`SIGSTOP` interpretation reuses the retained
+foreground work from Codex sessions `019fe348-1247-7530-bc25-8a573aaf4252`
+and `019ff310-e8ac-7212-9f2f-5ba9005b97bd`; the direct game launch continues
+to reuse the August 11 `steam://rungameid/<appid>` route.

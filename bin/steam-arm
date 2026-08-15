@@ -179,6 +179,55 @@ case "$dxvk_info_mode" in
         exit 1
         ;;
 esac
+fex_profile="${STEAM_ARM64_FEX_PROFILE:-proton}"
+fex_profile_env=()
+case "$fex_profile" in
+    proton)
+        ;;
+    safe|fast)
+        # Proton's bundled FEX configuration limits translated blocks to 500
+        # instructions, disables the JIT L2 cache, dynamically shrinks L1, and
+        # enables sampling statistics.  The safe profile changes only those
+        # throughput/cache choices while retaining x86 TSO semantics.
+        fex_profile_env+=(
+            FEX_MAXINST=5000
+            FEX_PROFILESTATS=0
+            FEX_DISABLEL2CACHE=0
+            FEX_DYNAMICL1CACHE=0
+            FEX_X87REDUCEDPRECISION=1
+            FEX_MULTIBLOCK=1
+            FEX_VECTORTSOENABLED=0
+            FEX_MEMCPYSETTSOENABLED=0
+            FEX_SMALLTSCSCALE=1
+            FEX_SMC_CHECKS=mtrack
+            FEX_VOLATILEMETADATA=1
+            FEX_MONOHACKS=1
+            FEX_HIDEHYPERVISORBIT=0
+            STEAM_FEX_MULTIBLOCK=1
+        )
+        if [[ "$fex_profile" == fast ]]; then
+            # This matches the aggressive FEX memory-order profile shown in
+            # the same-chip Winlator comparison. Upstream warns that removing
+            # TSO can break multithreaded programs, so it remains explicit.
+            fex_profile_env+=(
+                FEX_TSOENABLED=0
+                FEX_HALFBARRIERTSOENABLED=0
+                STEAM_FEX_TSOENABLED=0
+            )
+        else
+            fex_profile_env+=(
+                FEX_TSOENABLED=1
+                FEX_HALFBARRIERTSOENABLED=1
+                STEAM_FEX_TSOENABLED=1
+            )
+        fi
+        ;;
+    *)
+        printf 'STEAM_ARM64_FEX_PROFILE must be proton, safe, or fast; got: %s\n' \
+            "$fex_profile" >&2
+        exit 1
+        ;;
+esac
 # PRoot's crash tracer is intentionally opt-in. FEX uses handled SIGBUS traps
 # for unaligned guest atomics during normal execution; logging each stop fetches
 # registers and scans procfs, flooding the Steam log and magnifying hot loops.
@@ -287,6 +336,12 @@ if [[ -n "$dxvk_log_dir" ]]; then
     pd_args+=(--env DXVK_LOG_LEVEL=info)
     pd_args+=(--env "DXVK_LOG_PATH=$dxvk_log_dir")
     printf 'DXVK info log directory: %s\n' "$dxvk_log_dir"
+fi
+for fex_assignment in "${fex_profile_env[@]}"; do
+    pd_args+=(--env "$fex_assignment")
+done
+if [[ "$fex_profile" != proton ]]; then
+    printf 'FEX performance profile: %s\n' "$fex_profile"
 fi
 if [[ -n "${PROOT_SYSVIPC_LOG:-}" ]]; then
     pd_args+=(--env "PROOT_SYSVIPC_LOG=$PROOT_SYSVIPC_LOG")

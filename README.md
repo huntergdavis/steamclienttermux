@@ -138,6 +138,24 @@ game and its log directory was accessible, but this Proton payload emitted no
 DXVK log file. The report therefore does not claim an internally reported
 swapchain extent.
 
+The first post-benchmark profile found a CPU/translation bottleneck rather than
+a saturated GPU. At the live main menu, the game used about 2.2-2.3 CPU cores,
+the outer PRoot tracer about 0.6, Steam/CEF about another core, and the GPU only
+12-16 percent. A continuously runnable `Raknet-RecvFrom` thread consumed one
+whole core; this matches historical reports of the current v1.01.748.0 online-
+services build using the first core continuously. The comparison recording is
+also v1.01.748.0, so an older game payload does not explain its higher FPS.
+
+The same-chip recording visibly uses CPUs 1-7, FEX TSO mode `Fastest`, x87 mode
+`Fast`, multiblock, and `Aggressive (Stop services on startup)`. In contrast,
+Proton's bundled FEX configuration uses TSO, a 500-instruction block limit,
+memory-saving JIT cache defaults, and sampling statistics. The launcher now
+offers two opt-in, reversible profiles: `safe` keeps TSO while using 5000-
+instruction blocks, full JIT caches, and no sampler; `fast` additionally
+matches the recording's TSO-off/half-barrier-off profile. Upstream warns that
+disabling TSO can break multithreaded programs, so `fast` must be validated
+after `safe`, not treated as a default.
+
 ### Reached GTA IV's first mission
 
 GTA IV now passes the Rockstar boundary that previously ended at CEF Code 17.
@@ -364,10 +382,37 @@ scripts/configure-termux-x11-resolution.sh --set-720p
 scripts/configure-termux-x11-resolution.sh --check
 ```
 
+After the real game process starts, apply the recording-matched CPUs 1-7 mask.
+The RakNet isolation is a separate experimental variant and must not be mixed
+into the plain affinity A/B result:
+
+```sh
+scripts/set-tombraider-affinity.py
+scripts/set-tombraider-affinity.py --check
+scripts/set-tombraider-affinity.py --raknet-cpu1
+scripts/set-tombraider-affinity.py --raknet-cpu1 --check
+```
+
 For one initialization-only DXVK diagnostic session:
 
 ```sh
 STEAM_ARM64_DXVK_INFO=1 ~/bin/steam-arm -noshaders
+```
+
+For the controlled FEX passes, restart Steam with one named profile and verify
+the effective variables in the game process before recording results:
+
+```sh
+STEAM_ARM64_FEX_PROFILE=safe ~/bin/steam-arm -noshaders
+STEAM_ARM64_FEX_PROFILE=fast ~/bin/steam-arm -noshaders
+```
+
+Omitting `STEAM_ARM64_FEX_PROFILE` restores Proton's bundled behavior. Use the
+bounded profiler only for an explicitly excluded diagnostic pass; clean built-
+in benchmark passes run without it:
+
+```sh
+scripts/profile-live-game.py --seconds 3
 ```
 
 Restore the tablet-native X root with:
