@@ -3738,3 +3738,12 @@ Termux activity to remain visible/foreground over Termux:X11 during a clean
 benchmark. Another Android window can change scheduling for the complete
 Termux UID process tree even though taskset masks appear correct again after
 return. Safe Clean 2 must be repeated without any Android window switch.
+
+The uninterrupted Safe Clean 2 replacement reported **19.2 FPS minimum, 31.1
+FPS maximum, and 25.8 FPS average**, captured as
+`tombraider-fex-safe-run2-2026-08-15.png`. Afterward the game remained in
+`/top-app`, all 56 masks verified, CPU policy ceilings stayed at
+1,324,800/1,612,800 kHz, 2,433,084 KiB RAM remained available, and 5,088,304
+KiB swap remained free. Clean 1 and 2 average 18.45/30.95/25.75 FPS. Their
+average results differ by only 0.1 FPS and the two-run mean is 10.3% below the
+bundled-FEX scheduling mean. One final unchanged Safe pass remains.

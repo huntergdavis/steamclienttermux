@@ -151,6 +151,8 @@ contained `TSOEnabled=1` and `Multiblock=1`, agreeing with the environment.
 | Warm-up | 18.0 | 30.9 | 25.5 |
 | Clean 1 | **17.7** | **30.8** | **25.7** |
 | Window switch, excluded | 5.9 | 30.1 | 23.7 |
+| Clean 2 | **19.2** | **31.1** | **25.8** |
+| **Two-clean mean** | **18.45** | **30.95** | **25.75** |
 
 The warm-up values were read directly by the user; its exclusive-window
 capture was black and the root capture reached the menu after the dialog had
@@ -165,8 +167,15 @@ CPU 7, exactly matching the scheduling-baseline ceiling. Available RAM after
 the pass was 2,275,692 KiB and free swap was 5,052,556 KiB.
 
 Clean 1 is 10.5% below the bundled-FEX scheduling mean of 28.7 FPS and 17.1%
-below its 31.0 FPS median. One clean pass is not enough to accept or reject the
-profile; two more unchanged passes remain.
+below its 31.0 FPS median. At that checkpoint, one clean pass was not enough to
+accept or reject the profile, so two more unchanged passes remained.
+
+The uninterrupted replacement Clean 2 reported 19.2/31.1/25.8 FPS and is
+preserved as
+[`tombraider-fex-safe-run2-2026-08-15.png`](evidence/tombraider-fex-safe-run2-2026-08-15.png).
+The two valid clean averages are tightly grouped at 25.7 and 25.8 FPS, with a
+25.75 FPS mean. That is 10.3% below the bundled-FEX scheduling mean. One final
+clean pass remains before accepting the full profile result.
 
 The attempted second clean pass included a user-reported switch to another
 Android window and returned 5.9/30.1/23.7 FPS. It is retained as

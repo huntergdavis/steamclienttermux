@@ -50,6 +50,9 @@ These screenshots capture milestones and failures from the original tablet.
 - `tombraider-fex-safe-window-switch-excluded-2026-08-15.png`: the captured
   5.9/30.1/23.7 FPS safe-profile pass during which the user briefly switched
   to another Android window. It is preserved but excluded from the clean mean.
+- `tombraider-fex-safe-run2-2026-08-15.png`: the uninterrupted replacement
+  Safe Clean 2 result, visibly reporting 19.2 FPS minimum, 31.1 maximum, and
+  25.8 average.
 - `burnout-after-install-confirm.png`: Burnout installation confirmation.
 - `steam-relaunched-installed.png`: client relaunched with completed installs.
 - `2026-08-08-live-debugging-compat-timeout.png`: live debugging session with
