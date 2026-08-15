@@ -3453,3 +3453,67 @@ record the actual DXVK swapchain before changing translator or driver versions.
 The official Termux:X11 integrated Termux build is also a candidate for the
 documented Samsung OneUI cpuset issue, subject to a full Termux backup and
 recovery plan.
+
+## 2026-08-14: exact-X/V-Sync-off Tomb Raider follow-up
+
+The stopped prefix contained exactly one Crystal Dynamics graphics section.
+Every measured Low-profile DWORD already matched 1280x720 fullscreen except
+`VSyncMode=1`. The new backup-first configurator changed only that DWORD to
+zero, created a byte-verified `user.reg` backup, installed atomically, and then
+passed its idempotent `--check`. Its tests cover malformed or duplicate
+sections/values, atomic backup and replacement, symlink refusal, idempotence,
+and active Wine/FEX/game refusal.
+
+RandR accepted a synthetic 1280x720 modeline but rejected activating its CRTC,
+leaving the desktop safely at 2800x1586. The installed official
+`termux-x11-preference` tool then exposed the supported route. Setting
+`displayResolutionMode:exact` and `displayResolutionExact:1280x720` changed
+the live root and `builtin` output to 1280x720 at 119.86 Hz without restarting
+X, KDE, Steam, or SSH. The reversible repository helper validates the current
+preference state and RandR geometry, and can restore native mode.
+
+The Steam launcher gained opt-in `STEAM_ARM64_DXVK_INFO=1`. It creates a
+private per-session directory and passes only `DXVK_LOG_LEVEL=info` and
+`DXVK_LOG_PATH`; it does not enable a HUD or continuous logger. Both variables
+reached the real `TombRaider.exe`, and the directory was accessible from the
+game mount namespace. No DXVK file was emitted. Process maps still showed the
+prefix `d3d11.dll`/`dxgi.dll`, Wine Vulkan, private Turnip Vulkan driver, and
+the game log identified `Turnip Adreno (TM) 730`, DX11, and feature level 11.
+Because there is no internally reported swapchain extent, the report claims
+only the measured 1280x720 X root and 1280x720 AppID window.
+
+The exact-root launch also exposed a repeatable input detail. Tomb Raider's
+`Start Benchmark` row is skipped by keyboard navigation, and quick XTest
+clicks frequently only move selection. A validated white Start row followed by
+a deliberate 300 ms mouse press activated it. Menu animation changes the
+mouse hit-test offset between returns, so every synthetic activation was
+visually verified before clicking. Result-dialog screenshots were taken only
+after the timed scene. One activation-check pass that was captured about five
+seconds into the scene reported 3.6/16.5/12.9 FPS and was explicitly excluded.
+
+The combined exact-X/V-Sync-off profile produced:
+
+| Pass | Minimum | Maximum | Average |
+|---|---:|---:|---:|
+| Warm-up | 8.9 | 16.2 | 13.6 |
+| Clean 1 | 9.6 | 16.9 | 13.8 |
+| Clean 2 | 5.6 | 16.3 | 13.5 |
+| Clean 3 | 8.8 | 16.7 | 13.8 |
+| Clean mean | 8.0 | 16.63 | 13.7 |
+| Clean median | 8.8 | 16.7 | 13.8 |
+
+Before each clean run, every one of 56 game threads was verified on CPUs 4-7
+and the 12-thread X server remained on CPUs 0-3. No continuous sampler or
+timed-scene screenshot ran. Mean average FPS improved only 0.7% from the 13.6
+baseline; mean minimum improved 37.9%, while mean maximum fell 7.6%. Both
+presentation variables changed together, so their individual effects are not
+isolated. The material conclusion is that shrinking the live X surface from
+2800x1586 to 1280x720 did not multiply game throughput; the earlier 4.8186x
+pixel-ratio scaling hypothesis is disproven by this A/B result.
+
+The required `deja "Tomb Raider VSyncMode 1280x720 Termux X11 exact resolution
+DXVK swapchain benchmark"` search returned no indexed match. The direct Steam
+URL launch reused the established `steam://rungameid/<appid>` route from the
+2026-08-11 Codex session, while the foreground/affinity interpretation reuses
+Codex sessions `019fe348-1247-7530-bc25-8a573aaf4252` and
+`019ff310-e8ac-7212-9f2f-5ba9005b97bd`.

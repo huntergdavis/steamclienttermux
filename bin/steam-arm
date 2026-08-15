@@ -164,6 +164,21 @@ python3 "$session_guard" preflight \
 
 display="${DISPLAY:-:0}"
 log="$(python3 "$session_guard" create-log --logs-dir "$base/logs")"
+dxvk_info_mode="${STEAM_ARM64_DXVK_INFO:-0}"
+dxvk_log_dir=""
+case "$dxvk_info_mode" in
+    0)
+        ;;
+    1)
+        dxvk_log_dir="$base/logs/dxvk-$(date +%Y%m%d-%H%M%S)-$$"
+        mkdir -m 700 -- "$dxvk_log_dir"
+        ;;
+    *)
+        printf 'STEAM_ARM64_DXVK_INFO must be 0 or 1, got: %s\n' \
+            "$dxvk_info_mode" >&2
+        exit 1
+        ;;
+esac
 # PRoot's crash tracer is intentionally opt-in. FEX uses handled SIGBUS traps
 # for unaligned guest atomics during normal execution; logging each stop fetches
 # registers and scans procfs, flooding the Steam log and magnifying hot loops.
@@ -265,6 +280,14 @@ if [[ "$removable_mount" != disabled ]]; then
         "$removable_source" "$removable_target"
 fi
 pd_args+=(--env "DBUS_SESSION_BUS_ADDRESS=$dbus_address")
+if [[ -n "$dxvk_log_dir" ]]; then
+    # DXVK info output is initialization-only and session-scoped. It records
+    # the actual swapchain properties without enabling a per-frame HUD or
+    # continuous performance logger.
+    pd_args+=(--env DXVK_LOG_LEVEL=info)
+    pd_args+=(--env "DXVK_LOG_PATH=$dxvk_log_dir")
+    printf 'DXVK info log directory: %s\n' "$dxvk_log_dir"
+fi
 if [[ -n "${PROOT_SYSVIPC_LOG:-}" ]]; then
     pd_args+=(--env "PROOT_SYSVIPC_LOG=$PROOT_SYSVIPC_LOG")
 fi

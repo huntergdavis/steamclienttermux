@@ -29,6 +29,51 @@ This was the first benchmark pass after first launch, not a warmed three-pass
 sample. At the completed result, 1,900,812 KiB remained available and
 5,158,284 KiB of swap remained free. It was not an OOM result.
 
+## Exact-X/V-Sync-off follow-up
+
+The controlled follow-up used the same game payload, Low profile, and CPU
+split, but changed two presentation variables together:
+
+- `VSyncMode=0`, applied by the guarded backup-first profile tool; and
+- Termux:X11 `displayResolutionMode=exact` at 1280x720, verified by `xrandr`
+  as both the live root and `builtin` output.
+
+The AppID window was also exactly 1280x720. Before each clean pass, all 56
+observed game threads were verified on CPUs 4-7 and the 12-thread X server was
+verified on CPUs 0-3. No sampler or screenshot ran during the clean timed
+scenes.
+
+| Pass | Minimum | Maximum | Average |
+|---|---:|---:|---:|
+| Warm-up | 8.9 | 16.2 | 13.6 |
+| Clean 1 | 9.6 | 16.9 | 13.8 |
+| Clean 2 | 5.6 | 16.3 | 13.5 |
+| Clean 3 | 8.8 | 16.7 | 13.8 |
+| **Clean mean** | **8.0** | **16.63** | **13.7** |
+| **Clean median** | **8.8** | **16.7** | **13.8** |
+
+The four result dialogs are preserved as
+[`warm-up`](evidence/tombraider-exact720-vsync-off-warmup-2026-08-14.png),
+[`clean 1`](evidence/tombraider-exact720-vsync-off-run1-2026-08-14.png),
+[`clean 2`](evidence/tombraider-exact720-vsync-off-run2-2026-08-14.png), and
+[`clean 3`](evidence/tombraider-exact720-vsync-off-run3-2026-08-14.png).
+One activation-check pass had a screenshot about five seconds into the timed
+scene and reported 3.6/16.5/12.9 FPS; it is deliberately excluded.
+
+Relative to the first 5.8/18.0/13.6 pass, the clean mean minimum increased
+37.9%, maximum decreased 7.6%, and average increased only 0.7%. Minimum FPS is
+clearly variable across runs. At the three clean result captures, the lowest
+observed memory state was 2,292,744 KiB available RAM and 5,089,696 KiB free
+swap, so none was an OOM result.
+
+The launcher passed `DXVK_LOG_LEVEL=info` and an accessible per-session
+`DXVK_LOG_PATH`; both variables were present in the game environment. This
+Proton payload emitted no DXVK file. Process maps and Tomb Raider's own log
+still confirmed the prefix D3D11/DXGI path, Wine Vulkan, private Turnip, and
+the `Turnip Adreno (TM) 730` DX11 adapter. The repository therefore records
+the exact X root and window but does not claim an internally logged swapchain
+extent.
+
 ## What the percentage difference means
 
 The closest built-in benchmark recording found during this research used
@@ -52,6 +97,10 @@ The last two columns have different denominators. “Ours is 78.4% lower” mean
 `(63.0 - 13.6) / 13.6`. The least ambiguous statement is **4.63 times the
 measured average throughput**.
 
+Using the cleaner follow-up mean of 13.7 FPS barely changes that comparison:
+63.0 is 4.60 times as high, this project is 78.3% lower, or the comparison is
+359.9% faster. The external recording remains non-apples-to-apples.
+
 Qualcomm describes 8+ Gen 1 as 10% faster in CPU performance and GPU clocks
 than 8 Gen 1, with substantially better efficiency. That matters for sustained
 performance, but it cannot by itself explain a 4.63x gap:
@@ -73,29 +122,28 @@ showed the on-screen counter between 35.9 and 62.7 FPS:
 [primary same-chip recording](https://www.youtube.com/watch?v=LN5PWI8DcR4&t=73s).
 
 That is instantaneous gameplay, not the built-in benchmark, so comparing it
-directly with 13.6 FPS average would overstate precision. As a broad bound, our
-average is 62.1% below 35.9 FPS and 78.3% below 62.7 FPS. The important result
-is not a precise percentage; it is that the same silicon has demonstrated far
-more performance through a closely related Proton/FEX/DXVK/Turnip stack.
+directly with the 13.7 FPS clean mean would overstate precision. The important
+result is not a precise percentage; it is that the same silicon has
+demonstrated far more performance through a closely related
+Proton/FEX/DXVK/Turnip stack.
 
 A GameHub recording on the nearby Snapdragon 8+ Gen 1/Adreno 730 reports
 45-72 FPS at 720p, again as gameplay rather than the built-in benchmark:
 [primary GameHub recording](https://www.youtube.com/watch?v=Zwq3uJz1-Po).
 
-## Why this run is probably leaving performance on the table
+## What the follow-up rules out
 
-The saved prefix registry proves that the game requested 1280x720 and disabled
-the expensive Low-profile effects, but it also proves `VSyncMode=1` (Double
-Buffer). The same-chip recording used V-Sync off. Double-buffered V-Sync is the
-first setting to remove because missed refresh deadlines can quantize output to
-lower refresh divisors.
+The earlier X root was 2800x1586, 4.8186 times as many pixels as 1280x720.
+Multiplying 13.6 by that ratio produced a tempting 65.5 FPS estimate near the
+external 63.0 result. The exact-X follow-up averaged 13.7 FPS, so that scaling
+hypothesis is disproven: the larger live X surface was not multiplying the
+game's rendering work in proportion to its pixel count.
 
-The game requested 1280x720 while the only observed X display remained
-2800x1586. That native surface has 4.8186 times as many pixels as 720p. As a
-hypothesis—not a measured scaling law—`13.6 * 4.8186 = 65.5 FPS`, strikingly
-close to the 63.0 FPS comparison. A fullscreen X window does not prove the
-DXVK swapchain rendered at native resolution, so the next run must log the
-actual swapchain extent instead of assuming either resolution.
+Because V-Sync and the X root changed together, this pass cannot separate
+their individual effects. It does establish that their combined effect on
+average throughput is negligible. The next work should target CPU scheduling,
+translation overhead, and the container/driver path rather than expecting a
+large resolution-only gain.
 
 The official Termux:X11 project now documents this exact Samsung OneUI cpuset
 problem and offers an integrated Termux build so the X11 process is spawned by
@@ -105,28 +153,24 @@ a tiny Termux pop-up over the game:
 
 The installed official Proton payload contains FEX release 2605, newer than the
 FEXCore 2508 same-chip recording, and the private Turnip is Mesa 26.2-devel.
-Changing translators or drivers is therefore lower priority than verifying the
-presentation path and removing V-Sync.
+That makes controlled CPU and translation comparisons higher priority than
+another presentation-only change.
 
 ## Next controlled passes
 
-Change one variable at a time and use one warm-up plus three recorded passes:
+Continue to use one warm-up plus three recorded passes per profile:
 
-1. Keep the present stack, 1280x720 Low, and the 4-7/0-3 CPU split; set V-Sync
-   **Off**. This isolates the confirmed settings mismatch.
-2. Set Termux:X11 to exact 1280x720 before launch. Record `xrandr` and enable a
-   bounded DXVK info log to prove the swapchain extent. Do not infer it from
-   window geometry.
+1. Compare the present game-on-4-7/X11-on-0-3 split against a deliberate
+   all-core game control. The current affinity is informed but not yet
+   benchmarked against an all-core run for Tomb Raider.
+2. Measure a launch-only session with KDE/Plasma and nonessential Steam CEF
+   processes absent. Preserve Steam authentication and first verify that the
+   client can close without terminating the game.
 3. Back up Termux and evaluate the official integrated Termux:X11 build for the
    Samsung foreground-cpuset fix. Do not replace the live app without a
    recovery plan.
-4. Compare CPUs 4-7 against a deliberate all-core control while retaining X11
-   on 0-3. The current affinity is informed, but it is not yet benchmarked for
-   this game.
-5. Only after those passes, measure a launch-only session with KDE/Plasma and
-   nonessential Steam CEF processes absent. Preserve Steam authentication and
-   verify that closing the client does not terminate the game before using that
-   route for a recorded pass.
+4. Then compare a controlled translator or driver change. Do not infer a
+   benefit merely from version numbers.
 
 The required `deja "Snapdragon 8 Gen 1 Adreno 730 Tomb Raider GameHub
 GameNative benchmark FPS"` and focused benchmark/affinity searches returned no

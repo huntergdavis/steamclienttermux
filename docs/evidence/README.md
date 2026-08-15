@@ -29,6 +29,14 @@ These screenshots capture milestones and failures from the original tablet.
   read directly by the user; no result screenshot is claimed because the
   exclusive-fullscreen capture was black and the foreground retry reached the
   main menu.
+- `tombraider-exact720-vsync-off-warmup-2026-08-14.png`: the first captured
+  result after switching the live Termux:X11 root to exact 1280x720 and setting
+  `VSyncMode=0`: 8.9/16.2/13.6 FPS. It is the warm-up, not a measured pass.
+- `tombraider-exact720-vsync-off-run1-2026-08-14.png` through
+  `tombraider-exact720-vsync-off-run3-2026-08-14.png`: the three clean result
+  dialogs for the combined exact-X/V-Sync-off profile: 9.6/16.9/13.8,
+  5.6/16.3/13.5, and 8.8/16.7/13.8 FPS. No sampler or screenshot ran during
+  these timed scenes.
 - `burnout-after-install-confirm.png`: Burnout installation confirmation.
 - `steam-relaunched-installed.png`: client relaunched with completed installs.
 - `2026-08-08-live-debugging-compat-timeout.png`: live debugging session with

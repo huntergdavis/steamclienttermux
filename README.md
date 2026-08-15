@@ -31,9 +31,10 @@ Mesa Turnip, official Proton 11 ARM64, and its bundled FEX/DXVK stack.
   launches the real `TombRaider.exe` through Steam Linux Runtime 4 ARM64,
   official Proton 11 ARM64, FEX, DXVK, and Turnip. Its launcher and first-run
   renderer both work. Its first built-in 1280x720 Low benchmark completed at
-  5.8 minimum, 18.0 maximum, and 13.6 average FPS. The saved profile still had
-  double-buffered V-Sync enabled, so this is a first-run baseline rather than a
-  performance ceiling. See the
+  5.8 minimum, 18.0 maximum, and 13.6 average FPS. A follow-up used a real
+  1280x720 Termux:X11 root, V-Sync off, one warm-up, and three clean passes.
+  The clean mean was 8.0 minimum, 16.63 maximum, and 13.7 average FPS, so the
+  lower X surface did not materially improve average throughput. See the
   [comparison and next-pass protocol](docs/TOMB_RAIDER_BENCHMARK.md).
 - Burnout remains experimental; its detailed EA, FEX, and DXVK investigation is
   kept in [`docs/TECHNICAL_LOG.md`](docs/TECHNICAL_LOG.md), not duplicated here.
@@ -45,8 +46,13 @@ measurement. It avoids GTA IV's separate Rockstar launcher, has named graphics
 quality profiles and an integrated benchmark, and has now crossed the real
 Windows executable boundary on this exact Tab S8+. The first completed pass
 used its Low profile at fullscreen 1280x720, with game/X11 affinity split across
-CPUs 4-7/0-3. The next controlled pass disables the still-active V-Sync before
-changing resolution, translation, or driver components.
+CPUs 4-7/0-3.
+
+That follow-up is now complete as a combined V-Sync-off/exact-X A/B pass. Its
+three clean averages were 13.8, 13.5, and 13.8 FPS. Because both presentation
+variables changed together, it does not isolate their individual effects, but
+it rules out the earlier hypothesis that merely shrinking the 4.8186-times-
+larger native X surface would multiply game throughput.
 
 The measurement protocol is one warm-up and three recorded passes per profile.
 Alongside the benchmark result, record peak memory, time to the main menu,
@@ -55,6 +61,8 @@ launch success rate, and any Android whole-UID eviction.
 ![Kingsway running from the microSD through Proton ARM64 and FEX](docs/evidence/kingsway-running.png)
 
 ![Tomb Raider Windows launcher running through Proton ARM64 and FEX](docs/evidence/tombraider-main-menu-2026-08-14.png)
+
+![Tomb Raider exact-720p V-Sync-off benchmark result](docs/evidence/tombraider-exact720-vsync-off-run3-2026-08-14.png)
 
 ## What changed
 
@@ -88,7 +96,9 @@ hash, and binary hash. The exact patches live under [`patches/`](patches/).
 - Android loopback/network compatibility shims;
 - canonical PulseAudio TCP setup;
 - bounded session logs, `/dev/null` guards for runaway CEF logs, and a 1 GiB
-  free-space floor.
+  free-space floor; and
+- opt-in, session-scoped DXVK initialization logging with
+  `STEAM_ARM64_DXVK_INFO=1`.
 
 It does not replace global library paths or modify the existing KDE/Mesa setup.
 
@@ -105,6 +115,28 @@ validates the game/App ID and the measured CPU topology before moving all game
 threads to CPUs 4-7. In the same menu scene, observed game CPU use fell from
 about 157% to 97%, and play felt noticeably smoother. This affinity is
 process-local and must currently be applied after each launch.
+
+### Tuned Tomb Raider
+
+[`scripts/configure-tombraider-performance.py`](scripts/configure-tombraider-performance.py)
+atomically applies the measured 1280x720 Low profile with V-Sync off. It
+requires exactly one known graphics section and every expected DWORD, refuses
+an active Wine/FEX/game stack, preserves unrelated registry data, and makes a
+byte-verified backup before replacement.
+
+[`scripts/configure-termux-x11-resolution.sh`](scripts/configure-termux-x11-resolution.sh)
+uses Termux:X11's supported command-line preference interface. `--set-720p`
+sets exact 1280x720 and verifies the live RandR root; `--native` restores the
+native resolution; `--check` requires both preference and X11 state to agree.
+This avoids restarting X/KDE and does not depend on an unsupported RandR CRTC
+mode switch.
+
+On the measured pass, the game window and X root were both exactly 1280x720,
+all 56 game threads were verified on CPUs 4-7 before each clean run, and the
+12-thread X server remained on CPUs 0-3. DXVK's info environment reached the
+game and its log directory was accessible, but this Proton payload emitted no
+DXVK log file. The report therefore does not claim an internally reported
+swapchain extent.
 
 ### Reached GTA IV's first mission
 
@@ -320,6 +352,28 @@ After Superflight starts, apply and verify the confirmed live affinity:
 ```sh
 scripts/set-superflight-affinity.py
 scripts/set-superflight-affinity.py --check
+```
+
+With Tomb Raider's Wine/FEX process stopped, apply and verify its profile, then
+set the live Termux:X11 root to exact 720p:
+
+```sh
+scripts/configure-tombraider-performance.py --base "$HOME/steam-arm64"
+scripts/configure-tombraider-performance.py --base "$HOME/steam-arm64" --check
+scripts/configure-termux-x11-resolution.sh --set-720p
+scripts/configure-termux-x11-resolution.sh --check
+```
+
+For one initialization-only DXVK diagnostic session:
+
+```sh
+STEAM_ARM64_DXVK_INFO=1 ~/bin/steam-arm -noshaders
+```
+
+Restore the tablet-native X root with:
+
+```sh
+scripts/configure-termux-x11-resolution.sh --native
 ```
 
 With Steam fully stopped, prepare and register the removable Windows-game

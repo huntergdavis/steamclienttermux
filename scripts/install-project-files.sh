@@ -72,6 +72,10 @@ install_one "$repo_root/scripts/configure-gtaiv-socialclub-wined3d.py" \
     "$base/compat-bin/configure-gtaiv-socialclub-wined3d.py" 700
 install_one "$repo_root/scripts/configure-gtaiv-service-timeout.py" \
     "$base/compat-bin/configure-gtaiv-service-timeout.py" 700
+install_one "$repo_root/scripts/configure-tombraider-performance.py" \
+    "$base/compat-bin/configure-tombraider-performance.py" 700
+install_one "$repo_root/scripts/configure-termux-x11-resolution.sh" \
+    "$base/compat-bin/configure-termux-x11-resolution" 700
 install_one "$repo_root/scripts/monitor-termux-game-session.sh" \
     "$base/compat-bin/monitor-termux-game-session.sh" 700
 install_one "$wrapper_stage" "$base/compat-bin/steam-arm64-bwrap-route" 700
