@@ -3884,3 +3884,96 @@ profile, matching the prior 720p post-run caveat. The required
 search returned no indexed match. This pass reused the documented shared-UID,
 Safe FEX, affinity, and clean-scene protocol; the 1080p measurement and
 resolution-restart sequence are new.
+
+## 2026-08-15: 2800x1752 becomes the native optimization target
+
+The Galaxy Tab S8+ physical panel is 2800x1752. Earlier automatic Termux:X11
+sessions exposed a 2800x1586 drawable area because Android system chrome used
+166 vertical pixels. For the optimization baseline, the render target itself
+now matches all 4,905,600 panel pixels: XRandR, the game window, registry, and
+captured result frame were each exactly 2800x1752.
+
+Termux:X11's `exact` preference is a preset selector and silently retained
+1920x1080 when passed 2800x1752. `custom/2800x1752` stored the arbitrary size,
+but the shared-UID build's `MainActivity` was still alive inside the Termux
+Android process and continued negotiating 1920x1080. Recycling only the
+separate `com.termux.x11` helper was insufficient. The exact X server was
+stopped first, then the verified stale Termux UI process was terminated.
+Samsung recycled the whole shared UID, briefly closing SSH, but runit's
+supervised `sshd` returned immediately with a new Termux process; package data,
+Steam state, and cached authentication were untouched.
+
+Starting an X server before reopening the activity produced only its
+disconnected 1280x1024 bootstrap root and no shared-buffer messages. After the
+user opened Termux:X11, the correct clean order—activity first, one server
+second—sent and received a 2800x1752 shared buffer with stride 2816. XRandR
+then reported 2800x1752 and the server was pinned to CPUs 0-3. This reuses the
+upstream distinction between the Android activity and background server:
+https://github.com/termux/termux-x11#force-stopping-x-server-running-in-termux-background-not-an-activity
+
+One shutdown lesson also became explicit. The user had already closed Steam
+before the launcher was invoked with `-shutdown`, so Steam bootstrapped a new
+client carrying that option instead of forwarding to an existing instance.
+Do not invoke the launcher as a shutdown forwarder until a live Steam main
+process is independently verified. The temporary client ultimately exited;
+its cached login remained valid.
+
+The normal Safe-profile Steam relaunch registered historical compatibility
+tools serially. It hit the known 60-second post-logon timeout but continued,
+posting the official ARM64 Runtime 4 and Proton 11 callbacks after 3 minutes
+42 seconds. The forwarded Tomb Raider request then completed shader and
+interstitial stages, entered the tracked Runtime process, and created the real
+`TombRaider.exe`. No retry was needed.
+
+Native Run 1 retained Low, motion blur off, V-Sync off, Steam loaded, FEX
+`safe`, game CPUs 1-7, `Raknet-RecvFrom` on CPU 1, Steam helpers on CPU 0, and
+X11 on CPUs 0-3. Immediately before the user started the timed scene, the
+affinity helper verified 59 game threads, game and X11 both reported
+`/top-app`, 1,928,504 KiB RAM was available, and 5,003,876 KiB swap was free.
+No profiler, screenshot, SSH check, or window switch occurred during the
+benchmark.
+
+Run 1 was **15.8 FPS minimum, 29.8 FPS maximum, and 23.2 FPS average**.
+The 2800x1752 PNG has SHA-256
+`9292e4fb8adeb104fbba7fd144686811eb04c63f0f14da7a49e39fd253523b68`.
+Versus 1080p, 2.37x the pixels reduced average FPS 16.5% and maximum 12.4%,
+while minimum rose 69.9%. Versus 720p, 5.32x the pixels reduced average 18.6%,
+maximum 17.9%, and minimum 9.2%. These are one-run comparisons, so the
+non-monotonic minimum is evidence of run variance, not a claimed native-mode
+benefit.
+
+Post-run, XRandR and the game window remained exactly 2800x1752, game and X11
+remained `/top-app`, 2,040,212 KiB RAM remained available, and 4,817,020 KiB
+swap was free. One late `dxvk-cache` thread had widened to CPUs 0-7 while the
+other masks retained the profile. The run did not OOM. The required
+`deja "Termux X11 panel native 2800x1752 target resolution script"` search
+returned no indexed match. The native run reuses the documented shared-UID,
+Safe FEX, affinity, and clean-scene protocol; the panel-native measurement and
+custom-mode/restart diagnosis are new.
+
+Two unchanged native-Low repetitions followed. Run 2 reported **4.7/27.9/21.7
+FPS** and Run 3 reported **13.6/28.7/21.7 FPS**. The three-run arithmetic mean
+is therefore **11.37/28.8/22.2 FPS**, and the median is 13.6/28.7/21.7. Runs 2
+and 3 reproduced the average exactly while their minimums differed by 8.9 FPS,
+so minimum FPS remains the visibly noisy metric. The Run 2 and Run 3 PNG
+SHA-256 values are respectively
+`439f1c919631888c724d2cc37d7d5a35623ca634a958633c7ea9a87269c0c7fb` and
+`65421a76e8b49bc358743aab450a5ecf62979301f54890520584d80286c92049`.
+
+Before Run 2, 2,087,264 KiB RAM and 4,736,376 KiB swap were available; after
+it, 2,215,072 KiB RAM and 4,545,660 KiB swap were available. Before Run 3,
+2,158,440 KiB RAM and 4,556,924 KiB swap were available; after it, 2,112,664
+KiB RAM and 4,541,584 KiB swap were available. The exact native root/window,
+`/top-app` cgroups, and complete affinity profile verified after both runs.
+Neither pass OOMed.
+
+The user then changed only the game preset from Low to Normal for a quick
+exploratory pass. At 2800x1752, with Game Booster still off, it reported
+**10/16/13.9 FPS**. That average is 35.9% below adjacent Low Run 3 and 37.4%
+below the native-Low mean. The registry showed Normal enabled AA mode 1, depth
+of field, post-processing, LOD 2, reflections, shadows, and SSAO; motion blur,
+tessellation, and V-Sync remained off. After the pass, 1,891,112 KiB RAM and
+4,757,768 KiB swap were available, and both game and X11 remained `/top-app`.
+The capture attempt occurred after the result had advanced to a loading frame,
+so that frame was deleted and this result is explicitly user-read rather than
+screenshot-backed.

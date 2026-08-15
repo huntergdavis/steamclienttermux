@@ -256,7 +256,7 @@ profile, so repetitions must record that thread explicitly.
 At the result dialog, 1,978,564 KiB RAM and 4,806,580 KiB swap remained
 available. The game and X server both reported `/top-app`; this was not an OOM.
 
-## Shared-UID 720p/1080p resolution A/B
+## Shared-UID 720p/1080p/panel-native resolution A/B
 
 The first resolution pass changed only the Termux:X11 root and Tomb Raider
 fullscreen resolution from 1280x720 to 1920x1080. It retained Low, motion blur
@@ -268,6 +268,10 @@ did not become a second variable.
 |---|---:|---:|---:|---:|
 | 1280x720, run 1 | 921,600 | **17.4** | **36.3** | **28.5** |
 | 1920x1080, run 1 | 2,073,600 | **9.3** | **34.0** | **27.8** |
+| 2800x1752 Low, run 1 | 4,905,600 | **15.8** | **29.8** | **23.2** |
+| 2800x1752 Low, run 2 | 4,905,600 | **4.7** | **27.9** | **21.7** |
+| 2800x1752 Low, run 3 | 4,905,600 | **13.6** | **28.7** | **21.7** |
+| 2800x1752 Low, three-run mean | 4,905,600 | **11.37** | **28.8** | **22.2** |
 
 The 1080p pass rendered 2.25x as many pixels. Relative to the 720p pass,
 average FPS fell by 0.7 FPS or 2.5%, maximum fell by 2.3 FPS or 6.3%, and
@@ -299,6 +303,56 @@ connection had one `ACTION_START`, one socket extraction, no connection errors,
 and a 1920x1080 shared buffer. The supervised SSH service recovered after the
 Termux process recycle, and cached Steam authentication was preserved.
 
+### Panel-native optimization baseline
+
+The Tab S8+ panel-native render target is now the optimization baseline. Its
+three Low passes are 15.8/29.8/23.2, 4.7/27.9/21.7, and 13.6/28.7/21.7 FPS,
+giving a mean of **11.37/28.8/22.2 FPS** and median of 13.6/28.7/21.7. Runs 2
+and 3 repeated the same 21.7 FPS average while their minimums differed by 8.9
+FPS. The mean average is 20.1% below the single 1080p pass and 22.1% below the
+single shared-UID 720p pass. Those cross-resolution percentages compare
+different sample counts and remain directional, not replacement resolution
+means.
+
+Immediately before the native timed scene, XRandR, the visible game window,
+and Tomb Raider's registry all reported 2800x1752 fullscreen with V-Sync off.
+The game affinity checker verified 59 threads on CPUs 1-7 except
+`Raknet-RecvFrom` on CPU 1; nine Steam helpers used CPU 0 and X11 used CPUs
+0-3. Game and X11 both reported `/top-app`. There was 1,928,504 KiB RAM and
+5,003,876 KiB swap available. The user started the benchmark, and no tool ran
+during the timed scene.
+
+All three result dialogs are preserved as
+[`run1`](evidence/tombraider-shareduid-native-2800x1752-run1-2026-08-15.png),
+[`run2`](evidence/tombraider-shareduid-native-2800x1752-run2-2026-08-15.png),
+and [`run3`](evidence/tombraider-shareduid-native-2800x1752-run3-2026-08-15.png).
+After every pass, the exact 2800x1752 root/window and `/top-app` membership
+remained intact. Run 1's post-audit found the familiar late `dxvk-cache`
+thread on CPUs 0-7; the profile was reapplied before Run 2, and the complete
+affinity profile still verified after Runs 2 and 3. None of the runs OOMed.
+
+An immediate exploratory switch from Low Run 3 to the Normal preset, still
+without Game Booster, produced a user-read **10/16/13.9 FPS**. That is 35.9%
+below the adjacent Low Run 3 average and 37.4% below the three-run Low mean.
+The registry showed that Normal enabled AA mode 1, depth of field,
+post-processing, LOD 2, reflections, shadows, and SSAO while motion blur,
+tessellation, and V-Sync remained off. The screenshot attempt occurred after
+the dialog had advanced to a loading screen, so it was deleted and is not
+claimed as result evidence.
+
+Termux:X11's preset-only `exact` preference silently retained 1920x1080 when
+asked for 2800x1752. The correct panel-sized render target is
+`displayResolutionMode=custom` plus `displayResolutionCustom=2800x1752`.
+Because the shared-UID APK runs `MainActivity` inside Termux's Android process,
+changing the preference and recycling only the standalone helper did not clear
+the old 1080p activity state. Stopping the exact X server and recycling that
+verified UI process made Android rebuild it; runit restored SSH immediately.
+The activity must then be opened before starting exactly one server. A server
+started without the activity exposes only its 1280x1024 bootstrap root. The
+final connection reported a 2800x1752 shared buffer (stride 2816) and XRandR
+root. This distinction follows upstream's separation of the
+[Android activity and background X server](https://github.com/termux/termux-x11#force-stopping-x-server-running-in-termux-background-not-an-activity).
+
 ## Samsung Game Booster candidate
 
 The measured tablet is an SM-X808U on Android 16 / One UI 8. Its installed
@@ -311,7 +365,7 @@ Samsung documents manually adding apps through **Gaming Hub → My games → Mor
 → Add games**. The controlled candidate is to add both Termux and Termux:X11,
 then select **Gaming Hub → More → Game Booster → Game optimisation →
 Performance**. Per-game resolution must remain at 100% and Frame Booster off,
-because this project already controls the 1280x720 surface and the built-in
+because this project already controls the 2800x1752 surface and the built-in
 benchmark must not include synthetic frames. Samsung also documents Pause USB
 PD charging for the Tab S8 series; when a suitable charger is connected, it
 can avoid adding battery-charging heat during a run.
@@ -325,9 +379,9 @@ to be proven:
 and [current Game Booster layout](https://www.samsung.com/latin/support/apps-services/updates-to-game-booster-settings-and-features-on-the-samsung-galaxy-devices/).
 
 The official shared-UID Termux:X11 build is now installed and has eliminated
-the split foreground-ownership failure in one measured pass: Termux:X11 alone
-kept the complete workload in `/top-app`. Game Booster remains a separate
-future A/B and was not enabled for the 28.5 FPS result.
+the split foreground-ownership failure in measured passes: Termux:X11 alone
+kept the complete workload in `/top-app`. Game Booster remains a separate A/B
+and was not enabled for the 720p, 1080p, native-Low, or native-Normal results.
 
 ## What the percentage difference means
 

@@ -65,6 +65,18 @@ These screenshots capture milestones and failures from the original tablet.
   visibly reporting 9.3 FPS minimum, 34.0 maximum, and 27.8 average. The X root
   and game window were both exactly 1920x1080; no tool ran during the timed
   scene.
+- `tombraider-shareduid-native-2800x1752-run1-2026-08-15.png`: the first
+  panel-native optimization baseline, visibly reporting 15.8 FPS minimum,
+  29.8 maximum, and 23.2 average. XRandR, the game window, registry, and
+  captured frame were all exactly 2800x1752; no tool ran during the timed
+  scene.
+- `tombraider-shareduid-native-2800x1752-run2-2026-08-15.png`: the second
+  unchanged panel-native Low pass, visibly reporting 4.7 FPS minimum, 27.9
+  maximum, and 21.7 average. The complete affinity profile verified afterward.
+- `tombraider-shareduid-native-2800x1752-run3-2026-08-15.png`: the third
+  unchanged panel-native Low pass, visibly reporting 13.6 FPS minimum, 28.7
+  maximum, and 21.7 average. Together, the three native passes establish an
+  11.37/28.8/22.2 FPS mean.
 - `burnout-after-install-confirm.png`: Burnout installation confirmation.
 - `steam-relaunched-installed.png`: client relaunched with completed installs.
 - `2026-08-08-live-debugging-compat-timeout.png`: live debugging session with

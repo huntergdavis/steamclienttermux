@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Apply the measured Tomb Raider 720p Low benchmark profile safely."""
+"""Apply the measured Tomb Raider panel-native Low benchmark profile safely."""
 
 import argparse
 import datetime
@@ -25,9 +25,9 @@ TARGET_DWORDS = {
     b"EnableTessellation": b"00000000",
     b"ExclusiveFullscreen": b"00000001",
     b"Fullscreen": b"00000001",
-    b"FullscreenHeight": b"000002d0",
+    b"FullscreenHeight": b"000006d8",
     b"FullscreenRefreshRate": b"0000003c",
-    b"FullscreenWidth": b"00000500",
+    b"FullscreenWidth": b"00000af0",
     b"HairQuality": b"00000000",
     b"LODScale": b"00000000",
     b"PrecreateShaders": b"00000001",

@@ -3,7 +3,7 @@
 set -euo pipefail
 
 usage() {
-    printf 'Usage: %s --set-720p|--native|--check\n' "$0" >&2
+    printf 'Usage: %s --set-720p|--set-1080p|--set-panel-native|--native|--check\n' "$0" >&2
     exit 2
 }
 
@@ -48,45 +48,71 @@ wait_for_geometry() {
     return 1
 }
 
+set_fixed_geometry() {
+    local mode="$1" key="$2" expected="$3" description="$4" current=""
+    if ! timeout 10 termux-x11-preference \
+            "${key}:${expected}" "displayResolutionMode:${mode}"; then
+        printf 'Termux:X11 rejected the %s preferences\n' "$description" >&2
+        exit 2
+    fi
+    if current="$(wait_for_geometry "$expected")"; then
+        printf 'Termux:X11: %s/%s -> %s/%s; xrandr=%s\n' \
+            "$previous_mode" "$previous_value" "$mode" "$expected" "$current"
+        exit 0
+    fi
+    printf 'X11 remained at %s; restoring %s/%s\n' \
+        "$current" "$previous_mode" "$previous_value" >&2
+    timeout 10 termux-x11-preference \
+        "displayResolutionExact:${previous_exact}" \
+        "displayResolutionCustom:${previous_custom}" \
+        "displayResolutionMode:${previous_mode}" >/dev/null
+    exit 2
+}
+
 before="$(preferences)"
 previous_mode="$(preference_value displayResolutionMode "$before")"
 previous_exact="$(preference_value displayResolutionExact "$before")"
+previous_custom="$(preference_value displayResolutionCustom "$before")"
 if [[ ! "$previous_mode" =~ ^(native|scaled|exact|custom)$ ]] ||
-        [[ ! "$previous_exact" =~ ^[0-9]+x[0-9]+$ ]]; then
+        [[ ! "$previous_exact" =~ ^[0-9]+x[0-9]+$ ]] ||
+        [[ ! "$previous_custom" =~ ^[0-9]+x[0-9]+$ ]]; then
     printf 'Unable to validate current Termux:X11 resolution preferences\n' >&2
     exit 2
 fi
+case "$previous_mode" in
+    exact) previous_value="$previous_exact" ;;
+    custom) previous_value="$previous_custom" ;;
+    *) previous_value="automatic" ;;
+esac
 
 case "$action" in
     --check)
         current="$(geometry)"
-        printf 'mode=%s exact=%s xrandr=%s\n' \
-            "$previous_mode" "$previous_exact" "$current"
-        [[ "$previous_mode" == exact && "$previous_exact" == 1280x720 &&
-            "$current" == 1280x720 ]]
+        printf 'mode=%s expected=%s exact=%s custom=%s xrandr=%s\n' \
+            "$previous_mode" "$previous_value" "$previous_exact" \
+            "$previous_custom" "$current"
+        if [[ "$previous_mode" == exact || "$previous_mode" == custom ]]; then
+            [[ "$current" == "$previous_value" ]]
+        else
+            [[ "$current" =~ ^[0-9]+x[0-9]+$ ]]
+        fi
         ;;
     --set-720p)
-        if ! timeout 10 termux-x11-preference \
-                displayResolutionMode:exact displayResolutionExact:1280x720; then
-            printf 'Termux:X11 rejected the 720p preferences\n' >&2
-            exit 2
-        fi
-        if current="$(wait_for_geometry 1280x720)"; then
-            printf 'Termux:X11: %s/%s -> exact/1280x720; xrandr=%s\n' \
-                "$previous_mode" "$previous_exact" "$current"
-            exit 0
-        fi
-        printf 'X11 remained at %s; restoring %s/%s\n' \
-            "$current" "$previous_mode" "$previous_exact" >&2
-        timeout 10 termux-x11-preference \
-            "displayResolutionMode:${previous_mode}" \
-            "displayResolutionExact:${previous_exact}" >/dev/null
-        exit 2
+        set_fixed_geometry exact displayResolutionExact 1280x720 720p
+        ;;
+    --set-1080p)
+        set_fixed_geometry exact displayResolutionExact 1920x1080 1080p
+        ;;
+    --set-panel-native)
+        # Galaxy Tab S8+ physical panel. The preset-only "exact" selector
+        # rejects this size, so Termux:X11's arbitrary custom mode is required.
+        set_fixed_geometry custom displayResolutionCustom 2800x1752 \
+            'Galaxy Tab S8+ panel-native'
         ;;
     --native)
         timeout 10 termux-x11-preference displayResolutionMode:native >/dev/null
         printf 'Termux:X11: %s/%s -> native; xrandr=%s\n' \
-            "$previous_mode" "$previous_exact" "$(geometry)"
+            "$previous_mode" "$previous_value" "$(geometry)"
         ;;
     *)
         usage

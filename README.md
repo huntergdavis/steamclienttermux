@@ -47,7 +47,10 @@ Mesa Turnip, official Proton 11 ARM64, and its bundled FEX/DXVK stack.
   FPS**, or 5.28x the standalone pass's average. Raising both the X root and
   game from 1280x720 to 1920x1080 then produced **9.3/34.0/27.8 FPS**. That is
   2.25x the pixels for only a 2.5% average-FPS loss, although the minimum fell
-  46.6%; repetitions are still required. See the
+  46.6%. Three panel-native Low passes at 2800x1752 then reported
+  15.8/29.8/23.2, 4.7/27.9/21.7, and 13.6/28.7/21.7 FPS, producing a
+  **11.37/28.8/22.2 FPS mean**. A quick user-read Normal-preset pass reached
+  only 10/16/13.9 FPS. See the
   [comparison and next-pass protocol](docs/TOMB_RAIDER_BENCHMARK.md).
 - Burnout remains experimental; its detailed EA, FEX, and DXVK investigation is
   kept in [`docs/TECHNICAL_LOG.md`](docs/TECHNICAL_LOG.md), not duplicated here.
@@ -104,6 +107,20 @@ only 2.5% and maximum by 6.3%, but minimum fell 46.6%. This is evidence that
 steady-state average throughput is not primarily pixel-bound in this profile;
 it is not proof until both resolutions have repeated runs.
 
+The project now optimizes for the Tab S8+'s physical **2800x1752** panel
+resolution. Three controlled native Low passes reported 15.8/29.8/23.2,
+4.7/27.9/21.7, and 13.6/28.7/21.7 FPS. Their mean is **11.37 minimum, 28.8
+maximum, and 22.2 average FPS**; the median is 13.6/28.7/21.7. Runs 2 and 3
+repeated the same average while their minimums differed sharply, confirming
+that minimum FPS is the noisy metric here. The 720p and 1080p results remain
+diagnostic A/B points rather than the final optimization target.
+
+A quick 2800x1752 Normal-preset pass, still without Game Booster, reported
+10/16/13.9 FPS directly to the user. Its average is 37.4% below the native Low
+mean and 35.9% below the immediately preceding Low Run 3. The attempted result
+capture had already advanced to a loading screen, so it was deleted and is not
+claimed as screenshot evidence.
+
 The measurement protocol is one warm-up and three recorded passes per profile.
 Alongside the benchmark result, record peak memory, time to the main menu,
 launch success rate, and any Android whole-UID eviction.
@@ -119,6 +136,8 @@ launch success rate, and any Android whole-UID eviction.
 ![Tomb Raider shared-UID full-screen benchmark result](docs/evidence/tombraider-shareduid-fullscreen-run1-2026-08-15.png)
 
 ![Tomb Raider shared-UID 1080p benchmark result](docs/evidence/tombraider-shareduid-1080p-run1-2026-08-15.png)
+
+![Tomb Raider shared-UID panel-native benchmark result](docs/evidence/tombraider-shareduid-native-2800x1752-run1-2026-08-15.png)
 
 ## What changed
 
@@ -175,15 +194,19 @@ process-local and must currently be applied after each launch.
 ### Tuned Tomb Raider
 
 [`scripts/configure-tombraider-performance.py`](scripts/configure-tombraider-performance.py)
-atomically applies the measured 1280x720 Low profile with V-Sync off. It
+atomically applies the measured 2800x1752 panel-native Low profile with V-Sync
+off. It
 requires exactly one known graphics section and every expected DWORD, refuses
 an active Wine/FEX/game stack, preserves unrelated registry data, and makes a
 byte-verified backup before replacement.
 
 [`scripts/configure-termux-x11-resolution.sh`](scripts/configure-termux-x11-resolution.sh)
 uses Termux:X11's supported command-line preference interface. `--set-720p`
-sets exact 1280x720 and verifies the live RandR root; `--native` restores the
-native resolution; `--check` requires both preference and X11 state to agree.
+and `--set-1080p` select the built-in exact presets. `--set-panel-native`
+selects the Tab S8+ panel's 2800x1752 render target through custom mode.
+`--check` verifies the current exact/custom preference against the live RandR
+root; `--native` restores Termux:X11's automatic drawable-area mode, which is
+not the same as the panel-native render target when Android system bars remain.
 This avoids restarting X/KDE and does not depend on an unsupported RandR CRTC
 mode switch.
 
@@ -431,12 +454,12 @@ scripts/set-superflight-affinity.py --check
 ```
 
 With Tomb Raider's Wine/FEX process stopped, apply and verify its profile, then
-set the live Termux:X11 root to exact 720p:
+set the current optimization target to the Tab S8+ panel resolution:
 
 ```sh
 scripts/configure-tombraider-performance.py --base "$HOME/steam-arm64"
 scripts/configure-tombraider-performance.py --base "$HOME/steam-arm64" --check
-scripts/configure-termux-x11-resolution.sh --set-720p
+scripts/configure-termux-x11-resolution.sh --set-panel-native
 scripts/configure-termux-x11-resolution.sh --check
 ```
 
@@ -473,7 +496,7 @@ in benchmark passes run without it:
 scripts/profile-live-game.py --seconds 3
 ```
 
-Restore the tablet-native X root with:
+Use Termux:X11's automatic drawable-area mode instead with:
 
 ```sh
 scripts/configure-termux-x11-resolution.sh --native
