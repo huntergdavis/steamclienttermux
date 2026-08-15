@@ -142,9 +142,11 @@ The first post-benchmark profile found a CPU/translation bottleneck rather than
 a saturated GPU. At the live main menu, the game used about 2.2-2.3 CPU cores,
 the outer PRoot tracer about 0.6, Steam/CEF about another core, and the GPU only
 12-16 percent. A continuously runnable `Raknet-RecvFrom` thread consumed one
-whole core; this matches historical reports of the current v1.01.748.0 online-
-services build using the first core continuously. The comparison recording is
-also v1.01.748.0, so an older game payload does not explain its higher FPS.
+whole core; this matches reports following the game's online-services update
+of the first core remaining busy. The comparison visibly runs v1.01.748.0.
+Our installed executable is dated September 2022 and shows the disabled online-
+service path, but its exact semantic version has not been extracted; a payload
+difference is therefore not claimed as either proven or ruled out.
 
 The same-chip recording visibly uses CPUs 1-7, FEX TSO mode `Fastest`, x87 mode
 `Fast`, multiblock, and `Aggressive (Stop services on startup)`. In contrast,

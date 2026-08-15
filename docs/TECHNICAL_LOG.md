@@ -3521,7 +3521,7 @@ Codex sessions `019fe348-1247-7530-bc25-8a573aaf4252` and
 ## 2026-08-14: Tomb Raider translator and thermal profile
 
 The exact-X result ruled out presentation size, so the next investigation used
-bounded read-only `/proc` and KGSL snapshots at the real v1.01.748.0 game menu.
+bounded read-only `/proc` and KGSL snapshots at the real game menu.
 Linux process-name discovery required scanning `/proc/[0-9]*/status`: exact
 `pgrep -x` returned false negatives for both `TombRaider.exe` and several
 `steamwebhelper` processes under this Android/PRoot process view. The new
@@ -3558,14 +3558,15 @@ stopped. No benchmark should be interpreted until policy maxima recover.
 One game thread, `Raknet-RecvFrom`, remained runnable in all 20 syscall samples,
 reported `wchan=0`, and consumed 98-100% of one core. The current Tomb Raider
 online-services update has independent reports of the first core staying at
-100%. The exact comparison recording visibly uses the same v1.01.748.0 build,
-so this is an optimization target but not a different-payload explanation.
-A reversible live experiment widened all game threads from CPUs 4-7 to 1-7,
-matching the comparison, and then confined only `Raknet-RecvFrom` to CPU 1.
-All 56 masks and the Android `/foreground-boost` cgroup were verified. Steam
-core was placed on 0-3, nine validated CEF processes on CPU 0, and wineserver/
-explorer on 1-7; the game remained live. No built-in result is yet attributed
-to that state.
+100%. The comparison recording visibly uses v1.01.748.0. Our installed PE has
+a September 2022 timestamp and reaches the disabled Square Enix service path,
+but its semantic version was not present in readable PE strings/resources; a
+payload difference remains unproven. A reversible live experiment widened all
+game threads from CPUs 4-7 to 1-7, matching the comparison, and then confined
+only `Raknet-RecvFrom` to CPU 1. All 56 masks and the Android
+`/foreground-boost` cgroup were verified. Steam core was placed on 0-3, nine
+validated CEF processes on CPU 0, and wineserver/explorer on 1-7; the game
+remained live. No built-in result is yet attributed to that state.
 
 Frame extraction from the primary same-chip recording established its exact
 visible profile: Snapdragon 8 Gen 1, 1280x720, current game v1.01.748.0, Turnip

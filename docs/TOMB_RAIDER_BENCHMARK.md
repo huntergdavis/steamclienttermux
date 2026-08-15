@@ -177,12 +177,13 @@ rejected before interpreting FPS.
 
 One `Raknet-RecvFrom` thread remained runnable in every sample and consumed
 98-100% of one core without sleeping or being observed in a syscall. Reports
-from the v1.01.748.0 online-services update independently describe the first
-core staying at 100%; the comparison uses that same game build, so the payload
-version alone is not the full gap. A live, reversible isolation placed the
-game on CPUs 1-7 and that thread alone on CPU 1, preventing it from occupying
-the 2.995 GHz prime core. This state has not yet produced a built-in benchmark
-and is not reported as an FPS improvement.
+following the online-services update independently describe the first core
+staying at 100%. The comparison visibly uses v1.01.748.0; our installed PE is
+dated September 2022 and reaches the disabled online-service path, but its
+exact semantic version has not been extracted. A live, reversible isolation
+placed the game on CPUs 1-7 and that thread alone on CPU 1, preventing it from
+occupying the 2.995 GHz prime core. This state has not yet produced a built-in
+benchmark and is not reported as an FPS improvement.
 
 Proton's bundled FEX `Config.json` explicitly uses `MaxInst=500`, TSO and half-
 barrier TSO on, and `ProfileStats=1`; unset upstream defaults disable the JIT
