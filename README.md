@@ -40,7 +40,11 @@ Mesa Turnip, official Proton 11 ARM64, and its bundled FEX/DXVK stack.
   `Raknet-RecvFrom` thread isolated to CPU 1, and Steam web helpers on CPU 0.
   Three tuned passes reported 23/41/31, 11/28/24, and 21/39.8/31.1 FPS. Their
   28.7 FPS mean average is 2.09x the clean baseline; their median average is
-  31.0 FPS. See the
+  31.0 FPS. Removing the floating Termux activity with the standalone
+  Termux:X11 APK collapsed one full-screen Safe pass to 3/7/5.4 FPS. The
+  official shared-UID Termux:X11 build instead kept the game and X server in
+  `/top-app`; its first usable full-screen pass reached **17.4/36.3/28.5
+  FPS**, or 5.28x the standalone pass's average. See the
   [comparison and next-pass protocol](docs/TOMB_RAIDER_BENCHMARK.md).
 - Burnout remains experimental; its detailed EA, FEX, and DXVK investigation is
   kept in [`docs/TECHNICAL_LOG.md`](docs/TECHNICAL_LOG.md), not duplicated here.
@@ -78,6 +82,17 @@ scheduling state. Its clean passes reported 17.7/30.8/25.7,
 policy ceilings as the bundled-FEX scheduling baseline. The Safe mean is
 10.2% below the bundled-FEX scheduling mean of 28.7 FPS.
 
+The first usable no-overlay pass is also complete. With the standalone
+Termux:X11 APK, hiding Termux demoted the game to `/cpuset/moderate` and
+`cpu:/background`, restricted it to CPUs 1-3, and produced only 3/7/5.4 FPS.
+The upstream `sharedUid` APK gives Termux and Termux:X11 the same Android UID;
+with Termux:X11 alone visible, the complete stack remained `/top-app` and the
+same Safe-profile benchmark reported **17.4 minimum, 36.3 maximum, and 28.5
+average FPS**. Average throughput increased 427.8% over the failed standalone
+condition and was 10.6% above the floating-Termux Safe clean mean. This is one
+pass, not yet a replacement mean, and one late `dxvk-cache` thread had widened
+itself to CPUs 0-7 by the post-run audit.
+
 The measurement protocol is one warm-up and three recorded passes per profile.
 Alongside the benchmark result, record peak memory, time to the main menu,
 launch success rate, and any Android whole-UID eviction.
@@ -89,6 +104,8 @@ launch success rate, and any Android whole-UID eviction.
 ![Tomb Raider exact-720p V-Sync-off benchmark result](docs/evidence/tombraider-exact720-vsync-off-run3-2026-08-14.png)
 
 ![Tomb Raider 720p menu after the 31 FPS scheduling pass](docs/evidence/tombraider-affinity-1-7-menu-2026-08-15.png)
+
+![Tomb Raider shared-UID full-screen benchmark result](docs/evidence/tombraider-shareduid-fullscreen-run1-2026-08-15.png)
 
 ## What changed
 

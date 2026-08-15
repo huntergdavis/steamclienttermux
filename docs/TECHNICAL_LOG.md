@@ -3762,3 +3762,81 @@ Termux:X11 full-screen. This tests the usable steady-state configuration. The
 earlier excluded 23.7 FPS pass is not a substitute because it included an
 Android window switch during the timed scene. As before, no profiler,
 screenshot, SSH check, or window switch runs during the benchmark.
+
+## 2026-08-15: shared-UID Termux:X11 restores usable full-screen performance
+
+The first no-overlay Safe pass used the separately installed Termux:X11 APK.
+Once the floating Termux activity was removed, Android placed the game in
+`/cpuset/moderate` and `cpu:/background`, with only CPUs 1-3 allowed. The user
+reported **3 FPS minimum, 7 FPS maximum, and 5.4 FPS average**. That unusable
+result is retained as the standalone-APK side of the foreground-ownership A/B;
+no result screenshot is claimed.
+
+The upstream Termux:X11 project now publishes a `sharedUid` APK specifically
+for this Samsung/background-cpuset problem. The installed Termux release is a
+GitHub build, satisfying the upstream compatibility requirement. The correct
+universal APK is 14,576,870 bytes with SHA-256
+`e3e2633287af90586cc994745855c9514fa6f9a94eff54abad6faf3cdefb0375` and
+version code 15. Android reports UID 10469 for `com.termux`,
+`com.termux.x11`, and `com.termux.api`; the Termux companion was upgraded to
+`termux-x11-nightly 1.03.01-6`. The former standalone APK remains preserved as
+`$HOME/termux-x11-standalone-rollback.apk` rather than being deleted.
+
+Before the install, a read-only storage audit found the stale, unmounted
+`$PREFIX/tmp/slr4-shadowcopy.O366iS` tree from August 8. It had no live
+Steam/Wine/game process or mount reference and occupied 3,169,873 KiB. Removing
+that exact tree permanently increased reported free internal space from 17 GiB
+to 20 GiB. Browser/session caches, Steam logs, build caches, and rollback APKs
+were deliberately retained.
+
+The first shared-UID launch was black and extremely laggy even though an
+internal X client could connect. The old X server had survived the APK swap,
+and the Android activity retained a dead command Binder. A three-second logcat
+sample grew by 1,733 matching messages; `MainActivity.tryConnect()` repeatedly
+threw `DeadObjectException`, reset the service to null, requested another local
+connection, and multiplied the server's `ACTION_START` broadcasts. The
+required `deja "Termux X11 shared UID black screen reconnect loop 2800x1586"`
+search returned no indexed match.
+
+Stopping only the exact X server removed that process but not the activity's
+queued callbacks. Upstream `ACTION_STOP` calls `finishAffinity()`, but the
+installed activity continued retrying. Temporarily disabling only
+`com.termux.x11.LorieBroadcastReceiver` stopped delivery and recycled the
+entire shared UID on this Samsung build. That also stopped the supervised SSH
+service despite its `runsv` parent having been PID 1; opening Termux restored
+the service automatically. Re-enabling the receiver caused the same one-time
+UID recycle, so Termux was opened once more. No app data, Steam state, or
+credentials were cleared.
+
+After the broadcast queue was empty, the clean connection started the Android
+activity and then exactly one `termux-x11 :0 -ac` server. Logcat recorded one
+`ACTION_START`, one X-socket extraction, zero Binder/connection errors, and
+shared buffers at 1280x720. A 760x260 `xmessage` test was visible on the tablet
+and accepted its OK-button pointer input. All involved processes reported
+`/top-app`. Steam then launched directly without KDE, automatically completed
+cached login, and forwarded `-applaunch 203160` into Steam Linux Runtime 4
+ARM64, Proton 11 ARM64, and the real Windows renderer.
+
+Immediately before the measured scene, the game affinity helper verified 55
+live threads on CPUs 1-7 except `Raknet-RecvFrom` on CPU 1; Steam helpers used
+CPU 0 and X11 used CPUs 0-3. Synthetic XTest clicks could highlight **Start
+Benchmark** but did not activate it, so the user tapped it directly. No SSH
+check, profiler, or screenshot ran during the timed scene. The result was
+**17.4 FPS minimum, 36.3 FPS maximum, and 28.5 FPS average**, captured as
+`tombraider-shareduid-fullscreen-run1-2026-08-15.png` with SHA-256
+`8e84c88b00b3b5aac7686cc48d88f26b425878c8cef1395ec48988e443b9ad9f`.
+
+Average throughput was 5.28x the standalone full-screen result, a 427.8%
+increase. Minimum and maximum were 5.80x and 5.19x as high. The result is also
+10.6% above the three-clean Safe mean of 25.77 FPS and 0.7% below the bundled-
+FEX scheduling mean of 28.7 FPS. One pass does not establish a replacement
+mean, and the post-run audit found one late `dxvk-cache` thread on CPUs 0-7;
+the other game scheduling state remained intact. At capture time, the game and
+X server both remained `/top-app`, with 1,978,564 KiB RAM and 4,806,580 KiB
+swap available. The A/B therefore identifies Android foreground ownership,
+not OOM or the 1280x720 renderer, as the cause of the 5.4 FPS collapse.
+
+The required `deja "Termux X11 shared UID fullscreen Tomb Raider 28.5 FPS"`
+search returned no indexed match. This result reuses only the repository's
+documented Safe FEX, affinity, exact-720p, and clean-scene protocol; the
+shared-UID measurements and Binder-loop diagnosis are new.

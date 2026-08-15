@@ -201,20 +201,68 @@ second application at the stable 56-thread state remained verified.
 
 The Safe baseline kept the Termux activity floating in front of Termux:X11 so
 Android continued treating the Termux UID as foreground. That is useful for a
-scheduler baseline but not acceptable gameplay. The next controlled pass
-hides the floating Termux activity, leaves Termux:X11 full-screen for the
-entire timed scene, and changes nothing else. No SSH sampler, screenshot, or
-Android window switch is permitted during the scene. The result measures the
-real steady-state penalty separately from the excluded pass, which mixed a
-mid-benchmark Android window switch into its measurement.
+scheduler baseline but not acceptable gameplay. The no-overlay A/B produced
+two sharply different results:
+
+| Full-screen condition | Minimum | Maximum | Average |
+|---|---:|---:|---:|
+| Standalone Termux:X11 APK | **3.0** | **7.0** | **5.4** |
+| Official shared-UID APK, run 1 | **17.4** | **36.3** | **28.5** |
+
+The standalone result was read directly by the user and has no result capture.
+It used the same exact 1280x720 Low, V-Sync-off, FEX `safe` profile and hid the
+floating Termux activity before the timed scene. The post-run process state
+showed `TombRaider.exe` allowed only on CPUs 1-3, in `/cpuset/moderate` and
+`cpu:/background`. Its 5.4 FPS average is not a game or translation baseline;
+it is the Android foreground-ownership failure this A/B was designed to find.
+
+The replacement is the upstream universal `sharedUid` nightly APK documented
+under [Avoiding slowdowns](https://github.com/termux/termux-x11#avoiding-slowdowns).
+The installed APK is 14,576,870 bytes with SHA-256
+`e3e2633287af90586cc994745855c9514fa6f9a94eff54abad6faf3cdefb0375` and
+version code 15. Termux, Termux:X11, and Termux:API all report Android UID
+10469. The matching Termux companion is `termux-x11-nightly 1.03.01-6`.
+
+The first install inherited a stale server/activity Binder and showed only a
+black, laggy surface. Logcat measured 1,733 matching connection messages in
+three seconds, including repeated `DeadObjectException` failures. Stopping the
+single X server was insufficient because the old activity had already queued
+many connection callbacks. Temporarily disabling and re-enabling only
+`LorieBroadcastReceiver` recycled the shared UID on this Samsung build, so the
+supervised SSH service stopped and Termux had to be opened once after each
+component-state change. No package data was cleared. With a fresh process, the
+working sequence launched the Android activity first and exactly one X server
+second. It produced one `ACTION_START`, one X-socket extraction, zero
+connection errors, and a live 1280x720 root. A mapped `xmessage` window then
+proved both Android presentation and pointer input before Steam started.
+
+The measured shared-UID run used no KDE and left Termux:X11 as the only visible
+Android activity. Steam ran with the FEX `safe` profile, its web helpers were
+placed on CPU 0, X11 used CPUs 0-3, and the game was verified on CPUs 1-7 with
+`Raknet-RecvFrom` on CPU 1 immediately before the user tapped **Start
+Benchmark**. No SSH check, profiler, or screenshot ran during the timed scene.
+The captured dialog visibly reports 17.4/36.3/28.5 FPS:
+[`tombraider-shareduid-fullscreen-run1-2026-08-15.png`](evidence/tombraider-shareduid-fullscreen-run1-2026-08-15.png).
+
+The shared-UID average is 5.28x the standalone result, a 427.8% increase; its
+minimum is 5.80x and maximum 5.19x as high. It is also 10.6% above the 25.77
+FPS floating-Termux Safe clean mean and only 0.7% below the 28.7 FPS bundled-
+FEX scheduling mean. This single result proves that a usable full-screen
+configuration need not pay the catastrophic standalone-APK penalty, but it
+does not yet establish a new mean. The post-run audit found one late-created
+`dxvk-cache` thread on CPUs 0-7 while the other game masks retained the tuned
+profile, so repetitions must record that thread explicitly.
+
+At the result dialog, 1,978,564 KiB RAM and 4,806,580 KiB swap remained
+available. The game and X server both reported `/top-app`; this was not an OOM.
 
 ## Samsung Game Booster candidate
 
 The measured tablet is an SM-X808U on Android 16 / One UI 8. Its installed
 Samsung stack includes Gaming Hub, Game Booster, Game Optimizing Service, and
-the SM8450 Samsung game-driver package. The Windows renderer runs under
-Termux's Android UID while Termux:X11 is the visible Android package, so Game
-Booster might not classify this as a game automatically.
+the SM8450 Samsung game-driver package. The Windows renderer and the visible
+Termux:X11 activity now share Termux's Android UID. Game Booster still might
+not classify that UID as a game automatically.
 
 Samsung documents manually adding apps through **Gaming Hub → My games → More
 → Add games**. The controlled candidate is to add both Termux and Termux:X11,
@@ -233,12 +281,10 @@ to be proven:
 [manual app-add guide](https://www.samsung.com/ca/support/apps-services/how-to-add-and-remove-apps-in-the-gaming-hub-app/),
 and [current Game Booster layout](https://www.samsung.com/latin/support/apps-services/updates-to-game-booster-settings-and-features-on-the-samsung-galaxy-devices/).
 
-With the currently installed separate Termux and Termux:X11 applications, the
-Termux activity must remain visible/foreground over X11 for clean timed runs.
-Switching to another Android window can demote the Termux UID and its entire
-Steam/PRoot/FEX process tree before returning it to `top-app`. The integrated
-Termux:X11 build remains the candidate for eliminating that split foreground
-ownership.
+The official shared-UID Termux:X11 build is now installed and has eliminated
+the split foreground-ownership failure in one measured pass: Termux:X11 alone
+kept the complete workload in `/top-app`. Game Booster remains a separate
+future A/B and was not enabled for the 28.5 FPS result.
 
 ## What the percentage difference means
 
