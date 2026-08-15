@@ -83,7 +83,9 @@ read directly by the user from Tomb Raider's result dialog:
 |---|---:|---:|---:|
 | Scheduling pass 1 | **23** | **41** | **31** |
 | Scheduling pass 2 | **11** | **28** | **24** |
-| **Two-pass mean** | **17** | **34.5** | **27.5** |
+| Scheduling pass 3 | **21.0** | **39.8** | **31.1** |
+| **Three-pass mean** | **18.3** | **36.3** | **28.7** |
+| **Three-pass median** | **21.0** | **39.8** | **31.0** |
 
 The game remained at exact 1280x720, Low, and V-Sync off. A post-pass audit
 found 56 game threads: 55 allowed on CPUs 1-7 and the continuously runnable
@@ -99,14 +101,19 @@ and half-barrier TSO on, and multiblock on. No `safe` or `fast` launcher-profile
 variables were present in the game environment. This result therefore belongs
 to the bundled Proton FEX profile, not to the later translator tuning.
 
-Relative to the three-pass 8.0/16.63/13.7 clean mean, the diagnostic pass
+Relative to the three-pass 8.0/16.63/13.7 clean mean, the first diagnostic pass
 improved minimum by 187.5%, maximum by 146.5%, and average by 126.3%; average
 throughput was **2.26x** as high. The non-matching Snapdragon 8+ Gen 1 Turnip
 comparison's 63 FPS average is now 2.03x this pass rather than 4.60x the clean
 baseline, but it remains an upper comparison with unverified settings and a
 different SoC.
 
-The game had already returned to its main menu before capture. The retained
+Using all three tuned passes, mean average throughput is **28.7 FPS**, 2.09x
+the clean baseline or a 109.5% increase. The tuned median average is 31.0 FPS.
+The non-matching 63 FPS comparison is 2.20x the tuned mean; this project is
+54.4% lower by that comparison's denominator. No pass is discarded.
+
+The first pass had already returned to its main menu before capture. The retained
 [`post-pass menu frame`](evidence/tombraider-affinity-1-7-menu-2026-08-15.png)
 is evidence of the live 1280x720 game state, not a result screenshot. At the
 post-pass audit, 2,063,264 KiB RAM and 4,575,800 KiB swap remained available;
@@ -114,16 +121,16 @@ the game itself used about 264-275 MiB resident and 363 MiB swapped. CPU policy
 maxima were still only 1.325 GHz on CPUs 4-6 and 1.613 GHz on CPU 7, versus
 2.496 and 2.995 GHz hardware maxima. KGSL exposed the full 818 MHz GPU maximum,
 reported thermal power level zero, and was about 16.6% busy in the menu sample.
+The third dialog was captured successfully and visibly reports 21.0/39.8/31.1
+FPS in
+[`tombraider-affinity-1-7-run3-2026-08-15.png`](evidence/tombraider-affinity-1-7-run3-2026-08-15.png).
 
-The first value was one diagnostic result, not a replacement three-pass mean.
-Two repetitions were therefore requested in the identical live state with no
-profiler or screenshot in the timed scene. The first repetition reported
-11/28/24 FPS.
-That is still 1.75x the 13.7 FPS clean baseline average, but it is 22.6% below
-the first scheduling pass. The two tuned passes average 17/34.5/27.5 FPS;
-average throughput is 2.01x baseline. One more unchanged pass is required to
-quantify variance before this becomes the scheduling baseline for one-variable
-FEX `safe` and then `fast` comparisons.
+The first value was one diagnostic result, so two repetitions ran in the
+identical live state with no profiler or screenshot in either timed scene. The
+first repetition reported 11/28/24 FPS and the second 21/39.8/31.1 FPS. The
+middle pass is retained rather than discarded. The complete three-pass set is
+the scheduling baseline for one-variable FEX `safe` and then `fast`
+comparisons.
 
 The post-second-pass masks, CPU policy limits, X11 affinity, and Steam-helper
 affinity were unchanged. A two-second menu profile exposed a remaining source
@@ -257,21 +264,17 @@ multithreaded applications, so the two profiles must be tested separately:
 
 Continue to use one warm-up plus three recorded passes per profile:
 
-1. Run one more clean pass in the original tuned state: CPUs 1-7, RakNet receive
-   thread on CPU 1, Steam web helpers on CPU 0, and bundled Proton FEX. Reject
-   starts whose policy maxima differ materially, and do not sample the timed
-   scene.
-2. Benchmark `STEAM_ARM64_FEX_PROFILE=safe`, then `fast`, changing no graphics,
+1. Benchmark `STEAM_ARM64_FEX_PROFILE=safe`, then `fast`, changing no graphics,
    affinity, or presentation variable between them.
-3. Separate the scheduling changes only after replication: first remove RakNet
+2. Separate the scheduling changes only after replication: first remove RakNet
    isolation, then restore Steam helper scheduling, one variable per set.
-4. Measure a launch-only session with KDE/Plasma and nonessential Steam CEF
+3. Measure a launch-only session with KDE/Plasma and nonessential Steam CEF
    processes absent. `SIGSTOP` is not a solution under PRoot: it leaves traced
    helpers accumulating CPU time even though `kill` succeeds.
-5. Back up Termux and evaluate the official integrated Termux:X11 build for the
+4. Back up Termux and evaluate the official integrated Termux:X11 build for the
    Samsung foreground-cpuset fix. Do not replace the live app without a
    recovery plan.
-6. Then compare a controlled translator or driver change. Do not infer a
+5. Then compare a controlled translator or driver change. Do not infer a
    benefit merely from version numbers.
 
 The required `deja "Snapdragon 8 Gen 1 Adreno 730 Tomb Raider GameHub

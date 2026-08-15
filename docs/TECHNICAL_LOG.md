@@ -3654,3 +3654,20 @@ last observed on CPU 4 beside game work. The game itself consumed 213%, with
 plausible explanation for variance but remains a hypothesis because equivalent
 processor-placement data was not captured after the 31 FPS pass. One more
 unchanged run precedes any explicit PRoot/wineserver partition.
+
+The final unchanged repetition reported **21.0 FPS minimum, 39.8 FPS maximum,
+and 31.1 FPS average**. Its result dialog was captured successfully as
+`tombraider-affinity-1-7-run3-2026-08-15.png`. The three requested passes are
+therefore 23/41/31, 11/28/24, and 21/39.8/31.1 FPS, with a mean of
+18.3/36.3/28.7 and median of 21/39.8/31.0 FPS. No pass was discarded. Mean
+average throughput is 2.09x the 13.7 FPS clean baseline, a 109.5% increase.
+
+Immediately after the captured high result, all 56 game-thread masks again
+verified: 55 used CPUs 1-7 and `Raknet-RecvFrom` used CPU 1. CPU policy maxima
+remained 1,324,800 kHz for CPUs 4-6 and 1,612,800 kHz for CPU 7. PRoot and
+wineserver were both last observed on CPU 6 beside the game, so the earlier
+single post-pass placement hypothesis does not explain the result by itself.
+The device was hotter at 57-60 C than after the 24 FPS pass and had 2,187,340
+KiB available RAM. This further rules out a simple hotter-device or lower-free-
+memory explanation for the middle run. The complete set is now the bundled-
+FEX scheduling baseline; the next controlled variable is FEX `safe`.

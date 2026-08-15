@@ -41,6 +41,9 @@ These screenshots capture milestones and failures from the original tablet.
   captured immediately after the user-read 23/41/31 FPS scheduling pass. The
   game had already dismissed its result dialog, so this is post-pass state
   evidence and is deliberately not labeled as a result screenshot.
+- `tombraider-affinity-1-7-run3-2026-08-15.png`: the captured third result for
+  the CPUs 1-7/RakNet CPU 1/Steam-helper CPU 0 profile, visibly reporting
+  21.0 FPS minimum, 39.8 maximum, and 31.1 average.
 - `burnout-after-install-confirm.png`: Burnout installation confirmation.
 - `steam-relaunched-installed.png`: client relaunched with completed installs.
 - `2026-08-08-live-debugging-compat-timeout.png`: live debugging session with
