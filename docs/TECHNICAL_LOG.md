@@ -3723,3 +3723,18 @@ optimisation → Performance, with increased heat/power as the tradeoff. Because
 the renderer uses Termux's UID while Termux:X11 is the visible package, both
 must be added and the outcome measured as a separate post-safe profile rather
 than assumed.
+
+The attempted Safe Clean 2 reported **5.9/30.1/23.7 FPS**, but the user had
+briefly used another Android window during the timed scene. The result is
+captured as `tombraider-fex-safe-window-switch-excluded-2026-08-15.png` and
+excluded under the pre-existing no-interaction rule. On return, Termux PID
+13339, the native Termux:X11 server, and `TombRaider.exe` were all in cpuset and
+CPU controller `/top-app`; all 56 game affinities verified, X11 retained CPUs
+0-3, and CPU ceilings still matched the baseline. That snapshot proves clean
+recovery but not uninterrupted `top-app` residency.
+
+This confirms that the official separate-app configuration still requires the
+Termux activity to remain visible/foreground over Termux:X11 during a clean
+benchmark. Another Android window can change scheduling for the complete
+Termux UID process tree even though taskset masks appear correct again after
+return. Safe Clean 2 must be repeated without any Android window switch.

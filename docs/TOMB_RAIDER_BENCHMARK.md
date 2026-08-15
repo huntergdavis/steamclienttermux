@@ -150,6 +150,7 @@ contained `TSOEnabled=1` and `Multiblock=1`, agreeing with the environment.
 |---|---:|---:|---:|
 | Warm-up | 18.0 | 30.9 | 25.5 |
 | Clean 1 | **17.7** | **30.8** | **25.7** |
+| Window switch, excluded | 5.9 | 30.1 | 23.7 |
 
 The warm-up values were read directly by the user; its exclusive-window
 capture was black and the root capture reached the menu after the dialog had
@@ -166,6 +167,15 @@ the pass was 2,275,692 KiB and free swap was 5,052,556 KiB.
 Clean 1 is 10.5% below the bundled-FEX scheduling mean of 28.7 FPS and 17.1%
 below its 31.0 FPS median. One clean pass is not enough to accept or reject the
 profile; two more unchanged passes remain.
+
+The attempted second clean pass included a user-reported switch to another
+Android window and returned 5.9/30.1/23.7 FPS. It is retained as
+[`window-switch contamination evidence`](evidence/tombraider-fex-safe-window-switch-excluded-2026-08-15.png)
+but excluded under the existing no-interaction clean-run rule. After returning,
+Termux, the native X11 server, and the game all reported `/top-app`, all 56 game
+thread masks verified, and CPU policy ceilings still matched the baseline.
+That post-run state cannot prove the cgroup remained `top-app` during the
+window switch.
 
 The clean restart also exposed two launch details. Steam ignored repeated
 `steam://rungameid/203160` actions while rebuilding and even after completing
@@ -198,6 +208,13 @@ to be proven:
 [Samsung Game Booster guide](https://www.samsung.com/us/support/answer/ANS10002536/),
 [manual app-add guide](https://www.samsung.com/ca/support/apps-services/how-to-add-and-remove-apps-in-the-gaming-hub-app/),
 and [current Game Booster layout](https://www.samsung.com/latin/support/apps-services/updates-to-game-booster-settings-and-features-on-the-samsung-galaxy-devices/).
+
+With the currently installed separate Termux and Termux:X11 applications, the
+Termux activity must remain visible/foreground over X11 for clean timed runs.
+Switching to another Android window can demote the Termux UID and its entire
+Steam/PRoot/FEX process tree before returning it to `top-app`. The integrated
+Termux:X11 build remains the candidate for eliminating that split foreground
+ownership.
 
 ## What the percentage difference means
 
