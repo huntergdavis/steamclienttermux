@@ -3977,3 +3977,36 @@ tessellation, and V-Sync remained off. After the pass, 1,891,112 KiB RAM and
 The capture attempt occurred after the result had advanced to a loading frame,
 so that frame was deleted and this result is explicitly user-read rather than
 screenshot-backed.
+
+## 2026-08-15: Samsung Game Booster Performance A/B begins
+
+Termux and Termux:X11 were added manually to Gaming Hub. The next native-Low
+pass reported **5.2/28.5/19.9 FPS**, but the user then asked whether a separate
+game mode needed enabling. Samsung's current interface separates app addition
+from **Game Booster → Game optimisation → Performance**, so this first pass
+is policy-unconfirmed and excluded from the Performance sample. Its screenshot
+SHA-256 is
+`fb2e74988d12ad0ced8e65bad2497628c9f27c24d102b5d04298444fb39439cb`.
+
+The user explicitly selected Performance while retaining per-game resolution
+at 100% and Frame Booster off. The controlled preflight then verified the exact
+native-Low registry hash, all 60 game threads on the established affinity
+profile, a custom 2800x1752 X root, and both game and X11 in `/top-app`.
+2,047,396 KiB RAM and 4,759,816 KiB swap were available. No tool ran during the
+timed scene.
+
+Confirmed Performance Run 1 reported **13.7 FPS minimum, 29.0 FPS maximum,
+and 20.2 FPS average**. That average is 9.0% below the three-run native-Low mean
+and 6.9% below each of the two adjacent 21.7 FPS Low runs. The maximum differs
+from the Low mean by only 0.2 FPS, while the noisy minimum recovered relative
+to the policy-unconfirmed pass. Post-run, every affinity and both `/top-app`
+placements still verified; 2,059,916 KiB RAM and 4,788,128 KiB swap remained.
+The run did not OOM. The exact result PNG SHA-256 is
+`b9ad0f8946f36f86b293c88d0f9bb92653d59348f5d8c2837188f7fb73b05145`.
+
+This A/B reuses the established native-Low shared-UID clean-scene protocol.
+The required `deja "Samsung Game Booster Performance mode Termux X11 shared
+UID Tomb Raider benchmark"` search found no prior session to reuse. Samsung's
+current official settings guide distinguishes the performance policy from
+Modes and Routines' notification-focused Game mode:
+https://www.samsung.com/uk/support/apps-services/updates-to-game-booster-settings-and-features-on-the-samsung-galaxy-devices/

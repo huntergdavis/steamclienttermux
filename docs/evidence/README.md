@@ -77,6 +77,14 @@ These screenshots capture milestones and failures from the original tablet.
   unchanged panel-native Low pass, visibly reporting 13.6 FPS minimum, 28.7
   maximum, and 21.7 average. Together, the three native passes establish an
   11.37/28.8/22.2 FPS mean.
+- `tombraider-gaminghub-added-performance-unconfirmed-2026-08-15.png`: a
+  panel-native Low pass after both shared-UID apps were added to Gaming Hub but
+  before the separate Performance selector was confirmed, reporting
+  5.2/28.5/19.9 FPS. It is excluded from the confirmed Performance sample.
+- `tombraider-gamebooster-performance-run1-2026-08-15.png`: the first
+  panel-native Low pass after the user explicitly selected Game Booster's
+  Performance policy, visibly reporting 13.7/29.0/20.2 FPS. Affinity and both
+  `/top-app` placements verified before and after the timed scene.
 - `burnout-after-install-confirm.png`: Burnout installation confirmation.
 - `steam-relaunched-installed.png`: client relaunched with completed installs.
 - `2026-08-08-live-debugging-compat-timeout.png`: live debugging session with

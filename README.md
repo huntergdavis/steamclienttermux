@@ -121,6 +121,12 @@ mean and 35.9% below the immediately preceding Low Run 3. The attempted result
 capture had already advanced to a loading screen, so it was deleted and is not
 claimed as screenshot evidence.
 
+After adding both shared-UID apps to Gaming Hub and explicitly selecting Game
+Booster's Performance policy, the first confirmed native-Low pass reported
+**13.7/29.0/20.2 FPS**. Its average is 9.0% below the native-Low mean, so
+Performance mode has not yet improved this workload; repetitions remain in
+progress.
+
 The measurement protocol is one warm-up and three recorded passes per profile.
 Alongside the benchmark result, record peak memory, time to the main menu,
 launch success rate, and any Android whole-UID eviction.

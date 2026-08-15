@@ -383,6 +383,22 @@ the split foreground-ownership failure in measured passes: Termux:X11 alone
 kept the complete workload in `/top-app`. Game Booster remains a separate A/B
 and was not enabled for the 720p, 1080p, native-Low, or native-Normal results.
 
+Adding Termux and Termux:X11 to Gaming Hub produced 5.2/28.5/19.9 FPS before
+the user had confirmed the separate Performance selector. That pass is retained
+as an app-added, policy-unconfirmed observation and is not included in the
+Performance sample. After explicitly selecting **Game optimisation →
+Performance**, the first controlled native-Low pass reported
+**13.7/29.0/20.2 FPS**. This is 9.0% below the 22.2 native-Low mean and 6.9%
+below the two immediately preceding 21.7 averages. Maximum remained within
+0.2 FPS of the native-Low mean, while minimum remained noisy.
+
+The confirmed result is preserved as
+[`tombraider-gamebooster-performance-run1-2026-08-15.png`](evidence/tombraider-gamebooster-performance-run1-2026-08-15.png).
+Immediately before it, all 60 game threads, native resolution, and both
+`/top-app` placements verified; 2,047,396 KiB RAM and 4,759,816 KiB swap were
+available. After it, affinity and both `/top-app` placements still verified;
+2,059,916 KiB RAM and 4,788,128 KiB swap remained. It was not an OOM.
+
 ## What the percentage difference means
 
 The closest built-in benchmark recording found during this research used
