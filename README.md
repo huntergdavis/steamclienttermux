@@ -30,8 +30,11 @@ Mesa Turnip, official Proton 11 ARM64, and its bundled FEX/DXVK stack.
 - Tomb Raider (2013) is installed on the microSD as the Windows depot set and
   launches the real `TombRaider.exe` through Steam Linux Runtime 4 ARM64,
   official Proton 11 ARM64, FEX, DXVK, and Turnip. Its launcher and first-run
-  renderer both work, and its built-in Normal profile is configured for
-  fullscreen 1280x720. Benchmark measurement is in progress.
+  renderer both work. Its first built-in 1280x720 Low benchmark completed at
+  5.8 minimum, 18.0 maximum, and 13.6 average FPS. The saved profile still had
+  double-buffered V-Sync enabled, so this is a first-run baseline rather than a
+  performance ceiling. See the
+  [comparison and next-pass protocol](docs/TOMB_RAIDER_BENCHMARK.md).
 - Burnout remains experimental; its detailed EA, FEX, and DXVK investigation is
   kept in [`docs/TECHNICAL_LOG.md`](docs/TECHNICAL_LOG.md), not duplicated here.
 
@@ -40,9 +43,10 @@ Mesa Turnip, official Proton 11 ARM64, and its bundled FEX/DXVK stack.
 Tomb Raider replaces the earlier planned Sleeping Dogs control for the first
 measurement. It avoids GTA IV's separate Rockstar launcher, has named graphics
 quality profiles and an integrated benchmark, and has now crossed the real
-Windows executable boundary on this exact Tab S8+. The first pass uses its
-Normal profile at fullscreen 1280x720; lower profiles can then separate CPU,
-GPU, and memory pressure without changing the game or translation stack.
+Windows executable boundary on this exact Tab S8+. The first completed pass
+used its Low profile at fullscreen 1280x720, with game/X11 affinity split across
+CPUs 4-7/0-3. The next controlled pass disables the still-active V-Sync before
+changing resolution, translation, or driver components.
 
 The measurement protocol is one warm-up and three recorded passes per profile.
 Alongside the benchmark result, record peak memory, time to the main menu,

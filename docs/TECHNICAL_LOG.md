@@ -3379,12 +3379,14 @@ target now contains `TombRaider.exe` rather than the Feral i386 launcher.
 Launching `steam://rungameid/203160` then produced the expected ARM64 chain:
 Steam Linux Runtime 4 ARM64's pressure-vessel entry point, Proton 11 ARM64's
 `proton waitforexitandrun`, Wine services, and the real `TombRaider.exe`. The
-Windows pre-game launcher rendered, accepted pointer input, saved fullscreen
-1280x720 with the Normal quality profile, and opened the real renderer. At the
+Windows pre-game launcher rendered, accepted pointer input, initially saved
+fullscreen 1280x720 with the Normal quality profile, and opened the real
+renderer. The user then selected the Low profile and disabled motion blur. At the
 first-run Square Enix terms screen, 2,321,760 KiB remained available and
 5,403,720 KiB of swap remained free. The 2800x1586 X window is the tablet-sized
-exclusive-fullscreen surface; the game render resolution remains the saved
-1280x720 setting.
+exclusive-fullscreen surface; the registry requests 1280x720, but the actual
+DXVK swapchain extent has not yet been logged and must not be inferred from
+either setting or window geometry.
 
 Android scheduling also reproduced the earlier GTA IV measurement. One
 background compatibility registration took 199 seconds in `/cpuset/moderate`
@@ -3402,3 +3404,52 @@ top-app, `TombRaider.exe` was allowed on CPUs 0-7 and could be pinned to CPUs
 4-7; foregrounding Termux:X11 moved it back to `/cpuset/moderate` and CPUs 0-3.
 This is an Android component-scheduling constraint, not a game resolution
 setting, and remains a separate performance item for the benchmark runs.
+
+## 2026-08-14: Tomb Raider first benchmark and external comparison
+
+The user placed Termux in a Samsung pop-up above Termux:X11, keeping the Termux
+UID on the top-app cpuset while the game remained visible. A direct live check
+then confirmed all `TombRaider.exe` threads on CPUs 4-7 and the Termux:X11
+server on CPUs 0-3. The initially attempted synthetic Return event had not
+started the benchmark; a game-only screenshot proved `Start Benchmark` was
+still selected, and the user started it with pointer input. No continuous
+sampler or mid-run screenshot ran during the measured pass.
+
+The first completed built-in benchmark reported **5.8 FPS minimum, 18.0 FPS
+maximum, and 13.6 FPS average** at requested 1280x720 Low. These values were
+read directly by the user. The exclusive-fullscreen result capture returned a
+black frame, and the result had returned to the main menu before the foreground
+retry, so no result screenshot is claimed. At the completed result, 1,900,812
+KiB remained available and 5,158,284 KiB of swap remained free.
+
+The stopped prefix's registry provides the authoritative saved configuration:
+1280x720 at 60 Hz, Low effects, motion blur/post-process/screen effects,
+tessellation, shadows, SSAO, and antialiasing disabled, fullscreen and exclusive
+fullscreen enabled, and `VSyncMode=1`. The latter matches the launcher's Double
+Buffer label and differs from the same-chip comparison recording's V-Sync-off
+setting.
+
+The full research and percentage calculations are in
+[`docs/TOMB_RAIDER_BENCHMARK.md`](TOMB_RAIDER_BENCHMARK.md). In brief, the
+closest built-in GameFusion/Turnip recording on Snapdragon 8+ Gen 1 reported
+43.1/88.9/63.0 FPS, making this run's average 78.4% lower or the comparison
+4.63x as high. That is not an apples-to-apples result: the SoC differs and the
+recording does not prove matching resolution/preset. Qualcomm rates the 8+
+generation at about 10% higher CPU/GPU clocks than 8 Gen 1, insufficient to
+explain the observed gap alone.
+
+A primary recording on the exact Snapdragon 8 Gen 1/Adreno 730/8 GB class used
+1280x720 Low, V-Sync off, Proton ARM64EC, FEXCore, DXVK, and Turnip and showed
+sampled gameplay counters from 35.9 to 62.7 FPS. It did not run the built-in
+benchmark, so it establishes hardware headroom rather than an exact percentage.
+No Tomb Raider/Adreno 730 submission was present in GameNative's live
+compatibility service, and no same-chip GameHub built-in benchmark was found.
+
+The native X surface contains 4.8186 times the pixels of 1280x720, and scaling
+13.6 by that ratio gives 65.5 FPS. This numerical proximity to the external
+63.0 result is a hypothesis, not proof that Tomb Raider rendered natively. The
+next controlled passes disable V-Sync, set Termux:X11 to exact 1280x720, and
+record the actual DXVK swapchain before changing translator or driver versions.
+The official Termux:X11 integrated Termux build is also a candidate for the
+documented Samsung OneUI cpuset issue, subject to a full Termux backup and
+recovery plan.

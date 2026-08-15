@@ -22,6 +22,13 @@ These screenshots capture milestones and failures from the original tablet.
   Bellic** after the saved Rockstar session, selector, main menu, GTA IV sign-in
   prompt, and rotating loader all completed. This proves a new game started;
   it does not yet prove interactive control after the opening transition.
+- `tombraider-main-menu-2026-08-14.png`: the real Windows Tomb Raider launcher
+  after the App ID was explicitly mapped to official Proton 11 ARM64.
+- `tombraider-start-benchmark-2026-08-14.png`: the real Tomb Raider game at its
+  built-in `Start Benchmark` control. The first result was 5.8/18.0/13.6 FPS,
+  read directly by the user; no result screenshot is claimed because the
+  exclusive-fullscreen capture was black and the foreground retry reached the
+  main menu.
 - `burnout-after-install-confirm.png`: Burnout installation confirmation.
 - `steam-relaunched-installed.png`: client relaunched with completed installs.
 - `2026-08-08-live-debugging-compat-timeout.png`: live debugging session with
