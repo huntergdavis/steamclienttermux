@@ -71,12 +71,12 @@ PRoot tracer and 31%-CPU wineserver were still free to contend with game work
 on the fast cores. Because several scheduling changes were applied together,
 the report does not assign the gain to one component.
 
-The first `STEAM_ARM64_FEX_PROFILE=safe` series is in progress under the same
-scheduling state. Its user-read warm-up reported 18.0/30.9/25.5 FPS, and the
-first captured clean pass reported 17.7/30.8/25.7 FPS. Both ran at the same
-1.325/1.613 GHz CPU policy ceilings as the bundled-FEX scheduling baseline. A
-second uninterrupted clean pass reported 19.2/31.1/25.8 FPS, giving the first
-two clean runs a 25.75 FPS mean. One more clean pass remains.
+The first `STEAM_ARM64_FEX_PROFILE=safe` series is complete under the same
+scheduling state. Its clean passes reported 17.7/30.8/25.7,
+19.2/31.1/25.8, and 19.2/31.1/25.8 FPS, producing a tightly grouped
+18.7/31.0/25.77 FPS three-pass mean. All ran at the same 1.325/1.613 GHz CPU
+policy ceilings as the bundled-FEX scheduling baseline. The Safe mean is
+10.2% below the bundled-FEX scheduling mean of 28.7 FPS.
 
 The measurement protocol is one warm-up and three recorded passes per profile.
 Alongside the benchmark result, record peak memory, time to the main menu,

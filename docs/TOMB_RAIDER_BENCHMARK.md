@@ -152,7 +152,8 @@ contained `TSOEnabled=1` and `Multiblock=1`, agreeing with the environment.
 | Clean 1 | **17.7** | **30.8** | **25.7** |
 | Window switch, excluded | 5.9 | 30.1 | 23.7 |
 | Clean 2 | **19.2** | **31.1** | **25.8** |
-| **Two-clean mean** | **18.45** | **30.95** | **25.75** |
+| Clean 3 | **19.2** | **31.1** | **25.8** |
+| **Three-clean mean** | **18.7** | **31.0** | **25.77** |
 
 The warm-up values were read directly by the user; its exclusive-window
 capture was black and the root capture reached the menu after the dialog had
@@ -173,9 +174,10 @@ accept or reject the profile, so two more unchanged passes remained.
 The uninterrupted replacement Clean 2 reported 19.2/31.1/25.8 FPS and is
 preserved as
 [`tombraider-fex-safe-run2-2026-08-15.png`](evidence/tombraider-fex-safe-run2-2026-08-15.png).
-The two valid clean averages are tightly grouped at 25.7 and 25.8 FPS, with a
-25.75 FPS mean. That is 10.3% below the bundled-FEX scheduling mean. One final
-clean pass remains before accepting the full profile result.
+Clean 3 repeated the same exact 19.2/31.1/25.8 FPS dialog and is preserved as
+[`tombraider-fex-safe-run3-2026-08-15.png`](evidence/tombraider-fex-safe-run3-2026-08-15.png).
+The three clean averages are tightly grouped at 25.7, 25.8, and 25.8 FPS,
+with a 25.77 FPS mean. That is 10.2% below the bundled-FEX scheduling mean.
 
 The attempted second clean pass included a user-reported switch to another
 Android window and returned 5.9/30.1/23.7 FPS. It is retained as
@@ -184,7 +186,9 @@ but excluded under the existing no-interaction clean-run rule. After returning,
 Termux, the native X11 server, and the game all reported `/top-app`, all 56 game
 thread masks verified, and CPU policy ceilings still matched the baseline.
 That post-run state cannot prove the cgroup remained `top-app` during the
-window switch.
+window switch. It also does not measure the steady-state case where
+Termux:X11 alone is full-screen; that usable configuration is a separate A/B
+condition.
 
 The clean restart also exposed two launch details. Steam ignored repeated
 `steam://rungameid/203160` actions while rebuilding and even after completing
@@ -192,6 +196,17 @@ its compatibility registry, whereas `-applaunch 203160` immediately created
 the tracked ARM64 Runtime/Proton session. During renderer startup, three late
 threads reset themselves to CPUs 0-7; the guarded helper caught them, and a
 second application at the stable 56-thread state remained verified.
+
+## Full-screen Termux:X11 usability A/B
+
+The Safe baseline kept the Termux activity floating in front of Termux:X11 so
+Android continued treating the Termux UID as foreground. That is useful for a
+scheduler baseline but not acceptable gameplay. The next controlled pass
+hides the floating Termux activity, leaves Termux:X11 full-screen for the
+entire timed scene, and changes nothing else. No SSH sampler, screenshot, or
+Android window switch is permitted during the scene. The result measures the
+real steady-state penalty separately from the excluded pass, which mixed a
+mid-benchmark Android window switch into its measurement.
 
 ## Samsung Game Booster candidate
 

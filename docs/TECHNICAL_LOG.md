@@ -3733,11 +3733,11 @@ CPU controller `/top-app`; all 56 game affinities verified, X11 retained CPUs
 0-3, and CPU ceilings still matched the baseline. That snapshot proves clean
 recovery but not uninterrupted `top-app` residency.
 
-This confirms that the official separate-app configuration still requires the
-Termux activity to remain visible/foreground over Termux:X11 during a clean
-benchmark. Another Android window can change scheduling for the complete
-Termux UID process tree even though taskset masks appear correct again after
-return. Safe Clean 2 must be repeated without any Android window switch.
+This shows that an Android window switch can disturb the complete Termux UID
+process tree even though taskset masks appear correct again after return. It
+does not establish the steady-state penalty of leaving only Termux:X11
+full-screen, because the excluded pass changed windows during the timed scene.
+Safe Clean 2 was therefore repeated without any Android window switch.
 
 The uninterrupted Safe Clean 2 replacement reported **19.2 FPS minimum, 31.1
 FPS maximum, and 25.8 FPS average**, captured as
@@ -3747,3 +3747,18 @@ FPS maximum, and 25.8 FPS average**, captured as
 KiB swap remained free. Clean 1 and 2 average 18.45/30.95/25.75 FPS. Their
 average results differ by only 0.1 FPS and the two-run mean is 10.3% below the
 bundled-FEX scheduling mean. One final unchanged Safe pass remains.
+
+Safe Clean 3 repeated **19.2 FPS minimum, 31.1 FPS maximum, and 25.8 FPS
+average**, captured as `tombraider-fex-safe-run3-2026-08-15.png`. The user
+initially read the whole-number minimum and maximum as 19/31; the captured
+dialog preserves their exact decimal values. The completed three-clean mean
+is 18.7/31.0/25.77 FPS, 10.2% below the bundled-FEX scheduling mean. The 0.1
+FPS total range among clean average results establishes a repeatable Safe
+baseline.
+
+The next A/B keeps every game, FEX, graphics, affinity, and thermal-control
+setting unchanged but removes the floating Termux activity and leaves
+Termux:X11 full-screen. This tests the usable steady-state configuration. The
+earlier excluded 23.7 FPS pass is not a substitute because it included an
+Android window switch during the timed scene. As before, no profiler,
+screenshot, SSH check, or window switch runs during the benchmark.

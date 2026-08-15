@@ -53,6 +53,8 @@ These screenshots capture milestones and failures from the original tablet.
 - `tombraider-fex-safe-run2-2026-08-15.png`: the uninterrupted replacement
   Safe Clean 2 result, visibly reporting 19.2 FPS minimum, 31.1 maximum, and
   25.8 average.
+- `tombraider-fex-safe-run3-2026-08-15.png`: the final Safe Clean 3 result,
+  visibly repeating 19.2 FPS minimum, 31.1 maximum, and 25.8 average.
 - `burnout-after-install-confirm.png`: Burnout installation confirmation.
 - `steam-relaunched-installed.png`: client relaunched with completed installs.
 - `2026-08-08-live-debugging-compat-timeout.png`: live debugging session with
