@@ -44,7 +44,10 @@ Mesa Turnip, official Proton 11 ARM64, and its bundled FEX/DXVK stack.
   Termux:X11 APK collapsed one full-screen Safe pass to 3/7/5.4 FPS. The
   official shared-UID Termux:X11 build instead kept the game and X server in
   `/top-app`; its first usable full-screen pass reached **17.4/36.3/28.5
-  FPS**, or 5.28x the standalone pass's average. See the
+  FPS**, or 5.28x the standalone pass's average. Raising both the X root and
+  game from 1280x720 to 1920x1080 then produced **9.3/34.0/27.8 FPS**. That is
+  2.25x the pixels for only a 2.5% average-FPS loss, although the minimum fell
+  46.6%; repetitions are still required. See the
   [comparison and next-pass protocol](docs/TOMB_RAIDER_BENCHMARK.md).
 - Burnout remains experimental; its detailed EA, FEX, and DXVK investigation is
   kept in [`docs/TECHNICAL_LOG.md`](docs/TECHNICAL_LOG.md), not duplicated here.
@@ -93,6 +96,14 @@ condition and was 10.6% above the floating-Termux Safe clean mean. This is one
 pass, not yet a replacement mean, and one late `dxvk-cache` thread had widened
 itself to CPUs 0-7 by the post-run audit.
 
+The first resolution A/B retained that full-screen shared-UID condition and
+all scheduling and graphics settings while changing the X root and game to
+1920x1080. It reported **9.3 minimum, 34.0 maximum, and 27.8 average FPS**.
+Compared with the 1280x720 pass, 2.25x as many pixels reduced average FPS by
+only 2.5% and maximum by 6.3%, but minimum fell 46.6%. This is evidence that
+steady-state average throughput is not primarily pixel-bound in this profile;
+it is not proof until both resolutions have repeated runs.
+
 The measurement protocol is one warm-up and three recorded passes per profile.
 Alongside the benchmark result, record peak memory, time to the main menu,
 launch success rate, and any Android whole-UID eviction.
@@ -106,6 +117,8 @@ launch success rate, and any Android whole-UID eviction.
 ![Tomb Raider 720p menu after the 31 FPS scheduling pass](docs/evidence/tombraider-affinity-1-7-menu-2026-08-15.png)
 
 ![Tomb Raider shared-UID full-screen benchmark result](docs/evidence/tombraider-shareduid-fullscreen-run1-2026-08-15.png)
+
+![Tomb Raider shared-UID 1080p benchmark result](docs/evidence/tombraider-shareduid-1080p-run1-2026-08-15.png)
 
 ## What changed
 

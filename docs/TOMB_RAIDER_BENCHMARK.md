@@ -256,6 +256,49 @@ profile, so repetitions must record that thread explicitly.
 At the result dialog, 1,978,564 KiB RAM and 4,806,580 KiB swap remained
 available. The game and X server both reported `/top-app`; this was not an OOM.
 
+## Shared-UID 720p/1080p resolution A/B
+
+The first resolution pass changed only the Termux:X11 root and Tomb Raider
+fullscreen resolution from 1280x720 to 1920x1080. It retained Low, motion blur
+off, V-Sync off, FEX `safe`, Steam, the shared-UID full-screen activity, and
+the same affinity profile. Steam was deliberately left loaded so unloading it
+did not become a second variable.
+
+| Shared-UID full-screen pass | Pixels | Minimum | Maximum | Average |
+|---|---:|---:|---:|---:|
+| 1280x720, run 1 | 921,600 | **17.4** | **36.3** | **28.5** |
+| 1920x1080, run 1 | 2,073,600 | **9.3** | **34.0** | **27.8** |
+
+The 1080p pass rendered 2.25x as many pixels. Relative to the 720p pass,
+average FPS fell by 0.7 FPS or 2.5%, maximum fell by 2.3 FPS or 6.3%, and
+minimum fell by 8.1 FPS or 46.6%. The small average change is consistent with
+a CPU, translation, or synchronization limit dominating steady-state
+throughput, while the much lower minimum indicates worse transient stalls at
+1080p. One pass at each resolution cannot isolate the cause or establish a
+stable mean.
+
+Before the user tapped **Start Benchmark**, XRandR and the game window both
+reported 1920x1080. The game registry reported fullscreen 1920x1080 and V-Sync
+off. All 55 then-live game threads verified on CPUs 1-7 except
+`Raknet-RecvFrom` on CPU 1, Steam helpers used CPU 0, and X11 used CPUs 0-3.
+There was 1,957,420 KiB RAM and 5,145,664 KiB swap available. No tool ran
+during the timed scene.
+
+The result dialog is preserved as
+[`tombraider-shareduid-1080p-run1-2026-08-15.png`](evidence/tombraider-shareduid-1080p-run1-2026-08-15.png).
+The post-run audit still showed both game and X11 in `/top-app`, with
+2,086,616 KiB RAM and 4,927,732 KiB swap available, so this was not an OOM.
+One late-created `dxvk-cache` thread widened itself to CPUs 0-7, the same
+post-run caveat seen at 720p.
+
+Changing the stored Termux:X11 preference did not resize the existing X
+framebuffer. A clean transition required ending Steam, stopping the old X
+server, recycling the stale Termux UI process without clearing package data,
+then starting the Android activity before exactly one X server. The resulting
+connection had one `ACTION_START`, one socket extraction, no connection errors,
+and a 1920x1080 shared buffer. The supervised SSH service recovered after the
+Termux process recycle, and cached Steam authentication was preserved.
+
 ## Samsung Game Booster candidate
 
 The measured tablet is an SM-X808U on Android 16 / One UI 8. Its installed

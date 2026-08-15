@@ -3840,3 +3840,47 @@ The required `deja "Termux X11 shared UID fullscreen Tomb Raider 28.5 FPS"`
 search returned no indexed match. This result reuses only the repository's
 documented Safe FEX, affinity, exact-720p, and clean-scene protocol; the
 shared-UID measurements and Binder-loop diagnosis are new.
+
+## 2026-08-15: shared-UID 1920x1080 resolution pass
+
+The first resolution A/B retained Low, motion blur off, V-Sync off, FEX
+`safe`, Steam, the full-screen shared-UID activity, and the existing affinity
+profile. Only the X root and game resolution changed from 1280x720 to
+1920x1080. Steam remained loaded deliberately; unloading it will be a separate
+memory/performance A/B rather than a hidden change in this comparison.
+
+Termux:X11 did not resize its live framebuffer after either a direct exact-mode
+preference change or a native-then-exact preference change. Restarting only
+the X server also reused the stale Android view. After Steam shut down cleanly,
+the stale Termux UI process was recycled without clearing application data.
+The supervised SSH service returned with the new Termux process. Starting the
+Android activity first and exactly one `termux-x11 :0 -ac` server second then
+negotiated a 1920x1080 X root and shared buffer. Logcat showed one
+`ACTION_START`, one socket extraction, and no connection errors. Cached Steam
+authentication survived the transition.
+
+Immediately before the timed scene, XRandR and the Tomb Raider window both
+reported exactly 1920x1080. The game registry recorded fullscreen 1920x1080
+and V-Sync off. The affinity checker verified all 55 then-live game threads on
+CPUs 1-7 except `Raknet-RecvFrom` on CPU 1; Steam helpers used CPU 0 and X11
+used CPUs 0-3. The game and X11 were both in `/top-app`, with 1,957,420 KiB RAM
+and 5,145,664 KiB swap available. The user tapped **Start Benchmark**, and no
+SSH check, screenshot, or profiler ran during the scene.
+
+The captured result reports **9.3 FPS minimum, 34.0 FPS maximum, and 27.8 FPS
+average**. Its PNG SHA-256 is
+`320d1f760b20f75916f58103c5e767ae04bfa24c4256d0d7449011b3f0ac494a`.
+Relative to the shared-UID 1280x720 pass, the 2.25x pixel count reduced average
+FPS by only 2.5% and maximum by 6.3%, while minimum fell 46.6%. This is
+consistent with a non-pixel bottleneck dominating average throughput and more
+severe transient stalls at 1080p, but one pass per resolution is not enough to
+claim causation.
+
+Post-run, the game and X server remained `/top-app`; 2,086,616 KiB RAM and
+4,927,732 KiB swap remained available. The session did not OOM. One late
+`dxvk-cache` thread had expanded to CPUs 0-7 while the other masks retained the
+profile, matching the prior 720p post-run caveat. The required
+`deja "Galaxy Tab S8 Plus native resolution Termux X11 2800x1752 2800x1586 Tomb Raider benchmark"`
+search returned no indexed match. This pass reused the documented shared-UID,
+Safe FEX, affinity, and clean-scene protocol; the 1080p measurement and
+resolution-restart sequence are new.

@@ -60,6 +60,11 @@ These screenshots capture milestones and failures from the original tablet.
   reporting 17.4 FPS minimum, 36.3 maximum, and 28.5 average. Both the game and
   X server remained `/top-app`; no profiler or screenshot ran during the timed
   scene.
+- `tombraider-shareduid-1080p-run1-2026-08-15.png`: the first controlled
+  1920x1080 resolution A/B under the same full-screen shared-UID Safe profile,
+  visibly reporting 9.3 FPS minimum, 34.0 maximum, and 27.8 average. The X root
+  and game window were both exactly 1920x1080; no tool ran during the timed
+  scene.
 - `burnout-after-install-confirm.png`: Burnout installation confirmation.
 - `steam-relaunched-installed.png`: client relaunched with completed installs.
 - `2026-08-08-live-debugging-compat-timeout.png`: live debugging session with
