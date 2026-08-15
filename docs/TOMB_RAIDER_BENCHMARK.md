@@ -399,6 +399,15 @@ Immediately before it, all 60 game threads, native resolution, and both
 available. After it, affinity and both `/top-app` placements still verified;
 2,059,916 KiB RAM and 4,788,128 KiB swap remained. It was not an OOM.
 
+An unchanged confirmed Performance Run 2 then reported a user-read
+**14.0/29.0/19.8 FPS**. The two-run Performance mean is therefore
+**13.85/29.0/20.0 FPS**, 9.9% below the ordinary native-Low mean. The root
+capture for Run 2 was a 734-byte all-black exclusive-fullscreen PNG. A targeted
+window capture was not recovered before the game exited, so Run 2 is explicitly
+user-read and no screenshot is claimed. Two agreeing averages are enough to
+reject Performance as the next leading candidate; the next session returns to
+Samsung Standard.
+
 ## What the percentage difference means
 
 The closest built-in benchmark recording found during this research used
@@ -522,20 +531,13 @@ multithreaded applications, so the two profiles must be tested separately:
 
 ## Next controlled passes
 
-Continue to use one warm-up plus three recorded passes per profile:
-
-1. Benchmark `STEAM_ARM64_FEX_PROFILE=safe`, then `fast`, changing no graphics,
-   affinity, or presentation variable between them.
-2. Separate the scheduling changes only after replication: first remove RakNet
-   isolation, then restore Steam helper scheduling, one variable per set.
-3. Measure a launch-only session with KDE/Plasma and nonessential Steam CEF
-   processes absent. `SIGSTOP` is not a solution under PRoot: it leaves traced
-   helpers accumulating CPU time even though `kill` succeeds.
-4. Back up Termux and evaluate the official integrated Termux:X11 build for the
-   Samsung foreground-cpuset fix. Do not replace the live app without a
-   recovery plan.
-5. Then compare a controlled translator or driver change. Do not infer a
-   benefit merely from version numbers.
+The shared-UID and native-resolution work is complete, and Samsung Performance
+has not helped. The next sequence starts fully cooled with Samsung Standard and
+60 Hz display refresh, then compares a fresh `safe` control, Proton's bundled
+FEX configuration, and the opt-in `fast` profile. Every profile receives one
+warm-up and three recorded passes. The exact order, stop rules, preflight, and
+longer-term PRoot/Bionic work are in the
+[research-backed optimization plan](TOMB_RAIDER_OPTIMIZATION_PLAN.md).
 
 The required `deja "Snapdragon 8 Gen 1 Adreno 730 Tomb Raider GameHub
 GameNative benchmark FPS"` and focused benchmark/affinity searches returned no

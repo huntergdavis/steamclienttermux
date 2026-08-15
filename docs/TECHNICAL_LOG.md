@@ -3540,10 +3540,10 @@ The profile showed a CPU-side bottleneck:
 
 Python was not in this hot path. The short-lived `proton` Python launcher had
 already handed control to Pressure Vessel/Wine/FEX; the live game translation
-is the bundled C++/assembly FEX unixlib, the graphics path is translated 32-bit
-x86 DXVK plus native Wine Vulkan/Turnip, and the compatibility boundary is the
-C PRoot tracer. Rewriting session/configuration Python cannot produce a frame-
-rate-order improvement.
+is the bundled C++/assembly FEX unixlib, the graphics path uses native ARM64EC
+DXVK plus Wine Vulkan/Turnip, and the compatibility boundary is the C PRoot
+tracer. Rewriting session/configuration Python cannot produce a frame-rate-order
+improvement.
 
 The device was simultaneously in a severe thermal policy state. CPUs 4-6 were
 capped at 1,324,800 kHz versus their 2,496,000 kHz hardware maximum, CPU 7 at
@@ -4010,3 +4010,63 @@ UID Tomb Raider benchmark"` search found no prior session to reuse. Samsung's
 current official settings guide distinguishes the performance policy from
 Modes and Routines' notification-focused Game mode:
 https://www.samsung.com/uk/support/apps-services/updates-to-game-booster-settings-and-features-on-the-samsung-galaxy-devices/
+
+## 2026-08-15: Performance Run 2 and optimization research
+
+An unchanged second pass under the explicitly selected Samsung Performance
+policy reported **14.0 FPS minimum, 29.0 maximum, and 19.8 average** directly
+to the user. Together, the confirmed Performance passes average
+**13.85/29.0/20.0 FPS**, 9.9% below the ordinary panel-native Low average of
+22.2 FPS. The 2800x1752 root capture was a 734-byte all-black PNG, and a
+targeted result capture was not recovered before the game exited. Run 2 is
+therefore user-read, no image is claimed, and Samsung Standard becomes the
+control policy for the next session.
+
+The performance review corrected an earlier architecture description. Generic
+`file(1)` identifies the PE-compatible DXVK DLLs as x86-64, but
+`llvm-readobj` on the active prefix's `dxgi.dll` and `d3d11.dll` reports
+`COFF-ARM64EC`, AArch64, and `IMAGE_FILE_MACHINE_ARM64EC (0xA641)`. The active
+DXVK identifies as `v2.7.1-498-ga6764047e587178`. The graphics layer is
+therefore native ARM64EC code interoperating with the translated game, not a
+second translated x86 DXVK layer. Replacing it with an older 2.4.1 GPLAsync
+build is not a leading optimization. DXVK's official configuration also leaves
+graphics-pipeline-library behavior on Auto and warns that forcing it can
+increase stutter or degrade performance:
+https://github.com/doitsujin/dxvk/blob/master/dxvk.conf
+
+Current GameNative source was inspected at commit
+`d85b2304d3e2bad8ead4faf1f8abed9b960d0d82`. Its container defaults the Vulkan
+wrapper to `System`, downloads a Bionic image, and defaults startup selection to
+`AGGRESSIVE`. The matching `libvulkan_wrapper.so` artifact is an Android 24
+AArch64 NDK binary whose dynamic dependencies include `libandroid-sysvshm`,
+`libadrenotools`, `libnativewindow`, and Android `libc`. It cannot be loaded as
+a drop-in ICD by this project's glibc Proton host. A system-driver comparison
+requires a Bionic host or a deliberate ABI bridge and is a structural project,
+not an environment-variable change:
+https://github.com/utkarshdalal/GameNative
+
+The next immediate sequence is a fully cooled Samsung Standard control at
+60 Hz, optional Pause USB PD charging, then one warm-up plus three passes each
+for `safe`, bundled `proton`, and opt-in `fast`. Android documents that a
+display refresh rate above the game's target adds power use without benefit,
+while Samsung documents the Tab S8 series, a PPS charger of at least 25 W, and
+at least 20% battery for charging bypass:
+
+- https://developer.android.com/games/optimize/power
+- https://www.samsung.com/uk/support/mobile-devices/what-is-the-pause-usb-power-delivery-feature/
+
+The longer-term high-ceiling route is to remove the measured 60-65%-CPU PRoot
+tracer. PRoot-Distro confirms that PRoot uses `ptrace` to intercept guest
+syscalls, and the already-installed Termux `glibc-runner` provides a starting
+point for a native host. The prior native attempt still needs focused robust-
+list and SysV IPC compatibility before Steam can replace the production PRoot
+session. The complete ranked protocol and deprioritized changes are recorded
+in `docs/TOMB_RAIDER_OPTIMIZATION_PLAN.md`:
+
+- https://github.com/termux/proot-distro#the-proot-utility
+- https://github.com/termux/glibc-packages
+
+Required focused recall searches for Tomb Raider FEX/DXVK affinity, Steam
+web-helper unloading, Turnip/system-driver use, and Samsung thermal behavior
+returned no indexed session matches. The plan reuses this repository's measured
+shared-UID, affinity, clean-scene, FEX, thermal, and PRoot evidence.

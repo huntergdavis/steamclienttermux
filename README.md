@@ -50,8 +50,10 @@ Mesa Turnip, official Proton 11 ARM64, and its bundled FEX/DXVK stack.
   46.6%. Three panel-native Low passes at 2800x1752 then reported
   15.8/29.8/23.2, 4.7/27.9/21.7, and 13.6/28.7/21.7 FPS, producing a
   **11.37/28.8/22.2 FPS mean**. A quick user-read Normal-preset pass reached
-  only 10/16/13.9 FPS. See the
-  [comparison and next-pass protocol](docs/TOMB_RAIDER_BENCHMARK.md).
+  only 10/16/13.9 FPS. Two confirmed Samsung Game Booster Performance passes
+  then averaged 13.85/29.0/20.0 FPS, 9.9% below the ordinary native-Low mean.
+  See the [benchmark report](docs/TOMB_RAIDER_BENCHMARK.md) and the ranked
+  [optimization plan](docs/TOMB_RAIDER_OPTIMIZATION_PLAN.md).
 - Burnout remains experimental; its detailed EA, FEX, and DXVK investigation is
   kept in [`docs/TECHNICAL_LOG.md`](docs/TECHNICAL_LOG.md), not duplicated here.
 
@@ -122,10 +124,11 @@ capture had already advanced to a loading screen, so it was deleted and is not
 claimed as screenshot evidence.
 
 After adding both shared-UID apps to Gaming Hub and explicitly selecting Game
-Booster's Performance policy, the first confirmed native-Low pass reported
-**13.7/29.0/20.2 FPS**. Its average is 9.0% below the native-Low mean, so
-Performance mode has not yet improved this workload; repetitions remain in
-progress.
+Booster's Performance policy, two confirmed native-Low passes reported
+13.7/29.0/20.2 and 14.0/29.0/19.8 FPS. Their mean is
+**13.85/29.0/20.0 FPS**, 9.9% below the native-Low mean. Performance mode did
+not improve this workload, so the next session returns to Standard and tests
+60 Hz thermal control followed by the bundled and `fast` FEX profiles.
 
 The measurement protocol is one warm-up and three recorded passes per profile.
 Alongside the benchmark result, record peak memory, time to the main menu,
@@ -614,6 +617,8 @@ WineD3D state.
 - [`scripts/`](scripts/) — builds, installation, probes, and game tuning.
 - [`docs/TECHNICAL_LOG.md`](docs/TECHNICAL_LOG.md) — full chronological evidence
   and unresolved diagnostics.
+- [`docs/TOMB_RAIDER_OPTIMIZATION_PLAN.md`](docs/TOMB_RAIDER_OPTIMIZATION_PLAN.md)
+  — ranked benchmark protocol and longer-term performance work.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — component boundaries.
 
 ## Observed platform
