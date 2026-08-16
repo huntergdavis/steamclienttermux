@@ -153,6 +153,8 @@ def source_file(entry: MtreeEntry, files: Path, l2s_root: Path) -> Path | None:
         fail(f"invalid or missing file size for {entry.relative}")
     if metadata.st_size != int(expected_size):
         fail(f"runtime content size mismatch: {source}")
+    if expected_size == "0" and expected_hash is None:
+        return source
     if expected_hash is None or not re.fullmatch(r"[0-9a-f]{64}", expected_hash):
         fail(f"invalid or missing content hash for {entry.relative}")
     if content_digest(source) != expected_hash:

@@ -55,6 +55,7 @@ def fixture(root: Path) -> tuple[Path, Path, Path]:
     backing.chmod(0o755)
     (source / "bin").mkdir()
     (source / "bin" / "tool").symlink_to(backing)
+    (source / ".ref").touch()
 
     mtree = "\n".join(
         (
@@ -64,6 +65,7 @@ def fixture(root: Path) -> tuple[Path, Path, Path]:
             "./share type=dir",
             file_entry("./bin/tool", tool_data, 0o755),
             "./bin/sh type=link link=tool",
+            file_entry("./.ref", b"", 0o644),
             file_entry("./share/ordinary", ordinary, 0o644, "./ab/fixture-1.bin"),
             file_entry("./share/empty", b"", 0o600),
             file_entry("./share/name\\040with\\040spaces", ordinary, 0o644, "./ab/fixture-1.bin"),
