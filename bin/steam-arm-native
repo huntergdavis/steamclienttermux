@@ -14,6 +14,7 @@ runtime_dir=$base/run/native-steam
 compat_repo=${TGCOMPAT_REPO:-$HOME/workspace/termux-glibc-compat}
 candidate_selector=${TGCOMPAT_GLIBC_ROOT:-$HOME/.local/share/tgcompat/glibc/current}
 exec_shim=${TGCOMPAT_EXEC_SHIM:-$compat_repo/build/libtgcompat-exec.so}
+linux_root_selector=${STEAM_ARM64_NATIVE_ROOTFS:-$PREFIX/var/lib/proot-distro/containers/debian/rootfs}
 session_tool=$compat_repo/scripts/tgcompat-session.sh
 termux_exec_hook=${TERMUX_EXEC_GLIBC:-$PREFIX/glibc/lib/libtermux-exec.so}
 session_guard=$compat_bin/steam-arm64-session-guard.py
@@ -64,12 +65,48 @@ read -r package_sha < "$marker"
 [[ $package_sha =~ ^[0-9a-f]{64}$ ]] ||
     fail "staged glibc marker is invalid: $marker"
 
+linux_root=$(realpath -e "$linux_root_selector") ||
+    fail "Linux runtime root is unavailable: $linux_root_selector"
+[[ -d $linux_root && ! -L $linux_root ]] ||
+    fail "Linux runtime root is unsafe: $linux_root"
+linux_lib=$linux_root/usr/lib/aarch64-linux-gnu
+linux_usr_lib=$linux_root/usr/lib
+[[ -d $linux_lib && ! -L $linux_lib ]] ||
+    fail "Linux ARM64 runtime libraries are missing: $linux_lib"
+
+# The staged package deliberately supplies only the patched glibc core. Reuse
+# the already-installed Debian runtime libraries by their real host paths;
+# reading them directly does not put Steam under PRoot or its ptrace tracer.
+# Put the candidate libc first, Steam's private DSOs second, Turnip third, and
+# the coherent Debian dependency set last. Avoid the active Termux-glibc tree,
+# so one process cannot accidentally mix two libc package revisions.
+library_path=$candidate_lib:$client:$client/libs:$client_root/linuxarm64:$mesa_lib:$linux_lib:$linux_usr_lib
+
+check_dependencies() {
+    local executable=$1 label=$2 output
+    if ! output=$(env -u LD_PRELOAD -u LD_LIBRARY_PATH \
+            -u GLIBC_LD_LIBRARY_PATH \
+            "$loader" --inhibit-cache --library-path "$library_path" \
+            --list "$executable" 2>&1); then
+        printf '%s\n' "$output" >&2
+        fail "$label dependency audit failed"
+    fi
+    if grep -Fq 'not found' <<<"$output"; then
+        printf '%s\n' "$output" >&2
+        fail "$label has unresolved dependencies"
+    fi
+}
+
+check_dependencies "$client/steam" 'Steam bootstrap'
+check_dependencies "$client/steamwebhelper" 'Steam web helper'
+
 if [[ ${STEAM_ARM64_NATIVE_CHECK:-0} == 1 ]]; then
     printf 'candidate_sha256=%s\n' "$package_sha"
     printf 'candidate_loader=%s\n' "$loader"
     printf 'exec_shim=%s\n' "$exec_shim"
+    printf 'linux_runtime=%s\n' "$linux_root"
     printf 'steam=%s\n' "$client/steam"
-    printf '%s\n' 'native Steam preflight: PASS'
+    printf '%s\n' 'native Steam dependency preflight: PASS'
     exit 0
 fi
 
@@ -164,13 +201,54 @@ dbus_pid=$(<"$dbus_pid_file")
 [[ -n $dbus_address && $dbus_pid =~ ^[1-9][0-9]*$ ]] ||
     fail 'unable to start the private Steam D-Bus session'
 
-library_path=$candidate_lib:$mesa_lib:$client:$client/libs:$client_root/linuxarm64:$PREFIX/glibc/lib
 preload=$exec_shim:$termux_exec_hook
 log=$(python3 "$session_guard" create-log --logs-dir "$base/logs")
+fex_profile=${STEAM_ARM64_FEX_PROFILE:-safe}
+fex_profile_env=()
+case $fex_profile in
+    proton)
+        ;;
+    safe|fast)
+        fex_profile_env+=(
+            FEX_MAXINST=5000
+            FEX_PROFILESTATS=0
+            FEX_DISABLEL2CACHE=0
+            FEX_DYNAMICL1CACHE=0
+            FEX_X87REDUCEDPRECISION=1
+            FEX_MULTIBLOCK=1
+            FEX_VECTORTSOENABLED=0
+            FEX_MEMCPYSETTSOENABLED=0
+            FEX_SMALLTSCSCALE=1
+            FEX_SMC_CHECKS=mtrack
+            FEX_VOLATILEMETADATA=1
+            FEX_MONOHACKS=1
+            FEX_HIDEHYPERVISORBIT=0
+            STEAM_FEX_MULTIBLOCK=1
+        )
+        if [[ $fex_profile == fast ]]; then
+            fex_profile_env+=(
+                FEX_TSOENABLED=0
+                FEX_HALFBARRIERTSOENABLED=0
+                STEAM_FEX_TSOENABLED=0
+            )
+        else
+            fex_profile_env+=(
+                FEX_TSOENABLED=1
+                FEX_HALFBARRIERTSOENABLED=1
+                STEAM_FEX_TSOENABLED=1
+            )
+        fi
+        ;;
+    *)
+        fail "STEAM_ARM64_FEX_PROFILE must be proton, safe, or fast: $fex_profile"
+        ;;
+esac
 
-printf 'Starting no-PRoot ARM64 Steam on DISPLAY=%s\nLog: %s\n' "$display" "$log"
+printf 'Starting no-PRoot ARM64 Steam on DISPLAY=%s (FEX %s)\nLog: %s\n' \
+    "$display" "$fex_profile" "$log"
 set +e
 env -u GLIBC_LD_LIBRARY_PATH \
+    "${fex_profile_env[@]}" \
     HOME="$native_home" \
     DISPLAY="$display" \
     LANG=C.UTF-8 \

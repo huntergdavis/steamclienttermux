@@ -72,8 +72,12 @@ Mesa Turnip, official Proton 11 ARM64, and its bundled FEX/DXVK stack.
   semaphore probe on the host. The native Bionic daemon then built on this Tab
   S8+ with Clang ThinLTO; all seven broker/client suites passed and an optimized
   20,000-operation pass measured 9,226 persistent `GETVAL` calls/second. The
-  installed tablet glibc and saved Steam login remain untouched while the first
-  isolated package test is prepared.
+  no-copy child-execution shim now covers every exec-family symbol imported by
+  the ARM64 Steam bootstrap plus POSIX spawn, and the experimental launcher
+  resolves Steam and CEF dependencies directly from staged glibc, official
+  client, Turnip, and existing Debian library trees. The installed tablet
+  glibc and saved Steam login remain untouched while the exact package test is
+  prepared.
 
 ### Current benchmark target: Tomb Raider (2013)
 
@@ -561,6 +565,33 @@ PulseAudio process. It never force-stops the shared-UID Android packages, so it
 does not intentionally take Termux or supervised `sshd` down with X. An active
 Steam game is protected unless `--force` is explicit; `--dry-run` lists the
 matched processes without changing them, and `--keep-pulse` leaves audio up.
+
+### Experimental native Steam host
+
+`~/bin/steam-arm-native` is the generic, no-PRoot client launcher. It accepts
+the same raw Steam arguments as `steam-arm`, including `-applaunch ID`, and can
+be selected by the normal X11/audio/input wrapper:
+
+```sh
+STEAM_ARM64_NATIVE_CHECK=1 ~/bin/steam-arm-native
+STEAM_ARM64_LAUNCHER="$HOME/bin/steam-arm-native" ~/start-steam.sh
+STEAM_ARM64_LAUNCHER="$HOME/bin/steam-arm-native" ~/start-steam.sh 203160 -nolauncher
+```
+
+The first command is non-launching: it verifies the content-addressed patched
+glibc marker and uses that exact loader to resolve the Steam bootstrap and CEF
+helper before any UI, D-Bus, PulseAudio, manifest, or HOME change. It reads
+ordinary ARM64 support libraries directly from the existing Debian rootfs by
+their host paths; this does not start PRoot. `STEAM_ARM64_NATIVE_ROOTFS` can
+select another complete ARM64 Linux runtime tree.
+
+The loader shim changes no Steam binary. At each child boundary it reads the
+ELF interpreter and wraps matching AArch64 Linux targets with the staged
+loader, covering Steam's imported `execv`, `execvp`, `execvpe`, and `execl`
+paths plus direct exec and POSIX spawn. The selected `safe`, `fast`, or
+`proton` FEX profile is preserved. This path remains experimental until the
+exact package passes on-device and the later Pressure Vessel namespace
+boundary is proven; the PRoot launcher remains the game-compatible fallback.
 
 The launcher applies the measured scheduling profile automatically: X11 and
 Steam use CPUs 0-3, Steam web helpers use CPU 0, and a CPU-0 affinity guard waits

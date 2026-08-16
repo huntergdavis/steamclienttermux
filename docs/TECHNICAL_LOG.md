@@ -4450,3 +4450,37 @@ shared-UID tablet test established that doing so can recycle Termux and SSH.
 Active `SteamLaunch AppId=` processes fail closed unless `--force` is explicit.
 PulseAudio is stopped by default, while `--keep-pulse` and non-mutating
 `--dry-run` support debugging and fast relaunches.
+
+## 2026-08-16: native client dependency and child-exec boundary
+
+The first no-PRoot launcher is now generic over Steam arguments and does not
+copy or patch the authenticated client tree. It selects only a hash-marked,
+content-addressed glibc candidate under the Termux HOME, keeps the active
+`$PREFIX/glibc` installation unchanged, creates a separate native HOME with
+links back to the existing client state, and places the project execution shim
+before the official Termux glibc exec hook.
+
+A read-only loader audit on the tablet established the actual dependency
+boundary. The ARM64 `steam` bootstrap resolved from glibc alone, while
+`steamwebhelper` initially stopped at `libgobject-2.0.so.0`. Adding the existing
+Debian rootfs's real host library directories resolved the full CEF tree,
+including GLib, X11, NSS, audio, font, and graphics dependencies, without
+starting PRoot. The launcher now performs both loader audits before every
+launch; `STEAM_ARM64_NATIVE_CHECK=1` exits after that non-mutating gate.
+
+The Steam bootstrap's dynamic imports include `execv`, `execvp`, `execvpe`,
+and `execl`, not direct `execve` alone. Because glibc can route those calls
+through hidden internal symbols, a preload that exports only `execve` is not a
+sufficient child boundary. `termux-glibc-compat` commit `a41c77d` covers those
+imports plus direct exec and both POSIX-spawn forms. Seven fixtures with an
+intentionally nonexistent ELF interpreter passed through the selected loader
+on both the host and this Tab S8+. Program bytes and saved Steam login state
+were not changed.
+
+The required recall searches for a native Steam dependency audit, missing CEF
+GLib dependency, and the Termux make/shebang behavior returned no indexed
+implementation. This work instead reuses the official Termux glibc loader and
+termux-exec mechanism, the installed Debian ARM64 libraries, and this
+repository's already measured FEX profiles. Pressure Vessel's namespace and
+mount boundary remains a distinct milestone; the existing PRoot path is still
+the game-compatible fallback until that boundary is proven.
