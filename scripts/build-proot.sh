@@ -17,6 +17,7 @@ command -v sha256sum >/dev/null || { echo 'sha256sum is required' >&2; exit 1; }
 
 profile_cflags=""
 profile_main_cflags=""
+profile_cli_cflags=""
 profile_ldflags=""
 strip_release=0
 case "$profile" in
@@ -50,6 +51,7 @@ case "$profile" in
         esac
         profile_cflags="-Wall -Wextra -O2 -DWITH_LIBANDROID_SHMEM"
         profile_main_cflags="-O3 -DNDEBUG -flto=thin -fno-plt -fno-semantic-interposition -fomit-frame-pointer -ffunction-sections -fdata-sections $cpu_flag"
+        profile_cli_cflags="$profile_main_cflags -fno-lto"
         profile_ldflags="-ltalloc -landroid-shmem -flto=thin -Wl,-O2,--as-needed,--gc-sections,-z,relro,-z,now,-z,noexecstack"
         strip_release=1
         ;;
@@ -59,8 +61,9 @@ case "$profile" in
         ;;
 esac
 build_options_hash="$({
-    printf 'profile=%s\ncflags=%s\nmain_cflags=%s\nldflags=%s\nstrip=%s\n' \
+    printf 'profile=%s\ncflags=%s\nmain_cflags=%s\ncli_cflags=%s\nldflags=%s\nstrip=%s\n' \
         "$profile" "$profile_cflags" "$profile_main_cflags" \
+        "$profile_cli_cflags" \
         "$profile_ldflags" "$strip_release"
 } | sha256sum | awk '{print $1}')"
 
@@ -162,6 +165,7 @@ if [[ "$profile" == native ]]; then
     make_args+=(
         "CFLAGS=$profile_cflags"
         "PROOT_MAIN_CFLAGS=$profile_main_cflags"
+        "PROOT_CLI_CFLAGS=$profile_cli_cflags"
         "LDFLAGS=$profile_ldflags"
     )
 fi
