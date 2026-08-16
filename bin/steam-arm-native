@@ -28,6 +28,8 @@ proc_net_prep=$base/prepare-proc-net-shadow.sh
 proc_net_shadow=$base/config/proc-net
 steam_hosts=$base/config/hosts-ipv4
 removable_library_helper=$compat_bin/steam-arm64-removable-library.py
+runtime_direct_prep=$base/prepare-runtime-direct-run.sh
+runtime_direct_run=$base/config/steamlinuxruntime4-run-direct
 custom_proot_dir=$base/src/proot-production/src
 proot_binary=$custom_proot_dir/proot
 proot_patch_stamp=$base/src/proot-production/.steamclienttermux-patchset
@@ -62,7 +64,8 @@ done
 [[ -f $arm_compat_template ]] ||
     fail "ARM64 compatibility-tool template is missing: $arm_compat_template"
 [[ -x $native_bwrap && ! -L $native_bwrap && -x $native_bwrap_script &&
-        ! -L $native_bwrap_script && -x $proc_net_prep && -f $steam_hosts &&
+        ! -L $native_bwrap_script && -x $proc_net_prep &&
+        -x $runtime_direct_prep && -f $steam_hosts &&
         -f $removable_library_helper &&
         -f $arm_runtime/.steamclienttermux-runtime-shadow &&
         -x $arm_runtime/pressure-vessel/bin/pressure-vessel-wrap &&
@@ -132,6 +135,8 @@ check_dependencies "$client/steam" 'Steam bootstrap'
 check_dependencies "$client/steamwebhelper" 'Steam web helper'
 
 if [[ ${STEAM_ARM64_NATIVE_CHECK:-0} == 1 ]]; then
+    [[ -x $runtime_direct_run && ! -L $runtime_direct_run ]] ||
+        fail "direct Runtime 4 policy is unavailable: $runtime_direct_run"
     STEAM_ARM64_BASE="$base" STEAM_ARM64_NATIVE_BWRAP_CHECK=1 \
         "$native_bwrap_script" >/dev/null
     printf 'candidate_sha256=%s\n' "$package_sha"
@@ -161,6 +166,7 @@ python3 "$session_guard" preflight \
 "$ui_patch"
 "$pulse_prep" "$base"
 "$proc_net_prep" "$base"
+"$runtime_direct_prep" "$base"
 [[ ! -L $native_home && ! -L $native_home/.steam && ! -L $runtime_dir ]] ||
     fail 'native HOME/runtime paths cannot be symbolic links'
 install -d -m 0700 -- "$native_home" "$native_home/.steam" "$runtime_dir"

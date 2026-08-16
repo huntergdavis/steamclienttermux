@@ -87,6 +87,8 @@ install_one "$repo_root/bin/ensure-sshd-supervised.sh" \
 install_one "$repo_root/bin/patch-steam-network-ui.sh" "$base/patch-steam-network-ui.sh" 700
 install_one "$repo_root/bin/prepare-proc-net-shadow.sh" "$base/prepare-proc-net-shadow.sh" 700
 install_one "$repo_root/bin/prepare-pulseaudio-tcp.sh" "$base/prepare-pulseaudio-tcp.sh" 700
+install_one "$repo_root/bin/prepare-runtime-direct-run.sh" \
+    "$base/prepare-runtime-direct-run.sh" 700
 install_one "$repo_root/bin/lsof" "$base/compat-bin/lsof" 700
 install_one "$repo_root/bin/steam-arm64-session-guard.py" \
     "$base/compat-bin/steam-arm64-session-guard.py" 700
@@ -133,5 +135,7 @@ install_one "$repo_root/desktop/steam-arm.desktop" "$HOME/.local/share/applicati
 mkdir -p "$base/mesa-kgsl/icd.d"
 sed "s|@HOME@|$HOME|g" "$repo_root/config/freedreno-private.json.in" > "$base/mesa-kgsl/icd.d/freedreno-private.json.tmp"
 mv "$base/mesa-kgsl/icd.d/freedreno-private.json.tmp" "$base/mesa-kgsl/icd.d/freedreno-private.json"
+
+"$base/prepare-runtime-direct-run.sh" "$base"
 
 printf 'Installed project files. Backups: %s\n' "$backup"

@@ -17,6 +17,8 @@ proot_binary=$custom_proot_dir/proot
 proot_distro=${PREFIX:-}/bin/proot-distro
 mesa_lib=$base/mesa-kgsl/usr/lib/aarch64-linux-gnu
 bridge_mode=${STEAM_ARM64_NATIVE_BRIDGE_MODE:-bwrap}
+runtime_direct=${STEAM_ARM64_RUNTIME_DIRECT:-1}
+direct_run=$base/config/steamlinuxruntime4-run-direct
 
 fail() {
     printf 'steam-arm64-native-bwrap: %s\n' "$*" >&2
@@ -41,6 +43,12 @@ fail() {
     fail 'validated hosts or /proc/net shadow is unavailable'
 [[ -d $mesa_lib && ! -L $mesa_lib ]] ||
     fail "Mesa library directory is unavailable: $mesa_lib"
+[[ $runtime_direct == 0 || $runtime_direct == 1 ]] ||
+    fail 'STEAM_ARM64_RUNTIME_DIRECT must be 0 or 1'
+if [[ $runtime_direct == 1 ]]; then
+    [[ -x $direct_run && ! -L $direct_run ]] ||
+        fail "direct Runtime 4 policy is unavailable: $direct_run"
+fi
 case $bridge_mode in
     runtime|bwrap)
         ;;
@@ -50,9 +58,9 @@ case $bridge_mode in
 esac
 
 if [[ ${STEAM_ARM64_NATIVE_BWRAP_CHECK:-0} == 1 ]]; then
-    printf 'mode=%s\nproot=%s\nroute=%s\nreal_bwrap=%s\nruntime_shadow=%s\n' \
-        "$bridge_mode" "$proot_binary" "$route" "$real_bwrap" \
-        "$runtime_shadow"
+    printf 'mode=%s\nruntime_direct=%s\nproot=%s\nroute=%s\nreal_bwrap=%s\nruntime_shadow=%s\n' \
+        "$bridge_mode" "$runtime_direct" "$proot_binary" "$route" \
+        "$real_bwrap" "$runtime_shadow"
     printf '%s\n' 'native game boundary preflight: PASS'
     exit 0
 fi
@@ -63,6 +71,9 @@ declare -a pd_args=(login debian --shared-tmp)
 pd_args+=(--bind "$hosts:/etc/hosts")
 pd_args+=(--bind "$proc_net:/proc/net")
 pd_args+=(--bind "$runtime_shadow:$runtime_depot")
+if [[ $runtime_direct == 1 ]]; then
+    pd_args+=(--bind "$direct_run:$runtime_depot/run")
+fi
 
 if [[ -n ${STEAM_ARM64_REMOVABLE_SOURCE:-} ]]; then
     for name in STEAM_ARM64_REMOVABLE_SOURCE STEAM_ARM64_REMOVABLE_TARGET \
@@ -107,7 +118,7 @@ pd_args+=(--env "PROOT_L2S_EXDEV_PREFIX=$runtime_depot/var/tmp-")
 case $bridge_mode in
     runtime)
         pd_args+=(--env "PRESSURE_VESSEL_BWRAP=$route")
-        bridge_command=$runtime_shadow/_v2-entry-point
+        bridge_command=$runtime_depot/_v2-entry-point
         ;;
     bwrap)
         bridge_command=$route

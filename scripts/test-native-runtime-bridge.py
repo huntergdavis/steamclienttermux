@@ -40,6 +40,7 @@ def prepare(root: Path) -> tuple[Path, Path]:
     (base / "config" / "proc-net" / "route").write_text("route\n")
     (base / "config" / "proc-net" / "ipv6_route").write_text("route6\n")
     (base / "config" / "hosts-ipv4").write_text("127.0.0.1 localhost\n")
+    executable(base / "config" / "steamlinuxruntime4-run-direct")
     (base / "mesa-kgsl" / "usr" / "lib" / "aarch64-linux-gnu").mkdir(
         parents=True
     )
@@ -75,7 +76,12 @@ def main() -> None:
         prefix, base = prepare(Path(directory))
         route = str(base / "compat-bin" / "steam-arm64-bwrap-route")
         runtime_entry = str(
-            base / "runtime" / "SteamLinuxRuntime_4-arm64" / "_v2-entry-point"
+            base
+            / "client"
+            / "steamapps"
+            / "common"
+            / "SteamLinuxRuntime_4-arm64"
+            / "_v2-entry-point"
         )
 
         bwrap = run_bridge(prefix, base, "bwrap")
