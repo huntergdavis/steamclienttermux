@@ -443,10 +443,19 @@ scripts/verify-gpu.sh
 
 `~/start-steam.sh` is the normal lean launcher. It opens the shared-UID
 Termux:X11 activity, starts exactly one X server when needed, enables trackpad
-mouse input and screen-idle prevention, prepares PulseAudio, and launches Steam without
-KDE/Plasma. It reuses a healthy existing X/Steam/audio session and refuses
-ambiguous stale or duplicate server state. Steam arguments are forwarded, and
-the FEX profile can be selected explicitly:
+mouse input and screen-idle prevention, prepares PulseAudio, and launches Steam
+without KDE/Plasma. It does not report success merely because processes exist:
+the Android bridge must be free of stale-Binder errors, the Lorie mouse, touch,
+and keyboard devices must exist, PulseAudio must expose a sink, and a Steam
+window of at least 640x400 must be visible. In this deliberately WM-less
+single-app session, the script maps, raises, and focuses Steam itself.
+
+It reuses a healthy existing X/Steam/audio session, safely reclaims only an
+unreachable owned Unix socket, and refuses foreign displays, duplicate servers,
+or a stale Android Binder bridge with live X clients. The latter cannot be
+repaired in place because X clients cannot migrate to a replacement server;
+stop those clients and rerun the script. Steam arguments are forwarded, and the
+FEX profile can be selected explicitly:
 
 ```sh
 STEAM_ARM64_FEX_PROFILE=proton ~/start-steam.sh
@@ -454,7 +463,12 @@ STEAM_ARM64_FEX_PROFILE=fast ~/start-steam.sh -applaunch 203160
 ```
 
 The default is the current `safe` profile. A changed profile applies only to a
-fresh Steam process; the script never kills an existing Steam session.
+fresh Steam process; the script never kills an existing Steam session. Process
+and window waits default to 180 seconds and can be changed with
+`STEAM_PROCESS_TIMEOUT` and `STEAM_WINDOW_TIMEOUT`. A warning that X11 or Steam
+is outside Android's `/top-app` cgroups is actionable benchmark state, not a
+launcher failure; opening an activity programmatically does not guarantee that
+Android promotes its shell descendants.
 
 In Steam, explicitly force Superflight (App ID 732430) to use Proton 11.0
 (ARM64), and set this launch option for audio:

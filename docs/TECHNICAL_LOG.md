@@ -4104,3 +4104,71 @@ start script mouse"` search returned no indexed match. The launcher reuses the
 activity-before-server and shared-UID findings already measured in this log and
 the upstream activity/server split:
 https://github.com/termux/termux-x11#running-graphical-applications
+
+### Red-team correction: X protocol readiness is not viewer readiness
+
+The first version incorrectly treated a responsive `DISPLAY=:0`, a Steam PID,
+and `XInputExtension` as sufficient readiness. The tablet disproved all three
+inferences at once. X server PID 17620 still answered `xdpyinfo`, exposed a
+2800x1586 Steam window, and accepted screenshots while the Termux:X11 Android
+activity displayed `not connected`. Logcat showed a repeating server-side
+failure on every activity connection request:
+
+```text
+LorieNative: New client connection!
+Broadcast: java.lang.RuntimeException: android.os.DeadObjectException
+Broadcast: ... IPackageManager.getPackagesForUid(...)
+Broadcast: ... CmdEntryPoint.sendBroadcast(...)
+```
+
+This matches upstream's implementation: `CmdEntryPoint` sends an
+`ACTION_START` intent containing its Binder service, while `MainActivity`
+extracts that service and requests the native X connection. A dead Binder in
+the long-lived command process therefore leaves ordinary X clients working but
+prevents the Android renderer from obtaining its connection. Reopening the
+activity cannot replace the dead Binder owned by that server process. Sources:
+
+- https://github.com/termux/termux-x11/blob/master/lorie/src/main/java/com/termux/x11/CmdEntryPoint.java
+- https://github.com/termux/termux-x11/blob/master/lorie/src/main/java/com/termux/x11/MainActivity.java
+
+The hardened launcher now samples the server PID's current logcat records and
+rejects a fresh `DeadObjectException`. It also requires the concrete `Lorie
+mouse`, `Lorie touch`, and `Lorie keyboard` devices; at least one PulseAudio
+sink; and a visible Steam-class window at least 640x400. If the full-size Steam
+CEF window exists but is unmapped, it is mapped, raised, focused, and then
+re-verified. This remains a window-manager-free single-app session. A
+standalone `kwin_x11` trial failed before claiming the WM selection because its
+D-Bus-activated helper could not initialize Qt's XCB platform; only those trial
+processes were terminated, and the production path does not depend on KWin.
+
+Recovery preserved authentication before any process change by copying
+`loginusers.vdf` and `config.vdf` to
+`~/steam-arm64/backups/pre-x11-binder-recovery-20260816-081915`. No game or
+Wine process was alive. Steam PID 17806 and X11 PID 17620 both exited cleanly
+after `SIGTERM`; no stronger signal was used. The clean X exit left exactly one
+owned Unix socket at `/data/data/com.termux/files/usr/tmp/.X11-unix/X0` while
+`:0` was unreachable and no matching server existed. The launcher now reclaims
+only that fully validated socket type/owner/path case and refuses every other
+stale display path.
+
+The ensuing cold test started fresh X11 PID 28526 and Steam PID 29214 with the
+safe FEX profile. Steam retained the logged-in account, the Android bridge
+produced zero current Binder errors, and window 31457334 was visible. A second
+normal invocation reused the same PIDs and window. A deliberate negative test
+set `STEAM_MIN_WINDOW_WIDTH=9999` and `STEAM_WINDOW_TIMEOUT=1`; it exited 1 with
+`no usable window became visible` while leaving the live session untouched.
+The installed and repository script SHA-256 is
+`3068d5b485332d0bd79823f6f86e614d010202fa84b7987218dc3e325850d3c7`.
+
+The red-team pass also falsified the earlier scheduling comment. Despite the
+activity being delivered to the top-most instance, X11 and Steam remained in
+cpuset `/moderate` and CPU cgroup `/background`, not `/top-app`. The launcher
+now reports the measured cgroups instead of claiming that `am start` promoted
+the shared UID. This scheduling state must be handled separately before a
+benchmark result is accepted.
+
+The required `deja "Termux X11 says not connected activity server socket
+reconnect without killing Steam"` search returned no indexed match. This fix
+reuses the repository's prior activity-before-server ordering, WM-free benchmark
+goal, and saved-login preservation method; the Binder diagnosis and readiness
+gate come from the live failure plus the upstream source above.
