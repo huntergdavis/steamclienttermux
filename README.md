@@ -62,6 +62,8 @@ Mesa Turnip, official Proton 11 ARM64, and its bundled FEX/DXVK stack.
   cross-process SysV shared memory already pass, while robust-list and SysV
   semaphore calls return `ENOSYS`. This narrows the first implementation to
   correct SysV semaphore service/integration rather than a broad glibc rewrite.
+  Its tested state core now provides generation-safe IDs, keyed creation and
+  lookup, atomic `SETALL`, and all-or-nothing multi-operation evaluation.
 
 ### Current benchmark target: Tomb Raider (2013)
 
@@ -448,13 +450,16 @@ scripts/verify-gpu.sh
 ```
 
 `~/start-steam.sh` is the normal lean launcher. It opens the shared-UID
-Termux:X11 activity, starts exactly one X server when needed, enables trackpad
-mouse input and screen-idle prevention, prepares PulseAudio, and launches Steam
-without KDE/Plasma. It does not report success merely because processes exist:
-the Android bridge must be free of stale-Binder errors, the Lorie mouse, touch,
-and keyboard devices must exist, PulseAudio must expose a sink, and a Steam
-window of at least 640x400 must be visible. In this deliberately WM-less
-single-app session, the script maps, raises, and focuses Steam itself.
+Termux:X11 activity, starts exactly one X server when needed, verifies the
+persisted trackpad/input and screen-idle preferences without broadcasting a
+live surface reload, prepares PulseAudio, and launches Steam without
+KDE/Plasma. It does not report success merely because processes exist: the
+Android bridge must be free of stale-Binder errors, the Lorie mouse, touch, and
+keyboard devices must exist, PulseAudio must expose a sink, a remembered login
+must succeed in the current launch, and the same Steam window of at least
+640x400 must remain visible for five checks. In this deliberately WM-less
+single-app session, the script maps, raises, and focuses Steam itself. A Steam
+process that exits during login or window readiness ends the wait immediately.
 
 It reuses a healthy existing X/Steam/audio session, safely reclaims only an
 unreachable owned Unix socket, and refuses foreign displays, duplicate servers,

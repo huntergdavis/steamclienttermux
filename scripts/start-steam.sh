@@ -7,14 +7,18 @@ base="${STEAM_ARM64_BASE:-$HOME/steam-arm64}"
 steam_launcher="${STEAM_ARM64_LAUNCHER:-$HOME/bin/steam-arm}"
 pulse_helper="$base/prepare-pulseaudio-tcp.sh"
 x11_component="com.termux.x11/com.termux.x11.MainActivity"
+x11_preferences="/data/data/com.termux.x11/shared_prefs/com.termux.x11_preferences.xml"
 x11_socket="${PREFIX:-}/tmp/.X11-unix/X${display#:}"
 x11_log="$base/logs/termux-x11-minimal.log"
 profile="${STEAM_ARM64_FEX_PROFILE:-safe}"
 process_timeout="${STEAM_PROCESS_TIMEOUT:-180}"
-window_timeout="${STEAM_WINDOW_TIMEOUT:-180}"
+window_timeout="${STEAM_WINDOW_TIMEOUT:-1200}"
+window_stable_seconds="${STEAM_WINDOW_STABLE_SECONDS:-5}"
 minimum_window_width="${STEAM_MIN_WINDOW_WIDTH:-640}"
 minimum_window_height="${STEAM_MIN_WINDOW_HEIGHT:-400}"
 pulse_server="tcp:127.0.0.1:4713"
+login_log="$base/client/logs/steamui_login.txt"
+login_users="$base/client/config/loginusers.vdf"
 
 fail() {
     printf 'start-steam: %s\n' "$1" >&2
@@ -63,8 +67,16 @@ matching_pids() {
     done
 }
 
+steam_pid_is_current() {
+    local pid="$1" cmdline first_argument
+    [[ "$pid" =~ ^[0-9]+$ && -r "/proc/$pid/cmdline" ]] || return 1
+    cmdline="$(tr '\0' ' ' <"/proc/$pid/cmdline" 2>/dev/null || true)"
+    first_argument="${cmdline%% *}"
+    [[ "$first_argument" == "$base/client/steamrtarm64/steam" ]]
+}
+
 x11_is_ready() {
-    DISPLAY="$display" timeout 3 xdpyinfo >/dev/null 2>&1
+    DISPLAY="$display" timeout 10 xdpyinfo >/dev/null 2>&1
 }
 
 wait_for_x11() {
@@ -81,6 +93,31 @@ wait_for_x11() {
 foreground_x11() {
     am start --user 0 -n "$x11_component" >/dev/null ||
         fail 'unable to open the Termux:X11 Android activity'
+}
+
+configure_x11_preferences() {
+    local _ output=''
+    # The preference receiver can trail the activity handoff briefly on a
+    # cold start. Retry only before an X server exists; never broadcast live
+    # preference reloads into a rendering session.
+    for _ in $(seq 1 5); do
+        if output="$(timeout 10 termux-x11-preference \
+                touchMode:Trackpad \
+                'screenIdleTimeout:Never (keep screen on)' 2>&1)"; then
+            return 0
+        fi
+        sleep 1
+    done
+    [[ -z "$output" ]] || printf 'start-steam: termux-x11-preference: %s\n' \
+        "$output" >&2
+    return 1
+}
+
+x11_preferences_are_configured() {
+    [[ -f "$x11_preferences" && ! -L "$x11_preferences" ]] || return 1
+    grep -Fq '<string name="touchMode">1</string>' "$x11_preferences" &&
+        grep -Fq '<string name="screenIdleTimeout">never</string>' \
+            "$x11_preferences"
 }
 
 largest_steam_window() {
@@ -125,17 +162,73 @@ surface_steam_window() {
 }
 
 wait_for_steam_window() {
-    local _ window candidate
+    local expected_pid="$1" _ window candidate stable_window='' stable_count=0
     for _ in $(seq 1 "$window_timeout"); do
+        steam_pid_is_current "$expected_pid" || return 1
         window="$(largest_steam_window visible || true)"
         if [[ -n "$window" ]]; then
-            printf '%s\n' "$window"
-            return 0
+            if [[ "$window" == "$stable_window" ]]; then
+                stable_count=$((stable_count + 1))
+            else
+                stable_window="$window"
+                stable_count=1
+            fi
+            if (( stable_count >= window_stable_seconds )); then
+                printf '%s\n' "$window"
+                return 0
+            fi
+        else
+            stable_window=''
+            stable_count=0
         fi
 
         # Steam can create its full-size CEF window without mapping it when no
         # desktop session exists. A live process and responsive DISPLAY are not
         # enough: expose that existing window, then verify it became visible.
+        candidate="$(largest_steam_window any || true)"
+        if [[ -n "$candidate" ]]; then
+            surface_steam_window "$candidate" || true
+        fi
+        sleep 1
+    done
+    return 1
+}
+
+remembered_login_configured() {
+    [[ -f "$login_users" && ! -L "$login_users" ]] || return 1
+    grep -Eq '"RememberPassword"[[:space:]]+"1"' "$login_users"
+}
+
+steam_login_ready() {
+    local offset="${1:-0}" size
+    [[ -f "$login_log" && ! -L "$login_log" ]] || return 1
+    if (( offset > 0 )); then
+        size="$(stat -c %s -- "$login_log" 2>/dev/null || true)"
+        [[ "$size" =~ ^[0-9]+$ && "$size" -ge "$offset" ]] || return 1
+        tail -c "+$((offset + 1))" -- "$login_log" |
+            grep -F 'SetLoginState: Success - OK' >/dev/null
+        return
+    fi
+    awk '
+        /Client version:/ { ready = 0 }
+        /SetLoginState: Success - OK/ { ready = 1 }
+        END { exit !ready }
+    ' "$login_log"
+}
+
+wait_for_remembered_login() {
+    local expected_pid="$1" offset="${2:-0}" _ candidate
+    remembered_login_configured || return 0
+    if (( offset == 0 )) && steam_login_ready; then
+        return 0
+    fi
+
+    printf 'start-steam: waiting for remembered Steam login to complete\n' >&2
+    for _ in $(seq 1 "$window_timeout"); do
+        steam_pid_is_current "$expected_pid" || return 1
+        steam_login_ready "$offset" && return 0
+        # Keep a login or loading surface usable while the state machine runs,
+        # but do not mistake that transitional window for final readiness.
         candidate="$(largest_steam_window any || true)"
         if [[ -n "$candidate" ]]; then
             surface_steam_window "$candidate" || true
@@ -172,15 +265,15 @@ x11_bridge_has_dead_binder() {
     ' <<<"$recent"
 }
 
-for value_name in process_timeout window_timeout minimum_window_width \
-        minimum_window_height; do
+for value_name in process_timeout window_timeout window_stable_seconds \
+        minimum_window_width minimum_window_height; do
     value="${!value_name}"
     [[ "$value" =~ ^[1-9][0-9]*$ ]] ||
         fail "$value_name must be a positive integer (got: $value)"
 done
 
 for command in am cmd termux-x11 termux-x11-preference timeout xdpyinfo \
-        xdotool pactl pulseaudio stat unlink logcat; do
+        xdotool pactl pulseaudio stat tail unlink logcat; do
     require_command "$command"
 done
 [[ -n "${PREFIX:-}" ]] || fail 'PREFIX is not set; run this from Termux'
@@ -195,20 +288,6 @@ x11_uid="$(package_uid com.termux.x11)"
 [[ "$x11_uid" =~ ^[0-9]+$ ]] || fail 'unable to resolve the Termux:X11 package UID'
 [[ "$termux_uid" == "$x11_uid" ]] ||
     fail "Termux and Termux:X11 do not share a UID ($termux_uid != $x11_uid)"
-
-# Upstream separates the foreground Android activity from the X server. Open
-# the activity first so a cold launch receives one clean server connection.
-# Android may still classify shell descendants as background; that is measured
-# and reported below instead of being inferred from activity launch success.
-foreground_x11
-
-# Trackpad mode provides touch-to-mouse input without enabling pointer capture,
-# which can trap a physical mouse. Termux:X11's screen-idle preference keeps the
-# display awake without adding a separate CPU/wake-lock policy to benchmarks.
-if ! timeout 10 termux-x11-preference \
-        touchMode:Trackpad 'screenIdleTimeout:Never (keep screen on)' >/dev/null; then
-    fail 'unable to configure Termux:X11 input and idle behavior'
-fi
 
 mapfile -t x11_pids < <(matching_pids x11)
 case "${#x11_pids[@]}" in
@@ -229,6 +308,23 @@ case "${#x11_pids[@]}" in
                 fail "display path exists but is not a reclaimable owned socket: $x11_socket"
             fi
         fi
+
+        # Upstream separates the foreground Android activity from the server.
+        # Open it first only on a cold start. The shared-UID build lets us
+        # verify persisted preferences directly. Broadcast only if they are
+        # missing: a live preference reload is unsafe while Steam is rendering.
+        foreground_x11
+        if ! x11_preferences_are_configured; then
+            if ! configure_x11_preferences; then
+                fail 'unable to configure Termux:X11 input and idle behavior'
+            fi
+            for _ in $(seq 1 5); do
+                x11_preferences_are_configured && break
+                sleep 1
+            done
+            x11_preferences_are_configured ||
+                fail 'Termux:X11 did not persist input and idle preferences'
+        fi
         nohup termux-x11 "$display" -ac >"$x11_log" 2>&1 </dev/null &
         x11_pid=$!
         if ! wait_for_x11; then
@@ -246,9 +342,9 @@ case "${#x11_pids[@]}" in
         ;;
 esac
 
-# A second handoff is required after a cold server start. Merely starting the
-# activity before the server can leave a responsive X socket behind a black
-# Android surface.
+# One handoff after server readiness exposes either a reused or cold display.
+# A cold start deliberately performs this second handoff because opening the
+# activity before the server can otherwise leave a black Android surface.
 foreground_x11
 
 if x11_bridge_has_dead_binder "${x11_pids[0]}"; then
@@ -289,10 +385,16 @@ if [[ "${#steam_pids[@]}" -eq 1 ]]; then
         printf 'start-steam: forwarded request to Steam PID %s; log %s\n' \
             "${steam_pids[0]}" "$forward_log"
     fi
-    if ! steam_window="$(wait_for_steam_window)"; then
+    if ! wait_for_remembered_login "${steam_pids[0]}"; then
+        steam_pid_is_current "${steam_pids[0]}" ||
+            fail "Steam PID ${steam_pids[0]} exited before remembered login completed"
+        fail "remembered Steam login did not complete in ${window_timeout}s"
+    fi
+    if ! steam_window="$(wait_for_steam_window "${steam_pids[0]}")"; then
+        steam_pid_is_current "${steam_pids[0]}" ||
+            fail "Steam PID ${steam_pids[0]} exited before a usable window appeared"
         fail "Steam PID ${steam_pids[0]} exists but no usable window became visible in ${window_timeout}s"
     fi
-    foreground_x11
     surface_steam_window "$steam_window" ||
         fail "Steam window $steam_window could not be mapped, raised, and focused"
     warn_if_backgrounded X11 "${x11_pids[0]}"
@@ -301,6 +403,9 @@ if [[ "${#steam_pids[@]}" -eq 1 ]]; then
         "${x11_pids[0]}" "${steam_pids[0]}" "$steam_window"
     exit 0
 fi
+
+login_log_offset="$(stat -c %s -- "$login_log" 2>/dev/null || printf '0\n')"
+[[ "$login_log_offset" =~ ^[0-9]+$ ]] || login_log_offset=0
 
 mapfile -t launcher_pids < <(matching_pids launcher)
 if [[ "${#launcher_pids[@]}" -gt 1 ]]; then
@@ -336,10 +441,16 @@ done
 
 [[ "${#steam_pids[@]}" -eq 1 ]] ||
     fail "Steam did not appear in ${process_timeout}s; inspect $steam_log"
-if ! steam_window="$(wait_for_steam_window)"; then
+if ! wait_for_remembered_login "${steam_pids[0]}" "$login_log_offset"; then
+    steam_pid_is_current "${steam_pids[0]}" ||
+        fail "Steam PID ${steam_pids[0]} exited before remembered login completed; inspect $steam_log"
+    fail "remembered Steam login did not complete in ${window_timeout}s; inspect $steam_log"
+fi
+if ! steam_window="$(wait_for_steam_window "${steam_pids[0]}")"; then
+    steam_pid_is_current "${steam_pids[0]}" ||
+        fail "Steam PID ${steam_pids[0]} exited before a usable window appeared; inspect $steam_log"
     fail "Steam PID ${steam_pids[0]} exists but no usable window became visible in ${window_timeout}s; inspect $steam_log"
 fi
-foreground_x11
 surface_steam_window "$steam_window" ||
     fail "Steam window $steam_window could not be mapped, raised, and focused"
 warn_if_backgrounded X11 "${x11_pids[0]}"

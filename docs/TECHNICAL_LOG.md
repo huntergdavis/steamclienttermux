@@ -4217,7 +4217,85 @@ the retained PRoot repair: atomic multi-operation updates, `SETALL`, `GETPID`,
 native Steam client is the first end-to-end gate; Pressure Vessel namespaces
 remain a later, separate boundary.
 
+Two follow-up commits moved beyond the baseline. Commit
+`bea06744d585873ae4995da1931a4c65f55379b9` adds generation-safe semaphore-set
+IDs, keyed lookup/creation, `GETVAL`, `GETALL`, `GETPID`, `SETVAL`, and atomic
+`SETALL` validation. Commit `941073ad12604caf0f3e286e9fd7da449250dfa1`
+adds all-or-nothing multi-entry operation evaluation, distinguishes blocking
+from `IPC_NOWAIT`, and rejects overflow or unimplemented `SEM_UNDO` without
+partial state. The expanded core passed strict host compilation, normal tests,
+ASan/UBSan, the Tab S8+ glibc compiler/runtime, and GitHub Actions at both
+commits.
+
 The required `deja "Steam ARM64 Termux replace PRoot native glibc runner robust
 list SysV IPC"` query returned no matches. The new project reuses this
 repository's measured 60-65%-CPU PRoot profile, exact PRoot patch, and retained
 probe requirements; it does not reuse an undocumented prior implementation.
+
+## 2026-08-16: current-session Steam readiness and safe X preferences
+
+The first fresh Steam-only server, X11 PID 28526, later stopped answering
+`xdpyinfo` while remaining alive. The Steam/PRoot tree exited independently.
+Its launch log ended with repeated 60-second post-login compatibility-manager
+timeouts, a stalled main-loop assertion, and finally:
+
+```text
+src/common/pipes.cpp (900) : fatal stalled cross-thread pipe.
+src/common/pipes.cpp (900) : Fatal assert; application exiting
+```
+
+This was not labeled an OOM: after exit the tablet still reported about
+3.2 GiB available RAM and 6.2 GiB free swap, and accessible kernel logs had no
+OOM-kill marker. Because X was already frozen, its Android surface continued
+showing the old launch frame after Steam was gone. Our bounded ImageMagick
+screenshot client was also stuck inside that server.
+
+The launcher had two remaining false-readiness paths. First, it accepted the
+first full-size Steam window even though Steam replaces transitional updater
+and login windows during startup. Second, the newest successful entry in
+`steamui_login.txt` could belong to a prior process. The launcher now requires
+one window ID to remain visible for five checks. For a new Steam process it
+records the login-log byte offset before launch and accepts only a subsequent
+`SetLoginState: Success - OK`; an existing process must have success in its
+latest `Client version:` segment. Both waits continuously validate the exact
+Steam PID and stop immediately if it exits. The default window/login budget is
+20 minutes because this device's PRoot compatibility scan legitimately takes
+minutes.
+
+The X freeze also followed a live `termux-x11-preference` broadcast and several
+activity handoffs. Logcat showed the preference receiver starting just before
+the renderer stopped. The shared-UID APK makes its private preference XML
+readable from Termux, so the launcher now verifies persisted
+`touchMode=1`/`screenIdleTimeout=never` directly. It invokes the receiver only
+on a cold start when those values are actually missing, retries the receiver's
+startup race, and verifies persistence before starting X. It never broadcasts
+a preference reload into a live X session. A reused display receives one
+activity handoff rather than the former repeated handoffs.
+
+Before recovery, the current auth files and launcher were copied to
+`~/steam-arm64/backups/pre-native-project-recovery-20260816-085433`. No Steam,
+Wine, FEX, or game process remained. The exact stuck screenshot PIDs 31653/31646
+and X11 PID 28526 all exited after `SIGTERM`; no stronger signal was used. The
+launcher then reclaimed only the validated owned stale X socket and cold-
+started X11 PID 6204 and Steam PID 6781. A fresh remembered-login success was
+written at 09:02:13 local time, window 31457341 stabilized at 2800x1586, and
+X11 continued answering `xdpyinfo`. A second invocation reused those exact PIDs
+and window. No preference receiver or `DeadObjectException` occurred after the
+08:58 cold start. PulseAudio and the Lorie mouse, touch, and keyboard checks all
+passed; neither KDE nor Plasma was started. The installed/repository launcher
+SHA-256 is
+`65cc1e43d74c228803864fb55b898f18e53557453f5e017a0555485299c9bd9e`.
+
+Steam's compatibility registry continued in the background after the UI/login
+readiness gate returned, advancing from Proton Experimental through Proton 11
+and Proton 10. “Ready” therefore means an authenticated, responsive Steam UI;
+it does not claim the entire slow PRoot compatibility-cache job has finished.
+Both X11 and Steam remained in cpuset `/moderate` and CPU cgroup `/background`,
+which the launcher reports explicitly.
+
+Required `deja` searches for the compatibility-exit/X-freeze combination, stale
+login-log success, and cold preference-receiver failure returned no indexed
+matches. This correction reuses the earlier exact-process validation,
+authentication backup, owned-socket recovery, and Binder diagnostics; the
+current-session log offset and direct persisted-preference checks come from
+the new live failures above.
