@@ -4392,3 +4392,18 @@ This is an interim PRoot improvement. The repository now treats the separate
 the live PRoot tracer consumed 60-65% of a core and the first measured
 runtime-request-to-window launch took about 6m47s. PRoot remains the working,
 matched fallback and A/B baseline.
+
+## 2026-08-16: bounded minimal-session shutdown
+
+`~/stop-steam.sh` now provides the inverse of the minimal launcher. It reuses
+the earlier observed shutdown rule: forward `-shutdown` only after an exact
+live Steam main-process match, because sending that option after Steam exits
+starts a new client first. The script waits for normal exit, confines TERM/KILL
+fallbacks to exact installed Steam, helper, launcher, and guard command lines,
+then stops only the `termux-x11` server for the selected display and its owned
+stale socket. It deliberately does not Android-force-stop Termux:X11: the
+shared-UID tablet test established that doing so can recycle Termux and SSH.
+
+Active `SteamLaunch AppId=` processes fail closed unless `--force` is explicit.
+PulseAudio is stopped by default, while `--keep-pulse` and non-mutating
+`--dry-run` support debugging and fast relaunches.

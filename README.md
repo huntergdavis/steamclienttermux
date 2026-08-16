@@ -547,6 +547,19 @@ memory experiment is the silent, unfocused direct path above. Any later CEF
 suspension or client shutdown must be an explicit A/B after the game is stable
 and must preserve cloud-sync recovery.
 
+After exiting a game, stop the minimal session with:
+
+```sh
+~/stop-steam.sh
+```
+
+It verifies a live Steam main process before forwarding `-shutdown`, waits for
+clean exit, and only then stops the exact Termux:X11 server and session
+PulseAudio process. It never force-stops the shared-UID Android packages, so it
+does not intentionally take Termux or supervised `sshd` down with X. An active
+Steam game is protected unless `--force` is explicit; `--dry-run` lists the
+matched processes without changing them, and `--keep-pulse` leaves audio up.
+
 The launcher applies the measured scheduling profile automatically: X11 and
 Steam use CPUs 0-3, Steam web helpers use CPU 0, and a CPU-0 affinity guard waits
 for the verified App ID 203160 process. The guard rejects a background game,
