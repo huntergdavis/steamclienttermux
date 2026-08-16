@@ -1,0 +1,205 @@
+#!/data/data/com.termux/files/usr/bin/bash
+
+set -euo pipefail
+umask 077
+
+base=${STEAM_ARM64_BASE:-$HOME/steam-arm64}
+client_root=$base/client
+client=$client_root/steamrtarm64
+mesa_lib=$base/mesa-kgsl/usr/lib/aarch64-linux-gnu
+icd=$base/mesa-kgsl/icd.d/freedreno-private.json
+compat_bin=$base/compat-bin
+native_home=$base/native-home
+runtime_dir=$base/run/native-steam
+compat_repo=${TGCOMPAT_REPO:-$HOME/workspace/termux-glibc-compat}
+candidate_selector=${TGCOMPAT_GLIBC_ROOT:-$HOME/.local/share/tgcompat/glibc/current}
+exec_shim=${TGCOMPAT_EXEC_SHIM:-$compat_repo/build/libtgcompat-exec.so}
+session_tool=$compat_repo/scripts/tgcompat-session.sh
+termux_exec_hook=${TERMUX_EXEC_GLIBC:-$PREFIX/glibc/lib/libtermux-exec.so}
+session_guard=$compat_bin/steam-arm64-session-guard.py
+arm_compat_template=$base/config/steam-arm64-compatibilitytools.vdf.in
+ui_patch=$base/patch-steam-network-ui.sh
+pulse_prep=$base/prepare-pulseaudio-tcp.sh
+display=${DISPLAY:-:0}
+
+fail() {
+    printf 'steam-arm-native: %s\n' "$*" >&2
+    exit 1
+}
+
+for command in realpath stat sha256sum python3 dbus-daemon; do
+    command -v "$command" >/dev/null 2>&1 ||
+        fail "required command is missing: $command"
+done
+[[ -n ${PREFIX:-} && $PREFIX == /* ]] || fail 'PREFIX must be an absolute path'
+[[ $display =~ ^:[0-9]+$ ]] || fail "invalid X display: $display"
+[[ -x $client/steam ]] || fail "Steam ARM64 executable is missing: $client/steam"
+[[ -d $client/libs && -d $client_root/linuxarm64 ]] ||
+    fail "Steam ARM64 runtime directories are incomplete: $client"
+[[ -d $mesa_lib && -f $icd ]] || fail "Turnip/Mesa runtime is incomplete: $base/mesa-kgsl"
+[[ -x $exec_shim && ! -L $exec_shim ]] ||
+    fail "glibc exec shim is missing: $exec_shim"
+[[ -x $session_tool && -x $compat_repo/build/tgcompatd ]] ||
+    fail "native semaphore broker is not built: $compat_repo"
+[[ -f $termux_exec_hook && ! -L $termux_exec_hook ]] ||
+    fail "termux-exec-glibc hook is missing: $termux_exec_hook"
+[[ -f $session_guard && -x $ui_patch && -x $pulse_prep ]] ||
+    fail 'installed steamclienttermux helpers are incomplete'
+[[ -f $arm_compat_template ]] ||
+    fail "ARM64 compatibility-tool template is missing: $arm_compat_template"
+
+candidate_root=$(realpath -e "$candidate_selector") ||
+    fail "staged glibc selector is unavailable: $candidate_selector"
+home_root=$(realpath -e "$HOME")
+[[ $candidate_root == "$home_root"/* && -d $candidate_root &&
+        ! -L $candidate_root ]] ||
+    fail "staged glibc resolves outside HOME or is unsafe: $candidate_root"
+loader=$candidate_root/lib/ld-linux-aarch64.so.1
+candidate_lib=$candidate_root/lib
+marker=$candidate_root/.tgcompat-package-sha256
+[[ -x $loader && ! -L $loader && -f $candidate_lib/libc.so.6 &&
+        ! -L $candidate_lib/libc.so.6 && -f $marker && ! -L $marker ]] ||
+    fail "staged glibc is not validated: $candidate_root"
+read -r package_sha < "$marker"
+[[ $package_sha =~ ^[0-9a-f]{64}$ ]] ||
+    fail "staged glibc marker is invalid: $marker"
+
+if [[ ${STEAM_ARM64_NATIVE_CHECK:-0} == 1 ]]; then
+    printf 'candidate_sha256=%s\n' "$package_sha"
+    printf 'candidate_loader=%s\n' "$loader"
+    printf 'exec_shim=%s\n' "$exec_shim"
+    printf 'steam=%s\n' "$client/steam"
+    printf '%s\n' 'native Steam preflight: PASS'
+    exit 0
+fi
+
+steam_running=no
+if pgrep -f 'steamrtarm64[/]steam' >/dev/null 2>&1; then
+    steam_running=yes
+else
+    pgrep_status=$?
+    ((pgrep_status == 1)) || fail "unable to inspect Steam processes: $pgrep_status"
+fi
+python3 "$session_guard" preflight \
+    --client-root "$client_root" \
+    --logs-dir "$base/logs" \
+    --min-free-bytes "${STEAM_ARM64_MIN_FREE_BYTES:-1073741824}" \
+    --log-cap-bytes "${STEAM_ARM64_SESSION_LOG_CAP_BYTES:-67108864}" \
+    --stdout-cap-bytes "${STEAM_ARM64_STDOUT_CAP_BYTES:-1048576}" \
+    --steam-running "$steam_running"
+
+"$ui_patch"
+"$pulse_prep" "$base"
+[[ ! -L $native_home && ! -L $native_home/.steam && ! -L $runtime_dir ]] ||
+    fail 'native HOME/runtime paths cannot be symbolic links'
+install -d -m 0700 -- "$native_home" "$native_home/.steam" "$runtime_dir"
+
+ensure_link() {
+    local target=$1 link=$2
+    if [[ -L $link ]]; then
+        [[ $(readlink -- "$link") == "$target" ]] ||
+            fail "native HOME link has an unexpected target: $link"
+        return
+    fi
+    [[ ! -e $link ]] || fail "native HOME link target already exists: $link"
+    ln -s -- "$target" "$link"
+}
+
+ensure_link "$client_root" "$native_home/.steam/steam"
+ensure_link "$client_root/linuxarm64" "$native_home/.steam/sdkarm64"
+ensure_link "$client_root/steamrt64" "$native_home/.steam/bin64"
+ensure_link "$client_root/steamrt32" "$native_home/.steam/bin32"
+ensure_link "$client" "$native_home/.steam/steamrtarm64"
+
+manifest_dir=$client_root/compatibilitytools.d/steam-arm64-official
+manifest=$manifest_dir/compatibilitytool.vdf
+install -d -m 0700 -- "$manifest_dir"
+manifest_stage=$(mktemp "$manifest.tmp.XXXXXX")
+cleanup_manifest_stage() {
+    if [[ -n ${manifest_stage:-} && -f $manifest_stage &&
+            ! -L $manifest_stage ]]; then
+        rm -- "$manifest_stage"
+    fi
+}
+trap cleanup_manifest_stage EXIT
+sed "s|@CLIENT_ROOT@|$client_root|g" "$arm_compat_template" > "$manifest_stage"
+if [[ -f $manifest && ! -L $manifest ]] && cmp -s "$manifest_stage" "$manifest"; then
+    rm -- "$manifest_stage"
+else
+    mv -- "$manifest_stage" "$manifest"
+fi
+manifest_stage=
+
+if ! "$session_tool" status >/dev/null 2>&1; then
+    "$session_tool" start
+fi
+if [[ -n ${TGCOMPAT_SOCKET:-} ]]; then
+    socket_path=$TGCOMPAT_SOCKET
+else
+    socket_path=${TMPDIR:-/tmp}/tgcompat-$(id -u)/broker.sock
+fi
+[[ -S $socket_path ]] || fail "broker socket is unavailable: $socket_path"
+
+dbus_address_file=$runtime_dir/dbus-address.$$
+dbus_pid_file=$runtime_dir/dbus-pid.$$
+dbus_pid=
+
+cleanup() {
+    cleanup_manifest_stage
+    if [[ ${dbus_pid:-} =~ ^[1-9][0-9]*$ ]] &&
+            kill -0 "$dbus_pid" 2>/dev/null; then
+        dbus_command=$(tr '\0' ' ' < "/proc/$dbus_pid/cmdline" 2>/dev/null || true)
+        if [[ $dbus_command == *dbus-daemon* ]]; then
+            kill "$dbus_pid" 2>/dev/null || true
+        fi
+    fi
+    rm -f -- "$dbus_address_file" "$dbus_pid_file"
+}
+trap cleanup EXIT
+
+dbus-daemon --session --fork --print-address=3 --print-pid=4 \
+    3>"$dbus_address_file" 4>"$dbus_pid_file" </dev/null 2>/dev/null
+dbus_address=$(<"$dbus_address_file")
+dbus_pid=$(<"$dbus_pid_file")
+[[ -n $dbus_address && $dbus_pid =~ ^[1-9][0-9]*$ ]] ||
+    fail 'unable to start the private Steam D-Bus session'
+
+library_path=$candidate_lib:$mesa_lib:$client:$client/libs:$client_root/linuxarm64:$PREFIX/glibc/lib
+preload=$exec_shim:$termux_exec_hook
+log=$(python3 "$session_guard" create-log --logs-dir "$base/logs")
+
+printf 'Starting no-PRoot ARM64 Steam on DISPLAY=%s\nLog: %s\n' "$display" "$log"
+set +e
+env -u GLIBC_LD_LIBRARY_PATH \
+    HOME="$native_home" \
+    DISPLAY="$display" \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    TMPDIR="$PREFIX/tmp" \
+    XDG_RUNTIME_DIR="$runtime_dir" \
+    PULSE_SERVER="${PULSE_SERVER:-tcp:127.0.0.1:4713}" \
+    DBUS_SESSION_BUS_ADDRESS="$dbus_address" \
+    LD_PRELOAD="$preload" \
+    LD_LIBRARY_PATH="$library_path" \
+    TGCOMPAT_SOCKET="$socket_path" \
+    TGCOMPAT_LD_SO="$loader" \
+    TGCOMPAT_LIBRARY_PATH="$library_path" \
+    STEAM_COMPAT_CLIENT_INSTALL_PATH="$client_root" \
+    VK_DRIVER_FILES="$icd" \
+    LIBGL_DRIVERS_PATH="$mesa_lib/dri" \
+    MESA_LOADER_DRIVER_OVERRIDE=kgsl \
+    TU_DEBUG=noconform \
+    MESA_VK_WSI_PRESENT_MODE=mailbox \
+    PATH="$PREFIX/glibc/bin:$compat_bin:$PATH" \
+    "$loader" --inhibit-cache --library-path "$library_path" \
+        --argv0 "$client/steam" "$client/steam" \
+        -no-cef-sandbox -cef-disable-gpu -chromeosnopreallocate \
+        -noverifyfiles "$@" 2>&1 |
+    env -u LD_PRELOAD -u LD_LIBRARY_PATH -u GLIBC_LD_LIBRARY_PATH \
+        python3 "$session_guard" stream \
+            --log "$log" \
+            --log-cap-bytes "${STEAM_ARM64_SESSION_LOG_CAP_BYTES:-67108864}" \
+            --stdout-cap-bytes "${STEAM_ARM64_STDOUT_CAP_BYTES:-1048576}"
+steam_status=${PIPESTATUS[0]}
+set -e
+exit "$steam_status"

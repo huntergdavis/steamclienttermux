@@ -54,6 +54,7 @@ trap cleanup_wrapper_stage EXIT
     -o "$wrapper_stage"
 
 install_one "$repo_root/bin/steam-arm" "$HOME/bin/steam-arm" 700
+install_one "$repo_root/bin/steam-arm-native" "$HOME/bin/steam-arm-native" 700
 install_one "$repo_root/scripts/start-steam.sh" "$HOME/start-steam.sh" 700
 install_one "$repo_root/scripts/start-tombraider.sh" \
     "$HOME/start-tombraider.sh" 700
