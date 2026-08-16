@@ -75,9 +75,13 @@ install_one "$native_entry_stage" \
 install_one "$native_entry_stage" \
     "$base/runtime/SteamLinuxRuntime_4-arm64-native/_v2-entry-point" 700
 install_one "$repo_root/scripts/start-steam.sh" "$HOME/start-steam.sh" 700
+install_one "$repo_root/scripts/start-steam-native.sh" \
+    "$HOME/start-steam-native.sh" 700
 install_one "$repo_root/scripts/start-tombraider.sh" \
     "$HOME/start-tombraider.sh" 700
 install_one "$repo_root/scripts/stop-steam.sh" "$HOME/stop-steam.sh" 700
+install_one "$repo_root/scripts/stop-steam-native.sh" \
+    "$HOME/stop-steam-native.sh" 700
 install_one "$repo_root/bin/ensure-sshd-supervised.sh" \
     "$HOME/bin/ensure-sshd-supervised" 700
 install_one "$repo_root/bin/patch-steam-network-ui.sh" "$base/patch-steam-network-ui.sh" 700
