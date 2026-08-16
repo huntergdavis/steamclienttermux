@@ -71,6 +71,27 @@ def run_bridge(prefix: Path, base: Path, mode: str) -> list[str]:
     return result.stdout.splitlines()
 
 
+def run_preflight(prefix: Path, base: Path, proot_dir: Path) -> list[str]:
+    executable(proot_dir / "proot")
+    environment = os.environ.copy()
+    environment.update(
+        {
+            "PREFIX": str(prefix),
+            "STEAM_ARM64_BASE": str(base),
+            "STEAM_ARM64_NATIVE_BWRAP_CHECK": "1",
+            "STEAM_ARM64_PROOT_DIR": str(proot_dir),
+        }
+    )
+    result = subprocess.run(
+        ["bash", str(SCRIPT)],
+        env=environment,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    return result.stdout.splitlines()
+
+
 def main() -> None:
     with tempfile.TemporaryDirectory(prefix="native-runtime-bridge.") as directory:
         prefix, base = prepare(Path(directory))
@@ -94,6 +115,11 @@ def main() -> None:
         assert f"PRESSURE_VESSEL_BWRAP={route}" in runtime
         assert runtime_entry in runtime
         assert runtime[-1] == "--fixture-argument"
+
+        selected_proot = base / "src" / "native-profile" / "src"
+        preflight = run_preflight(prefix, base, selected_proot)
+        assert f"proot={selected_proot / 'proot'}" in preflight
+        assert "native game boundary preflight: PASS" in preflight
 
     print("native runtime bridge tests: PASS")
 

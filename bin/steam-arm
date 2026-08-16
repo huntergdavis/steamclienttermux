@@ -21,8 +21,8 @@ proc_net_shadow="$base/config/proc-net"
 pressure_vessel_bwrap="$base/compat-bin/steam-arm64-bwrap-route"
 real_pressure_vessel_bwrap="$arm_runtime/pressure-vessel/libexec/steam-runtime-tools-0/srt-bwrap"
 steam_home="/root/steam-arm"
-custom_proot_dir="$base/src/proot-production/src"
-proot_patch_stamp="$base/src/proot-production/.steamclienttermux-patchset"
+custom_proot_dir="${STEAM_ARM64_PROOT_DIR:-$base/src/proot-production/src}"
+proot_patch_stamp="${custom_proot_dir%/src}/.steamclienttermux-patchset"
 required_proot_patch="proot-runtime-directory-bind-target.patch"
 
 command -v sha256sum >/dev/null || { echo 'sha256sum is required' >&2; exit 1; }
