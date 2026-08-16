@@ -18,7 +18,7 @@
 		{
 			"appid"         "4185400"
 			"depotid"       "4185401"
-			"install_path"  "@CLIENT_ROOT@/steamapps/common/SteamLinuxRuntime_4-arm64"
+			"install_path"  "@RUNTIME_ROOT@"
 			"display_name"  "Steam Linux Runtime 4.0 - Arm64"
 			"from_oslist"   "linux"
 			"to_oslist"     "linux"

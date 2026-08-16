@@ -19,6 +19,17 @@ session_tool=$compat_repo/scripts/tgcompat-session.sh
 termux_exec_hook=${TERMUX_EXEC_GLIBC:-$PREFIX/glibc/lib/libtermux-exec.so}
 session_guard=$compat_bin/steam-arm64-session-guard.py
 arm_compat_template=$base/config/steam-arm64-compatibilitytools.vdf.in
+arm_runtime=$base/runtime/SteamLinuxRuntime_4-arm64
+arm_runtime_depot=$client_root/steamapps/common/SteamLinuxRuntime_4-arm64
+native_bwrap=$compat_bin/steam-arm64-native-bwrap
+proc_net_prep=$base/prepare-proc-net-shadow.sh
+proc_net_shadow=$base/config/proc-net
+steam_hosts=$base/config/hosts-ipv4
+removable_library_helper=$compat_bin/steam-arm64-removable-library.py
+custom_proot_dir=$base/src/proot-production/src
+proot_binary=$custom_proot_dir/proot
+proot_patch_stamp=$base/src/proot-production/.steamclienttermux-patchset
+required_proot_patch=proot-runtime-directory-bind-target.patch
 ui_patch=$base/patch-steam-network-ui.sh
 pulse_prep=$base/prepare-pulseaudio-tcp.sh
 display=${DISPLAY:-:0}
@@ -48,6 +59,22 @@ done
     fail 'installed steamclienttermux helpers are incomplete'
 [[ -f $arm_compat_template ]] ||
     fail "ARM64 compatibility-tool template is missing: $arm_compat_template"
+[[ -x $native_bwrap && -x $proc_net_prep && -f $steam_hosts &&
+        -f $removable_library_helper &&
+        -f $arm_runtime/.steamclienttermux-runtime-shadow &&
+        -x $arm_runtime/pressure-vessel/bin/pressure-vessel-wrap &&
+        -d $arm_runtime_depot ]] ||
+    fail 'native game-boundary helpers or ARM64 runtime are incomplete'
+[[ -x $proot_binary && ! -L $proot_binary && -f $proot_patch_stamp &&
+        ! -L $proot_patch_stamp ]] ||
+    fail 'patched game-boundary PRoot or its stamp is unavailable'
+sed -n 's/^patches=//p' "$proot_patch_stamp" | tr ' ' '\n' |
+    grep -Fxq "$required_proot_patch" ||
+    fail "game-boundary PRoot lacks $required_proot_patch"
+stamped_proot=$(sed -n 's/^proot_sha256=//p' "$proot_patch_stamp")
+[[ $stamped_proot =~ ^[0-9a-f]{64}$ &&
+        $(sha256sum "$proot_binary" | awk '{print $1}') == "$stamped_proot" ]] ||
+    fail 'game-boundary PRoot does not match its build stamp'
 
 candidate_root=$(realpath -e "$candidate_selector") ||
     fail "staged glibc selector is unavailable: $candidate_selector"
@@ -101,6 +128,8 @@ check_dependencies "$client/steam" 'Steam bootstrap'
 check_dependencies "$client/steamwebhelper" 'Steam web helper'
 
 if [[ ${STEAM_ARM64_NATIVE_CHECK:-0} == 1 ]]; then
+    STEAM_ARM64_BASE="$base" STEAM_ARM64_NATIVE_BWRAP_CHECK=1 \
+        "$native_bwrap" >/dev/null
     printf 'candidate_sha256=%s\n' "$package_sha"
     printf 'candidate_loader=%s\n' "$loader"
     printf 'exec_shim=%s\n' "$exec_shim"
@@ -127,6 +156,7 @@ python3 "$session_guard" preflight \
 
 "$ui_patch"
 "$pulse_prep" "$base"
+"$proc_net_prep" "$base"
 [[ ! -L $native_home && ! -L $native_home/.steam && ! -L $runtime_dir ]] ||
     fail 'native HOME/runtime paths cannot be symbolic links'
 install -d -m 0700 -- "$native_home" "$native_home/.steam" "$runtime_dir"
@@ -159,7 +189,9 @@ cleanup_manifest_stage() {
     fi
 }
 trap cleanup_manifest_stage EXIT
-sed "s|@CLIENT_ROOT@|$client_root|g" "$arm_compat_template" > "$manifest_stage"
+sed -e "s|@CLIENT_ROOT@|$client_root|g" \
+    -e "s|@RUNTIME_ROOT@|$arm_runtime|g" \
+    "$arm_compat_template" > "$manifest_stage"
 if [[ -f $manifest && ! -L $manifest ]] && cmp -s "$manifest_stage" "$manifest"; then
     rm -- "$manifest_stage"
 else
@@ -203,6 +235,27 @@ dbus_pid=$(<"$dbus_pid_file")
 
 preload=$exec_shim:$termux_exec_hook
 log=$(python3 "$session_guard" create-log --logs-dir "$base/logs")
+
+removable_mount=$(python3 "$removable_library_helper" --base "$base" mount-info)
+declare -a removable_environment=()
+if [[ $removable_mount != disabled ]]; then
+    IFS=$'\t' read -r removable_source removable_target \
+        removable_steamapps removable_common removable_compatdata \
+        removable_downloads removable_extra <<<"$removable_mount"
+    [[ -n $removable_source && -n $removable_target &&
+            -n $removable_steamapps && -n $removable_common &&
+            -n $removable_compatdata && -n $removable_downloads &&
+            -z ${removable_extra:-} ]] ||
+        fail 'invalid removable-library mount description'
+    removable_environment+=(
+        "STEAM_ARM64_REMOVABLE_SOURCE=$removable_source"
+        "STEAM_ARM64_REMOVABLE_TARGET=$removable_target"
+        "STEAM_ARM64_REMOVABLE_STEAMAPPS=$removable_steamapps"
+        "STEAM_ARM64_REMOVABLE_COMMON=$removable_common"
+        "STEAM_ARM64_REMOVABLE_COMPATDATA=$removable_compatdata"
+        "STEAM_ARM64_REMOVABLE_DOWNLOADS=$removable_downloads"
+    )
+fi
 fex_profile=${STEAM_ARM64_FEX_PROFILE:-safe}
 fex_profile_env=()
 case $fex_profile in
@@ -249,6 +302,8 @@ printf 'Starting no-PRoot ARM64 Steam on DISPLAY=%s (FEX %s)\nLog: %s\n' \
 set +e
 env -u GLIBC_LD_LIBRARY_PATH \
     "${fex_profile_env[@]}" \
+    "${removable_environment[@]}" \
+    STEAM_ARM64_BASE="$base" \
     HOME="$native_home" \
     DISPLAY="$display" \
     LANG=C.UTF-8 \
@@ -257,6 +312,8 @@ env -u GLIBC_LD_LIBRARY_PATH \
     XDG_RUNTIME_DIR="$runtime_dir" \
     PULSE_SERVER="${PULSE_SERVER:-tcp:127.0.0.1:4713}" \
     DBUS_SESSION_BUS_ADDRESS="$dbus_address" \
+    PRESSURE_VESSEL_BWRAP="$native_bwrap" \
+    STEAM_ARM64_PROC_NET="$proc_net_shadow" \
     LD_PRELOAD="$preload" \
     LD_LIBRARY_PATH="$library_path" \
     TGCOMPAT_SOCKET="$socket_path" \

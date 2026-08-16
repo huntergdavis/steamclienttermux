@@ -1,0 +1,105 @@
+#!/data/data/com.termux/files/usr/glibc/bin/bash
+
+set -euo pipefail
+umask 077
+
+base=${STEAM_ARM64_BASE:-$HOME/steam-arm64}
+client_root=$base/client
+runtime_shadow=$base/runtime/SteamLinuxRuntime_4-arm64
+runtime_depot=$client_root/steamapps/common/SteamLinuxRuntime_4-arm64
+compat_bin=$base/compat-bin
+route=$compat_bin/steam-arm64-bwrap-route
+real_bwrap=$runtime_shadow/pressure-vessel/libexec/steam-runtime-tools-0/srt-bwrap
+proc_net=$base/config/proc-net
+hosts=$base/config/hosts-ipv4
+custom_proot_dir=$base/src/proot-production/src
+proot_binary=$custom_proot_dir/proot
+proot_distro=${PREFIX:-}/bin/proot-distro
+mesa_lib=$base/mesa-kgsl/usr/lib/aarch64-linux-gnu
+
+fail() {
+    printf 'steam-arm64-native-bwrap: %s\n' "$*" >&2
+    exit 125
+}
+
+[[ -n ${PREFIX:-} && $PREFIX == /* ]] || fail 'PREFIX must be absolute'
+[[ -x $proot_binary && ! -L $proot_binary ]] ||
+    fail "patched PRoot is unavailable: $proot_binary"
+[[ -x $proot_distro && ! -L $proot_distro ]] ||
+    fail "proot-distro is unavailable: $proot_distro"
+[[ -x $route && ! -L $route ]] || fail "bwrap route is unavailable: $route"
+[[ -x $real_bwrap && ! -L $real_bwrap ]] ||
+    fail "real ARM64 srt-bwrap is unavailable: $real_bwrap"
+[[ -f $runtime_shadow/.steamclienttermux-runtime-shadow &&
+        -d $runtime_depot && ! -L $runtime_shadow && ! -L $runtime_depot ]] ||
+    fail 'ARM64 runtime shadow or official depot is unsafe/incomplete'
+[[ -f $hosts && ! -L $hosts && -f $proc_net/route &&
+        ! -L $proc_net/route && -f $proc_net/ipv6_route &&
+        ! -L $proc_net/ipv6_route ]] ||
+    fail 'validated hosts or /proc/net shadow is unavailable'
+[[ -d $mesa_lib && ! -L $mesa_lib ]] ||
+    fail "Mesa library directory is unavailable: $mesa_lib"
+
+if [[ ${STEAM_ARM64_NATIVE_BWRAP_CHECK:-0} == 1 ]]; then
+    printf 'proot=%s\nroute=%s\nreal_bwrap=%s\nruntime_shadow=%s\n' \
+        "$proot_binary" "$route" "$real_bwrap" "$runtime_shadow"
+    printf '%s\n' 'native game boundary preflight: PASS'
+    exit 0
+fi
+
+(( $# > 0 )) || fail 'srt-bwrap arguments are required'
+
+declare -a pd_args=(login debian --shared-tmp)
+pd_args+=(--bind "$hosts:/etc/hosts")
+pd_args+=(--bind "$proc_net:/proc/net")
+pd_args+=(--bind "$runtime_shadow:$runtime_depot")
+
+if [[ -n ${STEAM_ARM64_REMOVABLE_SOURCE:-} ]]; then
+    for name in STEAM_ARM64_REMOVABLE_SOURCE STEAM_ARM64_REMOVABLE_TARGET \
+            STEAM_ARM64_REMOVABLE_STEAMAPPS STEAM_ARM64_REMOVABLE_COMMON \
+            STEAM_ARM64_REMOVABLE_COMPATDATA STEAM_ARM64_REMOVABLE_DOWNLOADS; do
+        [[ ${!name:-} == /* ]] || fail "invalid removable mount variable: $name"
+    done
+    pd_args+=(--bind \
+        "$STEAM_ARM64_REMOVABLE_SOURCE:$STEAM_ARM64_REMOVABLE_TARGET")
+    pd_args+=(--bind \
+        "$STEAM_ARM64_REMOVABLE_STEAMAPPS:$STEAM_ARM64_REMOVABLE_TARGET/steamapps")
+    pd_args+=(--bind \
+        "$STEAM_ARM64_REMOVABLE_COMMON:$STEAM_ARM64_REMOVABLE_TARGET/steamapps/common")
+    pd_args+=(--bind \
+        "$STEAM_ARM64_REMOVABLE_COMPATDATA:$STEAM_ARM64_REMOVABLE_TARGET/steamapps/compatdata")
+    pd_args+=(--bind \
+        "$STEAM_ARM64_REMOVABLE_DOWNLOADS:$STEAM_ARM64_REMOVABLE_TARGET/steamapps/downloading")
+fi
+
+# proot-distro deliberately resets its guest environment. Preserve arbitrary
+# Steam launch-option variables, but never inject the native glibc preload or
+# candidate loader path into the Bionic route executable or container runtime.
+while IFS= read -r -d '' entry; do
+    name=${entry%%=*}
+    [[ $name =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
+    case $name in
+        LD_PRELOAD|LD_LIBRARY_PATH|GLIBC_LD_LIBRARY_PATH|PATH|PREFIX|SHELL|\
+        TGCOMPAT_*)
+            continue
+            ;;
+    esac
+    pd_args+=(--env "$entry")
+done < /proc/self/environ
+
+guest_path=$compat_bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PREFIX/bin
+pd_args+=(--env "PATH=$guest_path")
+pd_args+=(--env "LD_LIBRARY_PATH=$mesa_lib")
+pd_args+=(--env "STEAM_ARM64_REAL_BWRAP=$real_bwrap")
+pd_args+=(--env "STEAM_ARM64_PROC_NET=$proc_net")
+pd_args+=(--env "PROOT_L2S_EXDEV_PREFIX=$runtime_depot/var/tmp-")
+
+# The bridge shell and Steam are glibc processes, while proot-distro and the
+# route helper are Bionic. Remove glibc loader state at this one explicit ABI
+# crossing; the game payload gets its runtime environment from Pressure Vessel.
+unset LD_PRELOAD LD_LIBRARY_PATH GLIBC_LD_LIBRARY_PATH
+unset TGCOMPAT_LD_SO TGCOMPAT_LIBRARY_PATH TGCOMPAT_EXEC_MATCH_INTERPRETER
+export PATH=$custom_proot_dir:$PREFIX/bin:/system/bin
+export PROOT_L2S_EXDEV_PREFIX=$runtime_depot/var/tmp-
+
+exec "$proot_distro" "${pd_args[@]}" -- "$route" "$@"

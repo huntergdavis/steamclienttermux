@@ -384,11 +384,15 @@ proot-distro "${pd_args[@]}" -- /bin/bash -lc '
     # Forwarded steam:// commands also enter this launcher. Avoid replacing an
     # identical manifest: changing only its mtime makes Steam rebuild the
     # compatibility-tool registry, which is exceptionally slow through PRoot.
-    if sed "s|@CLIENT_ROOT@|$6|g" "$8" | cmp -s - "$arm_compat_manifest"; then
+    if sed -e "s|@CLIENT_ROOT@|$6|g" \
+            -e "s|@RUNTIME_ROOT@|$6/steamapps/common/SteamLinuxRuntime_4-arm64|g" \
+            "$8" | cmp -s - "$arm_compat_manifest"; then
         :
     else
         arm_compat_manifest_tmp="$(mktemp "$arm_compat_manifest.tmp.XXXXXX")"
-        if ! sed "s|@CLIENT_ROOT@|$6|g" "$8" >"$arm_compat_manifest_tmp"; then
+        if ! sed -e "s|@CLIENT_ROOT@|$6|g" \
+                -e "s|@RUNTIME_ROOT@|$6/steamapps/common/SteamLinuxRuntime_4-arm64|g" \
+                "$8" >"$arm_compat_manifest_tmp"; then
             unlink -- "$arm_compat_manifest_tmp"
             exit 1
         fi
