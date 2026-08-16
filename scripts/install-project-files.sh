@@ -82,6 +82,8 @@ install_one "$repo_root/scripts/start-tombraider.sh" \
 install_one "$repo_root/scripts/stop-steam.sh" "$HOME/stop-steam.sh" 700
 install_one "$repo_root/scripts/stop-steam-native.sh" \
     "$HOME/stop-steam-native.sh" 700
+install_one "$repo_root/scripts/check-native-steam-stack.sh" \
+    "$HOME/bin/check-native-steam-stack" 700
 install_one "$repo_root/bin/ensure-sshd-supervised.sh" \
     "$HOME/bin/ensure-sshd-supervised" 700
 install_one "$repo_root/bin/patch-steam-network-ui.sh" "$base/patch-steam-network-ui.sh" 700

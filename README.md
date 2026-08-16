@@ -578,6 +578,7 @@ be selected by the normal X11/audio/input wrapper:
 
 ```sh
 STEAM_ARM64_NATIVE_CHECK=1 ~/bin/steam-arm-native
+~/bin/check-native-steam-stack
 ~/start-steam-native.sh
 ~/start-steam-native.sh --appid 203160 -- -nolauncher
 ~/stop-steam-native.sh
@@ -589,6 +590,11 @@ helper before any UI, D-Bus, PulseAudio, manifest, or HOME change. It reads
 ordinary ARM64 support libraries directly from the existing Debian rootfs by
 their host paths; this does not start PRoot. `STEAM_ARM64_NATIVE_ROOTFS` can
 select another complete ARM64 Linux runtime tree.
+
+`check-native-steam-stack` is also non-launching. It runs that client/CEF gate
+and then independently validates the stamped PRoot and generic Pressure Vessel
+boundary. Use `--proot-dir /absolute/candidate/src` for an isolated A/B; it
+does not start X11, Steam, a game, or an authentication flow.
 
 The selected official package was built from Termux glibc-packages commit
 `954c6b2`, copied without repacking, hash-checked on the tablet, extracted into
