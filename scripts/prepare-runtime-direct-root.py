@@ -196,6 +196,20 @@ def build_sysroot(stage: Path, entries: list[MtreeEntry], files: Path, l2s_root:
             fail(f"empty symlink target for {entry.relative}")
         (usr / entry.relative).symlink_to(target)
 
+    # Match pv_runtime_create_copy(): a Flatpak-style runtime is a merged
+    # /usr, while the no-copy path expects a complete sysroot. Its own copy
+    # routine adds these exact top-level links after applying usr-mtree.txt.
+    for member in sorted(path.name for path in usr.iterdir()):
+        if (
+            member in ("bin", "etc", "sbin", "var")
+            or (member.startswith("lib") and member != "libexec")
+        ):
+            (stage / member).symlink_to(f"usr/{member}")
+    ref = usr / ".ref"
+    if not ref.is_file() or ref.is_symlink():
+        fail(f"runtime mtree did not provide its lock file: {ref}")
+    (stage / ".ref").symlink_to("usr/.ref")
+
 
 def remove_stage(stage: Path, parent: Path) -> None:
     if not stage.exists() and not stage.is_symlink():
@@ -242,7 +256,7 @@ def prepare(base: Path, l2s_root: Path) -> Path:
         fail(f"invalid runtime mtree: {error}")
     entries = parse_mtree(mtree_data)
 
-    identity = hashlib.sha256(b"steamclienttermux-runtime-direct-v2\0")
+    identity = hashlib.sha256(b"steamclienttermux-runtime-direct-v3\0")
     identity.update(os.fsencode(matches[0]))
     identity.update(b"\0")
     identity.update(mtree_data)
@@ -278,6 +292,17 @@ def prepare(base: Path, l2s_root: Path) -> Path:
             path = destination / "usr" / relative
             if not path.is_file() or path.is_symlink():
                 fail(f"existing direct runtime is incomplete: {path}")
+        for member in sorted(path.name for path in (destination / "usr").iterdir()):
+            if (
+                member in ("bin", "etc", "sbin", "var")
+                or (member.startswith("lib") and member != "libexec")
+            ):
+                link = destination / member
+                if not link.is_symlink() or os.readlink(link) != f"usr/{member}":
+                    fail(f"existing direct runtime has an invalid merged-/usr link: {link}")
+        ref = destination / ".ref"
+        if not ref.is_symlink() or os.readlink(ref) != "usr/.ref":
+            fail(f"existing direct runtime has an invalid lock link: {ref}")
         select_current(parent, destination)
         return destination
 

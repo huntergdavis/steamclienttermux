@@ -62,6 +62,7 @@ def fixture(root: Path) -> tuple[Path, Path, Path]:
             "#mtree",
             ". type=dir",
             "./bin type=dir",
+            "./etc type=dir",
             "./share type=dir",
             file_entry("./bin/tool", tool_data, 0o755),
             "./bin/sh type=link link=tool",
@@ -96,6 +97,12 @@ def main() -> None:
         assert (destination / "usr" / "share" / "name with spaces").is_file()
         assert (destination / "usr" / "bin" / "sh").is_symlink()
         assert os.readlink(destination / "usr" / "bin" / "sh") == "tool"
+        assert (destination / "bin").is_symlink()
+        assert os.readlink(destination / "bin") == "usr/bin"
+        assert (destination / "etc").is_symlink()
+        assert os.readlink(destination / "etc") == "usr/etc"
+        assert (destination / ".ref").is_symlink()
+        assert os.readlink(destination / ".ref") == "usr/.ref"
         assert (destination / ".steamclienttermux-runtime-direct-root").is_file()
 
         first_destination = destination
