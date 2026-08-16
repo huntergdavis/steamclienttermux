@@ -42,21 +42,36 @@ install_one() {
 }
 
 wrapper_stage="$(mktemp "${TMPDIR:-$PREFIX/tmp}/steam-arm64-bwrap-route.XXXXXX")"
+native_entry_stage="$(mktemp "${TMPDIR:-$PREFIX/tmp}/steam-arm64-native-entry.XXXXXX")"
 cleanup_wrapper_stage() {
     if [[ -n "$wrapper_stage" ]] && [[ -f "$wrapper_stage" ]] &&
             [[ ! -L "$wrapper_stage" ]]; then
         unlink -- "$wrapper_stage"
+    fi
+    if [[ -n "$native_entry_stage" ]] && [[ -f "$native_entry_stage" ]] &&
+            [[ ! -L "$native_entry_stage" ]]; then
+        unlink -- "$native_entry_stage"
     fi
 }
 trap cleanup_wrapper_stage EXIT
 "${CC:-cc}" -std=c11 -O2 -Wall -Wextra -Werror \
     "$repo_root/diagnostics/pressure-vessel-route-bwrap.c" \
     -o "$wrapper_stage"
+env -u LD_PRELOAD -u LD_LIBRARY_PATH -u GLIBC_LD_LIBRARY_PATH \
+    grun -s gcc -std=c11 -O3 -DNDEBUG -flto -fno-plt \
+    -fno-semantic-interposition -ffunction-sections -fdata-sections \
+    -Wall -Wextra -Werror -Wpedantic -Wformat=2 -Wshadow \
+    "$repo_root/diagnostics/native-bwrap-entry.c" \
+    -Wl,-O2,--as-needed,--gc-sections,-z,relro,-z,now \
+    -Wl,--dynamic-linker=/lib/ld-linux-aarch64.so.1 \
+    -o "$native_entry_stage"
 
 install_one "$repo_root/bin/steam-arm" "$HOME/bin/steam-arm" 700
 install_one "$repo_root/bin/steam-arm-native" "$HOME/bin/steam-arm-native" 700
 install_one "$repo_root/bin/steam-arm64-native-bwrap" \
     "$base/compat-bin/steam-arm64-native-bwrap" 700
+install_one "$native_entry_stage" \
+    "$base/compat-bin/steam-arm64-native-bwrap-entry" 700
 install_one "$repo_root/scripts/start-steam.sh" "$HOME/start-steam.sh" 700
 install_one "$repo_root/scripts/start-tombraider.sh" \
     "$HOME/start-tombraider.sh" 700
@@ -94,6 +109,8 @@ install_one "$repo_root/scripts/monitor-termux-game-session.sh" \
 install_one "$wrapper_stage" "$base/compat-bin/steam-arm64-bwrap-route" 700
 unlink -- "$wrapper_stage"
 wrapper_stage=""
+unlink -- "$native_entry_stage"
+native_entry_stage=""
 trap - EXIT
 
 install_one "$repo_root/config/hosts-ipv4" "$base/config/hosts-ipv4" 600

@@ -21,7 +21,8 @@ session_guard=$compat_bin/steam-arm64-session-guard.py
 arm_compat_template=$base/config/steam-arm64-compatibilitytools.vdf.in
 arm_runtime=$base/runtime/SteamLinuxRuntime_4-arm64
 arm_runtime_depot=$client_root/steamapps/common/SteamLinuxRuntime_4-arm64
-native_bwrap=$compat_bin/steam-arm64-native-bwrap
+native_bwrap=$compat_bin/steam-arm64-native-bwrap-entry
+native_bwrap_script=$compat_bin/steam-arm64-native-bwrap
 proc_net_prep=$base/prepare-proc-net-shadow.sh
 proc_net_shadow=$base/config/proc-net
 steam_hosts=$base/config/hosts-ipv4
@@ -59,7 +60,8 @@ done
     fail 'installed steamclienttermux helpers are incomplete'
 [[ -f $arm_compat_template ]] ||
     fail "ARM64 compatibility-tool template is missing: $arm_compat_template"
-[[ -x $native_bwrap && -x $proc_net_prep && -f $steam_hosts &&
+[[ -x $native_bwrap && ! -L $native_bwrap && -x $native_bwrap_script &&
+        ! -L $native_bwrap_script && -x $proc_net_prep && -f $steam_hosts &&
         -f $removable_library_helper &&
         -f $arm_runtime/.steamclienttermux-runtime-shadow &&
         -x $arm_runtime/pressure-vessel/bin/pressure-vessel-wrap &&
