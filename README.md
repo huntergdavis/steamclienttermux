@@ -649,6 +649,17 @@ not justify promotion, so production remains the default and
 contains the candidate `proot` binary. See the exact
 [device transcript](docs/evidence/proot-native-profile-20260816.txt).
 
+Combining that compiler profile with the separately gated no-dereference
+metadata patch produced a reproducible second candidate, SHA-256
+`1f4a98c53b3d00b3881e7625cc9cce24850e8ba2e3dd5f0fa1a72bad438f3aa5`.
+With `PROOT_NODEREF_FAST_PATH` restricted to the exact Proton Experimental
+benchmark tree, three matched trials improved the long-path median by 16.69%
+and the short-bind median by 14.96%; all four regression probes passed. It is
+still not a generic default: the assertion is safe only for a tree whose guest
+and host paths are identical and which contains no nested translated bind.
+Runtime 4 and removable game libraries violate that assumption in places. See
+the [combined-candidate evidence](docs/evidence/proot-native-fastpath-profile-20260816.txt).
+
 The launcher applies the measured scheduling profile automatically: X11 and
 Steam use CPUs 0-3, Steam web helpers use CPU 0, and a CPU-0 affinity guard waits
 for the verified App ID 203160 process. The guard rejects a background game,

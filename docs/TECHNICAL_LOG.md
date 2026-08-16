@@ -4612,3 +4612,31 @@ startup win yet. It is deliberately not promoted. All three launchers accept
 production patch before use. The complete
 numbers and hashes are retained in
 [`docs/evidence/proot-native-profile-20260816.txt`](evidence/proot-native-profile-20260816.txt).
+
+## 2026-08-16: native compiler plus metadata-fastpath candidate
+
+The native compiler profile was combined with the existing opt-in
+`proot-noderef-fastpath.patch` in a second isolated source tree. The 277,720-byte
+binary has SHA-256
+`1f4a98c53b3d00b3881e7625cc9cce24850e8ba2e3dd5f0fa1a72bad438f3aa5`.
+An eight-job rebuild reproduced that exact hash. Its ordered patch-set hash is
+`7c44d775db22944b32b6534e2306a9408b98d1a88dd278e46aa12edefb9471d0`;
+the compiler-options hash remains
+`879612bd4df72b01702c8da7694beab84374e0ecbeff898e0a1e1226276359f3`.
+
+With `PROOT_NODEREF_FAST_PATH` passed through `proot-distro --env` and limited
+to the exact Proton Experimental benchmark directory, all three runs counted
+the same 5,601 files. The production/native-fastpath medians were
+5.4698/4.5569 seconds for the original long path and 5.3219/4.5257 seconds for
+the short bind: improvements of 16.69% and 14.96%. The spaced-path, shared
+`/tmp`, post-`--proc` `/proc/net`, and mountinfo-escaping probes all passed with
+the candidate and its optimization enabled for the Steam client tree.
+
+This candidate is not selected automatically. The fast path is a caller's
+assertion that the trusted prefix is host-visible at the identical guest path
+and has no nested translated bind. Runtime 4 shadows its depot path, and
+removable game libraries add more nested bindings, so the entire Steam client
+or library root is not a safe generic prefix. The candidate remains available
+for a future game-specific end-to-end A/B after choosing and validating a
+narrow prefix. Exact trials are in
+[`docs/evidence/proot-native-fastpath-profile-20260816.txt`](evidence/proot-native-fastpath-profile-20260816.txt).

@@ -168,3 +168,19 @@ complete Pressure Vessel `/bin/true` boundary passed, but the latter took 47
 seconds against the earlier 42-second production observation. The evidence
 supports keeping this as a controlled compiler A/B, not selecting it for game
 launches. Use `STEAM_ARM64_PROOT_DIR` to opt in explicitly.
+
+## Native compiler plus metadata fast path
+
+The native profile and opt-in no-dereference patch are additive on the exact
+metadata control. A reproducible combined candidate, SHA-256
+`1f4a98c53b3d00b3881e7625cc9cce24850e8ba2e3dd5f0fa1a72bad438f3aa5`,
+passed all four production regression probes. In three matched trials its
+long-path median was 4.5569 seconds versus production's 5.4698 seconds
+(16.69% faster), and its explicit-bind median was 4.5257 seconds versus
+5.3219 seconds (14.96% faster).
+
+This does not broaden the patch's correctness scope. The trusted prefix must
+have identical host and guest paths and no nested translated bind. Neither an
+entire Steam library nor Runtime 4 can be assumed to meet that rule. Keep the
+candidate and `PROOT_NODEREF_FAST_PATH` opt-in until a narrow per-workload
+prefix passes a real game launch.

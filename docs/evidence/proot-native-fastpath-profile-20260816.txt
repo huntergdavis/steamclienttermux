@@ -1,0 +1,49 @@
+Tab S8+ native PRoot plus no-dereference fastpath evidence
+Date: 2026-08-16
+
+Candidate:
+  profile: native
+  optional patch: proot-noderef-fastpath.patch
+  size: 277720 bytes
+  sha256: 1f4a98c53b3d00b3881e7625cc9cce24850e8ba2e3dd5f0fa1a72bad438f3aa5
+  deterministic eight-job rebuild sha256: 1f4a98c53b3d00b3881e7625cc9cce24850e8ba2e3dd5f0fa1a72bad438f3aa5
+  patch-set sha256: 7c44d775db22944b32b6534e2306a9408b98d1a88dd278e46aa12edefb9471d0
+  build-options sha256: 879612bd4df72b01702c8da7694beab84374e0ecbeff898e0a1e1226276359f3
+
+Benchmark target:
+  Proton Experimental tree
+  regular files enumerated per trial: 5601
+  PROOT_NODEREF_FAST_PATH: exact benchmark tree
+
+Alternating trials (nanoseconds):
+  production round 1: native 136920729, long 5562969425, bind 5321940571
+  candidate  round 1: native 127581354, long 3868110415, bind 3028815207
+  production round 2: native 133730937, long 5297053332, bind 5237932967
+  candidate  round 2: native 125398802, long 4556913384, bind 4800198540
+  production round 3: native 125446562, long 5469833904, bind 5322104790
+  candidate  round 3: native 133803386, long 4865332498, bind 4525733592
+
+Medians:
+  production long: 5.469833904 seconds
+  candidate long: 4.556913384 seconds
+  candidate long improvement: 16.6901%
+  production bind: 5.321940571 seconds
+  candidate bind: 4.525733592 seconds
+  candidate bind improvement: 14.9608%
+
+Regression gates with the candidate and optimization enabled:
+  spaced compatibility-tool path: PASS
+  shared /tmp file and directory bind: PASS
+  post --proc /proc/net: PASS
+  escaped mountinfo path: PASS
+
+Decision:
+  Do not promote globally. The caller must prove that the selected trusted
+  prefix is visible at the identical host/guest path and contains no nested
+  translated bind. Runtime 4 and removable Steam libraries contain nested
+  bindings, so their parent trees are not safe generic prefixes.
+
+State safety:
+  Active production PRoot: unchanged
+  Saved Steam authentication: unchanged
+  Steam UI/game launch during candidate build and benchmark: none
