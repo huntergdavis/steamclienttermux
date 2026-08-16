@@ -16,6 +16,7 @@ custom_proot_dir=$base/src/proot-production/src
 proot_binary=$custom_proot_dir/proot
 proot_distro=${PREFIX:-}/bin/proot-distro
 mesa_lib=$base/mesa-kgsl/usr/lib/aarch64-linux-gnu
+bridge_mode=${STEAM_ARM64_NATIVE_BRIDGE_MODE:-bwrap}
 
 fail() {
     printf 'steam-arm64-native-bwrap: %s\n' "$*" >&2
@@ -39,10 +40,18 @@ fail() {
     fail 'validated hosts or /proc/net shadow is unavailable'
 [[ -d $mesa_lib && ! -L $mesa_lib ]] ||
     fail "Mesa library directory is unavailable: $mesa_lib"
+case $bridge_mode in
+    runtime|bwrap)
+        ;;
+    *)
+        fail "invalid native bridge mode: $bridge_mode"
+        ;;
+esac
 
 if [[ ${STEAM_ARM64_NATIVE_BWRAP_CHECK:-0} == 1 ]]; then
-    printf 'proot=%s\nroute=%s\nreal_bwrap=%s\nruntime_shadow=%s\n' \
-        "$proot_binary" "$route" "$real_bwrap" "$runtime_shadow"
+    printf 'mode=%s\nproot=%s\nroute=%s\nreal_bwrap=%s\nruntime_shadow=%s\n' \
+        "$bridge_mode" "$proot_binary" "$route" "$real_bwrap" \
+        "$runtime_shadow"
     printf '%s\n' 'native game boundary preflight: PASS'
     exit 0
 fi
@@ -80,7 +89,7 @@ while IFS= read -r -d '' entry; do
     [[ $name =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
     case $name in
         LD_PRELOAD|LD_LIBRARY_PATH|GLIBC_LD_LIBRARY_PATH|PATH|PREFIX|SHELL|\
-        TGCOMPAT_*)
+        TGCOMPAT_*|PRESSURE_VESSEL_BWRAP)
             continue
             ;;
     esac
@@ -94,6 +103,16 @@ pd_args+=(--env "STEAM_ARM64_REAL_BWRAP=$real_bwrap")
 pd_args+=(--env "STEAM_ARM64_PROC_NET=$proc_net")
 pd_args+=(--env "PROOT_L2S_EXDEV_PREFIX=$runtime_depot/var/tmp-")
 
+case $bridge_mode in
+    runtime)
+        pd_args+=(--env "PRESSURE_VESSEL_BWRAP=$route")
+        bridge_command=$runtime_shadow/_v2-entry-point
+        ;;
+    bwrap)
+        bridge_command=$route
+        ;;
+esac
+
 # The bridge shell and Steam are glibc processes, while proot-distro and the
 # route helper are Bionic. Remove glibc loader state at this one explicit ABI
 # crossing; the game payload gets its runtime environment from Pressure Vessel.
@@ -102,4 +121,4 @@ unset TGCOMPAT_LD_SO TGCOMPAT_LIBRARY_PATH TGCOMPAT_EXEC_MATCH_INTERPRETER
 export PATH=$custom_proot_dir:$PREFIX/bin:/system/bin
 export PROOT_L2S_EXDEV_PREFIX=$runtime_depot/var/tmp-
 
-exec "$proot_distro" "${pd_args[@]}" -- "$route" "$@"
+exec "$proot_distro" "${pd_args[@]}" -- "$bridge_command" "$@"

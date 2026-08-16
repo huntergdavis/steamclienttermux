@@ -38,6 +38,7 @@ main (int argc, char **argv)
   };
   const char *prefix = getenv ("PREFIX");
   const char *base = getenv ("STEAM_ARM64_BASE");
+  const char *program_name;
   struct stat metadata;
   char shell[PATH_MAX];
   char script[PATH_MAX];
@@ -53,6 +54,15 @@ main (int argc, char **argv)
                    "%s/compat-bin/steam-arm64-native-bwrap", base) < 0
       || strlen (script) >= sizeof (script))
     fail ("bridge path is too long");
+  program_name = strrchr (argv[0], '/');
+  program_name = program_name == NULL ? argv[0] : program_name + 1;
+  if (strcmp (program_name, "_v2-entry-point") == 0)
+    {
+      if (setenv ("STEAM_ARM64_NATIVE_BRIDGE_MODE", "runtime", 1) < 0)
+        fail ("cannot select the runtime bridge");
+    }
+  else if (setenv ("STEAM_ARM64_NATIVE_BRIDGE_MODE", "bwrap", 1) < 0)
+    fail ("cannot select the bwrap bridge");
   if (lstat (script, &metadata) < 0)
     fail ("cannot inspect bridge script");
   if (!S_ISREG (metadata.st_mode) || metadata.st_uid != geteuid ()

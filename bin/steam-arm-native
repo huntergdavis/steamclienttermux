@@ -21,6 +21,7 @@ session_guard=$compat_bin/steam-arm64-session-guard.py
 arm_compat_template=$base/config/steam-arm64-compatibilitytools.vdf.in
 arm_runtime=$base/runtime/SteamLinuxRuntime_4-arm64
 arm_runtime_depot=$client_root/steamapps/common/SteamLinuxRuntime_4-arm64
+native_runtime=$base/runtime/SteamLinuxRuntime_4-arm64-native
 native_bwrap=$compat_bin/steam-arm64-native-bwrap-entry
 native_bwrap_script=$compat_bin/steam-arm64-native-bwrap
 proc_net_prep=$base/prepare-proc-net-shadow.sh
@@ -65,7 +66,8 @@ done
         -f $removable_library_helper &&
         -f $arm_runtime/.steamclienttermux-runtime-shadow &&
         -x $arm_runtime/pressure-vessel/bin/pressure-vessel-wrap &&
-        -d $arm_runtime_depot ]] ||
+        -d $arm_runtime_depot && -x $native_runtime/_v2-entry-point &&
+        ! -L $native_runtime/_v2-entry-point ]] ||
     fail 'native game-boundary helpers or ARM64 runtime are incomplete'
 [[ -x $proot_binary && ! -L $proot_binary && -f $proot_patch_stamp &&
         ! -L $proot_patch_stamp ]] ||
@@ -131,7 +133,7 @@ check_dependencies "$client/steamwebhelper" 'Steam web helper'
 
 if [[ ${STEAM_ARM64_NATIVE_CHECK:-0} == 1 ]]; then
     STEAM_ARM64_BASE="$base" STEAM_ARM64_NATIVE_BWRAP_CHECK=1 \
-        "$native_bwrap" >/dev/null
+        "$native_bwrap_script" >/dev/null
     printf 'candidate_sha256=%s\n' "$package_sha"
     printf 'candidate_loader=%s\n' "$loader"
     printf 'exec_shim=%s\n' "$exec_shim"
@@ -192,7 +194,7 @@ cleanup_manifest_stage() {
 }
 trap cleanup_manifest_stage EXIT
 sed -e "s|@CLIENT_ROOT@|$client_root|g" \
-    -e "s|@RUNTIME_ROOT@|$arm_runtime|g" \
+    -e "s|@RUNTIME_ROOT@|$native_runtime|g" \
     "$arm_compat_template" > "$manifest_stage"
 if [[ -f $manifest && ! -L $manifest ]] && cmp -s "$manifest_stage" "$manifest"; then
     rm -- "$manifest_stage"

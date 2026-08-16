@@ -72,6 +72,8 @@ install_one "$repo_root/bin/steam-arm64-native-bwrap" \
     "$base/compat-bin/steam-arm64-native-bwrap" 700
 install_one "$native_entry_stage" \
     "$base/compat-bin/steam-arm64-native-bwrap-entry" 700
+install_one "$native_entry_stage" \
+    "$base/runtime/SteamLinuxRuntime_4-arm64-native/_v2-entry-point" 700
 install_one "$repo_root/scripts/start-steam.sh" "$HOME/start-steam.sh" 700
 install_one "$repo_root/scripts/start-tombraider.sh" \
     "$HOME/start-tombraider.sh" 700
