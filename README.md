@@ -52,6 +52,10 @@ Mesa Turnip, official Proton 11 ARM64, and its bundled FEX/DXVK stack.
   **11.37/28.8/22.2 FPS mean**. A quick user-read Normal-preset pass reached
   only 10/16/13.9 FPS. Two confirmed Samsung Game Booster Performance passes
   then averaged 13.85/29.0/20.0 FPS, 9.9% below the ordinary native-Low mean.
+  A later SSH-spawned native-Low pass reported 7.2/13.8/10.3 FPS, but the
+  complete X/Steam/Wine/game tree was in `/moderate` + `/background` and
+  restricted to CPUs 0-3; that result is excluded as scheduler-failure
+  evidence.
   See the [benchmark report](docs/TOMB_RAIDER_BENCHMARK.md) and the ranked
   [optimization plan](docs/TOMB_RAIDER_OPTIMIZATION_PLAN.md).
 - Burnout remains experimental; its detailed EA, FEX, and DXVK investigation is
@@ -480,6 +484,7 @@ scripts/build-proot.sh
 scripts/prepare-arm64-runtime-shadow.sh
 scripts/install-project-files.sh
 scripts/verify-gpu.sh
+# Run this command in the visibly foreground Termux terminal, not over SSH.
 ~/start-steam.sh
 ```
 
@@ -510,10 +515,20 @@ STEAM_ARM64_FEX_PROFILE=fast ~/start-steam.sh -applaunch 203160
 The default is the current `safe` profile. A changed profile applies only to a
 fresh Steam process; the script never kills an existing Steam session. Process
 and window waits default to 180 seconds and can be changed with
-`STEAM_PROCESS_TIMEOUT` and `STEAM_WINDOW_TIMEOUT`. A warning that X11 or Steam
-is outside Android's `/top-app` cgroups is actionable benchmark state, not a
-launcher failure; opening an activity programmatically does not guarantee that
-Android promotes its shell descendants.
+`STEAM_PROCESS_TIMEOUT` and `STEAM_WINDOW_TIMEOUT`. A cold launcher, X11, or
+Steam process outside both Android `/top-app` controllers is now a hard error,
+not a warning. In particular, a cold invocation over the supervised SSH service
+is rejected before X11, PulseAudio, or Steam starts; opening the Termux:X11
+activity cannot promote an unrelated SSH process tree reliably.
+
+The launcher applies the measured scheduling profile automatically: X11 and
+Steam use CPUs 0-3, Steam web helpers use CPU 0, and a CPU-0 affinity guard waits
+for the verified App ID 203160 process. The guard rejects a background game,
+places Tomb Raider plus its verified Wine auxiliaries on CPUs 1-7, isolates
+`Raknet-RecvFrom` on CPU 1, repairs late-created threads, and requires a visible
+Tomb Raider window plus thirty seconds of stable masks. It then exits before the
+benchmark. PRoot remains unpinned because the existing measurements do not yet
+identify a consistently faster tracer placement.
 
 In Steam, explicitly force Superflight (App ID 732430) to use Proton 11.0
 (ARM64), and set this launch option for audio:

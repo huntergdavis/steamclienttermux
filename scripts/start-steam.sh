@@ -6,6 +6,8 @@ display="${STEAM_X11_DISPLAY:-:0}"
 base="${STEAM_ARM64_BASE:-$HOME/steam-arm64}"
 steam_launcher="${STEAM_ARM64_LAUNCHER:-$HOME/bin/steam-arm}"
 pulse_helper="$base/prepare-pulseaudio-tcp.sh"
+affinity_helper="$base/compat-bin/set-tombraider-affinity.py"
+affinity_lock="$base/runtime/tomb-raider-affinity.lock"
 x11_component="com.termux.x11/com.termux.x11.MainActivity"
 x11_preferences="/data/data/com.termux.x11/shared_prefs/com.termux.x11_preferences.xml"
 x11_socket="${PREFIX:-}/tmp/.X11-unix/X${display#:}"
@@ -23,10 +25,6 @@ login_users="$base/client/config/loginusers.vdf"
 fail() {
     printf 'start-steam: %s\n' "$1" >&2
     exit 1
-}
-
-warn() {
-    printf 'start-steam: warning: %s\n' "$1" >&2
 }
 
 require_command() {
@@ -54,6 +52,11 @@ matching_pids() {
                 first_argument="${cmdline%% *}"
                 [[ "$first_argument" == "$base/client/steamrtarm64/steam" ]] ||
                     continue
+                ;;
+            steamwebhelper)
+                first_argument="${cmdline%% *}"
+                [[ "$first_argument" == \
+                    "$base/client/steamrtarm64/steamwebhelper" ]] || continue
                 ;;
             launcher)
                 [[ "$cmdline" == *" $steam_launcher "* ||
@@ -244,13 +247,75 @@ cgroup_class() {
         head -n 1
 }
 
-warn_if_backgrounded() {
+require_top_app() {
     local label="$1" pid="$2" cpuset cpu
     cpuset="$(cgroup_class "$pid" cpuset)"
     cpu="$(cgroup_class "$pid" cpu)"
-    if [[ "$cpuset" != /top-app || "$cpu" != /top-app ]]; then
-        warn "$label PID $pid is cpuset=${cpuset:-unknown}, cpu=${cpu:-unknown}; Android did not promote this shell descendant to /top-app"
+    [[ "$cpuset" == /top-app && "$cpu" == /top-app ]] ||
+        fail "$label PID $pid is cpuset=${cpuset:-unknown}, cpu=${cpu:-unknown}; refusing a four-core background launch. Open Termux visibly and run ~/start-steam.sh there"
+}
+
+thread_masks_are() {
+    local pid="$1" expected="$2" status mask count=0
+    for status in "/proc/$pid/task/"[0-9]*/status; do
+        [[ -r "$status" ]] || continue
+        mask="$(sed -n 's/^Cpus_allowed_list:[[:space:]]*//p' "$status")"
+        [[ "$mask" == "$expected" ]] || return 1
+        count=$((count + 1))
+    done
+    (( count > 0 ))
+}
+
+apply_uniform_affinity() {
+    local label="$1" pid="$2" mask="$3"
+    [[ "$pid" =~ ^[0-9]+$ && -r "/proc/$pid/status" ]] ||
+        fail "$label PID is no longer alive: $pid"
+    taskset -apc "$mask" "$pid" >/dev/null ||
+        fail "unable to place $label PID $pid on CPUs $mask"
+    thread_masks_are "$pid" "$mask" ||
+        fail "$label PID $pid did not retain CPUs $mask"
+}
+
+apply_steam_session_affinity() {
+    local x11_pid="$1" steam_pid="$2" helper_pid
+    local -a helper_pids=()
+    require_top_app X11 "$x11_pid"
+    require_top_app Steam "$steam_pid"
+    apply_uniform_affinity X11 "$x11_pid" 0-3
+    apply_uniform_affinity Steam "$steam_pid" 0-3
+    mapfile -t helper_pids < <(matching_pids steamwebhelper)
+    for helper_pid in "${helper_pids[@]}"; do
+        require_top_app Steam-helper "$helper_pid"
+        apply_uniform_affinity Steam-helper "$helper_pid" 0
+    done
+}
+
+start_tomb_raider_affinity_guard() {
+    local stamp guard_log guard_pid
+    [[ -x "$affinity_helper" ]] ||
+        fail "Tomb Raider affinity helper is unavailable: $affinity_helper"
+    mkdir -p "$base/runtime"
+    stamp="$(date +%Y%m%d-%H%M%S)"
+    guard_log="$base/logs/tomb-raider-affinity-$stamp.log"
+    nohup python3 "$affinity_helper" \
+        --watch \
+        --raknet-cpu1 \
+        --steam-base "$base" \
+        --display "$display" \
+        --lock-file "$affinity_lock" \
+        >"$guard_log" 2>&1 </dev/null &
+    guard_pid=$!
+    if ! taskset -pc 0 "$guard_pid" >/dev/null 2>&1; then
+        sleep 1
+        grep -Fq 'affinity guard: already active' "$guard_log" ||
+            fail "unable to confine affinity guard PID $guard_pid to CPU 0"
     fi
+    sleep 1
+    if ! kill -0 "$guard_pid" 2>/dev/null; then
+        grep -Fq 'affinity guard: already active' "$guard_log" ||
+            fail "Tomb Raider affinity guard exited; inspect $guard_log"
+    fi
+    printf 'start-steam: Tomb Raider affinity guard armed; log %s\n' "$guard_log"
 }
 
 x11_bridge_has_dead_binder() {
@@ -273,13 +338,14 @@ for value_name in process_timeout window_timeout window_stable_seconds \
 done
 
 for command in am cmd termux-x11 termux-x11-preference timeout xdpyinfo \
-        xdotool pactl pulseaudio stat tail unlink logcat; do
+        xdotool pactl pulseaudio python3 stat tail taskset unlink logcat; do
     require_command "$command"
 done
 [[ -n "${PREFIX:-}" ]] || fail 'PREFIX is not set; run this from Termux'
 [[ "$display" =~ ^:[0-9]+$ ]] || fail "invalid X display: $display"
 [[ -x "$steam_launcher" ]] || fail "Steam launcher is unavailable: $steam_launcher"
 [[ -x "$pulse_helper" ]] || fail "PulseAudio helper is unavailable: $pulse_helper"
+[[ -x "$affinity_helper" ]] || fail "affinity helper is unavailable: $affinity_helper"
 mkdir -p "$base/logs"
 
 termux_uid="$(package_uid com.termux)"
@@ -292,6 +358,7 @@ x11_uid="$(package_uid com.termux.x11)"
 mapfile -t x11_pids < <(matching_pids x11)
 case "${#x11_pids[@]}" in
     0)
+        require_top_app launcher "$$"
         if x11_is_ready; then
             fail "display $display responds without a validated Termux:X11 server"
         fi
@@ -335,12 +402,16 @@ case "${#x11_pids[@]}" in
             fail "expected one X server after startup, found ${#x11_pids[@]}"
         ;;
     1)
+        require_top_app X11 "${x11_pids[0]}"
         wait_for_x11 || fail "existing X server ${x11_pids[0]} is unreachable"
         ;;
     *)
         fail "multiple X servers target $display: ${x11_pids[*]}"
         ;;
 esac
+
+require_top_app X11 "${x11_pids[0]}"
+apply_uniform_affinity X11 "${x11_pids[0]}" 0-3
 
 # One handoff after server readiness exposes either a reused or cold display.
 # A cold start deliberately performs this second handoff because opening the
@@ -378,6 +449,9 @@ if [[ "${#steam_pids[@]}" -gt 1 ]]; then
     fail "multiple Steam main processes found: ${steam_pids[*]}"
 fi
 if [[ "${#steam_pids[@]}" -eq 1 ]]; then
+    require_top_app Steam "${steam_pids[0]}"
+    apply_steam_session_affinity "${x11_pids[0]}" "${steam_pids[0]}"
+    start_tomb_raider_affinity_guard
     if [[ "$#" -gt 0 ]]; then
         forward_log="$base/logs/start-steam-forward-$(date +%Y%m%d-%H%M%S).log"
         nohup env DISPLAY="$display" "$steam_launcher" "$@" \
@@ -397,9 +471,8 @@ if [[ "${#steam_pids[@]}" -eq 1 ]]; then
     fi
     surface_steam_window "$steam_window" ||
         fail "Steam window $steam_window could not be mapped, raised, and focused"
-    warn_if_backgrounded X11 "${x11_pids[0]}"
-    warn_if_backgrounded Steam "${steam_pids[0]}"
-    printf 'start-steam: ready; X11 PID %s, Steam PID %s, window %s visible, PulseAudio sink, Lorie mouse/touch/keyboard, no KDE\n' \
+    apply_steam_session_affinity "${x11_pids[0]}" "${steam_pids[0]}"
+    printf 'start-steam: ready; X11 PID %s CPUs 0-3, Steam PID %s CPUs 0-3, CEF CPU 0, window %s visible, PulseAudio sink, Lorie mouse/touch/keyboard, no KDE\n' \
         "${x11_pids[0]}" "${steam_pids[0]}" "$steam_window"
     exit 0
 fi
@@ -414,10 +487,14 @@ fi
 
 if [[ "${#launcher_pids[@]}" -eq 1 ]]; then
     launcher_pid="${launcher_pids[0]}"
+    require_top_app Steam-launcher "$launcher_pid"
+    start_tomb_raider_affinity_guard
     steam_log="$base/logs"
     printf 'start-steam: attaching to Steam initialization under launcher PID %s\n' \
         "$launcher_pid"
 else
+    require_top_app launcher "$$"
+    start_tomb_raider_affinity_guard
     steam_log="$base/logs/start-steam-$(date +%Y%m%d-%H%M%S).log"
     nohup env DISPLAY="$display" PULSE_SERVER="$pulse_server" \
         STEAM_ARM64_FEX_PROFILE="$profile" "$steam_launcher" -noshaders "$@" \
@@ -441,6 +518,7 @@ done
 
 [[ "${#steam_pids[@]}" -eq 1 ]] ||
     fail "Steam did not appear in ${process_timeout}s; inspect $steam_log"
+require_top_app Steam "${steam_pids[0]}"
 if ! wait_for_remembered_login "${steam_pids[0]}" "$login_log_offset"; then
     steam_pid_is_current "${steam_pids[0]}" ||
         fail "Steam PID ${steam_pids[0]} exited before remembered login completed; inspect $steam_log"
@@ -453,7 +531,6 @@ if ! steam_window="$(wait_for_steam_window "${steam_pids[0]}")"; then
 fi
 surface_steam_window "$steam_window" ||
     fail "Steam window $steam_window could not be mapped, raised, and focused"
-warn_if_backgrounded X11 "${x11_pids[0]}"
-warn_if_backgrounded Steam "${steam_pids[0]}"
-printf 'start-steam: ready; X11 PID %s, Steam PID %s, window %s visible, PulseAudio sink, Lorie mouse/touch/keyboard, FEX %s, no KDE\n' \
+apply_steam_session_affinity "${x11_pids[0]}" "${steam_pids[0]}"
+printf 'start-steam: ready; X11 PID %s CPUs 0-3, Steam PID %s CPUs 0-3, CEF CPU 0, window %s visible, PulseAudio sink, Lorie mouse/touch/keyboard, FEX %s, no KDE\n' \
     "${x11_pids[0]}" "${steam_pids[0]}" "$steam_window" "$profile"

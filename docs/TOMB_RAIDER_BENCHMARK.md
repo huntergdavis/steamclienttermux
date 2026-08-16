@@ -408,6 +408,45 @@ user-read and no screenshot is claimed. Two agreeing averages are enough to
 reject Performance as the next leading candidate; the next session returns to
 Samsung Standard.
 
+## Excluded SSH-background pass and launcher hardening
+
+The first native-Low pass after removing Termux and Termux:X11 from Gaming Hub
+reported a user-read **7.2/13.8/10.3 FPS**. Its average is 53.6% below the
+valid 22.2 FPS native-Low mean, but the immediate post-run state makes it an
+invalid graphics or translation comparison. `TombRaider.exe`, wineserver,
+Steam, PRoot, and X11 were all in `/cpuset/moderate` and `cpu:/background`.
+The game was allowed only on CPUs 0-3 and consumed 225.3% CPU while PRoot used
+68.7%; Adreno was only 35% busy at its full 818 MHz policy maximum and thermal
+power level zero. About 1.85 GiB RAM and 4.91 GiB swap remained available.
+The X root and game settings remained native 2800x1752 Low, and the active FEX
+environment remained the `safe` profile. This was neither an OOM, a thermal
+GPU limit, nor a changed graphics preset.
+
+The Android `com.termux` UI process itself was in `/top-app`, but X11 and Steam
+had been created through a supervised SSH session that remained in
+`/moderate` + `/background`; foregrounding the shared-UID activity did not
+retroactively migrate those unrelated shell descendants. This refines the
+earlier shared-UID result: the integrated APK fixes ownership only when the
+native workload originates from a foreground Termux lineage. Removing the apps
+from Gaming Hub was not the measured cause.
+
+The production launcher now refuses a cold SSH/background launch before it
+creates X11, PulseAudio, or Steam. A foreground launch pins X11 and Steam to
+CPUs 0-3 and CEF helpers to CPU 0. Its single-instance, CPU-0 guard verifies
+the exact App ID 203160 environment, requires the game and Wine auxiliaries to
+remain in both `/top-app` controllers, applies CPUs 1-7, isolates
+`Raknet-RecvFrom` on CPU 1, repairs late-created threads, and exits only after
+the visible Tomb Raider window has retained the complete masks for thirty seconds.
+It exits before any benchmark begins. PRoot is deliberately left unpinned
+until its placement has a controlled A/B result.
+
+The hardened tablet integration test invoked the cold launcher over SSH. It
+exited 1 with the exact `/moderate` and `/background` diagnosis and left X11,
+Steam, and PulseAudio counts at zero. The required `deja` query for an earlier
+automatic launcher/affinity implementation returned no indexed match; this
+guard encodes the repository's measured 31 FPS scheduling profile and the
+shared-UID foreground A/B cited above.
+
 ## What the percentage difference means
 
 The closest built-in benchmark recording found during this research used

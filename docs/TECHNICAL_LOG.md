@@ -4299,3 +4299,40 @@ matches. This correction reuses the earlier exact-process validation,
 authentication backup, owned-socket recovery, and Binder diagnostics; the
 current-session log offset and direct persisted-preference checks come from
 the new live failures above.
+
+## 2026-08-16: reject background launches and arm game affinity automatically
+
+A native 2800x1752 Low Tomb Raider pass reported 7.2/13.8/10.3 FPS. The
+post-run profile found the real `TombRaider.exe` at 225.3% CPU and PRoot at
+68.7%, but every X/Steam/Proton game process remained in `/cpuset/moderate`
+and `cpu:/background`, with the game restricted to CPUs 0-3. GPU busy was 35%
+at an unrestricted 818 MHz maximum, thermal power level was zero, and 1.85 GiB
+RAM plus 4.91 GiB swap remained available. The score is retained only as an
+excluded Android scheduler failure.
+
+The visible `com.termux` process and its interactive terminal child were
+already `/top-app`. X11 and Steam instead descended from the supervised SSH
+tree, which Android left in the background controllers despite the shared
+package UID. This explains why the shared-UID APK did not rescue this launch:
+process ancestry at creation remained consequential on the tested Samsung
+build. The earlier launcher emitted a warning for this exact state, but it did
+not prevent the invalid run.
+
+`~/start-steam.sh` now treats `/top-app` as a correctness precondition. A cold
+background/SSH invocation fails before starting X11, PulseAudio, or Steam;
+reused X/Steam processes must also be `/top-app`. It applies the measured X11
+and Steam CPU 0-3 masks and Steam-helper CPU 0 mask. A locked CPU-0 Python guard
+then waits for one App ID 203160 `TombRaider.exe`, rejects background cgroups,
+places the game plus verified wineserver/explorer auxiliaries on CPUs 1-7,
+isolates the single `Raknet-RecvFrom` thread on CPU 1, corrects late threads,
+and requires a visible window plus thirty stable seconds before exiting. The
+guard is absent from the benchmark hot path. PRoot placement remains unchanged
+because prior results identify its contention but not a winning mask.
+
+The helper's expanded unit tests cover exact App ID selection, Android cgroup
+validation, auxiliary and CEF selection, mask convergence, the visible-window
+gate, and single-instance locking. A tablet cold-start test over SSH returned
+1 with the expected background diagnosis and verified zero X11, Steam, and
+PulseAudio processes afterward. The required focused `deja` search returned
+no indexed implementation; this change reuses the repository's measured 31
+FPS mask split and foreground-ownership evidence.

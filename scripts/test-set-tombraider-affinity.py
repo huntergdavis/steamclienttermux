@@ -17,12 +17,23 @@ def load_tool():
     return module
 
 
-def add_process(proc_root, pid, comm, environment, threads):
+def add_process(
+    proc_root,
+    pid,
+    comm,
+    environment,
+    threads,
+    command=None,
+    cpuset="/top-app",
+    cpu="/top-app",
+):
     process = proc_root / str(pid)
     process.mkdir()
     (process / "comm").write_text(comm + "\n")
     encoded = b"\0".join(key + b"=" + value for key, value in environment.items()) + b"\0"
     (process / "environ").write_bytes(encoded)
+    (process / "cmdline").write_bytes((command or comm).encode() + b"\0")
+    (process / "cgroup").write_text(f"2:cpu:{cpu}\n3:cpuset:{cpuset}\n")
     for tid, (thread_comm, mask) in threads.items():
         task = process / "task" / str(tid)
         task.mkdir(parents=True)
@@ -66,8 +77,10 @@ def main():
             {2: ("TombRaider.exe", "0-7")},
         )
         assert module.find_game_processes(proc_root) == [(27038, process)]
+        module.validate_top_app(process)
         threads = module.read_threads(process)
         module.verify_threads(threads, isolate_raknet=True)
+        assert module.converge_game_affinity(27038, process, True)
         try:
             module.verify_threads(threads, isolate_raknet=False)
         except RuntimeError:
@@ -86,6 +99,66 @@ def main():
             ["taskset", "-apc", "1-7", "27038"],
             ["taskset", "-pc", "1", "28142"],
         ]
+
+        auxiliary = add_process(
+            proc_root,
+            30000,
+            "wineserver",
+            environment,
+            {30000: ("wineserver", "1-7")},
+        )
+        assert module.find_auxiliary_processes(proc_root) == [
+            (30000, auxiliary, "wineserver")
+        ]
+        helper = add_process(
+            proc_root,
+            30001,
+            "steamwebhelper",
+            {},
+            {30001: ("steamwebhelper", "0")},
+            command="/base/client/steamrtarm64/steamwebhelper",
+        )
+        assert module.find_steam_helpers(Path("/base"), proc_root) == [
+            (30001, helper)
+        ]
+        module.verify_uniform_mask(helper, "0")
+
+        background = add_process(
+            proc_root,
+            30002,
+            "background-test",
+            environment,
+            {30002: ("TombRaider.exe", "0-3")},
+            cpuset="/moderate",
+            cpu="/background",
+        )
+        try:
+            module.validate_top_app(background)
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError("background process passed top-app validation")
+
+        window_runner = lambda *_args, **_kwargs: SimpleNamespace(stdout="42\n")
+        assert module.matching_window(":0", "^Tomb Raider$", window_runner)
+
+        arguments = SimpleNamespace(
+            proc_root=str(proc_root),
+            steam_base="/base",
+            wait_seconds=1.0,
+            stable_seconds=0.0,
+            poll_seconds=0.0,
+            raknet_cpu1=True,
+            display=":0",
+            window_regex="^Tomb Raider$",
+        )
+        assert module.watch_for_ready_game(arguments, runner=window_runner) == 0
+
+        lock_path = temporary / "affinity.lock"
+        first_lock = module.acquire_lock(lock_path)
+        assert first_lock is not None
+        assert module.acquire_lock(lock_path) is None
+        first_lock.close()
 
     with tempfile.TemporaryDirectory() as directory:
         cpu_root = Path(directory)
