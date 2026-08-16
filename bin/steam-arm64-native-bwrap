@@ -14,6 +14,8 @@ proc_net=$base/config/proc-net
 hosts=$base/config/hosts-ipv4
 custom_proot_dir=${STEAM_ARM64_PROOT_DIR:-$base/src/proot-production/src}
 proot_binary=$custom_proot_dir/proot
+proot_patch_stamp=${custom_proot_dir%/src}/.steamclienttermux-patchset
+required_proot_patch=proot-runtime-directory-bind-target.patch
 proot_distro=${PREFIX:-}/bin/proot-distro
 mesa_lib=$base/mesa-kgsl/usr/lib/aarch64-linux-gnu
 bridge_mode=${STEAM_ARM64_NATIVE_BRIDGE_MODE:-bwrap}
@@ -28,6 +30,15 @@ fail() {
 [[ -n ${PREFIX:-} && $PREFIX == /* ]] || fail 'PREFIX must be absolute'
 [[ -x $proot_binary && ! -L $proot_binary ]] ||
     fail "patched PRoot is unavailable: $proot_binary"
+[[ -f $proot_patch_stamp && ! -L $proot_patch_stamp ]] ||
+    fail "patched PRoot stamp is unavailable: $proot_patch_stamp"
+sed -n 's/^patches=//p' "$proot_patch_stamp" | tr ' ' '\n' |
+    grep -Fxq "$required_proot_patch" ||
+    fail "patched PRoot lacks $required_proot_patch"
+stamped_proot=$(sed -n 's/^proot_sha256=//p' "$proot_patch_stamp")
+[[ $stamped_proot =~ ^[0-9a-f]{64}$ &&
+        $(sha256sum "$proot_binary" | awk '{print $1}') == "$stamped_proot" ]] ||
+    fail "patched PRoot does not match its build stamp: $proot_binary"
 [[ -x $proot_distro && ! -L $proot_distro ]] ||
     fail "proot-distro is unavailable: $proot_distro"
 [[ -x $route && ! -L $route ]] || fail "bwrap route is unavailable: $route"

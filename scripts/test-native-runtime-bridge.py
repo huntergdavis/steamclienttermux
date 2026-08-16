@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import hashlib
 import os
 from pathlib import Path
 import subprocess
@@ -15,12 +16,25 @@ def executable(path: Path, body: str = "#!/bin/sh\nexit 0\n") -> None:
     path.chmod(0o700)
 
 
+def stamped_proot(path: Path, include_required_patch: bool = True) -> None:
+    executable(path)
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    patches = (
+        "proot-runtime-directory-bind-target.patch"
+        if include_required_patch
+        else "unrelated.patch"
+    )
+    (path.parent.parent / ".steamclienttermux-patchset").write_text(
+        f"patches={patches}\nproot_sha256={digest}\n", encoding="utf-8"
+    )
+
+
 def prepare(root: Path) -> tuple[Path, Path]:
     prefix = root / "prefix"
     base = root / "base"
     runtime = base / "runtime" / "SteamLinuxRuntime_4-arm64"
 
-    executable(base / "src" / "proot-production" / "src" / "proot")
+    stamped_proot(base / "src" / "proot-production" / "src" / "proot")
     executable(base / "compat-bin" / "steam-arm64-bwrap-route")
     executable(runtime / "_v2-entry-point")
     executable(
@@ -72,7 +86,7 @@ def run_bridge(prefix: Path, base: Path, mode: str) -> list[str]:
 
 
 def run_preflight(prefix: Path, base: Path, proot_dir: Path) -> list[str]:
-    executable(proot_dir / "proot")
+    stamped_proot(proot_dir / "proot")
     environment = os.environ.copy()
     environment.update(
         {
@@ -90,6 +104,25 @@ def run_preflight(prefix: Path, base: Path, proot_dir: Path) -> list[str]:
         check=True,
     )
     return result.stdout.splitlines()
+
+
+def run_rejected_preflight(prefix: Path, base: Path, proot_dir: Path) -> subprocess.CompletedProcess[str]:
+    environment = os.environ.copy()
+    environment.update(
+        {
+            "PREFIX": str(prefix),
+            "STEAM_ARM64_BASE": str(base),
+            "STEAM_ARM64_NATIVE_BWRAP_CHECK": "1",
+            "STEAM_ARM64_PROOT_DIR": str(proot_dir),
+        }
+    )
+    return subprocess.run(
+        ["bash", str(SCRIPT)],
+        env=environment,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
 
 
 def main() -> None:
@@ -120,6 +153,17 @@ def main() -> None:
         preflight = run_preflight(prefix, base, selected_proot)
         assert f"proot={selected_proot / 'proot'}" in preflight
         assert "native game boundary preflight: PASS" in preflight
+
+        (selected_proot / "proot").write_text("changed after stamp\n", encoding="utf-8")
+        changed = run_rejected_preflight(prefix, base, selected_proot)
+        assert changed.returncode == 125
+        assert "does not match its build stamp" in changed.stderr
+
+        missing_patch = base / "src" / "missing-required-patch" / "src"
+        stamped_proot(missing_patch / "proot", include_required_patch=False)
+        rejected_patch = run_rejected_preflight(prefix, base, missing_patch)
+        assert rejected_patch.returncode == 125
+        assert "lacks proot-runtime-directory-bind-target.patch" in rejected_patch.stderr
 
     print("native runtime bridge tests: PASS")
 
