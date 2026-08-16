@@ -776,15 +776,14 @@ the same per-thread masks and performance.
 ## Validate the repository
 
 ```sh
-for test_file in scripts/test-*.py; do
-    PYTHONDONTWRITEBYTECODE=1 python3 "$test_file" || exit
-done
+scripts/check-project.sh
 ```
 
-The retained tests cover the launcher log guard, PulseAudio preparation,
-Pressure Vessel route injection, Superflight settings and affinity, removable
-storage, and GTA IV's signed registry, service timeout, and scoped Social Club
-WineD3D state.
+The check runs every retained Python test, parses every shell entry point, and
+rejects whitespace errors. Coverage includes launcher argument/log guards,
+PulseAudio, the generic native Runtime 4 bridge and mtree sysroot, Pressure
+Vessel routing, game profiles and affinity, removable storage, and GTA IV's
+signed registry, service timeout, and scoped Social Club WineD3D state.
 
 ## Key paths
 
