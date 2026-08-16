@@ -75,9 +75,13 @@ Mesa Turnip, official Proton 11 ARM64, and its bundled FEX/DXVK stack.
   no-copy child-execution shim now covers every exec-family symbol imported by
   the ARM64 Steam bootstrap plus POSIX spawn, and the experimental launcher
   resolves Steam and CEF dependencies directly from staged glibc, official
-  client, Turnip, and existing Debian library trees. The installed tablet
-  glibc and saved Steam login remain untouched while the exact package test is
-  prepared.
+  client, Turnip, and existing Debian library trees. The official glibc 2.44
+  package built from the pinned Termux recipe now passes an extracted-package
+  SysV-semaphore control/wakeup test on the tablet. Its exact SHA-256 is
+  `bd490b547660f7857e26a02fff168d7818e1b6d49adab37f0cc7d7566c9aed7c`.
+  The non-launching native Steam/CEF preflight passes against that
+  content-addressed candidate; the installed tablet glibc, active all-PRoot
+  launcher, and saved Steam login remain untouched.
 
 ### Current benchmark target: Tomb Raider (2013)
 
@@ -586,18 +590,29 @@ ordinary ARM64 support libraries directly from the existing Debian rootfs by
 their host paths; this does not start PRoot. `STEAM_ARM64_NATIVE_ROOTFS` can
 select another complete ARM64 Linux runtime tree.
 
+The selected official package was built from Termux glibc-packages commit
+`954c6b2`, copied without repacking, hash-checked on the tablet, extracted into
+its own content-addressed directory, and tested there before selection. The
+black-box probe compiled and ran with the candidate loader and reported
+`SysV semaphore control and wakeup: ok`. No package was installed over
+`$PREFIX/glibc`.
+
 The loader shim changes no Steam binary. At each child boundary it reads the
 ELF interpreter and wraps matching AArch64 Linux targets with the staged
 loader, covering Steam's imported `execv`, `execvp`, `execvpe`, and `execl`
 paths plus direct exec and POSIX spawn. The selected `safe`, `fast`, or
 `proton` FEX profile is preserved.
 
-The native client and CEF do not run below PRoot. A game deliberately crosses
-into the existing patched PRoot only at its ARM64 Pressure Vessel boundary,
-because Android denies the native wrapper access to `/proc/self/root`. The
-bridge preserves arbitrary Steam launch-option environment variables,
-removable-library binds, PulseAudio, Mesa/Turnip, Proton, and FEX, so it is not
-specific to Tomb Raider or GTA IV.
+The native client and CEF do not run below PRoot. A narrowly gated compatibility
+shim proved that opening exactly `/proc/self/root` with `O_PATH` clears the
+first Pressure Vessel error, but the next boundary is kernel-enforced:
+`unshare --user` fails with `EINVAL`, `unshare --mount` fails with `EPERM`, and
+Bubblewrap cannot read `/proc/sys/kernel/overflowuid`. Native Bubblewrap is
+therefore not viable on this unrooted Android kernel. A game deliberately
+crosses into the existing patched PRoot only at its ARM64 Pressure Vessel
+boundary. The bridge preserves arbitrary Steam launch-option environment
+variables, removable-library binds, PulseAudio, Mesa/Turnip, Proton, and FEX,
+so it is not specific to Tomb Raider or GTA IV.
 
 Runtime 4 no longer rebuilds its mutable sysroot for every game. The installer
 strictly applies Valve's `usr-mtree.txt.gz`, verifies every declared size and
@@ -609,6 +624,29 @@ Bubblewrap, `pv-adverb`, and linker-cache path in 42 seconds; the prior
 copy-every-launch path took 164 seconds before the same payload. This path
 remains experimental until an ordinary game is exercised from the native
 client; the all-PRoot launcher remains the matched fallback.
+
+The production-patched PRoot can also be built with a reproducible native
+profile without changing the selected binary:
+
+```sh
+PROOT_BUILD_PROFILE=native PROOT_BUILD_JOBS=8 \
+  scripts/build-proot.sh ~/steam-arm64/src/proot-production-native-candidate
+
+STEAM_ARM64_PROOT_DIR=~/steam-arm64/src/proot-production-native-candidate \
+  ~/bin/steam-arm-native -silent
+```
+
+The device candidate is 271 KiB, has SHA-256
+`5e3a5b4992a9717005d6ac84268b24b9cd98fba61b977f790d7435bf16014657`,
+and retains ThinLTO on the hot main objects while excluding the embedded ARM32
+loader object that must remain ordinary machine code. All four production
+regression probes passed. Three alternating 5,601-file trials measured a 1.61%
+median improvement on the original long path and a 0.17% regression on a short
+bind. A complete native-entry-to-Pressure-Vessel `/bin/true` smoke also passed
+in 47 seconds versus the earlier 42-second production observation. This does
+not justify promotion, so production remains the default and
+`STEAM_ARM64_PROOT_DIR` is an explicit A/B selector. See the exact
+[device transcript](docs/evidence/proot-native-profile-20260816.txt).
 
 The launcher applies the measured scheduling profile automatically: X11 and
 Steam use CPUs 0-3, Steam web helpers use CPU 0, and a CPU-0 affinity guard waits

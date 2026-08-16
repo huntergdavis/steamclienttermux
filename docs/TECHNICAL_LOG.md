@@ -4545,3 +4545,66 @@ generation returned no indexed implementation. Reused work is limited to the
 repository's existing PRoot/Pressure Vessel route and profiles, the official
 Termux loader/exec hooks, and Valve's source-defined sysroot construction.
 Logged-in Steam state and the official runtime depot were not modified.
+
+## 2026-08-16: official glibc artifact and native boundary isolation
+
+The pinned official Termux glibc recipe at commit `954c6b2` produced an ARM64
+glibc 2.44 package with SHA-256
+`bd490b547660f7857e26a02fff168d7818e1b6d49adab37f0cc7d7566c9aed7c`.
+The exact package was copied to the Tab S8+, hash-checked, extracted into a
+content-addressed candidate directory, and exercised without replacing the
+active `$PREFIX/glibc`. The extracted-package probe used the candidate loader
+and reported `SysV semaphore control and wakeup: ok`. The launcher's read-only
+Steam-bootstrap and CEF loader audits then passed with
+`STEAM_ARM64_NATIVE_CHECK=1`; no Steam UI or game was launched and the saved
+authentication tree was not changed.
+
+An opt-in Android compatibility shim retried only read-directory failures for
+the exact path `/proc/self/root` as `O_PATH`. Its actual Android `open`/`fstat`
+test passed, and it moved native Pressure Vessel beyond its original
+`opendir(/proc/self/root): Permission denied` failure. Bubblewrap then failed
+at `/proc/sys/kernel/overflowuid`. Direct kernel controls explain the result:
+creating a user namespace returns `EINVAL`, while creating a mount namespace
+returns `EPERM`. This is a kernel capability boundary, not another missing
+glibc function. The shim remains gated and is not injected into production;
+the native Steam design keeps PRoot only at the generic game/Pressure Vessel
+boundary.
+
+The required recall searches for the official-package test, native Pressure
+Vessel failure, Android namespace boundary, and optimized PRoot profile found
+no indexed implementation. This work reuses the official pinned Termux glibc
+recipe and runner/exec mechanisms, Valve's source-defined Runtime 4 layout,
+and this repository's existing PRoot/Pressure Vessel transition.
+
+## 2026-08-16: reproducible native PRoot build profile
+
+`PROOT_BUILD_PROFILE=native` now gives the production patch set a reproducible
+device-native build: `-O3`, ThinLTO on the hot main objects, process-wide-safe
+ARM feature selection, section garbage collection, existing hardening, and
+final stripping. The embedded ARM32 loader remains portable, and `cli/cli.o`
+is intentionally excluded from LTO because the build inspects and embeds its
+ordinary machine code. The stamp includes the complete build-options hash.
+The default profile remains portable and unchanged.
+
+The final Tab S8+ candidate is 271 KiB with SHA-256
+`5e3a5b4992a9717005d6ac84268b24b9cd98fba61b977f790d7435bf16014657`.
+Its build-options hash is
+`879612bd4df72b01702c8da7694beab84374e0ecbeff898e0a1e1226276359f3`.
+All four production regression probes passed: a spaced compatibility-tool
+path, shared `/tmp` bind, post-`--proc` `/proc/net`, and escaped mountinfo path.
+
+Three alternating 5,601-file passes produced these medians:
+
+| Execution path | Production | Native profile | Difference |
+|---|---:|---:|---:|
+| Original long path | 5.5024 s | 5.4137 s | 1.61% faster |
+| Short explicit bind | 5.3561 s | 5.3653 s | 0.17% slower |
+
+The complete native entry -> Bionic bridge -> candidate PRoot -> Pressure
+Vessel/Bubblewrap -> `/bin/true` path returned zero in 47 seconds. The earlier
+production run was 42 seconds, so the profile has no defensible end-to-end
+startup win yet. It is deliberately not promoted. All three launchers accept
+`STEAM_ARM64_PROOT_DIR` for explicit A/B selection and validate the candidate
+stamp, binary hash, and required production patch before use. The complete
+numbers and hashes are retained in
+[`docs/evidence/proot-native-profile-20260816.txt`](evidence/proot-native-profile-20260816.txt).

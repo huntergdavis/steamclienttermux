@@ -149,3 +149,22 @@ Performance changes must retain the custom semaphore wakeup behavior and must
 not weaken Android security or require root. Benchmarks are insufficient: Steam
 authentication, compatibility-cache completion, downloads, and game launch must
 all be retested.
+
+## 2026-08-16 native PRoot compiler profile
+
+The production patch set now has an opt-in `PROOT_BUILD_PROFILE=native` build
+using `-O3`, ThinLTO on eligible hot objects, native ARM64 feature selection,
+section garbage collection, hardening, parallel compilation, and stripping.
+The ARM32 embedded loader and the inspected `cli/cli.o` payload remain outside
+the incompatible optimizations. The portable production build stays the
+default.
+
+On the Tab S8+, the resulting 271 KiB candidate has SHA-256
+`5e3a5b4992a9717005d6ac84268b24b9cd98fba61b977f790d7435bf16014657`.
+Three alternating enumerations of the same 5,601 files improved the long-path
+median from 5.5024 to 5.4137 seconds (1.61%), while the short-bind median moved
+from 5.3561 to 5.3653 seconds (-0.17%). All four PRoot regression probes and a
+complete Pressure Vessel `/bin/true` boundary passed, but the latter took 47
+seconds against the earlier 42-second production observation. The evidence
+supports keeping this as a controlled compiler A/B, not selecting it for game
+launches. Use `STEAM_ARM64_PROOT_DIR` to opt in explicitly.

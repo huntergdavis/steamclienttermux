@@ -1,0 +1,51 @@
+Tab S8+ native PRoot compiler-profile evidence
+Date: 2026-08-16
+
+Candidate:
+  profile: native
+  size: 271 KiB
+  sha256: 5e3a5b4992a9717005d6ac84268b24b9cd98fba61b977f790d7435bf16014657
+  build-options-sha256: 879612bd4df72b01702c8da7694beab84374e0ecbeff898e0a1e1226276359f3
+
+Benchmark target:
+  Proton Experimental tree
+  regular files enumerated per trial: 5601
+  source transcript sha256: 60ed35f6dfdf2e25dca693f3c7daadd3366772277fa3be876da117a8dcef8b12
+
+Alternating trials (seconds):
+  production round 1: native 0.411119479, long 5.828832081, bind 5.393334633
+  candidate  round 1: native 0.126301615, long 5.589667967, bind 5.399366039
+  production round 2: native 0.128393594, long 5.502413643, bind 5.356051821
+  candidate  round 2: native 0.122729584, long 5.389792030, bind 5.365296040
+  production round 3: native 0.124397292, long 5.437598436, bind 5.215638071
+  candidate  round 3: native 0.124187969, long 5.413741456, bind 5.323900623
+
+Medians:
+  production long: 5.502413643
+  candidate long: 5.413741456
+  candidate long difference: 1.61% faster
+  production bind: 5.356051821
+  candidate bind: 5.365296040
+  candidate bind difference: 0.17% slower
+
+Regression gates with the candidate:
+  spaced compatibility-tool path: PASS
+  shared /tmp file and directory bind: PASS
+  post --proc /proc/net: PASS
+  escaped mountinfo path: PASS
+
+Full generic boundary:
+  native entry -> Bionic bridge -> candidate PRoot -> Pressure Vessel/Bubblewrap -> /bin/true
+  status: PASS (0)
+  elapsed: 47 seconds
+  earlier production observation: 42 seconds
+
+Decision:
+  Do not promote. Production remains the default. The candidate is available
+  only through the explicit STEAM_ARM64_PROOT_DIR selector.
+
+State safety:
+  Active glibc installation: unchanged
+  Active production PRoot: unchanged
+  Saved Steam authentication: unchanged
+  Steam UI/game launch during package and dependency checks: none
