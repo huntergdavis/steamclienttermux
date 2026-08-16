@@ -142,6 +142,40 @@ The measurement protocol is one warm-up and three recorded passes per profile.
 Alongside the benchmark result, record peak memory, time to the main menu,
 launch success rate, and any Android whole-UID eviction.
 
+#### Launch timing protocol
+
+Launch latency is measured separately from benchmark performance. Start the
+host-side timer immediately before clicking Play:
+
+```bash
+~/steam-arm64/compat-bin/time-steam-game-launch.py \
+  --appid 203160 \
+  --process-name TombRaider.exe \
+  --window-regex 'Tomb Raider'
+```
+
+The timer follows Steam's logs from their current end, then records the first
+observed Pressure Vessel, Proton, Wine, wineserver, `TombRaider.exe`, and
+matching visible-window stages in a JSON file under `~/steam-arm64/logs`. The
+primary comparison is Steam's `Game process added` event to the first visible
+game window. This excludes cloud synchronization, interstitials, and user
+response time from the PRoot-versus-native-glibc measurement. The timer exits
+before the benchmark starts, so its one-second polling cannot affect FPS.
+
+The first observational PRoot timing on 2026-08-16 began its Steam session at
+09:45:08 PDT and emitted `Game process added` at 09:47:22. Kernel process
+elapsed times place Pressure Vessel at approximately 09:47:34, Proton at
+09:52:09, Wine at 09:52:11, wineserver at 09:52:12, and the real
+`TombRaider.exe` at 09:53:00. A one-second external watcher first observed the
+Tomb Raider window at 09:54:09.236. The comparable runtime-to-window result is
+therefore approximately **6 minutes 47 seconds**; the full Steam-session total
+was approximately **9 minutes 1 second**, including 2 minutes 14 seconds of
+cloud, interstitial, and user-response delay. This is a single warm-Steam,
+warm-compatibility-cache observation rather than a completed A/B series. The
+[structured timing record](docs/launch-timings/tomb-raider-proot-20260816.json)
+preserves the stage timestamps and their measurement precision for the future
+native-glibc A/B.
+
 ![Kingsway running from the microSD through Proton ARM64 and FEX](docs/evidence/kingsway-running.png)
 
 ![Tomb Raider Windows launcher running through Proton ARM64 and FEX](docs/evidence/tombraider-main-menu-2026-08-14.png)

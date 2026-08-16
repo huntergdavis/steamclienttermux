@@ -79,6 +79,8 @@ install_one "$repo_root/scripts/configure-termux-x11-resolution.sh" \
     "$base/compat-bin/configure-termux-x11-resolution" 700
 install_one "$repo_root/scripts/profile-live-game.py" \
     "$base/compat-bin/profile-live-game.py" 700
+install_one "$repo_root/scripts/time-steam-game-launch.py" \
+    "$base/compat-bin/time-steam-game-launch.py" 700
 install_one "$repo_root/scripts/set-tombraider-affinity.py" \
     "$base/compat-bin/set-tombraider-affinity.py" 700
 install_one "$repo_root/scripts/monitor-termux-game-session.sh" \

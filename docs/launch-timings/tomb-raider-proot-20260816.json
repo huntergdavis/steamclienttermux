@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "status": "complete",
+  "measurement_kind": "observational_reconstruction",
+  "appid": 203160,
+  "game": "Tomb Raider (2013)",
+  "stack": "patched Debian PRoot",
+  "state": {
+    "steam_session": "warm",
+    "compatibility_cache": "warm",
+    "compatibility_cache_completed_at": "2026-08-16T16:41:47+00:00"
+  },
+  "steam_session_at": "2026-08-16T16:45:08+00:00",
+  "runtime_launch_at": "2026-08-16T16:47:22+00:00",
+  "seconds_session_to_runtime_launch": 134.0,
+  "events": {
+    "pressure_vessel": {
+      "observed_at": "2026-08-16T16:47:34+00:00",
+      "seconds_after_runtime_launch": 12.0
+    },
+    "proton": {
+      "observed_at": "2026-08-16T16:52:09+00:00",
+      "seconds_after_runtime_launch": 287.0,
+      "pid": 23204
+    },
+    "wine": {
+      "observed_at": "2026-08-16T16:52:11+00:00",
+      "seconds_after_runtime_launch": 289.0
+    },
+    "wineserver": {
+      "observed_at": "2026-08-16T16:52:12+00:00",
+      "seconds_after_runtime_launch": 290.0,
+      "pid": 23212
+    },
+    "target_process": {
+      "observed_at": "2026-08-16T16:53:00+00:00",
+      "seconds_after_runtime_launch": 338.0,
+      "pid": 23610,
+      "process_name": "TombRaider.exe"
+    },
+    "game_window": {
+      "observed_at": "2026-08-16T16:54:09.236+00:00",
+      "seconds_after_runtime_launch": 407.236,
+      "title": "Tomb Raider"
+    }
+  },
+  "seconds_session_to_game_window": 541.236,
+  "precision": {
+    "steam_log_seconds": 1.0,
+    "reconstructed_process_seconds": 1.0,
+    "window_poll_seconds": 1.0
+  },
+  "notes": [
+    "Steam session and runtime launch timestamps came from compat_log.txt and console_log.txt.",
+    "Process-stage timestamps were reconstructed from kernel elapsed times sampled at 09:58:42 PDT.",
+    "The window timestamp is the first observation by a host-side one-second watcher.",
+    "Cloud synchronization, interstitials, and user response account for the 134 seconds before runtime launch."
+  ]
+}
