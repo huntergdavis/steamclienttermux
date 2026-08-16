@@ -574,8 +574,9 @@ be selected by the normal X11/audio/input wrapper:
 
 ```sh
 STEAM_ARM64_NATIVE_CHECK=1 ~/bin/steam-arm-native
-STEAM_ARM64_LAUNCHER="$HOME/bin/steam-arm-native" ~/start-steam.sh
-STEAM_ARM64_LAUNCHER="$HOME/bin/steam-arm-native" ~/start-steam.sh 203160 -nolauncher
+~/start-steam-native.sh
+~/start-steam-native.sh --appid 203160 -- -nolauncher
+~/stop-steam-native.sh
 ```
 
 The first command is non-launching: it verifies the content-addressed patched
@@ -589,9 +590,25 @@ The loader shim changes no Steam binary. At each child boundary it reads the
 ELF interpreter and wraps matching AArch64 Linux targets with the staged
 loader, covering Steam's imported `execv`, `execvp`, `execvpe`, and `execl`
 paths plus direct exec and POSIX spawn. The selected `safe`, `fast`, or
-`proton` FEX profile is preserved. This path remains experimental until the
-exact package passes on-device and the later Pressure Vessel namespace
-boundary is proven; the PRoot launcher remains the game-compatible fallback.
+`proton` FEX profile is preserved.
+
+The native client and CEF do not run below PRoot. A game deliberately crosses
+into the existing patched PRoot only at its ARM64 Pressure Vessel boundary,
+because Android denies the native wrapper access to `/proc/self/root`. The
+bridge preserves arbitrary Steam launch-option environment variables,
+removable-library binds, PulseAudio, Mesa/Turnip, Proton, and FEX, so it is not
+specific to Tomb Raider or GTA IV.
+
+Runtime 4 no longer rebuilds its mutable sysroot for every game. The installer
+strictly applies Valve's `usr-mtree.txt.gz`, verifies every declared size and
+SHA-256, materializes PRoot pseudo-hardlinks, recreates Valve's merged-`/usr`
+links, and atomically selects a content-addressed complete sysroot. Preparing a
+new runtime revision took 25.8 seconds once. A real
+`_v2-entry-point --verb=run -- /bin/true` then passed the complete PRoot,
+Bubblewrap, `pv-adverb`, and linker-cache path in 42 seconds; the prior
+copy-every-launch path took 164 seconds before the same payload. This path
+remains experimental until an ordinary game is exercised from the native
+client; the all-PRoot launcher remains the matched fallback.
 
 The launcher applies the measured scheduling profile automatically: X11 and
 Steam use CPUs 0-3, Steam web helpers use CPU 0, and a CPU-0 affinity guard waits

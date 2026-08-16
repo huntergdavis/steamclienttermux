@@ -4484,3 +4484,64 @@ termux-exec mechanism, the installed Debian ARM64 libraries, and this
 repository's already measured FEX profiles. Pressure Vessel's namespace and
 mount boundary remains a distinct milestone; the existing PRoot path is still
 the game-compatible fallback until that boundary is proven.
+
+## 2026-08-16: generic native-client game boundary passes
+
+The no-PRoot client now has a generic, sanitized transition back into the
+proven game stack. A small glibc ARM64 entry binary is installed both as the
+Steam Bubblewrap override and as the advertised Runtime 4 `_v2-entry-point`.
+It removes only loader/shim variables at the glibc-to-Bionic ABI crossing, then
+executes the protected Termux Bash bridge. The bridge preserves arbitrary
+Steam launch environment, validates the exact patched PRoot and route binary,
+reapplies removable-storage binds, and enters Debian before running Pressure
+Vessel. This placement is required: running Pressure Vessel directly from
+Termux reached `opendir(/proc/self/root): Permission denied` before Bubblewrap.
+
+The first real runtime smoke used Runtime 4's normal
+`PRESSURE_VESSEL_COPY_RUNTIME=1` policy. It completed the official
+`_v2-entry-point --verb=run -- /bin/true` chain in 164 seconds, proving PRoot,
+the production Bubblewrap route, the ARM64 runtime, `pv-adverb`, and a final
+container payload. Repeating it created another temporary sysroot because
+Android/PRoot cannot provide Valve's expected hardlinks and the guarded
+`EXDEV` fallback is intentionally per-launch.
+
+Valve's `usr-mtree.txt.gz` describes 818 directories, 6,190 files, and 768
+logical links. The depot's `files/` is a content store rather than a ready
+sysroot: 5,504 of its visible files are PRoot pseudo-hardlinks into `.l2s`, and
+content-addressed objects supply another 608 entries. The new strict builder:
+
+- parses only relative, ASCII/octal-escaped mtree paths;
+- rejects traversal, unknown types, foreign pseudo-hardlinks, and malformed
+  metadata;
+- verifies every non-empty file's declared size and SHA-256;
+- creates zero-length reference files and the declared logical symlinks;
+- adds the exact merged-`/usr` links used by Pressure Vessel; and
+- publishes the finished root by atomic, content-addressed selector.
+
+This layout was taken from Valve's own `pv_runtime_create_copy()` rather than
+inferred from warnings. The official routine applies the usr mtree below
+`usr/`, removes/recreates the runtime lock, and adds `bin`, `etc`, `lib*`,
+`sbin`, and `var` links into `usr`. The inspected upstream revision was
+`cce2df601632f59d1a7734702dcb93f516ac0bff`:
+
+- https://gitlab.steamos.cloud/steamrt/steam-runtime-tools/-/blob/cce2df601632f59d1a7734702dcb93f516ac0bff/pressure-vessel/runtime.c#L1211
+- https://gitlab.steamos.cloud/steamrt/steam-runtime-tools/-/blob/cce2df601632f59d1a7734702dcb93f516ac0bff/pressure-vessel/runtime.c#L1372
+- https://gitlab.steamos.cloud/steamrt/steam-runtime-tools/-/blob/cce2df601632f59d1a7734702dcb93f516ac0bff/pressure-vessel/runtime.c#L1599
+
+The Tab S8+ built and validated the 414 MiB finished root in 25.8 seconds. It
+contains 6,192 regular files and 768 intended symlinks. With copy policy
+removed and that root selected, the same real Pressure Vessel `/bin/true`
+smoke returned zero in 42 seconds. Its three warnings were non-fatal: immutable
+`/usr` default-config linking, an absent optional host `drirc.d` destination,
+and the intentionally absent X11 socket in this headless smoke. There were no
+missing interpreter, executable, capsule, sysroot, or mount errors and no
+processes remained afterward. Disabling locale generation also took 42
+seconds, locating the remaining setup cost in the required linker-cache and
+graphics-provider work rather than locale generation.
+
+The required `deja` searches for the native Pressure Vessel boundary, Runtime
+4 copy reuse, mtree materialization, incomplete no-copy sysroots, and locale
+generation returned no indexed implementation. Reused work is limited to the
+repository's existing PRoot/Pressure Vessel route and profiles, the official
+Termux loader/exec hooks, and Valve's source-defined sysroot construction.
+Logged-in Steam state and the official runtime depot were not modified.
