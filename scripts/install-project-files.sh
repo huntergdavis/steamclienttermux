@@ -55,6 +55,8 @@ trap cleanup_wrapper_stage EXIT
 
 install_one "$repo_root/bin/steam-arm" "$HOME/bin/steam-arm" 700
 install_one "$repo_root/scripts/start-steam.sh" "$HOME/start-steam.sh" 700
+install_one "$repo_root/scripts/start-tombraider.sh" \
+    "$HOME/start-tombraider.sh" 700
 install_one "$repo_root/bin/ensure-sshd-supervised.sh" \
     "$HOME/bin/ensure-sshd-supervised" 700
 install_one "$repo_root/bin/patch-steam-network-ui.sh" "$base/patch-steam-network-ui.sh" 700

@@ -2,6 +2,69 @@
 
 set -euo pipefail
 
+requested_appid=''
+background_mode="${STEAM_BACKGROUND:-}"
+convenience_appid=0
+declare -a steam_arguments=("$@")
+
+if [[ "${1:-}" == --appid ]]; then
+    [[ "${2:-}" =~ ^[1-9][0-9]*$ ]] || {
+        printf 'start-steam: --appid requires a positive numeric Steam AppID\n' >&2
+        exit 1
+    }
+    requested_appid="$2"
+    convenience_appid=1
+    shift 2
+    [[ "${1:-}" == -- ]] && shift
+    steam_arguments=(-applaunch "$requested_appid" "$@")
+elif [[ "${1:-}" =~ ^[1-9][0-9]*$ ]]; then
+    requested_appid="$1"
+    convenience_appid=1
+    shift
+    [[ "${1:-}" == -- ]] && shift
+    steam_arguments=(-applaunch "$requested_appid" "$@")
+else
+    for ((argument_index = 0;
+            argument_index < ${#steam_arguments[@]};
+            argument_index++)); do
+        if [[ "${steam_arguments[argument_index]}" == -applaunch ]]; then
+            appid_index=$((argument_index + 1))
+            [[ "${steam_arguments[appid_index]:-}" =~ ^[1-9][0-9]*$ ]] || {
+                printf 'start-steam: -applaunch requires a positive numeric Steam AppID\n' >&2
+                exit 1
+            }
+            requested_appid="${steam_arguments[appid_index]}"
+            break
+        fi
+    done
+fi
+
+if [[ -z "$background_mode" ]]; then
+    background_mode="$convenience_appid"
+fi
+[[ "$background_mode" == 0 || "$background_mode" == 1 ]] || {
+    printf 'start-steam: STEAM_BACKGROUND must be 0 or 1\n' >&2
+    exit 1
+}
+if [[ "$background_mode" == 1 ]]; then
+    has_silent=0
+    for argument in "${steam_arguments[@]}"; do
+        [[ "$argument" == -silent ]] && has_silent=1
+    done
+    if [[ "$has_silent" == 0 ]]; then
+        steam_arguments=(-silent "${steam_arguments[@]}")
+    fi
+fi
+
+if [[ "${START_STEAM_PARSE_ONLY:-0}" == 1 ]]; then
+    printf 'appid=%s\nbackground=%s\nargc=%s\n' \
+        "$requested_appid" "$background_mode" "${#steam_arguments[@]}"
+    for argument in "${steam_arguments[@]}"; do
+        printf 'arg=%s\n' "$argument"
+    done
+    exit 0
+fi
+
 display="${STEAM_X11_DISPLAY:-:0}"
 base="${STEAM_ARM64_BASE:-$HOME/steam-arm64}"
 steam_launcher="${STEAM_ARM64_LAUNCHER:-$HOME/bin/steam-arm}"
@@ -15,12 +78,14 @@ x11_log="$base/logs/termux-x11-minimal.log"
 profile="${STEAM_ARM64_FEX_PROFILE:-safe}"
 process_timeout="${STEAM_PROCESS_TIMEOUT:-180}"
 window_timeout="${STEAM_WINDOW_TIMEOUT:-1200}"
+app_timeout="${STEAM_APP_TIMEOUT:-1200}"
 window_stable_seconds="${STEAM_WINDOW_STABLE_SECONDS:-5}"
 minimum_window_width="${STEAM_MIN_WINDOW_WIDTH:-640}"
 minimum_window_height="${STEAM_MIN_WINDOW_HEIGHT:-400}"
 pulse_server="tcp:127.0.0.1:4713"
 login_log="$base/client/logs/steamui_login.txt"
 login_users="$base/client/config/loginusers.vdf"
+gameprocess_log="$base/client/logs/gameprocess_log.txt"
 
 fail() {
     printf 'start-steam: %s\n' "$1" >&2
@@ -188,9 +253,11 @@ wait_for_steam_window() {
         # Steam can create its full-size CEF window without mapping it when no
         # desktop session exists. A live process and responsive DISPLAY are not
         # enough: expose that existing window, then verify it became visible.
-        candidate="$(largest_steam_window any || true)"
-        if [[ -n "$candidate" ]]; then
-            surface_steam_window "$candidate" || true
+        if [[ "$background_mode" == 0 ]]; then
+            candidate="$(largest_steam_window any || true)"
+            if [[ -n "$candidate" ]]; then
+                surface_steam_window "$candidate" || true
+            fi
         fi
         sleep 1
     done
@@ -230,12 +297,35 @@ wait_for_remembered_login() {
     for _ in $(seq 1 "$window_timeout"); do
         steam_pid_is_current "$expected_pid" || return 1
         steam_login_ready "$offset" && return 0
-        # Keep a login or loading surface usable while the state machine runs,
-        # but do not mistake that transitional window for final readiness.
-        candidate="$(largest_steam_window any || true)"
-        if [[ -n "$candidate" ]]; then
-            surface_steam_window "$candidate" || true
+        # Keep a visible launch usable in the WM-free session, but a direct
+        # AppID request deliberately leaves every Steam surface untouched.
+        if [[ "$background_mode" == 0 ]]; then
+            candidate="$(largest_steam_window any || true)"
+            if [[ -n "$candidate" ]]; then
+                surface_steam_window "$candidate" || true
+            fi
         fi
+        sleep 1
+    done
+    return 1
+}
+
+app_launch_seen() {
+    local appid="$1" offset="$2" size
+    [[ -f "$gameprocess_log" && ! -L "$gameprocess_log" ]] || return 1
+    size="$(stat -c %s -- "$gameprocess_log" 2>/dev/null || true)"
+    [[ "$size" =~ ^[0-9]+$ && "$size" -ge "$offset" ]] || return 1
+    tail -c "+$((offset + 1))" -- "$gameprocess_log" |
+        grep -F "AppID $appid adding PID" >/dev/null
+}
+
+wait_for_app_launch() {
+    local expected_pid="$1" appid="$2" offset="$3" _
+    printf 'start-steam: waiting for Steam AppID %s launch acknowledgement\n' \
+        "$appid" >&2
+    for _ in $(seq 1 "$app_timeout"); do
+        steam_pid_is_current "$expected_pid" || return 1
+        app_launch_seen "$appid" "$offset" && return 0
         sleep 1
     done
     return 1
@@ -318,6 +408,12 @@ start_tomb_raider_affinity_guard() {
     printf 'start-steam: Tomb Raider affinity guard armed; log %s\n' "$guard_log"
 }
 
+maybe_start_tomb_raider_affinity_guard() {
+    if [[ -z "$requested_appid" || "$requested_appid" == 203160 ]]; then
+        start_tomb_raider_affinity_guard
+    fi
+}
+
 x11_bridge_has_dead_binder() {
     local pid="$1" since recent
     since="$(date +%s)"
@@ -330,7 +426,7 @@ x11_bridge_has_dead_binder() {
     ' <<<"$recent"
 }
 
-for value_name in process_timeout window_timeout window_stable_seconds \
+for value_name in process_timeout window_timeout app_timeout window_stable_seconds \
         minimum_window_width minimum_window_height; do
     value="${!value_name}"
     [[ "$value" =~ ^[1-9][0-9]*$ ]] ||
@@ -445,16 +541,18 @@ if ! pulse_sinks="$(pactl --server="$pulse_server" list short sinks 2>/dev/null)
 fi
 
 mapfile -t steam_pids < <(matching_pids steam)
+gameprocess_log_offset="$(stat -c %s -- "$gameprocess_log" 2>/dev/null || printf '0\n')"
+[[ "$gameprocess_log_offset" =~ ^[0-9]+$ ]] || gameprocess_log_offset=0
 if [[ "${#steam_pids[@]}" -gt 1 ]]; then
     fail "multiple Steam main processes found: ${steam_pids[*]}"
 fi
 if [[ "${#steam_pids[@]}" -eq 1 ]]; then
     require_top_app Steam "${steam_pids[0]}"
     apply_steam_session_affinity "${x11_pids[0]}" "${steam_pids[0]}"
-    start_tomb_raider_affinity_guard
-    if [[ "$#" -gt 0 ]]; then
+    maybe_start_tomb_raider_affinity_guard
+    if [[ "${#steam_arguments[@]}" -gt 0 ]]; then
         forward_log="$base/logs/start-steam-forward-$(date +%Y%m%d-%H%M%S).log"
-        nohup env DISPLAY="$display" "$steam_launcher" "$@" \
+        nohup env DISPLAY="$display" "$steam_launcher" "${steam_arguments[@]}" \
             >"$forward_log" 2>&1 </dev/null &
         printf 'start-steam: forwarded request to Steam PID %s; log %s\n' \
             "${steam_pids[0]}" "$forward_log"
@@ -463,6 +561,18 @@ if [[ "${#steam_pids[@]}" -eq 1 ]]; then
         steam_pid_is_current "${steam_pids[0]}" ||
             fail "Steam PID ${steam_pids[0]} exited before remembered login completed"
         fail "remembered Steam login did not complete in ${window_timeout}s"
+    fi
+    if [[ -n "$requested_appid" && "$background_mode" == 1 ]]; then
+        if ! wait_for_app_launch "${steam_pids[0]}" "$requested_appid" \
+                "$gameprocess_log_offset"; then
+            steam_pid_is_current "${steam_pids[0]}" ||
+                fail "Steam exited before AppID $requested_appid launched"
+            fail "Steam did not acknowledge AppID $requested_appid in ${app_timeout}s"
+        fi
+        apply_steam_session_affinity "${x11_pids[0]}" "${steam_pids[0]}"
+        printf 'start-steam: AppID %s accepted in background; X11 PID %s CPUs 0-3, Steam PID %s CPUs 0-3, CEF CPU 0, PulseAudio sink, no Steam window focus, no KDE\n' \
+            "$requested_appid" "${x11_pids[0]}" "${steam_pids[0]}"
+        exit 0
     fi
     if ! steam_window="$(wait_for_steam_window "${steam_pids[0]}")"; then
         steam_pid_is_current "${steam_pids[0]}" ||
@@ -488,16 +598,17 @@ fi
 if [[ "${#launcher_pids[@]}" -eq 1 ]]; then
     launcher_pid="${launcher_pids[0]}"
     require_top_app Steam-launcher "$launcher_pid"
-    start_tomb_raider_affinity_guard
+    maybe_start_tomb_raider_affinity_guard
     steam_log="$base/logs"
     printf 'start-steam: attaching to Steam initialization under launcher PID %s\n' \
         "$launcher_pid"
 else
     require_top_app launcher "$$"
-    start_tomb_raider_affinity_guard
+    maybe_start_tomb_raider_affinity_guard
     steam_log="$base/logs/start-steam-$(date +%Y%m%d-%H%M%S).log"
     nohup env DISPLAY="$display" PULSE_SERVER="$pulse_server" \
-        STEAM_ARM64_FEX_PROFILE="$profile" "$steam_launcher" -noshaders "$@" \
+        STEAM_ARM64_FEX_PROFILE="$profile" "$steam_launcher" -noshaders \
+        "${steam_arguments[@]}" \
         >"$steam_log" 2>&1 </dev/null &
     launcher_pid=$!
 fi
@@ -523,6 +634,18 @@ if ! wait_for_remembered_login "${steam_pids[0]}" "$login_log_offset"; then
     steam_pid_is_current "${steam_pids[0]}" ||
         fail "Steam PID ${steam_pids[0]} exited before remembered login completed; inspect $steam_log"
     fail "remembered Steam login did not complete in ${window_timeout}s; inspect $steam_log"
+fi
+if [[ -n "$requested_appid" && "$background_mode" == 1 ]]; then
+    if ! wait_for_app_launch "${steam_pids[0]}" "$requested_appid" \
+            "$gameprocess_log_offset"; then
+        steam_pid_is_current "${steam_pids[0]}" ||
+            fail "Steam exited before AppID $requested_appid launched; inspect $steam_log"
+        fail "Steam did not acknowledge AppID $requested_appid in ${app_timeout}s; inspect $steam_log"
+    fi
+    apply_steam_session_affinity "${x11_pids[0]}" "${steam_pids[0]}"
+    printf 'start-steam: AppID %s accepted in background; X11 PID %s CPUs 0-3, Steam PID %s CPUs 0-3, CEF CPU 0, PulseAudio sink, FEX %s, no Steam window focus, no KDE\n' \
+        "$requested_appid" "${x11_pids[0]}" "${steam_pids[0]}" "$profile"
+    exit 0
 fi
 if ! steam_window="$(wait_for_steam_window "${steam_pids[0]}")"; then
     steam_pid_is_current "${steam_pids[0]}" ||

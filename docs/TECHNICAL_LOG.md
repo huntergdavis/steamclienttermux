@@ -4359,3 +4359,36 @@ thread had widened itself to CPUs 0-7 while the main process and other game
 threads retained CPUs 1-7. No verifier or screenshot process ran during the
 benchmark itself. The captured result is
 [`tombraider-native-hardened-run1-2026-08-16.png`](evidence/tombraider-native-hardened-run1-2026-08-16.png).
+
+## 2026-08-16: direct background AppID launcher
+
+`start-steam.sh` now accepts either a positive positional AppID or
+`--appid ID`. That convenience form constructs `-silent -applaunch ID` and
+preserves every following game argument. Unlike the ordinary no-argument
+path, it does not wait for, map, raise, or focus a Steam CEF window. It still
+requires current-launch remembered authentication, records the pre-request
+`gameprocess_log.txt` offset, and accepts success only after a new
+`AppID <ID> adding PID` entry appears. Raw Steam client arguments remain an
+unchanged compatibility path; `STEAM_BACKGROUND=1` opts those into silent,
+unfocused readiness.
+
+`~/start-tombraider.sh` calls that interface with App ID 203160 and
+`-nolauncher`. Additional arguments remain ordered after it, so
+`~/start-tombraider.sh -benchmark` also supplies the installed executable's
+advertised `-benchmark` switch. Both strings were recovered directly from the
+installed `TombRaider.exe`, not assumed from a generic game guide.
+
+The required recall search recovered Switchroot session
+`a1837cd4-ab7b-411b-a83f-6e900a7ed053`. Its observed command wrote
+`steam://rungameid/...` to `steam.pipe` and successfully launched a game, but
+it did not unload Steam. The later GTA investigation also established that
+Steam anchors this PRoot process tree. Accordingly, Steam's global
+`-shutdown` request is not mixed into the production launch: the first A/B is
+silent/unfocused Steam, followed by measured CEF memory, with any suspension
+or shutdown kept explicit and reversible.
+
+This is an interim PRoot improvement. The repository now treats the separate
+`termux-glibc-compat` implementation as the primary structural path because
+the live PRoot tracer consumed 60-65% of a core and the first measured
+runtime-request-to-window launch took about 6m47s. PRoot remains the working,
+matched fallback and A/B baseline.

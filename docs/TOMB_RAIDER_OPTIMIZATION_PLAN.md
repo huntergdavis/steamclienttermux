@@ -25,36 +25,43 @@ panel-native Low passes averaged 13.85/29.0/20.0 FPS, versus the ordinary
 native-Low mean of 11.37/28.8/22.2. The Performance average is 9.9% lower.
 Return Game optimisation to **Standard** for the next tests.
 
-## Next session: exact order
+## Primary path: remove avoidable launch work, then remove PRoot
 
 Keep 2800x1752 fullscreen, Low, motion blur off, V-Sync off, the shared-UID X11
 build, game CPUs 1-7, `Raknet-RecvFrom` on CPU 1, Steam helpers on CPU 0, and
 X11 on CPUs 0-3. Change only the item named by each test.
 
-1. Start cold. Select Samsung **Standard**, set **Motion smoothness** to
+1. Use `~/start-tombraider.sh` for a cold direct launch. It starts Steam with
+   `-silent -applaunch 203160`, passes `-nolauncher` to Tomb Raider, waits for
+   an AppID-specific launch acknowledgement, and never surfaces or focuses the
+   Steam library. Measure cold launch time and Steam/CEF resident memory
+   against the existing visible-UI PRoot timing before attempting to stop any
+   client process.
+2. Select Samsung **Standard**, set **Motion smoothness** to
    **Standard (60 Hz)**, and verify the live X refresh rate. Android documents
    that a display rate above the game's target adds power use without benefit;
    reducing that heat load may preserve CPU/GPU clocks during a long pass.
    If a PPS charger of at least 25 W is connected and the battery is at least
    20%, enable **Pause USB PD charging**. Samsung lists the Tab S8 series as
    supported and says this bypasses battery charging while the game runs.
-2. Before timing, make one bounded menu profile and record CPU policy maxima,
+3. Before timing, make one bounded menu profile and record CPU policy maxima,
    KGSL frequency/thermal power level, available RAM/swap, X geometry/refresh,
    cgroups, affinity, and active FEX profile. Reject or explicitly label a run
    whose CPU or GPU policy is already throttled. Do not profile, capture, or
    switch Android windows during the timed scene.
-3. Re-establish the cooled `safe` control with one warm-up and three recorded
+4. Re-establish the cooled `safe` control with one warm-up and three recorded
    passes. This distinguishes a real optimization from temperature and run
    variance.
-4. Fully stop and restart Steam with the existing `proton` FEX profile, then
-   run one warm-up plus three passes. The 720p result makes this the first
-   translator candidate: bundled `proton` averaged 11.4% above `safe` there.
-5. Fully stop and restart Steam with `STEAM_ARM64_FEX_PROFILE=fast`, then run
-   the same sequence. This matches the same-chip recording's aggressive
-   TSO-off direction. It has the largest immediate upside, but FEX explicitly
-   warns that disabling TSO is highly likely to break multithreaded software.
-   Any crash, corruption, hang, or reproducible regression ends this branch;
-   `fast` must remain opt-in.
+5. Treat the separate `termux-glibc-compat` project as the primary engineering
+   track. Complete its versioned same-UID semaphore broker, integrate the
+   client at the Termux glibc SysV boundary, and first launch the native ARM64
+   Steam client without PRoot. The current PRoot launch is the matched fallback
+   and timing baseline, not the intended final architecture.
+6. Only while the glibc work proceeds, run bounded `proton` and `fast` FEX A/B
+   passes. `proton` previously averaged 11.4% above `safe` at 720p. `fast`
+   follows the same-chip TSO-off direction but remains opt-in because FEX warns
+   it can break multithreaded software. These are useful interim measurements,
+   not substitutes for removing the 60-65%-CPU PRoot tracer.
 
 The one warm-up plus three-pass rule applies to each profile. Compare the
 three-pass mean and median, not an isolated maximum or minimum.
@@ -63,10 +70,10 @@ three-pass mean and median, not an isolated maximum or minimum.
 
 | Candidate | Why it is credible | Order / risk |
 |---|---|---|
-| Steam launch-only session | Steam/CEF consumed roughly one CPU core in the live profile. | Test after FEX. Keep launch flags constant; do not kill or `SIGSTOP` helpers during a timed pass because Steam respawns them and traced stopped tasks did not behave normally. |
+| Steam launch-only session | Steam/CEF consumed roughly one CPU core in the live profile. | Implemented as the silent direct AppID path. Compare launch time and memory before considering any explicit CEF suspension; do not kill or `SIGSTOP` helpers during a timed pass because Steam respawns them and traced stopped tasks did not behave normally. |
 | PRoot/wineserver placement | PRoot plus wineserver consumed close to one core and could contend with game threads. | Profile their actual running CPUs, then A/B one guarded mask at a time. Pinning the tracer to a slower core may also increase syscall latency. |
 | Internal-storage A/B | The game is on Android FUSE over the removable exFAT/sdfat card. This may affect loading and minimum-FPS stalls. | Low priority for mean FPS. The 15.3 GB game would leave only about 3.7 GB of the currently free 19 GB internal space, so do not move it until space is freed. |
-| No-PRoot native glibc host | PRoot uses `ptrace` to intercept and rewrite guest syscalls; the live tracer alone used 60-65% CPU. | Highest structural ceiling, highest effort. Extend the existing Termux `glibc-runner` path with focused robust-list and SysV IPC compatibility instead of translating every syscall. |
+| No-PRoot native glibc host | PRoot uses `ptrace` to intercept and rewrite guest syscalls; the live tracer alone used 60-65% CPU and the first timed PRoot game launch needed about 6m47s from runtime request to window. | Primary engineering path. Extend Termux glibc with the measured SysV semaphore behavior, launch native ARM64 Steam first, then isolate the later Pressure Vessel boundary. |
 | Bionic/system-Vulkan host | Current GameNative source uses a Bionic image and defaults its wrapper to `System`, while an external comparison showed a large system-driver lead. | Separate architecture project. Its Vulkan wrapper is an Android/NDK Bionic library depending on Android native-window and AdrenoTools libraries, not a drop-in glibc ICD. |
 
 ## Changes not worth leading with
@@ -108,3 +115,10 @@ Turnip/system-driver path, and Samsung thermal profile returned no indexed
 session matches. This plan therefore reuses the repository's measured
 shared-UID, affinity, clean-scene, FEX, thermal, and PRoot evidence rather than
 an uncited remembered fix.
+
+A later recall recovered Switchroot session
+`a1837cd4-ab7b-411b-a83f-6e900a7ed053`: its proven command wrote a launch URL
+to `steam.pipe`; it did not unload Steam. The direct background path reuses its
+validated launch intent while retaining this repository's safer
+`-applaunch`/AppID-log acknowledgement. Tomb Raider's installed executable was
+also inspected directly and contains both `-nolauncher` and `-benchmark`.

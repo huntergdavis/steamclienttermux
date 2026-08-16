@@ -510,22 +510,42 @@ It reuses a healthy existing X/Steam/audio session, safely reclaims only an
 unreachable owned Unix socket, and refuses foreign displays, duplicate servers,
 or a stale Android Binder bridge with live X clients. The latter cannot be
 repaired in place because X clients cannot migrate to a replacement server;
-stop those clients and rerun the script. Steam arguments are forwarded, and the
-FEX profile can be selected explicitly:
+stop those clients and rerun the script. With no AppID it exposes the normal
+Steam UI. A positive first argument or `--appid ID` instead creates a direct
+background launch: the script adds `-silent -applaunch ID`, preserves every
+following game argument, validates a new AppID-specific entry in Steam's
+`gameprocess_log.txt`, and never maps, raises, or focuses the Steam window.
+Raw Steam arguments are still forwarded unchanged. The convenience wrapper
+skips Tomb Raider's setup dialog by passing the executable's own
+`-nolauncher` option:
 
 ```sh
 STEAM_ARM64_FEX_PROFILE=proton ~/start-steam.sh
-STEAM_ARM64_FEX_PROFILE=fast ~/start-steam.sh -applaunch 203160
+~/start-steam.sh 203160 -nolauncher
+~/start-steam.sh --appid 203160 -- -nolauncher -benchmark
+~/start-tombraider.sh
+~/start-tombraider.sh -benchmark
+# Exact/raw Steam client arguments remain available:
+STEAM_ARM64_FEX_PROFILE=fast ~/start-steam.sh -console -applaunch 203160
 ```
 
 The default is the current `safe` profile. A changed profile applies only to a
 fresh Steam process; the script never kills an existing Steam session. Process
-and window waits default to 180 seconds and can be changed with
-`STEAM_PROCESS_TIMEOUT` and `STEAM_WINDOW_TIMEOUT`. A cold launcher, X11, or
-Steam process outside both Android `/top-app` controllers is now a hard error,
-not a warning. In particular, a cold invocation over the supervised SSH service
-is rejected before X11, PulseAudio, or Steam starts; opening the Termux:X11
-activity cannot promote an unrelated SSH process tree reliably.
+and UI waits can be changed with `STEAM_PROCESS_TIMEOUT` and
+`STEAM_WINDOW_TIMEOUT`; direct AppID acknowledgement uses
+`STEAM_APP_TIMEOUT`. A cold launcher, X11, or Steam process outside both
+Android `/top-app` controllers is now a hard error, not a warning. In
+particular, a cold invocation over the supervised SSH service is rejected
+before X11, PulseAudio, or Steam starts; opening the Termux:X11 activity cannot
+promote an unrelated SSH process tree reliably.
+
+The recalled Switchroot command wrote `steam://rungameid/...` to `steam.pipe`.
+It proved direct launch but did not unload Steam. Steam's `-shutdown` is a
+client-exit request, not a supported "launch and discard the client" flag;
+chaining it with `-applaunch` is therefore not the default here. The safe first
+memory experiment is the silent, unfocused direct path above. Any later CEF
+suspension or client shutdown must be an explicit A/B after the game is stable
+and must preserve cloud-sync recovery.
 
 The launcher applies the measured scheduling profile automatically: X11 and
 Steam use CPUs 0-3, Steam web helpers use CPU 0, and a CPU-0 affinity guard waits
