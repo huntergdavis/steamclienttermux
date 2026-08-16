@@ -438,8 +438,23 @@ scripts/build-proot.sh
 scripts/prepare-arm64-runtime-shadow.sh
 scripts/install-project-files.sh
 scripts/verify-gpu.sh
-~/bin/steam-arm
+~/start-steam.sh
 ```
+
+`~/start-steam.sh` is the normal lean launcher. It opens the shared-UID
+Termux:X11 activity, starts exactly one X server when needed, enables trackpad
+mouse input and screen-idle prevention, prepares PulseAudio, and launches Steam without
+KDE/Plasma. It reuses a healthy existing X/Steam/audio session and refuses
+ambiguous stale or duplicate server state. Steam arguments are forwarded, and
+the FEX profile can be selected explicitly:
+
+```sh
+STEAM_ARM64_FEX_PROFILE=proton ~/start-steam.sh
+STEAM_ARM64_FEX_PROFILE=fast ~/start-steam.sh -applaunch 203160
+```
+
+The default is the current `safe` profile. A changed profile applies only to a
+fresh Steam process; the script never kills an existing Steam session.
 
 In Steam, explicitly force Superflight (App ID 732430) to use Proton 11.0
 (ARM64), and set this launch option for audio:

@@ -4070,3 +4070,37 @@ Required focused recall searches for Tomb Raider FEX/DXVK affinity, Steam
 web-helper unloading, Turnip/system-driver use, and Samsung thermal behavior
 returned no indexed session matches. The plan reuses this repository's measured
 shared-UID, affinity, clean-scene, FEX, thermal, and PRoot evidence.
+
+## 2026-08-16: idempotent Steam-only launcher
+
+`scripts/start-steam.sh` now installs as `~/start-steam.sh` and brings up the
+gaming stack without KDE or Plasma. It verifies that Termux and Termux:X11 have
+the same Android UID, opens the Android X11 activity first, retains trackpad
+mouse input without trapping a physical pointer, retains X11's screen-idle
+prevention without adding a separate wake-lock policy, starts exactly one X
+server only when needed, verifies XInput, prepares the
+canonical PulseAudio TCP endpoint, and finally launches Steam with the selected
+FEX profile. The default is `safe`; `proton` and `fast` remain explicit
+environment selections. Arguments are forwarded to a running Steam instance,
+and a changed FEX profile never silently replaces an existing session.
+
+The script refuses an unvalidated stale socket, multiple servers, split package
+UIDs, duplicate Steam main processes, or a failed audio/input preflight. It does
+not kill or recycle Termux, X11, Steam, PulseAudio, or the saved login state.
+This replaces the old `~/start-kde` behavior for game-only launches; that legacy
+script kills X, PulseAudio, D-Bus, and the desktop before rebuilding a full KDE
+session.
+
+The live idempotence test found the already-running panel-native stack from the
+prior benchmark: X11 PID 17620 at 2800x1752/119.92 Hz, Steam PID 17806, and the
+PulseAudio server on `tcp:127.0.0.1:4713`. It opened the activity and returned
+the same two PIDs, verified `XInputExtension`, and found no `kwin_x11`,
+`plasmashell`, or `startplasma` process. The installed file and repository copy
+matched SHA-256
+`f52b88dd542feb27e7577c079ff75ac546fd515666dab7249570d0cf0cf8b393`.
+
+The required `deja "Termux X11 shared UID start Steam PulseAudio without KDE
+start script mouse"` search returned no indexed match. The launcher reuses the
+activity-before-server and shared-UID findings already measured in this log and
+the upstream activity/server split:
+https://github.com/termux/termux-x11#running-graphical-applications
