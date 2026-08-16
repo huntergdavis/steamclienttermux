@@ -94,6 +94,8 @@ install_one "$repo_root/bin/steam-arm64-session-guard.py" \
     "$base/compat-bin/steam-arm64-session-guard.py" 700
 install_one "$repo_root/bin/steam-arm64-removable-library.py" \
     "$base/compat-bin/steam-arm64-removable-library.py" 700
+install_one "$repo_root/scripts/prepare-runtime-direct-root.py" \
+    "$base/compat-bin/prepare-runtime-direct-root.py" 700
 install_one "$repo_root/scripts/configure-gtaiv-registry.py" \
     "$base/compat-bin/configure-gtaiv-registry.py" 700
 install_one "$repo_root/scripts/configure-gtaiv-virtual-desktop.py" \
@@ -136,6 +138,7 @@ mkdir -p "$base/mesa-kgsl/icd.d"
 sed "s|@HOME@|$HOME|g" "$repo_root/config/freedreno-private.json.in" > "$base/mesa-kgsl/icd.d/freedreno-private.json.tmp"
 mv "$base/mesa-kgsl/icd.d/freedreno-private.json.tmp" "$base/mesa-kgsl/icd.d/freedreno-private.json"
 
+python3 "$base/compat-bin/prepare-runtime-direct-root.py" --base "$base"
 "$base/prepare-runtime-direct-run.sh" "$base"
 
 printf 'Installed project files. Backups: %s\n' "$backup"

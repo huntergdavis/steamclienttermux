@@ -30,6 +30,13 @@ def main() -> None:
         source.parent.mkdir(parents=True)
         source.write_text(SOURCE, encoding="utf-8")
         source.chmod(0o700)
+        direct_parent = base / "runtime" / "SteamLinuxRuntime_4-arm64-direct"
+        direct_root = direct_parent / "fixture-digest"
+        direct_root.mkdir(parents=True)
+        (direct_root / ".steamclienttermux-runtime-direct-root").write_text(
+            "fixture-digest\n", encoding="ascii"
+        )
+        (direct_parent / "current").symlink_to(direct_root.name)
 
         invoke(base)
         destination = base / "config" / "steamlinuxruntime4-run-direct"
@@ -38,7 +45,7 @@ def main() -> None:
             "unset PRESSURE_VESSEL_COPY_RUNTIME",
         ).replace(
             'export PRESSURE_VESSEL_RUNTIME="${dir}"',
-            'export PRESSURE_VESSEL_RUNTIME="${dir}/files"',
+            f'export PRESSURE_VESSEL_RUNTIME="{direct_root}"',
         )
         assert destination.read_text(encoding="utf-8") == expected
         assert destination.stat().st_mode & 0o777 == 0o700
