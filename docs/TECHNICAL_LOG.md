@@ -4172,3 +4172,52 @@ reconnect without killing Steam"` search returned no indexed match. This fix
 reuses the repository's prior activity-before-server ordering, WM-free benchmark
 goal, and saved-login preservation method; the Binder diagnosis and readiness
 gate come from the live failure plus the upstream source above.
+
+## 2026-08-16: native glibc compatibility becomes a separate project
+
+The high-ceiling no-PRoot work now lives in the public
+[`termux-glibc-compat`](https://github.com/huntergdavis/termux-glibc-compat)
+repository. Its initial commit is
+`6b23eb0b4b2a75c84710531e76c585750f9dc813`. The repository separates this
+longer-lived runtime project from Steam setup, retains strict black-box probes,
+documents a no-ptrace architecture, and does not claim that Steam or Proton is
+native-host ready.
+
+The upstream audit corrected the earlier statement that both robust-list and
+SysV IPC emulation had to be recreated. Termux's glibc package already removes
+NPTL robust-list registration and supplies Android-backed SysV shared memory.
+It explicitly maps `set_robust_list`, `get_robust_list`, `semget`, `semctl`,
+`semop`, and `semtimedop` to `ENOSYS`. The source was pinned at official Termux
+mirror commit `954c6b200aa001088fcc420550b9304dd81229b8`:
+
+- https://github.com/termux/glibc-packages/blob/954c6b200aa001088fcc420550b9304dd81229b8/gpkg/glibc/set-nptl-syscalls.patch
+- https://github.com/termux/glibc-packages/blob/954c6b200aa001088fcc420550b9304dd81229b8/gpkg/glibc/fakesyscall.json
+- https://github.com/termux/glibc-packages/blob/954c6b200aa001088fcc420550b9304dd81229b8/gpkg/glibc/shmem-android.c
+
+`gcc-glibc` 14.2.1-1 and its three dependencies were installed on the tablet
+after verifying 19 GiB free; they consume 341 MB. The probes were compiled as
+real glibc-linked AArch64 binaries and executed through `glibc-runner` 2.0-3
+against Termux glibc 2.42. Results:
+
+- ordinary pthread creation and mutex use: pass;
+- raw `get_robust_list`: unsupported, `ENOSYS`;
+- cross-process SysV shared memory: pass; and
+- SysV semaphore creation: unsupported, `ENOSYS`.
+
+The suite therefore reported two passes, two unsupported capabilities, and
+zero semantic failures. Conventional Linux passed all four probes, and the new
+repository's GitHub Actions run passed at the published commit. The exact
+tablet stdout is retained in that repository at
+`docs/results/2026-08-16-tab-s8plus-glibc-2.42.txt`.
+
+Phase 1 is now a same-UID SysV semaphore broker and glibc `sysvipc` integration,
+not general syscall translation. Its required behavior comes directly from
+the retained PRoot repair: atomic multi-operation updates, `SETALL`, `GETPID`,
+`GETNCNT`, `GETZCNT`, blocking waiters, and wakeups after value changes. The
+native Steam client is the first end-to-end gate; Pressure Vessel namespaces
+remain a later, separate boundary.
+
+The required `deja "Steam ARM64 Termux replace PRoot native glibc runner robust
+list SysV IPC"` query returned no matches. The new project reuses this
+repository's measured 60-65%-CPU PRoot profile, exact PRoot patch, and retained
+probe requirements; it does not reuse an undocumented prior implementation.

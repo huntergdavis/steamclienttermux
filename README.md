@@ -56,6 +56,12 @@ Mesa Turnip, official Proton 11 ARM64, and its bundled FEX/DXVK stack.
   [optimization plan](docs/TOMB_RAIDER_OPTIMIZATION_PLAN.md).
 - Burnout remains experimental; its detailed EA, FEX, and DXVK investigation is
   kept in [`docs/TECHNICAL_LOG.md`](docs/TECHNICAL_LOG.md), not duplicated here.
+- The no-PRoot native host is now a separate project:
+  [`termux-glibc-compat`](https://github.com/huntergdavis/termux-glibc-compat).
+  Its first glibc-linked Tab S8+ probes show that ordinary pthreads and
+  cross-process SysV shared memory already pass, while robust-list and SysV
+  semaphore calls return `ENOSYS`. This narrows the first implementation to
+  correct SysV semaphore service/integration rather than a broad glibc rewrite.
 
 ### Current benchmark target: Tomb Raider (2013)
 
