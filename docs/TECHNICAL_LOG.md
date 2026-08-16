@@ -4232,6 +4232,49 @@ list SysV IPC"` query returned no matches. The new project reuses this
 repository's measured 60-65%-CPU PRoot profile, exact PRoot patch, and retained
 probe requirements; it does not reuse an undocumented prior implementation.
 
+## 2026-08-16: native semaphore layer reaches the tablet
+
+The separate `termux-glibc-compat` project now implements the complete measured
+System V semaphore boundary rather than only its initial state core. Its
+versioned same-UID broker supports Linux ownership/mode/time metadata,
+`IPC_INFO`, `SEM_INFO`, indexed `SEM_STAT`, atomic blocking operations,
+monotonic timed waits, waiter counts, removal wakeups, and process-exit
+`SEM_UNDO`. The client keeps one authenticated socket per calling thread,
+reuses it in steady state, reconnects safely after `fork`, and closes it with a
+pthread-key destructor.
+
+The overlay is pinned to official `termux/glibc-packages` commit
+`954c6b200aa001088fcc420550b9304dd81229b8`. Static and shared glibc 2.44
+sysvipc objects compiled, a real `libc.so` linked, and the public semaphore
+probe passed through that loader against the broker on the workstation. The
+installed tablet libc was deliberately not replaced.
+
+Commit `7723ef4` then completed the first native device gate on the SM-X808U.
+The Bionic broker built with Termux Clang 21 ThinLTO, and all seven
+state/protocol/transport/client suites passed on-device, including fork,
+blocking wakeup, timeouts, and `SEM_UNDO`. One 20,000-operation optimized pass
+measured 108,384.3 ns and 9,226 operations/second for the full persistent-client
+`GETVAL` path. Start, status, and signal-driven shutdown also passed.
+
+Two Android-specific build failures were converted into permanent gates:
+
+- `-mcpu=native` made Clang select Cortex-X2 plus SVE/SVE2 even though Android
+  did not expose SVE, so the linked binary raised `SIGILL`. Native builds now
+  derive only kernel-reported common features and execute a post-link broker
+  smoke test.
+- Android seccomp kills raw robust-list and SysV-semaphore probes with
+  `SIGSYS`; the runner now reports those as `UNSUPPORTED`. The independent
+  broker gate remains strict. Probe execution also runs outside Termux make's
+  parallel jobserver after a reproduced make 4.4.1/Scudo self-crash.
+
+The required `deja` queries for the broker transport, `SEM_UNDO`, release
+launcher, Android `TMPDIR`, heterogeneous CPU `SIGILL`, Bionic probe linkage,
+and make/Scudo failure all returned no indexed implementation. This work reuses
+the repository's measured PRoot bottleneck, saved-login preservation rule, and
+public probe requirements; it does not claim an undocumented prior fix. The
+next gate is an isolated patched-glibc package and public API run on the tablet,
+followed by native Steam without changing the existing client/config tree.
+
 ## 2026-08-16: current-session Steam readiness and safe X preferences
 
 The first fresh Steam-only server, X11 PID 28526, later stopped answering

@@ -66,12 +66,14 @@ Mesa Turnip, official Proton 11 ARM64, and its bundled FEX/DXVK stack.
   kept in [`docs/TECHNICAL_LOG.md`](docs/TECHNICAL_LOG.md), not duplicated here.
 - The no-PRoot native host is now a separate project:
   [`termux-glibc-compat`](https://github.com/huntergdavis/termux-glibc-compat).
-  Its first glibc-linked Tab S8+ probes show that ordinary pthreads and
-  cross-process SysV shared memory already pass, while robust-list and SysV
-  semaphore calls return `ENOSYS`. This narrows the first implementation to
-  correct SysV semaphore service/integration rather than a broad glibc rewrite.
-  Its tested state core now provides generation-safe IDs, keyed creation and
-  lookup, atomic `SETALL`, and all-or-nothing multi-operation evaluation.
+  Its persistent same-UID semaphore broker, complete public glibc boundary,
+  timed waits, metadata/control operations, and process-exit `SEM_UNDO` are now
+  implemented. A real patched glibc 2.44 `libc.so` linked and passed the public
+  semaphore probe on the host. The native Bionic daemon then built on this Tab
+  S8+ with Clang ThinLTO; all seven broker/client suites passed and an optimized
+  20,000-operation pass measured 9,226 persistent `GETVAL` calls/second. The
+  installed tablet glibc and saved Steam login remain untouched while the first
+  isolated package test is prepared.
 
 ### Current benchmark target: Tomb Raider (2013)
 
