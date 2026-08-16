@@ -33,9 +33,9 @@ cleanup() {
 }
 trap cleanup EXIT
 
-sed 's/^export PRESSURE_VESSEL_COPY_RUNTIME=1$/export PRESSURE_VESSEL_COPY_RUNTIME=0/' \
+sed 's/^export PRESSURE_VESSEL_COPY_RUNTIME=1$/unset PRESSURE_VESSEL_COPY_RUNTIME/' \
     "$source_run" >"$stage"
-[[ $(grep -Fxc 'export PRESSURE_VESSEL_COPY_RUNTIME=0' "$stage") == 1 &&
+[[ $(grep -Fxc 'unset PRESSURE_VESSEL_COPY_RUNTIME' "$stage") == 1 &&
         $(grep -Fxc 'export PRESSURE_VESSEL_COPY_RUNTIME=1' "$stage") == 0 ]] ||
     fail 'unable to generate direct runtime policy'
 chmod 0700 "$stage"

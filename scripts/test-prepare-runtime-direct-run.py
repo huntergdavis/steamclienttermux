@@ -34,7 +34,7 @@ def main() -> None:
         destination = base / "config" / "steamlinuxruntime4-run-direct"
         expected = SOURCE.replace(
             "export PRESSURE_VESSEL_COPY_RUNTIME=1",
-            "export PRESSURE_VESSEL_COPY_RUNTIME=0",
+            "unset PRESSURE_VESSEL_COPY_RUNTIME",
         )
         assert destination.read_text(encoding="utf-8") == expected
         assert destination.stat().st_mode & 0o777 == 0o700
