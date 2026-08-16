@@ -4,10 +4,62 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source_dir="${1:-$HOME/steam-arm64/src/proot-production}"
 commit="a89b3732ec6ae1db674510f0843b2f3db54d0a2f"
+profile="${PROOT_BUILD_PROFILE:-portable}"
+jobs="${PROOT_BUILD_JOBS:-$(nproc)}"
 
 command -v git >/dev/null || { echo 'git is required' >&2; exit 1; }
 command -v make >/dev/null || { echo 'make is required' >&2; exit 1; }
 command -v sha256sum >/dev/null || { echo 'sha256sum is required' >&2; exit 1; }
+[[ "$jobs" =~ ^[1-9][0-9]*$ ]] || {
+    printf 'PROOT_BUILD_JOBS must be a positive integer\n' >&2
+    exit 1
+}
+
+profile_cflags=""
+profile_ldflags=""
+strip_release=0
+case "$profile" in
+    portable)
+        ;;
+    native)
+        compiler="${CC:-cc}"
+        command -v "$compiler" >/dev/null || {
+            printf 'Compiler is unavailable: %s\n' "$compiler" >&2
+            exit 1
+        }
+        target="$($compiler -dumpmachine 2>/dev/null || true)"
+        cpu_flag=""
+        case "$target" in
+            aarch64*)
+                arm_march=armv8-a
+                cpu_features=" $(sed -n 's/^Features[[:space:]]*:[[:space:]]*/ /p' \
+                    /proc/cpuinfo 2>/dev/null | head -n 1) "
+                [[ "$cpu_features" == *' crc32 '* ]] && arm_march+=+crc
+                if [[ "$cpu_features" == *' aes '* &&
+                        "$cpu_features" == *' pmull '* &&
+                        "$cpu_features" == *' sha1 '* &&
+                        "$cpu_features" == *' sha2 '* ]]; then
+                    arm_march+=+crypto
+                fi
+                [[ "$cpu_features" == *' atomics '* ]] && arm_march+=+lse
+                cpu_flag="-march=$arm_march"
+                ;;
+            arm*) cpu_flag=-mcpu=native ;;
+            *) cpu_flag=-march=native ;;
+        esac
+        profile_cflags="-Wall -Wextra -O3 -DNDEBUG -flto=thin -fno-plt -fno-semantic-interposition -fomit-frame-pointer -ffunction-sections -fdata-sections $cpu_flag -DWITH_LIBANDROID_SHMEM"
+        profile_ldflags="-ltalloc -landroid-shmem -flto=thin -Wl,-O2,--as-needed,--gc-sections,-z,relro,-z,now,-z,noexecstack"
+        strip_release=1
+        ;;
+    *)
+        printf 'PROOT_BUILD_PROFILE must be portable or native\n' >&2
+        exit 1
+        ;;
+esac
+build_options_hash="$({
+    printf 'profile=%s\ncflags=%s\nldflags=%s\nstrip=%s\n' \
+        "$profile" "$profile_cflags" "$profile_ldflags" "$strip_release"
+} | sha256sum | awk '{print $1}')"
 
 patches=(
     proot-steam-android.patch
@@ -56,11 +108,19 @@ if [[ -f "$stamp" ]]; then
     stamped_diff="$(sed -n 's/^diff_sha256=//p' "$stamp")"
     stamped_patches="$(sed -n 's/^patches=//p' "$stamp")"
     stamped_proot="$(sed -n 's/^proot_sha256=//p' "$stamp")"
+    stamped_profile="$(sed -n 's/^build_profile=//p' "$stamp")"
+    stamped_options="$(sed -n 's/^build_options_sha256=//p' "$stamp")"
+    if [[ -z "$stamped_profile" && "$profile" == portable ]]; then
+        stamped_profile=portable
+        stamped_options="$build_options_hash"
+    fi
     current_diff="$(git -C "$source_dir" diff --binary | sha256sum | awk '{print $1}')"
     if [[ "$stamped_commit" != "$commit" ]] ||
             [[ "$stamped_patchset" != "$patchset_hash" ]] ||
             [[ "$stamped_diff" != "$current_diff" ]] ||
             [[ "$stamped_patches" != "$patch_names" ]] ||
+            [[ "$stamped_profile" != "$profile" ]] ||
+            [[ "$stamped_options" != "$build_options_hash" ]] ||
             [[ ! "$stamped_proot" =~ ^[0-9a-f]{64}$ ]]; then
         printf 'Refusing changed or stale patched source tree: %s\n' "$source_dir" >&2
         exit 1
@@ -91,13 +151,30 @@ else
     write_stamp=1
 fi
 make -C "$source_dir/src" clean
-make -C "$source_dir/src" -j"$(nproc)" PROOT_WITH_LIBANDROID_SHMEM=1
+make_args=(-C "$source_dir/src" -j"$jobs" PROOT_WITH_LIBANDROID_SHMEM=1)
+if [[ "$profile" == native ]]; then
+    make_args+=("CFLAGS=$profile_cflags" "LDFLAGS=$profile_ldflags")
+fi
+make "${make_args[@]}"
 
 built_proot="$source_dir/src/proot"
 if [[ ! -x "$built_proot" ]]; then
     printf 'Build did not produce an executable PRoot: %s\n' "$built_proot" >&2
     exit 1
 fi
+if (( strip_release )); then
+    if command -v llvm-strip >/dev/null 2>&1; then
+        stripper=llvm-strip
+    else
+        stripper="${STRIP:-strip}"
+    fi
+    command -v "$stripper" >/dev/null || {
+        printf 'Strip tool is unavailable: %s\n' "$stripper" >&2
+        exit 1
+    }
+    "$stripper" --strip-unneeded "$built_proot"
+fi
+"$built_proot" --version >/dev/null
 built_proot_hash="$(sha256sum "$built_proot" | awk '{print $1}')"
 if (( write_stamp )); then
     stamp_tmp="$(mktemp "$stamp.tmp.XXXXXX")"
@@ -108,8 +185,9 @@ if (( write_stamp )); then
         fi
     }
     trap cleanup_stamp_tmp EXIT
-    printf 'commit=%s\npatchset_sha256=%s\ndiff_sha256=%s\npatches=%s\nproot_sha256=%s\n' \
+    printf 'commit=%s\npatchset_sha256=%s\ndiff_sha256=%s\npatches=%s\nbuild_profile=%s\nbuild_options_sha256=%s\nproot_sha256=%s\n' \
         "$commit" "$patchset_hash" "$current_diff" "$patch_names" \
+        "$profile" "$build_options_hash" \
         "$built_proot_hash" >"$stamp_tmp"
     mv -- "$stamp_tmp" "$stamp"
     stamp_tmp=""
@@ -120,4 +198,4 @@ elif [[ "$built_proot_hash" != "$stamped_proot" ]]; then
     exit 1
 fi
 
-printf 'Built patched PRoot: %s\n' "$source_dir/src/proot"
+printf 'Built patched PRoot (%s): %s\n' "$profile" "$source_dir/src/proot"
