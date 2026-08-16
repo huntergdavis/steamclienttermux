@@ -6,6 +6,8 @@ Candidate:
   size: 271 KiB
   sha256: 5e3a5b4992a9717005d6ac84268b24b9cd98fba61b977f790d7435bf16014657
   build-options-sha256: 879612bd4df72b01702c8da7694beab84374e0ecbeff898e0a1e1226276359f3
+  deterministic eight-job rebuild sha256: 5e3a5b4992a9717005d6ac84268b24b9cd98fba61b977f790d7435bf16014657
+  selector preflight after rebuild: PASS
 
 Benchmark target:
   Proton Experimental tree
@@ -42,7 +44,7 @@ Full generic boundary:
 
 Decision:
   Do not promote. Production remains the default. The candidate is available
-  only through the explicit STEAM_ARM64_PROOT_DIR selector.
+  only through STEAM_ARM64_PROOT_DIR, set to the candidate's src directory.
 
 State safety:
   Active glibc installation: unchanged

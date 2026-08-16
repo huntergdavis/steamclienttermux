@@ -632,7 +632,7 @@ profile without changing the selected binary:
 PROOT_BUILD_PROFILE=native PROOT_BUILD_JOBS=8 \
   scripts/build-proot.sh ~/steam-arm64/src/proot-production-native-candidate
 
-STEAM_ARM64_PROOT_DIR=~/steam-arm64/src/proot-production-native-candidate \
+STEAM_ARM64_PROOT_DIR=~/steam-arm64/src/proot-production-native-candidate/src \
   ~/bin/steam-arm-native -silent
 ```
 
@@ -645,7 +645,8 @@ median improvement on the original long path and a 0.17% regression on a short
 bind. A complete native-entry-to-Pressure-Vessel `/bin/true` smoke also passed
 in 47 seconds versus the earlier 42-second production observation. This does
 not justify promotion, so production remains the default and
-`STEAM_ARM64_PROOT_DIR` is an explicit A/B selector. See the exact
+`STEAM_ARM64_PROOT_DIR` is an explicit A/B selector for the directory that
+contains the candidate `proot` binary. See the exact
 [device transcript](docs/evidence/proot-native-profile-20260816.txt).
 
 The launcher applies the measured scheduling profile automatically: X11 and

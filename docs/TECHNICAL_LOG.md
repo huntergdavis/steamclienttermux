@@ -4590,6 +4590,9 @@ The final Tab S8+ candidate is 271 KiB with SHA-256
 `5e3a5b4992a9717005d6ac84268b24b9cd98fba61b977f790d7435bf16014657`.
 Its build-options hash is
 `879612bd4df72b01702c8da7694beab84374e0ecbeff898e0a1e1226276359f3`.
+Rebuilding the same stamped source tree with eight jobs reproduced the exact
+candidate SHA-256. A subsequent native dependency preflight passed when the
+selector named that candidate's `src` directory.
 All four production regression probes passed: a spaced compatibility-tool
 path, shared `/tmp` bind, post-`--proc` `/proc/net`, and escaped mountinfo path.
 
@@ -4604,7 +4607,8 @@ The complete native entry -> Bionic bridge -> candidate PRoot -> Pressure
 Vessel/Bubblewrap -> `/bin/true` path returned zero in 47 seconds. The earlier
 production run was 42 seconds, so the profile has no defensible end-to-end
 startup win yet. It is deliberately not promoted. All three launchers accept
-`STEAM_ARM64_PROOT_DIR` for explicit A/B selection and validate the candidate
-stamp, binary hash, and required production patch before use. The complete
+`STEAM_ARM64_PROOT_DIR` for explicit A/B selection of a directory containing a
+`proot` binary, and validate the candidate stamp, binary hash, and required
+production patch before use. The complete
 numbers and hashes are retained in
 [`docs/evidence/proot-native-profile-20260816.txt`](evidence/proot-native-profile-20260816.txt).
