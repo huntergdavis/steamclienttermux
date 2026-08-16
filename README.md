@@ -55,7 +55,11 @@ Mesa Turnip, official Proton 11 ARM64, and its bundled FEX/DXVK stack.
   A later SSH-spawned native-Low pass reported 7.2/13.8/10.3 FPS, but the
   complete X/Steam/Wine/game tree was in `/moderate` + `/background` and
   restricted to CPUs 0-3; that result is excluded as scheduler-failure
-  evidence.
+  evidence. The first foreground launch through the hardened launcher then
+  held the complete workload in `/top-app`, verified the game/Wine CPUs 1-7,
+  RakNet CPU 1, and nine Steam helpers on CPU 0 before exiting its guard, and
+  produced a captured native-Low result of **19.0/36.0/25.7 FPS**. That is
+  15.8% above the original three-run native-Low mean.
   See the [benchmark report](docs/TOMB_RAIDER_BENCHMARK.md) and the ranked
   [optimization plan](docs/TOMB_RAIDER_OPTIMIZATION_PLAN.md).
 - Burnout remains experimental; its detailed EA, FEX, and DXVK investigation is
@@ -193,6 +197,8 @@ native-glibc A/B.
 ![Tomb Raider shared-UID 1080p benchmark result](docs/evidence/tombraider-shareduid-1080p-run1-2026-08-15.png)
 
 ![Tomb Raider shared-UID panel-native benchmark result](docs/evidence/tombraider-shareduid-native-2800x1752-run1-2026-08-15.png)
+
+![Tomb Raider hardened foreground-launch benchmark result](docs/evidence/tombraider-native-hardened-run1-2026-08-16.png)
 
 ## What changed
 

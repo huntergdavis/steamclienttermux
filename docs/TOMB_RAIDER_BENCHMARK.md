@@ -447,6 +447,32 @@ automatic launcher/affinity implementation returned no indexed match; this
 guard encodes the repository's measured 31 FPS scheduling profile and the
 shared-UID foreground A/B cited above.
 
+### Hardened foreground-launch validation
+
+The first real foreground run through the hardened launcher reported
+**19.0 FPS minimum, 36.0 maximum, and 25.7 average** at the panel-native
+2800x1752 Low target. This is a valid scheduling pass: before the timed scene,
+the guard verified the exact App ID 203160 game with 56 threads on CPUs 1-7,
+the single `Raknet-RecvFrom` thread on CPU 1, Wine auxiliaries on CPUs 1-7,
+nine exact Steam helpers on CPU 0, and the complete game lineage in
+`/top-app`. It then exited after thirty stable seconds, so no affinity poller
+or logger ran during the benchmark.
+
+Relative to the original three-run native-Low mean of 11.37/28.8/22.2 FPS,
+this pass raised minimum by 67.1%, maximum by 25.0%, and average by 15.8%.
+Relative to the excluded SSH-background pass, average throughput rose 149.5%.
+One run does not establish a replacement mean, but it validates both the
+foreground-lineage gate and automatic affinity path.
+
+The result dialog is preserved as
+[`tombraider-native-hardened-run1-2026-08-16.png`](evidence/tombraider-native-hardened-run1-2026-08-16.png).
+The post-run audit still showed the 2800x1752 X root/window, FEX `safe`, the
+game in `/top-app`, about 1.81 GiB available RAM, and about 5.01 GiB free swap;
+this was not an OOM. As in earlier native passes, one late-created
+`dxvk-cache` thread had widened itself to CPUs 0-7 after the guard exited. The
+result remains valid, but that reset is now a concrete candidate for the next
+low-overhead affinity improvement.
+
 ## What the percentage difference means
 
 The closest built-in benchmark recording found during this research used

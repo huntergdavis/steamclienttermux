@@ -77,6 +77,11 @@ These screenshots capture milestones and failures from the original tablet.
   unchanged panel-native Low pass, visibly reporting 13.6 FPS minimum, 28.7
   maximum, and 21.7 average. Together, the three native passes establish an
   11.37/28.8/22.2 FPS mean.
+- `tombraider-native-hardened-run1-2026-08-16.png`: the first panel-native Low
+  pass launched from the hardened foreground-only script, visibly reporting
+  19.0 FPS minimum, 36.0 maximum, and 25.7 average. Before the benchmark, its
+  finite guard verified `/top-app`, game/Wine CPUs 1-7, RakNet CPU 1, and nine
+  Steam helpers on CPU 0, then exited so it was absent from the timed scene.
 - `tombraider-gaminghub-added-performance-unconfirmed-2026-08-15.png`: a
   panel-native Low pass after both shared-UID apps were added to Gaming Hub but
   before the separate Performance selector was confirmed, reporting

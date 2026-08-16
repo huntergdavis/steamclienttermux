@@ -4336,3 +4336,26 @@ gate, and single-instance locking. A tablet cold-start test over SSH returned
 PulseAudio processes afterward. The required focused `deja` search returned
 no indexed implementation; this change reuses the repository's measured 31
 FPS mask split and foreground-ownership evidence.
+
+## 2026-08-16: hardened foreground launch validates at 25.7 FPS
+
+The production foreground path was then exercised from the tablet's visible
+Termux terminal. X11, PRoot, Steam, Proton/Wine, and the real App ID 203160
+`TombRaider.exe` all inherited `/top-app`. X11 and Steam were pinned to CPUs
+0-3, nine exact Steam web helpers to CPU 0, the game and verified Wine
+auxiliaries to CPUs 1-7, and `Raknet-RecvFrom` to CPU 1. The affinity guard
+observed a visible 2800x1752 Tomb Raider window, held all masks stable for
+thirty seconds, logged readiness, and exited before the timed scene.
+
+The user-read result was **19.0 FPS minimum, 36.0 maximum, and 25.7 average**;
+a subsequent full-window capture preserved the same dialog at exactly
+2800x1752. Average FPS is 15.8% above the original 22.2 FPS three-run native
+Low mean and 149.5% above the excluded 10.3 FPS SSH-background pass. About
+1,903,012 KiB RAM and 5,256,720 KiB swap remained available afterward, so the
+pass was not an OOM. The default FEX profile remained `safe`.
+
+The post-run verifier found the same recurring caveat: one late `dxvk-cache`
+thread had widened itself to CPUs 0-7 while the main process and other game
+threads retained CPUs 1-7. No verifier or screenshot process ran during the
+benchmark itself. The captured result is
+[`tombraider-native-hardened-run1-2026-08-16.png`](evidence/tombraider-native-hardened-run1-2026-08-16.png).
