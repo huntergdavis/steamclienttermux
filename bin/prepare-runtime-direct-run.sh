@@ -22,6 +22,8 @@ grep -Fqx '# Generated file, do not edit' "$source_run" ||
     fail 'runtime run script is not the expected generated form'
 grep -Fq 'pressure-vessel-unruntime' "$source_run" ||
     fail 'runtime run script does not invoke pressure-vessel-unruntime'
+[[ $(grep -Fxc 'export PRESSURE_VESSEL_RUNTIME="${dir}"' "$source_run") == 1 ]] ||
+    fail 'runtime run script has an unexpected runtime path'
 
 install -d -m 0700 -- "$(dirname -- "$destination")"
 [[ ! -L $destination ]] || fail "destination cannot be a symlink: $destination"
@@ -33,10 +35,12 @@ cleanup() {
 }
 trap cleanup EXIT
 
-sed 's/^export PRESSURE_VESSEL_COPY_RUNTIME=1$/unset PRESSURE_VESSEL_COPY_RUNTIME/' \
+sed -e 's/^export PRESSURE_VESSEL_COPY_RUNTIME=1$/unset PRESSURE_VESSEL_COPY_RUNTIME/' \
+    -e 's|^export PRESSURE_VESSEL_RUNTIME="${dir}"$|export PRESSURE_VESSEL_RUNTIME="${dir}/files"|' \
     "$source_run" >"$stage"
 [[ $(grep -Fxc 'unset PRESSURE_VESSEL_COPY_RUNTIME' "$stage") == 1 &&
-        $(grep -Fxc 'export PRESSURE_VESSEL_COPY_RUNTIME=1' "$stage") == 0 ]] ||
+        $(grep -Fxc 'export PRESSURE_VESSEL_COPY_RUNTIME=1' "$stage") == 0 &&
+        $(grep -Fxc 'export PRESSURE_VESSEL_RUNTIME="${dir}/files"' "$stage") == 1 ]] ||
     fail 'unable to generate direct runtime policy'
 chmod 0700 "$stage"
 

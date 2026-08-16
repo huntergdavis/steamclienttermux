@@ -9,6 +9,7 @@ SCRIPT = Path(__file__).resolve().parents[1] / "bin" / "prepare-runtime-direct-r
 SOURCE = """#!/bin/sh
 # Generated file, do not edit
 export PRESSURE_VESSEL_COPY_RUNTIME=1
+export PRESSURE_VESSEL_RUNTIME="${dir}"
 exec \"${pressure_vessel}/bin/pressure-vessel-unruntime\" \"$@\"
 """
 
@@ -35,6 +36,9 @@ def main() -> None:
         expected = SOURCE.replace(
             "export PRESSURE_VESSEL_COPY_RUNTIME=1",
             "unset PRESSURE_VESSEL_COPY_RUNTIME",
+        ).replace(
+            'export PRESSURE_VESSEL_RUNTIME="${dir}"',
+            'export PRESSURE_VESSEL_RUNTIME="${dir}/files"',
         )
         assert destination.read_text(encoding="utf-8") == expected
         assert destination.stat().st_mode & 0o777 == 0o700
