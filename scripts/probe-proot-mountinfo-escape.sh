@@ -2,6 +2,8 @@
 set -euo pipefail
 
 if [[ "${1:-}" != "--inside-proot" ]]; then
+    script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+    script="$script_dir/${BASH_SOURCE[0]##*/}"
     custom_proot_dir="${PROOT_BUILD_DIR:-$HOME/steam-arm64/src/proot-production/src}"
     if [[ ! -x "$custom_proot_dir/proot" ]]; then
         printf 'Patched PRoot not found: %s/proot\n' "$custom_proot_dir" >&2
@@ -9,7 +11,7 @@ if [[ "${1:-}" != "--inside-proot" ]]; then
     fi
     export PATH="$custom_proot_dir:$PATH"
     exec proot-distro login debian --shared-tmp -- \
-        /bin/bash "$0" --inside-proot
+        /bin/bash "$script" --inside-proot
 fi
 
 probe_root="$(mktemp -d '/tmp/proot mountinfo probe.XXXXXX')"
