@@ -22,6 +22,7 @@
 #define GTAIV_SERVICE_FIRST_BATCH "C:\\gtaiv-service-first.cmd"
 #define PROC_NET_SUFFIX "/config/proc-net"
 #define HOST_VK_ICD_SUFFIX "/mesa-kgsl/icd.d/freedreno-private.json"
+#define HOST_VK_ICD_TARGET "/overrides/share/vulkan/icd.d/freedreno-private.json"
 
 struct expected_file
 {
@@ -475,7 +476,7 @@ validate_proc_net (const char *path)
   return directory_fd;
 }
 
-static void
+static int
 validate_host_vk_driver_files (const char *proc_net_path, const char *path)
 {
   char expected[PATH_MAX];
@@ -483,7 +484,7 @@ validate_host_vk_driver_files (const char *proc_net_path, const char *path)
   int fd;
 
   if (path == NULL)
-    return;
+    return -1;
   if (path[0] != '/')
     fail ("STEAM_ARM64_HOST_VK_DRIVER_FILES must be an absolute path");
 
@@ -504,7 +505,8 @@ validate_host_vk_driver_files (const char *proc_net_path, const char *path)
   if (fd < 0)
     fail ("cannot open native Vulkan ICD: %s", strerror (errno));
   validate_regular_file (fd, "native Vulkan ICD", false);
-  close (fd);
+  set_inherited (fd, "native Vulkan ICD");
+  return fd;
 }
 
 static int
@@ -648,6 +650,7 @@ main (int argc, char **argv)
   int args_index = -1;
   int args_fd = -1;
   int proc_net_fd;
+  int host_vk_driver_files_fd;
   int gtaiv_view_fd;
   int gtaiv_directory_fds[
     sizeof (gtaiv_directories) / sizeof (gtaiv_directories[0])];
@@ -708,7 +711,8 @@ main (int argc, char **argv)
     }
 
   proc_net_fd = validate_proc_net (proc_net_path);
-  validate_host_vk_driver_files (proc_net_path, host_vk_driver_files);
+  host_vk_driver_files_fd =
+    validate_host_vk_driver_files (proc_net_path, host_vk_driver_files);
   gtaiv_view_fd = validate_gtaiv_view (proc_net_path, proc_net_fd,
                                        gtaiv_target, sizeof (gtaiv_target),
                                        gtaiv_directory_fds,
@@ -760,22 +764,25 @@ main (int argc, char **argv)
           write_arg (replacement_fd, gtaiv_directory_target);
         }
     }
-  if (host_vk_driver_files != NULL)
+  if (host_vk_driver_files_fd >= 0)
     {
       /* Pressure Vessel rewrites the private host ICD to a generated
        * /overrides manifest. PRoot cannot materialize that individual
-       * generated file, although the original protected host path remains
-       * visible in the container. Final assignments for both the current and
-       * legacy Vulkan-loader variables select the validated original manifest
-       * without bypassing the provider library or the rest of Pressure
-       * Vessel's overrides. Winevulkan consults the legacy name even when a
-       * native Vulkan client prefers VK_DRIVER_FILES. */
+       * generated file. Bind the validated original file descriptor over the
+       * intended target, then make both the current and legacy Vulkan-loader
+       * variables agree on that container-local path. The descriptor bind is
+       * visible to Winevulkan's WOW64 side as well as native Vulkan clients. */
+      snprintf (replacement_fd_value, sizeof (replacement_fd_value), "%d",
+                host_vk_driver_files_fd);
+      write_arg (replacement_fd, "--ro-bind-fd");
+      write_arg (replacement_fd, replacement_fd_value);
+      write_arg (replacement_fd, HOST_VK_ICD_TARGET);
       write_arg (replacement_fd, "--setenv");
       write_arg (replacement_fd, "VK_DRIVER_FILES");
-      write_arg (replacement_fd, host_vk_driver_files);
+      write_arg (replacement_fd, HOST_VK_ICD_TARGET);
       write_arg (replacement_fd, "--setenv");
       write_arg (replacement_fd, "VK_ICD_FILENAMES");
-      write_arg (replacement_fd, host_vk_driver_files);
+      write_arg (replacement_fd, HOST_VK_ICD_TARGET);
     }
   write_all (replacement_fd, args_data + payload_offset,
              args_size - payload_offset);

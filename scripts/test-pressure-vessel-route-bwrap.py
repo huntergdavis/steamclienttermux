@@ -60,6 +60,7 @@ def mock_bwrap():
 
     injected = None
     gtaiv_injected = None
+    vk_icd_bind_injected = None
     vk_driver_files_injected = None
     vk_icd_filenames_injected = None
     gtaiv_directory_injections = []
@@ -67,6 +68,10 @@ def mock_bwrap():
         if arg == "--ro-bind-fd":
             if args[index + 2] == "/proc/net":
                 injected = index
+            elif args[index + 2] == (
+                "/overrides/share/vulkan/icd.d/freedreno-private.json"
+            ):
+                vk_icd_bind_injected = index
             elif args[index + 2].endswith("/Grand Theft Auto IV/GTAIV"):
                 gtaiv_injected = index
             elif "/Grand Theft Auto IV/GTAIV/" in args[index + 2]:
@@ -151,8 +156,20 @@ def mock_bwrap():
                 ),
             }
     if vk_driver_files_injected is not None:
+        vk_icd_source_fd = int(args[vk_icd_bind_injected + 1])
         payload.update(
             {
+                "vk_icd_source": os.readlink(
+                    f"/proc/self/fd/{vk_icd_source_fd}"
+                ),
+                "vk_icd_target": args[vk_icd_bind_injected + 2],
+                "vk_icd_bind_before_terminator": (
+                    "--" not in args
+                    or vk_icd_bind_injected < args.index("--")
+                ),
+                "vk_icd_bind_at_end": (
+                    vk_icd_bind_injected == len(args) - 9
+                ),
                 "vk_driver_files": args[vk_driver_files_injected + 2],
                 "vk_driver_files_before_terminator": (
                     "--" not in args
@@ -331,8 +348,13 @@ def run_tests():
         )
         assert result.returncode == 0, result.stderr
         payload = json.loads(result.stdout)
-        assert payload["vk_driver_files"] == str(private_icd)
-        assert payload["vk_icd_filenames"] == str(private_icd)
+        icd_target = "/overrides/share/vulkan/icd.d/freedreno-private.json"
+        assert payload["vk_icd_source"] == str(private_icd)
+        assert payload["vk_icd_target"] == icd_target
+        assert payload["vk_icd_bind_before_terminator"] is True
+        assert payload["vk_icd_bind_at_end"] is False
+        assert payload["vk_driver_files"] == icd_target
+        assert payload["vk_icd_filenames"] == icd_target
         assert payload["vk_driver_files_before_terminator"] is True
         assert payload["vk_icd_filenames_before_terminator"] is True
         assert payload["vk_driver_files_at_end"] is False
@@ -349,8 +371,11 @@ def run_tests():
         )
         assert result.returncode == 0, result.stderr
         payload = json.loads(result.stdout)
-        assert payload["vk_driver_files"] == str(private_icd)
-        assert payload["vk_icd_filenames"] == str(private_icd)
+        assert payload["vk_icd_source"] == str(private_icd)
+        assert payload["vk_icd_target"] == icd_target
+        assert payload["vk_icd_bind_at_end"] is True
+        assert payload["vk_driver_files"] == icd_target
+        assert payload["vk_icd_filenames"] == icd_target
         assert payload["vk_driver_files_at_end"] is True
         assert payload["vk_icd_filenames_at_end"] is True
 
