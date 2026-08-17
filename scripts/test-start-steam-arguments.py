@@ -29,6 +29,10 @@ def parse(*arguments, background=None):
 
 
 def main():
+    source = SCRIPT.read_text()
+    assert 'duplicate_process_timeout="${STEAM_DUPLICATE_PROCESS_TIMEOUT:-10}"' in source
+    assert source.count("settle_steam_processes") == 3
+    assert "multiple Steam main processes remained" in source
     assert parse() == {"appid": "", "background": "0", "argc": "0", "args": []}
     assert parse("203160", "-nolauncher", "-benchmark") == {
         "appid": "203160",

@@ -80,6 +80,7 @@ x11_socket="${PREFIX:-}/tmp/.X11-unix/X${display#:}"
 x11_log="$base/logs/termux-x11-minimal.log"
 profile="${STEAM_ARM64_FEX_PROFILE:-safe}"
 process_timeout="${STEAM_PROCESS_TIMEOUT:-180}"
+duplicate_process_timeout="${STEAM_DUPLICATE_PROCESS_TIMEOUT:-10}"
 window_timeout="${STEAM_WINDOW_TIMEOUT:-1200}"
 app_timeout="${STEAM_APP_TIMEOUT:-1200}"
 window_stable_seconds="${STEAM_WINDOW_STABLE_SECONDS:-5}"
@@ -139,6 +140,16 @@ matching_pids() {
 
 steam_pid_is_current() {
     steam_arm64_process_matches "$1" "$base/client/steamrtarm64/steam"
+}
+
+settle_steam_processes() {
+    local _
+    for _ in $(seq 1 "$duplicate_process_timeout"); do
+        mapfile -t steam_pids < <(matching_pids steam)
+        ((${#steam_pids[@]} <= 1)) && return 0
+        sleep 1
+    done
+    return 1
 }
 
 x11_is_ready() {
@@ -458,8 +469,9 @@ x11_bridge_has_dead_binder() {
     ' <<<"$recent"
 }
 
-for value_name in process_timeout window_timeout app_timeout window_stable_seconds \
-        minimum_window_width minimum_window_height; do
+for value_name in process_timeout duplicate_process_timeout window_timeout \
+        app_timeout window_stable_seconds minimum_window_width \
+        minimum_window_height; do
     value="${!value_name}"
     [[ "$value" =~ ^[1-9][0-9]*$ ]] ||
         fail "$value_name must be a positive integer (got: $value)"
@@ -582,7 +594,8 @@ mapfile -t steam_pids < <(matching_pids steam)
 gameprocess_log_offset="$(stat -c %s -- "$gameprocess_log" 2>/dev/null || printf '0\n')"
 [[ "$gameprocess_log_offset" =~ ^[0-9]+$ ]] || gameprocess_log_offset=0
 if [[ "${#steam_pids[@]}" -gt 1 ]]; then
-    fail "multiple Steam main processes found: ${steam_pids[*]}"
+    settle_steam_processes ||
+        fail "multiple Steam main processes remained for ${duplicate_process_timeout}s: ${steam_pids[*]}"
 fi
 if [[ "${#steam_pids[@]}" -eq 1 ]]; then
     require_top_app Steam "${steam_pids[0]}"
@@ -663,7 +676,11 @@ for _ in $(seq 1 "$process_timeout"); do
         break
     fi
     if [[ "${#steam_pids[@]}" -gt 1 ]]; then
-        fail "multiple Steam main processes found: ${steam_pids[*]}"
+        settle_steam_processes ||
+            fail "multiple Steam main processes remained for ${duplicate_process_timeout}s: ${steam_pids[*]}"
+        if [[ "${#steam_pids[@]}" -eq 1 ]]; then
+            break
+        fi
     fi
     if ! kill -0 "$launcher_pid" 2>/dev/null; then
         fail "Steam launcher exited before Steam appeared; inspect $steam_log"
