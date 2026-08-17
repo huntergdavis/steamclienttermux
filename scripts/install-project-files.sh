@@ -99,6 +99,8 @@ install_one "$native_entry_stage" \
     "$base/compat-bin/steam-arm64-native-bwrap-entry" 700
 install_one "$native_entry_stage" \
     "$base/runtime/SteamLinuxRuntime_4-arm64-native/_v2-entry-point" 700
+install_one "$repo_root/config/steam-arm64-runtime-toolmanifest.vdf" \
+    "$base/runtime/SteamLinuxRuntime_4-arm64-native/toolmanifest.vdf" 600
 install_one "$tmp_shim_stage" \
     "$base/compat-bin/steam-arm64-native-tmp.so" 700
 install_one "$native_lsof_stage" \

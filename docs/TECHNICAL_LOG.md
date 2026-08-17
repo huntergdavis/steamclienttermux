@@ -4934,3 +4934,24 @@ bind target is symlink nested bind Steam library common symlink external
 storage"` searches returned no indexed solution. The design reuses this
 repository's existing internal-control/external-payload split and exact nested
 bind order.
+
+The first launch after that migration loaded all three removable appmanifests,
+populated the library entry with App IDs 12210, 203160, and 588950, and advanced
+Tomb Raider through cloud/stat synchronization to `CreatingProcess`. It then
+failed deterministically with `AppError_51` and:
+
+```text
+Tool 4185400 "Steam Linux Runtime 4.0 - Arm64" unsupported version 0.
+```
+
+The installed official runtime contained a valid version-2 `toolmanifest.vdf`,
+but the native local-tool declaration intentionally points at the synthetic
+wrapper directory. That directory contained only `_v2-entry-point`, so Steam
+correctly registered App ID 4185400 but found no protocol manifest at its
+declared install path. The installer now places a controlled version-2 runtime
+manifest beside the native entry point. A regression locks its command line,
+container-runtime layer, subprocess-reaper flag, and installer destination.
+The required `deja "Steam compatmanager unsupported version 0 compatibility
+tool AppError_51 Steam Linux Runtime 4 Arm64 toolmanifest"` search returned no
+indexed solution; the manifest schema reuses the validated official ARM64
+Runtime 4 metadata already installed on the tablet.

@@ -688,6 +688,12 @@ boundary. The bridge preserves arbitrary Steam launch-option environment
 variables, removable-library binds, PulseAudio, Mesa/Turnip, Proton, and FEX,
 so it is not specific to Tomb Raider or GTA IV.
 
+The synthetic native Runtime 4 registration includes its own validated version-2
+`toolmanifest.vdf` beside `_v2-entry-point`. Steam reads tool metadata from the
+declared local `install_path`; pointing that path at a wrapper-only directory
+otherwise registers the App ID but leaves its protocol version at zero, causing
+`AppError_51` before the game boundary.
+
 Runtime 4 no longer rebuilds its mutable sysroot for every game. The installer
 strictly applies Valve's `usr-mtree.txt.gz`, verifies every declared size and
 SHA-256, materializes PRoot pseudo-hardlinks, recreates Valve's merged-`/usr`
