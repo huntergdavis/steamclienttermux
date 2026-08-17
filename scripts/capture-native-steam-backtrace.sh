@@ -10,6 +10,7 @@ wait_seconds=${STEAM_ARM64_GDB_WAIT:-180}
 stamp=$(date +%Y%m%d-%H%M%S)
 log=$base/logs/native-steam-gdb-$stamp.log
 launch_log=$base/logs/native-steam-gdb-launch-$stamp.log
+pid_file=$base/run/native-steam/debug-pid-$stamp
 
 command -v gdb >/dev/null 2>&1 || {
     printf 'capture-native-steam-backtrace: gdb is unavailable\n' >&2
@@ -43,7 +44,13 @@ fi
 
 printf 'Launching native Steam; launcher log: %s; backtrace log: %s\n' \
     "$launch_log" "$log"
-nohup "$start_script" "$@" >"$launch_log" 2>&1 </dev/null &
+[[ ! -e $pid_file && ! -L $pid_file ]] || {
+    printf 'capture-native-steam-backtrace: debugger PID file exists: %s\n' \
+        "$pid_file" >&2
+    exit 1
+}
+nohup env STEAM_ARM64_DEBUG_PID_FILE="$pid_file" \
+    "$start_script" "$@" >"$launch_log" 2>&1 </dev/null &
 launcher_pid=$!
 
 printf 'Waiting up to %ss for native Steam PID %s to produce\n' \
@@ -51,8 +58,13 @@ printf 'Waiting up to %ss for native Steam PID %s to produce\n' \
 deadline=$((SECONDS + wait_seconds))
 pid=
 while (( SECONDS < deadline )); do
-    pid=$(pgrep -f "^$steam( |$)" | head -n 1 || true)
-    [[ $pid =~ ^[1-9][0-9]*$ ]] && break
+    if [[ -f $pid_file && ! -L $pid_file ]]; then
+        read -r pid <"$pid_file"
+        [[ $pid =~ ^[1-9][0-9]*$ && -r /proc/$pid/status ]] && break
+        printf 'capture-native-steam-backtrace: invalid debugger PID file: %s\n' \
+            "$pid_file" >&2
+        exit 1
+    fi
     if ! kill -0 "$launcher_pid" 2>/dev/null; then
         printf 'capture-native-steam-backtrace: launcher exited before Steam; inspect %s\n' \
             "$launch_log" >&2

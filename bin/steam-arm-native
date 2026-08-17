@@ -335,8 +335,43 @@ esac
 printf 'Starting no-PRoot ARM64 Steam on DISPLAY=%s (FEX %s)\nLog: %s\n' \
     "$display" "$fex_profile" "$log"
 cd "$client_root"
+
+debug_pid_file=${STEAM_ARM64_DEBUG_PID_FILE:-}
+declare -a debug_prefix=()
+if [[ -n $debug_pid_file ]]; then
+    case $debug_pid_file in
+        "$runtime_dir"/debug-pid-[0-9]*) ;;
+        *) fail "unsafe debugger PID file: $debug_pid_file" ;;
+    esac
+    [[ ! -e $debug_pid_file && ! -L $debug_pid_file ]] ||
+        fail "debugger PID file already exists: $debug_pid_file"
+
+    run_stopped_for_debugger() {
+        local pid_file=$1 child status
+        shift
+        "$@" &
+        child=$!
+        if ! kill -STOP "$child" 2>/dev/null; then
+            wait "$child"
+            return $?
+        fi
+        (set -o noclobber; printf '%s\n' "$child" >"$pid_file") || {
+            kill -CONT "$child" 2>/dev/null || true
+            wait "$child"
+            return 1
+        }
+        wait "$child"
+        status=$?
+        if [[ -f $pid_file && ! -L $pid_file ]]; then
+            unlink -- "$pid_file"
+        fi
+        return "$status"
+    }
+    debug_prefix=(run_stopped_for_debugger "$debug_pid_file")
+fi
+
 set +e
-env -u GLIBC_LD_LIBRARY_PATH \
+"${debug_prefix[@]}" env -u GLIBC_LD_LIBRARY_PATH \
     "${fex_profile_env[@]}" \
     "${removable_environment[@]}" \
     STEAM_ARM64_BASE="$base" \

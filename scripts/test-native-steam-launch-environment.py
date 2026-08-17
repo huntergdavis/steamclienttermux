@@ -12,7 +12,11 @@ def main() -> None:
     assert 'if ! bash "$session_tool" status' in source
     assert 'bash "$session_tool" start' in source
     assert '\n    "$session_tool" start\n' not in source
-    assert 'cd "$client_root"\nset +e' in source
+    assert 'cd "$client_root"' in source
+    assert 'debug_pid_file=${STEAM_ARM64_DEBUG_PID_FILE:-}' in source
+    assert 'debug_prefix=(run_stopped_for_debugger "$debug_pid_file")' in source
+    assert '"${debug_prefix[@]}" env -u GLIBC_LD_LIBRARY_PATH' in source
+    assert 'set +e' in source
     assert 'SSL_CERT_FILE="$ssl_cert_file"' in source
     assert 'SSL_CERT_DIR="$ssl_cert_dir"' in source
     assert 'FONTCONFIG_FILE="$fontconfig_file"' in source
