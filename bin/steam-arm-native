@@ -46,7 +46,7 @@ fail() {
     exit 1
 }
 
-for command in realpath stat sha256sum python3 dbus-daemon; do
+for command in realpath stat sha256sum python3 dbus-daemon bash; do
     command -v "$command" >/dev/null 2>&1 ||
         fail "required command is missing: $command"
 done
@@ -222,8 +222,8 @@ else
 fi
 manifest_stage=
 
-if ! "$session_tool" status >/dev/null 2>&1; then
-    "$session_tool" start
+if ! bash "$session_tool" status >/dev/null 2>&1; then
+    bash "$session_tool" start
 fi
 if [[ -n ${TGCOMPAT_SOCKET:-} ]]; then
     socket_path=$TGCOMPAT_SOCKET
