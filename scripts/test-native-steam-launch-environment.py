@@ -31,6 +31,8 @@ def main() -> None:
     assert 'TGCOMPAT_PROC_SELF_EXE="$client/steam"' in source
     assert 'TGCOMPAT_EXEC_LD_PRELOAD="$preload"' in source
     assert 'TGCOMPAT_EXEC_SHELL="$linux_root/usr/bin/sh"' in source
+    assert 'TGCOMPAT_EXEC_PATH_FROM="$arm_runtime_depot/_v2-entry-point"' in source
+    assert 'TGCOMPAT_EXEC_PATH_TO="$native_runtime/_v2-entry-point"' in source
     assert 'robust_shim=${TGCOMPAT_ROBUST_SHIM:-' in source
     assert "grep -aFq 'TGCOMPAT_ROBUST_LIST'" in source
     assert 'TGCOMPAT_ROBUST_LIST=1' in source
@@ -40,6 +42,8 @@ def main() -> None:
     assert "grep -aFq 'TGCOMPAT_PROC_SELF_EXE'" in source
     assert "grep -aFq 'TGCOMPAT_EXEC_LD_PRELOAD'" in source
     assert "grep -aFq 'TGCOMPAT_EXEC_SHELL'" in source
+    assert "grep -aFq 'TGCOMPAT_EXEC_PATH_FROM'" in source
+    assert "grep -aFq 'TGCOMPAT_EXEC_PATH_TO'" in source
     print("native Steam launch-environment tests: PASS")
 
 

@@ -693,6 +693,11 @@ The synthetic native Runtime 4 registration includes its own validated version-2
 declared local `install_path`; pointing that path at a wrapper-only directory
 otherwise registers the App ID but leaves its protocol version at zero, causing
 `AppError_51` before the game boundary.
+Steam nevertheless constructs the dependency command from Runtime AppID
+4185400's official depot path. The exact exec-path policy redirects only that
+depot `_v2-entry-point` to the protected native bridge binary, across the full
+exec family, while preserving Valve's original `argv[0]`. The official runtime
+files remain unchanged.
 
 Steam replaces `LD_PRELOAD` when it builds a game command, adding its x86
 overlay objects. Native ARM64 `/bin/sh` must start before the game can reach the

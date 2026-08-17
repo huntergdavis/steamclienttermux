@@ -5016,3 +5016,29 @@ before the next live retry. The required `deja "SteamLaunch AppId exit 127
 absolute /bin/sh native pathname shim LD_PRELOAD Termux glibc execve"` search
 returned no indexed solution; the implementation reuses the compatibility
 layer's existing full exec-family coverage and content-addressed loader path.
+
+That correction crossed the shell boundary on the next tablet launch. At
+05:11:35 UTC, Steam added PID 17759 without either overlay-preload warning or
+the former `/bin/sh` `libGL.so.1` error. Valve's official Runtime 4 `run` script
+then started and failed at line 6 because its Debian `readlink` had been invoked
+outside PRoot and Android could not supply `/lib/ld-linux-aarch64.so.1`.
+Gameprocess tracking ended one second later.
+
+The command itself revealed why: although Steam loads the version-2 manifest
+from the registered synthetic `install_path`, dependency AppID 4185400 is
+canonicalized to the official depot `_v2-entry-point` in every emitted command
+prefix. The protected native bridge binary was never selected, so no PRoot
+process existed when the shell began resolving Debian utilities.
+
+`termux-glibc-compat` commit `46544b2` adds a paired, exact execution-path
+policy. Both `TGCOMPAT_EXEC_PATH_FROM` and `TGCOMPAT_EXEC_PATH_TO` must be
+absolute and supplied together by the child or calling process; partial,
+relative, and nonmatching values do nothing. It preserves the original
+`argv[0]` and covers the same seven exec/spawn entry points as the loader
+boundary. The native launcher maps only the official Runtime 4 entry point to
+its validated native bridge binary, which then removes every native loader and
+redirect variable before Bionic Bash enters PRoot. Valve's depot remains
+untouched. The required `deja "SteamLinuxRuntime arm64 run readlink cannot
+execute required file not found Android Termux staged glibc loader"` search
+returned no indexed solution; this reuses the existing synthetic bridge and
+full exec-family policy rather than patching an update-owned runtime script.

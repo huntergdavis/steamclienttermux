@@ -8,6 +8,9 @@ import tempfile
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / "bin" / "steam-arm64-native-bwrap"
+ENTRY_SOURCE = (
+    Path(__file__).resolve().parents[1] / "diagnostics" / "native-bwrap-entry.c"
+)
 
 
 def executable(path: Path, body: str = "#!/bin/sh\nexit 0\n") -> None:
@@ -157,6 +160,13 @@ def main() -> None:
         bridge_source = SCRIPT.read_text(encoding="utf-8")
         assert "TGCOMPAT_EXEC_LD_PRELOAD" in bridge_source
         assert "TGCOMPAT_EXEC_SHELL" in bridge_source
+        assert "TGCOMPAT_EXEC_PATH_FROM" in bridge_source
+        assert "TGCOMPAT_EXEC_PATH_TO" in bridge_source
+
+        entry_source = ENTRY_SOURCE.read_text(encoding="utf-8")
+        assert '"TGCOMPAT_EXEC_SHELL"' in entry_source
+        assert '"TGCOMPAT_EXEC_PATH_FROM"' in entry_source
+        assert '"TGCOMPAT_EXEC_PATH_TO"' in entry_source
 
         (selected_proot / "proot").write_text("changed after stamp\n", encoding="utf-8")
         changed = run_rejected_preflight(prefix, base, selected_proot)
