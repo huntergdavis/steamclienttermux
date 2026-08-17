@@ -119,6 +119,9 @@ def main() -> None:
         assert MODULE.proton_smoke_environment("proton-arm64-cmd") == {
             "WINEDEBUG": "-all"
         }
+        assert MODULE.proton_smoke_environment("tombraider") == {
+            "WINEDEBUG": "-all"
+        }
         wine_debug = "+timestamp,+pid,+tid,+process,+module,+loaddll,+seh"
         assert MODULE.proton_smoke_environment("proton-cmd", True) == {
             "WINEDEBUG": wine_debug
@@ -138,6 +141,9 @@ def main() -> None:
     invocation_source = inspect.getsource(MODULE.pv_smoke_invocation)
     assert "libtgcompat-robust.so" in invocation_source
     assert '"TGCOMPAT_USERFAULTFD_ENOSYS": "1"' in invocation_source
+    assert 'command_mode == "tombraider"' in invocation_source
+    game_source = inspect.getsource(MODULE.run_tombraider)
+    assert '"tombraider"' in game_source
 
     with (
         tempfile.TemporaryFile() as source8,

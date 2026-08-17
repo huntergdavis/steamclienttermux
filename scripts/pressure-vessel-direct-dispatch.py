@@ -498,6 +498,21 @@ def validated_tombraider_command(
     return proton, game
 
 
+def validate_owned_executable(path: Path, description: str) -> None:
+    try:
+        metadata = path.lstat()
+    except FileNotFoundError:
+        fail(f"validated {description} executable is unavailable: {path}")
+    if (
+        not stat.S_ISREG(metadata.st_mode)
+        or path.is_symlink()
+        or metadata.st_uid != os.geteuid()
+        or metadata.st_mode & 0o022
+        or not os.access(path, os.X_OK)
+    ):
+        fail(f"validated {description} executable is unsafe: {path}")
+
+
 def proton_smoke_command(
     base: Path, runtime_root: Path, proton: Path, command_mode: str
 ) -> list[str]:
@@ -540,7 +555,7 @@ def proton_smoke_environment(
 ) -> dict[str, str]:
     if command_mode == "proton-entry":
         return {}
-    if command_mode in ("proton-cmd", "proton-arm64-cmd"):
+    if command_mode in ("proton-cmd", "proton-arm64-cmd", "tombraider"):
         if diagnostics:
             return {
                 "WINEDEBUG": "+timestamp,+pid,+tid,+process,+module,+loaddll,+seh"
@@ -632,10 +647,29 @@ def pv_smoke_invocation(
         program, _, _ = runtime_true_from_plan(base, payload)
         command = [str(program)]
         preserve_assignments = True
-    elif command_mode in ("proton-entry", "proton-cmd", "proton-arm64-cmd"):
-        proton, _ = validated_tombraider_command(base, payload_arguments)
-        command = proton_smoke_command(base, runtime_root, proton, command_mode)
-        preserve_assignments = False
+    elif command_mode in (
+        "proton-entry",
+        "proton-cmd",
+        "proton-arm64-cmd",
+        "tombraider",
+    ):
+        proton, game = validated_tombraider_command(base, payload_arguments)
+        if command_mode == "tombraider":
+            runtime_python = runtime_root / "usr/bin/python3"
+            validate_owned_executable(runtime_python, "Runtime Python")
+            validate_owned_executable(proton, "Proton entry point")
+            validate_owned_executable(game, "Tomb Raider")
+            command = [
+                str(runtime_python),
+                str(proton),
+                "waitforexitandrun",
+                str(game),
+                "-nolauncher",
+            ]
+            preserve_assignments = True
+        else:
+            command = proton_smoke_command(base, runtime_root, proton, command_mode)
+            preserve_assignments = False
     else:
         fail(f"unsupported pv-adverb command mode: {command_mode}")
     if not preserve_assignments:
@@ -656,7 +690,12 @@ def pv_smoke_invocation(
         fail("pv-adverb compatibility preload is unavailable")
     preload = ":".join(str(path) for path in preloads)
     environment = request_environment(payload)
-    if command_mode in ("proton-entry", "proton-cmd", "proton-arm64-cmd"):
+    if command_mode in (
+        "proton-entry",
+        "proton-cmd",
+        "proton-arm64-cmd",
+        "tombraider",
+    ):
         environment.update(proton_smoke_environment(command_mode, diagnostics))
     prefix = os.environ.get("PREFIX", "")
     if not prefix.startswith("/"):
@@ -763,6 +802,19 @@ def run_proton_arm64_cmd_smoke(
     )
 
 
+def run_tombraider(
+    base: Path,
+    payload: dict[str, object],
+    descriptors: list[int],
+) -> tuple[int, int]:
+    loader, arguments, environment = pv_smoke_invocation(
+        base, payload, "tombraider"
+    )
+    return run_loader_child(
+        loader, arguments, environment, descriptors, payload["fd_numbers"]
+    )
+
+
 def verify_peer(connection: socket.socket) -> None:
     credentials = connection.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12)
     _, uid, _ = struct.unpack("3i", credentials)
@@ -809,6 +861,10 @@ def serve(base: Path, mode: str) -> int:
                     )
                 elif mode == "proton-arm64-cmd-smoke":
                     status, observed_tracer = run_proton_arm64_cmd_smoke(
+                        base, payload, descriptors
+                    )
+                elif mode == "tombraider":
+                    status, observed_tracer = run_tombraider(
                         base, payload, descriptors
                     )
                 else:
@@ -894,6 +950,7 @@ def main() -> int:
                     "proton-entry-smoke",
                     "proton-cmd-smoke",
                     "proton-arm64-cmd-smoke",
+                    "tombraider",
                 ),
                 default="final-smoke",
             )

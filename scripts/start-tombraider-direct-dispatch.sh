@@ -9,7 +9,8 @@ default_python=/data/data/com.termux/files/usr/bin/python3
 python=${TOMB_RAIDER_DIRECT_PYTHON:-$default_python}
 launcher=${TOMB_RAIDER_DIRECT_LAUNCHER:-$HOME/start-steam-native.sh}
 prepare=${TOMB_RAIDER_DIRECT_PREPARE:-$base/compat-bin/prepare-proton-direct-wine.py}
-mode=${TOMB_RAIDER_DIRECT_MODE:-proton-cmd-smoke}
+affinity=${TOMB_RAIDER_DIRECT_AFFINITY:-$base/compat-bin/set-tombraider-affinity.py}
+mode=${TOMB_RAIDER_DIRECT_MODE:-tombraider}
 diagnostics=${TOMB_RAIDER_DIRECT_DIAGNOSTICS:-0}
 socket=$base/run/native-runtime-dispatch/dispatch.sock
 state=$base/run/tombraider-direct-dispatch.state
@@ -20,7 +21,7 @@ fail() {
 }
 
 [[ $mode == proton-entry-smoke || $mode == proton-cmd-smoke ||
-    $mode == proton-arm64-cmd-smoke ]] ||
+    $mode == proton-arm64-cmd-smoke || $mode == tombraider ]] ||
     fail "unsupported direct-dispatch mode: $mode"
 [[ $diagnostics == 0 || $diagnostics == 1 ]] ||
     fail 'TOMB_RAIDER_DIRECT_DIAGNOSTICS must be 0 or 1'
@@ -34,13 +35,23 @@ fail() {
     fail "native Steam launcher is unavailable: $launcher"
 [[ -x $prepare && ! -L $prepare ]] ||
     fail "Proton direct Wine preparation tool is unavailable: $prepare"
+if [[ $mode == tombraider ]]; then
+    [[ -f $affinity && ! -L $affinity ]] ||
+        fail "Tomb Raider affinity guard is unavailable: $affinity"
+fi
 
 "$python" "$prepare" prepare --base "$base"
 
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
 server_log=$base/logs/tombraider-direct-$mode-$stamp.log
 server_pid=
+affinity_pid=
+affinity_log=
 cleanup() {
+    if [[ -n ${affinity_pid:-} ]] && kill -0 "$affinity_pid" 2>/dev/null; then
+        kill -TERM "$affinity_pid" 2>/dev/null || true
+        wait "$affinity_pid" 2>/dev/null || true
+    fi
     if [[ -n ${server_pid:-} ]] && kill -0 "$server_pid" 2>/dev/null; then
         kill -TERM "$server_pid" 2>/dev/null || true
         wait "$server_pid" 2>/dev/null || true
@@ -62,8 +73,16 @@ done
     fail 'direct dispatcher did not create its socket'
 }
 
-printf 'pid=%s\nmode=%s\nserver_pid=%s\nserver_log=%s\nstatus=launching\n' \
-    "$$" "$mode" "$server_pid" "$server_log" >"$state"
+if [[ $mode == tombraider ]]; then
+    affinity_log=$base/logs/tombraider-direct-affinity-$stamp.log
+    "$python" "$affinity" --watch --raknet-cpu1 --steam-base "$base" \
+        --lock-file "$base/run/tombraider-direct-affinity.lock" \
+        >"$affinity_log" 2>&1 &
+    affinity_pid=$!
+fi
+
+printf 'pid=%s\nmode=%s\nserver_pid=%s\nserver_log=%s\naffinity_log=%s\nstatus=launching\n' \
+    "$$" "$mode" "$server_pid" "$server_log" "$affinity_log" >"$state"
 
 set +e
 STEAM_ARM64_BWRAP_DIRECT=1 \
@@ -77,9 +96,14 @@ wait "$server_pid"
 server_status=$?
 set -e
 server_pid=
+if [[ -n ${affinity_pid:-} ]] && kill -0 "$affinity_pid" 2>/dev/null; then
+    kill -TERM "$affinity_pid" 2>/dev/null || true
+    wait "$affinity_pid" 2>/dev/null || true
+fi
+affinity_pid=
 
-printf 'pid=%s\nmode=%s\nserver_log=%s\nstatus=complete\nlauncher_status=%s\nserver_status=%s\n' \
-    "$$" "$mode" "$server_log" "$launcher_status" "$server_status" >"$state"
+printf 'pid=%s\nmode=%s\nserver_log=%s\naffinity_log=%s\nstatus=complete\nlauncher_status=%s\nserver_status=%s\n' \
+    "$$" "$mode" "$server_log" "$affinity_log" "$launcher_status" "$server_status" >"$state"
 printf 'Tomb Raider direct dispatch completed: mode=%s launcher=%s server=%s log=%s\n' \
     "$mode" "$launcher_status" "$server_status" "$server_log"
 if (( launcher_status != 0 )); then

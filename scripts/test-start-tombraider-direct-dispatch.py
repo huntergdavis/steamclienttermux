@@ -39,6 +39,7 @@ def main() -> None:
         )
         result_file = root / "launcher-environment"
         prepare_result = root / "prepare-result"
+        affinity_result = root / "affinity-result"
         prepare = root / "prepare"
         executable(
             prepare,
@@ -57,7 +58,17 @@ def main() -> None:
             "with socket.socket(socket.AF_UNIX) as connection:\n"
             "    connection.connect(os.environ['FIXTURE_SOCKET'])\n"
             "PY\n"
+            "sleep 0.2\n"
             "exit 1\n",
+        )
+        affinity = root / "affinity"
+        executable(
+            affinity,
+            "#!/usr/bin/env python3\n"
+            "from pathlib import Path\n"
+            "import os, sys, time\n"
+            "Path(os.environ['FIXTURE_AFFINITY_RESULT']).write_text(' '.join(sys.argv[1:]) + '\\n')\n"
+            "time.sleep(30)\n",
         )
         environment = {
             **os.environ,
@@ -66,7 +77,9 @@ def main() -> None:
             "TOMB_RAIDER_DIRECT_PYTHON": str(Path(os.sys.executable).resolve()),
             "TOMB_RAIDER_DIRECT_LAUNCHER": str(launcher),
             "TOMB_RAIDER_DIRECT_PREPARE": str(prepare),
+            "TOMB_RAIDER_DIRECT_AFFINITY": str(affinity),
             "FIXTURE_RESULT": str(result_file),
+            "FIXTURE_AFFINITY_RESULT": str(affinity_result),
             "FIXTURE_PREPARE_RESULT": str(prepare_result),
             "FIXTURE_SOCKET": str(
                 base / "run/native-runtime-dispatch/dispatch.sock"
@@ -86,10 +99,14 @@ def main() -> None:
             "--appid 203160 -- -nolauncher",
         ]
         state = (base / "run/tombraider-direct-dispatch.state").read_text()
-        assert "mode=proton-cmd-smoke" in state
+        assert "mode=tombraider" in state
         assert "status=complete" in state
         assert "launcher_status=1" in state
         assert "server_status=0" in state
+        assert affinity_result.read_text().splitlines() == [
+            f"--watch --raknet-cpu1 --steam-base {base} "
+            f"--lock-file {base}/run/tombraider-direct-affinity.lock"
+        ]
 
         python_link = root / "python3-link"
         python_link.symlink_to(Path(os.sys.executable).resolve())
