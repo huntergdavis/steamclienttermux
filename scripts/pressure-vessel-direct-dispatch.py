@@ -498,10 +498,8 @@ def proton_smoke_command(
 
 
 def proton_smoke_environment(command_mode: str) -> dict[str, str]:
-    if command_mode == "proton-entry":
+    if command_mode in ("proton-entry", "proton-cmd", "proton-arm64-cmd"):
         return {}
-    if command_mode in ("proton-cmd", "proton-arm64-cmd"):
-        return {"WINELOADERNOEXEC": "1"}
     fail(f"unsupported Proton smoke mode: {command_mode}")
 
 

@@ -38,6 +38,15 @@ def main() -> None:
             "    connection.close()\n",
         )
         result_file = root / "launcher-environment"
+        prepare_result = root / "prepare-result"
+        prepare = root / "prepare"
+        executable(
+            prepare,
+            "#!/usr/bin/env python3\n"
+            "from pathlib import Path\n"
+            "import os, sys\n"
+            "Path(os.environ['FIXTURE_PREPARE_RESULT']).write_text(' '.join(sys.argv[1:]) + '\\n')\n",
+        )
         launcher = root / "launcher"
         executable(
             launcher,
@@ -56,7 +65,9 @@ def main() -> None:
             "TOMB_RAIDER_DIRECT_DISPATCHER": str(dispatcher),
             "TOMB_RAIDER_DIRECT_PYTHON": str(Path(os.sys.executable).resolve()),
             "TOMB_RAIDER_DIRECT_LAUNCHER": str(launcher),
+            "TOMB_RAIDER_DIRECT_PREPARE": str(prepare),
             "FIXTURE_RESULT": str(result_file),
+            "FIXTURE_PREPARE_RESULT": str(prepare_result),
             "FIXTURE_SOCKET": str(
                 base / "run/native-runtime-dispatch/dispatch.sock"
             ),
@@ -69,6 +80,7 @@ def main() -> None:
             check=False,
         )
         assert result.returncode == 1, result.stderr
+        assert prepare_result.read_text().splitlines() == [f"prepare --base {base}"]
         assert result_file.read_text().splitlines() == [
             "1",
             "--appid 203160 -- -nolauncher",

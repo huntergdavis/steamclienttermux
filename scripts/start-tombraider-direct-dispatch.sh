@@ -8,6 +8,7 @@ dispatcher=${TOMB_RAIDER_DIRECT_DISPATCHER:-$base/compat-bin/pressure-vessel-dir
 default_python=/data/data/com.termux/files/usr/bin/python3
 python=${TOMB_RAIDER_DIRECT_PYTHON:-$default_python}
 launcher=${TOMB_RAIDER_DIRECT_LAUNCHER:-$HOME/start-steam-native.sh}
+prepare=${TOMB_RAIDER_DIRECT_PREPARE:-$base/compat-bin/prepare-proton-direct-wine.py}
 mode=${TOMB_RAIDER_DIRECT_MODE:-proton-arm64-cmd-smoke}
 socket=$base/run/native-runtime-dispatch/dispatch.sock
 state=$base/run/tombraider-direct-dispatch.state
@@ -28,6 +29,10 @@ fail() {
     fail "direct dispatcher is unavailable: $dispatcher"
 [[ -x $launcher && ! -L $launcher ]] ||
     fail "native Steam launcher is unavailable: $launcher"
+[[ -x $prepare && ! -L $prepare ]] ||
+    fail "Proton direct Wine preparation tool is unavailable: $prepare"
+
+"$python" "$prepare" prepare --base "$base"
 
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
 server_log=$base/logs/tombraider-direct-$mode-$stamp.log
