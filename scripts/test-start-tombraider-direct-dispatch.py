@@ -79,6 +79,22 @@ def main() -> None:
         assert "launcher_status=1" in state
         assert "server_status=0" in state
 
+        python_link = root / "python3-link"
+        python_link.symlink_to(Path(os.sys.executable).resolve())
+        rejected_environment = {
+            **environment,
+            "TOMB_RAIDER_DIRECT_PYTHON": str(python_link),
+        }
+        rejected = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env=rejected_environment,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        assert rejected.returncode == 1
+        assert "Termux Python is unavailable" in rejected.stderr
+
     print("Tomb Raider direct-dispatch wrapper tests: PASS")
 
 

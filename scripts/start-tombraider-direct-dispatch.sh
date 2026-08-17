@@ -5,7 +5,8 @@ umask 077
 
 base=${STEAM_ARM64_BASE:-$HOME/steam-arm64}
 dispatcher=${TOMB_RAIDER_DIRECT_DISPATCHER:-$base/compat-bin/pressure-vessel-direct-dispatch.py}
-python=${TOMB_RAIDER_DIRECT_PYTHON:-/data/data/com.termux/files/usr/bin/python3}
+default_python=/data/data/com.termux/files/usr/bin/python3
+python=${TOMB_RAIDER_DIRECT_PYTHON:-$default_python}
 launcher=${TOMB_RAIDER_DIRECT_LAUNCHER:-$HOME/start-steam-native.sh}
 mode=${TOMB_RAIDER_DIRECT_MODE:-proton-entry-smoke}
 socket=$base/run/native-runtime-dispatch/dispatch.sock
@@ -20,7 +21,8 @@ fail() {
     fail "unsupported direct-dispatch mode: $mode"
 [[ -d $base/run && ! -L $base/run && -d $base/logs && ! -L $base/logs ]] ||
     fail "Steam run or log directory is unavailable below $base"
-[[ -x $python && ! -L $python ]] || fail "Termux Python is unavailable: $python"
+[[ -x $python && (! -L $python || $python == "$default_python") ]] ||
+    fail "Termux Python is unavailable: $python"
 [[ -f $dispatcher && ! -L $dispatcher ]] ||
     fail "direct dispatcher is unavailable: $dispatcher"
 [[ -x $launcher && ! -L $launcher ]] ||
