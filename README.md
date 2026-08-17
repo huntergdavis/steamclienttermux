@@ -700,6 +700,12 @@ Bionic bridge, so the glibc exec boundary restores the launcher's exact native
 shim list for wrapped ARM64 children. The native bridge then removes all loader
 and preload state before entering PRoot, as it did previously.
 
+Because Steam starts game commands through absolute Android `/bin/sh`, the
+native path shim maps only `/bin/sh` and `/usr/bin/sh` execs to the launcher's
+validated Debian ARM64 shell. The generic ELF wrapper can then select the
+staged loader and child preload policy; all other executable paths are left
+unchanged.
+
 Runtime 4 no longer rebuilds its mutable sysroot for every game. The installer
 strictly applies Valve's `usr-mtree.txt.gz`, verifies every declared size and
 SHA-256, materializes PRoot pseudo-hardlinks, recreates Valve's merged-`/usr`

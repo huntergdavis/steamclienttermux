@@ -4977,3 +4977,21 @@ SteamLaunch tracked process exit 127 external storage executable path native
 Runtime wrapper Termux"` search returned no indexed solution; this extends the
 existing content-addressed glibc exec boundary rather than adding a second
 launcher-specific ELF parser.
+
+The first tablet retry proved Steam retained the override in its own
+environment but omitted it from the game-specific environment, so the exec
+helper gained a tested process-policy fallback. The launch still failed at the
+same point. This corrected the final wrong assumption: the requested pathname
+is Android's absolute `/bin/sh`, whose Bionic interpreter correctly makes it
+ineligible for the glibc exec wrapper. The later Termux exec hook remapped that
+shell after the generic wrapper had declined it, which is why the malformed
+overlay preload remained visible.
+
+The existing native pathname shim now redirects only exact `/bin/sh` and
+`/usr/bin/sh` execs to the validated
+`$STEAM_ARM64_LINUX_ROOT/usr/bin/sh`. The next interposer can identify that
+ARM64 glibc ELF, pair it with the staged loader, and apply the process-level
+preload policy before any overlay object is loaded. The host regression uses a
+sentinel shell target and proves the absolute Bionic path does not execute;
+missing or malformed Linux-root configuration still leaves unrelated execs
+unchanged or fails closed on overflow.

@@ -173,6 +173,22 @@ int main(void) {
         fail("lsof redirect");
     }
 
+    child = fork();
+    if (child < 0) {
+        fail("fork shell redirect");
+    }
+    if (child == 0) {
+        char *arguments[] = {"/bin/sh", "--native-shell-probe", NULL};
+        extern char **environ;
+        execve("/bin/sh", arguments, environ);
+        _exit(127);
+    }
+    if (waitpid(child, &child_status, 0) != child ||
+            !WIFEXITED(child_status) || WEXITSTATUS(child_status) != 0) {
+        errno = ECHILD;
+        fail("shell redirect");
+    }
+
     puts(directory);
     puts(shm_marker);
     return 0;
@@ -194,6 +210,9 @@ def main() -> None:
         linux_root = temporary_path / "linux-root"
         certificate_dir = linux_root / "etc" / "ssl" / "certs"
         certificate_dir.mkdir(parents=True, mode=0o700)
+        shell_dir = linux_root / "usr" / "bin"
+        shell_dir.mkdir(parents=True, mode=0o700)
+        (shell_dir / "sh").symlink_to("/bin/true")
         (certificate_dir / "ca-certificates.crt").write_text(
             "mapped-cert\n", encoding="utf-8"
         )

@@ -82,12 +82,32 @@ static const char *rewrite_path(const char *path, char output[PATH_MAX]) {
     return output;
 }
 
-static const char *rewrite_exec_path(const char *path) {
+static const char *rewrite_exec_path(const char *path, char output[PATH_MAX]) {
     const char *helper;
+    const char *root;
+    static const char shell_suffix[] = "/usr/bin/sh";
+    size_t root_length;
 
-    if (path == NULL ||
-            (strcmp(path, "/bin/lsof") != 0 &&
-                strcmp(path, "/usr/bin/lsof") != 0)) {
+    if (path == NULL) {
+        return NULL;
+    }
+    if (strcmp(path, "/bin/sh") == 0 || strcmp(path, "/usr/bin/sh") == 0) {
+        root = getenv("STEAM_ARM64_LINUX_ROOT");
+        if (root == NULL || root[0] != '/') {
+            return path;
+        }
+        root_length = strlen(root);
+        if (root_length < 2 || root[root_length - 1] == '/' ||
+                root_length > PATH_MAX - sizeof(shell_suffix)) {
+            errno = ENAMETOOLONG;
+            return NULL;
+        }
+        memcpy(output, root, root_length);
+        memcpy(output + root_length, shell_suffix, sizeof(shell_suffix));
+        return output;
+    }
+    if (strcmp(path, "/bin/lsof") != 0 &&
+            strcmp(path, "/usr/bin/lsof") != 0) {
         return path;
     }
     helper = getenv("STEAM_ARM64_LSOF");
@@ -100,9 +120,11 @@ static const char *rewrite_exec_path(const char *path) {
 int execve(const char *path, char *const arguments[],
         char *const environment[]) {
     static int (*next)(const char *, char *const[], char *const[]);
-    const char *mapped = rewrite_exec_path(path);
+    char rewritten[PATH_MAX];
+    const char *mapped = rewrite_exec_path(path, rewritten);
 
-    if (next == NULL && !resolve_next(&next, sizeof(next), "execve")) {
+    if (mapped == NULL ||
+            (next == NULL && !resolve_next(&next, sizeof(next), "execve"))) {
         return -1;
     }
     return next(mapped, arguments, environment);
