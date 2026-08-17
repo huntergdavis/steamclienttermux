@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
 
 from pathlib import Path
+import json
 import os
 import subprocess
 import tempfile
 
 
 SCRIPT = Path(__file__).with_name("prepare-proton-direct-wine.py")
-TARGET = Path(
-    "client/steamapps/common/Proton 11.0 (ARM64)/files/lib/wine/aarch64-unix/wine"
+TARGETS = (
+    Path("client/steamapps/common/Proton 11.0 (ARM64)/files/bin-arm64/wine"),
+    Path("client/steamapps/common/Proton 11.0 (ARM64)/files/bin-arm64/wineserver"),
+    Path(
+        "client/steamapps/common/Proton 11.0 (ARM64)"
+        "/files/lib/wine/aarch64-unix/wine"
+    ),
 )
 
 
@@ -16,11 +22,18 @@ def main() -> None:
     with tempfile.TemporaryDirectory(prefix="prepare-proton-wine.") as directory:
         root = Path(directory)
         base = root / "base"
-        target = base / TARGET
-        target.parent.mkdir(parents=True)
-        original = b"INTERP=/lib/ld-linux-aarch64.so.1\nfixture\n"
-        target.write_bytes(original)
-        target.chmod(0o500)
+        originals = {}
+        for index, relative in enumerate(TARGETS):
+            target = base / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            original = (
+                b"INTERP=/lib/ld-linux-aarch64.so.1\nfixture-"
+                + str(index).encode("ascii")
+                + b"\n"
+            )
+            target.write_bytes(original)
+            target.chmod(0o500)
+            originals[relative] = original
         loader = root / "ld-linux-aarch64.so.1"
         loader.write_bytes(b"loader")
         loader.chmod(0o700)
@@ -69,11 +82,18 @@ def main() -> None:
         ]
         prepared = subprocess.run(command, text=True, capture_output=True, check=False)
         assert prepared.returncode == 0, prepared.stderr
-        assert target.read_text().splitlines()[0] == f"INTERP={loader}"
-        assert target.stat().st_mode & 0o777 == 0o500
-        backups = list((base / "backups/proton-direct-wine").glob("wine-*.original"))
-        assert len(backups) == 1
-        assert backups[0].read_bytes() == original
+        for relative in TARGETS:
+            target = base / relative
+            assert target.read_text().splitlines()[0] == f"INTERP={loader}"
+            assert target.stat().st_mode & 0o777 == 0o500
+        backups = list((base / "backups/proton-direct-wine").glob("*.original"))
+        assert len(backups) == len(TARGETS)
+        assert {backup.read_bytes() for backup in backups} == set(originals.values())
+        state = json.loads(
+            (base / "backups/proton-direct-wine/state.json").read_text()
+        )
+        assert state["schema_version"] == "2"
+        assert len(state["targets"]) == len(TARGETS)
         assert not list((base / "backups/proton-direct-wine").glob(".backup.*"))
         checked = subprocess.run(
             [*command[:2], "check", *command[2:]],
@@ -89,8 +109,24 @@ def main() -> None:
             check=False,
         )
         assert restored.returncode == 0, restored.stderr
-        assert target.read_bytes() == original
-        assert target.stat().st_mode & 0o777 == 0o500
+        for relative in TARGETS:
+            target = base / relative
+            assert target.read_bytes() == originals[relative]
+            assert target.stat().st_mode & 0o777 == 0o500
+        restored_again = subprocess.run(
+            [*command[:2], "restore", *command[2:]],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        assert restored_again.returncode == 0, restored_again.stderr
+        prepared_again = subprocess.run(
+            command, text=True, capture_output=True, check=False
+        )
+        assert prepared_again.returncode == 0, prepared_again.stderr
+        for relative in TARGETS:
+            target = base / relative
+            assert target.read_text().splitlines()[0] == f"INTERP={loader}"
 
     print("Proton direct Wine preparation tests: PASS")
 

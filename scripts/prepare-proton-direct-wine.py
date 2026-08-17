@@ -15,8 +15,13 @@ import tempfile
 
 
 ORIGINAL_INTERPRETER = "/lib/ld-linux-aarch64.so.1"
-TARGET_RELATIVE = Path(
-    "client/steamapps/common/Proton 11.0 (ARM64)/files/lib/wine/aarch64-unix/wine"
+TARGET_RELATIVES = (
+    Path("client/steamapps/common/Proton 11.0 (ARM64)/files/bin-arm64/wine"),
+    Path("client/steamapps/common/Proton 11.0 (ARM64)/files/bin-arm64/wineserver"),
+    Path(
+        "client/steamapps/common/Proton 11.0 (ARM64)"
+        "/files/lib/wine/aarch64-unix/wine"
+    ),
 )
 
 
@@ -127,34 +132,79 @@ def install_backup(source: Path, destination: Path, expected_hash: str) -> None:
             temporary.unlink()
 
 
-def prepare(
-    base: Path,
+def read_state(path: Path) -> dict[str, dict[str, str]]:
+    if not path.exists() and not path.is_symlink():
+        return {}
+    regular_owned_file(path, "Proton direct Wine state")
+    value = json.loads(path.read_text(encoding="utf-8"))
+    records = value.get("targets")
+    if records is None:
+        records = [value]
+    if not isinstance(records, list):
+        raise PrepareError("Proton direct Wine state has invalid targets")
+    result: dict[str, dict[str, str]] = {}
+    for record in records:
+        if not isinstance(record, dict):
+            raise PrepareError("Proton direct Wine state has an invalid record")
+        target = record.get("target")
+        if not isinstance(target, str) or not target.startswith("/"):
+            raise PrepareError("Proton direct Wine state has an invalid target")
+        if target in result:
+            raise PrepareError("Proton direct Wine state has duplicate targets")
+        if not all(isinstance(key, str) and isinstance(item, str) for key, item in record.items()):
+            raise PrepareError("Proton direct Wine state has invalid values")
+        result[target] = record
+    return result
+
+
+def write_state(
+    path: Path, loader: Path, records: dict[str, dict[str, str]]
+) -> None:
+    write_json_atomic(
+        path,
+        {
+            "interpreter": str(loader),
+            "schema_version": "2",
+            "targets": [records[target] for target in sorted(records)],
+        },
+    )
+
+
+def validate_existing_record(
+    record: dict[str, str], target: Path, loader: Path
+) -> None:
+    if record.get("interpreter") != str(loader):
+        raise PrepareError(f"prepared target loader mismatch: {target}")
+    if sha256(target) != record.get("patched_sha256"):
+        raise PrepareError(f"prepared target hash mismatch: {target}")
+    backup = Path(record.get("backup", ""))
+    regular_owned_file(backup, "Proton ARM64 executable backup")
+    if sha256(backup) != record.get("original_sha256"):
+        raise PrepareError(f"Proton ARM64 executable backup hash mismatch: {backup}")
+
+
+def backup_name(relative: Path, original_hash: str) -> str:
+    identity = hashlib.sha256(str(relative).encode("utf-8")).hexdigest()[:12]
+    return f"{relative.name}-{identity}-{original_hash}.original"
+
+
+def patch_target(
+    target: Path,
+    relative: Path,
     loader: Path,
     patchelf: list[str],
     readelf: Path,
-) -> None:
-    target = base / TARGET_RELATIVE
-    regular_owned_file(target, "Proton ARM64 Wine", executable=True)
-    regular_owned_file(loader, "tgcompat glibc loader", executable=True)
-    resolved_owned_executable(readelf, "readelf")
-    interpreter = read_interpreter(readelf, target)
-    if interpreter == str(loader):
-        print(f"Proton direct Wine already prepared: {target}")
-        return
-    if interpreter != ORIGINAL_INTERPRETER:
-        raise PrepareError(f"refusing unexpected Wine interpreter: {interpreter}")
-
+    backup_root: Path,
+) -> dict[str, str]:
     original_hash = sha256(target)
-    backup_root = base / "backups/proton-direct-wine"
-    backup_root.mkdir(parents=True, exist_ok=True, mode=0o700)
-    if backup_root.is_symlink() or backup_root.stat().st_uid != os.geteuid():
-        raise PrepareError(f"unsafe Proton Wine backup directory: {backup_root}")
-    backup = backup_root / f"wine-{original_hash}.original"
+    backup = backup_root / backup_name(relative, original_hash)
     install_backup(target, backup, original_hash)
 
     if backup_root.stat().st_dev != target.parent.stat().st_dev:
-        raise PrepareError("Proton Wine backup and target are on different filesystems")
-    descriptor, staged_name = tempfile.mkstemp(prefix="wine.direct.", dir=backup_root)
+        raise PrepareError("Proton executable backup and target are on different filesystems")
+    descriptor, staged_name = tempfile.mkstemp(
+        prefix=f".{target.name}.direct.", dir=backup_root
+    )
     os.close(descriptor)
     staged = Path(staged_name)
     try:
@@ -163,7 +213,9 @@ def prepare(
         os.chmod(staged, original_mode | stat.S_IWUSR)
         run_patchelf(patchelf, loader, staged)
         if read_interpreter(readelf, staged) != str(loader):
-            raise PrepareError("staged Proton Wine interpreter verification failed")
+            raise PrepareError(
+                f"staged Proton executable interpreter verification failed: {target}"
+            )
         os.chmod(staged, original_mode)
         patched_hash = sha256(staged)
         os.replace(staged, target)
@@ -172,60 +224,116 @@ def prepare(
             staged.unlink()
 
     if sha256(target) != patched_hash:
-        raise PrepareError("installed Proton Wine hash verification failed")
-    write_json_atomic(
-        backup_root / "state.json",
-        {
-            "backup": str(backup),
-            "interpreter": str(loader),
-            "original_sha256": original_hash,
-            "patched_sha256": patched_hash,
-            "target": str(target),
-        },
-    )
-    print(f"Prepared Proton direct Wine: {target}")
-    print(f"Original backup: {backup}")
+        raise PrepareError(f"installed Proton executable hash verification failed: {target}")
+    return {
+        "backup": str(backup),
+        "interpreter": str(loader),
+        "original_sha256": original_hash,
+        "patched_sha256": patched_hash,
+        "target": str(target),
+    }
+
+
+def prepare(
+    base: Path,
+    loader: Path,
+    patchelf: list[str],
+    readelf: Path,
+) -> None:
+    regular_owned_file(loader, "tgcompat glibc loader", executable=True)
+    resolved_owned_executable(readelf, "readelf")
+    backup_root = base / "backups/proton-direct-wine"
+    backup_root.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if backup_root.is_symlink() or backup_root.stat().st_uid != os.geteuid():
+        raise PrepareError(f"unsafe Proton Wine backup directory: {backup_root}")
+    state_path = backup_root / "state.json"
+    records = read_state(state_path)
+    for relative in TARGET_RELATIVES:
+        target = base / relative
+        regular_owned_file(target, "Proton ARM64 executable", executable=True)
+        interpreter = read_interpreter(readelf, target)
+        if interpreter == str(loader):
+            record = records.get(str(target))
+            if record is None:
+                raise PrepareError(f"prepared target has no restore record: {target}")
+            validate_existing_record(record, target, loader)
+            print(f"Proton direct executable already prepared: {target}")
+            continue
+        if interpreter != ORIGINAL_INTERPRETER:
+            raise PrepareError(
+                f"refusing unexpected Proton executable interpreter: {target}: {interpreter}"
+            )
+        record = patch_target(
+            target, relative, loader, patchelf, readelf, backup_root
+        )
+        records[str(target)] = record
+        write_state(state_path, loader, records)
+        print(f"Prepared Proton direct executable: {target}")
+        print(f"Original backup: {record['backup']}")
+
+    write_state(state_path, loader, records)
 
 
 def check(base: Path, loader: Path, readelf: Path) -> None:
-    target = base / TARGET_RELATIVE
-    regular_owned_file(target, "Proton ARM64 Wine", executable=True)
     regular_owned_file(loader, "tgcompat glibc loader", executable=True)
     resolved_owned_executable(readelf, "readelf")
-    interpreter = read_interpreter(readelf, target)
-    if interpreter != str(loader):
-        raise PrepareError(f"Proton direct Wine is not prepared: {interpreter}")
-    print(f"Proton direct Wine check: PASS interpreter={interpreter}")
+    records = read_state(base / "backups/proton-direct-wine/state.json")
+    for relative in TARGET_RELATIVES:
+        target = base / relative
+        regular_owned_file(target, "Proton ARM64 executable", executable=True)
+        interpreter = read_interpreter(readelf, target)
+        if interpreter != str(loader):
+            raise PrepareError(
+                f"Proton direct executable is not prepared: {target}: {interpreter}"
+            )
+        record = records.get(str(target))
+        if record is None:
+            raise PrepareError(f"prepared target has no restore record: {target}")
+        validate_existing_record(record, target, loader)
+        print(f"Proton direct executable check: PASS target={target}")
 
 
 def restore(base: Path, readelf: Path) -> None:
-    target = base / TARGET_RELATIVE
     state_path = base / "backups/proton-direct-wine/state.json"
-    regular_owned_file(target, "Proton ARM64 Wine", executable=True)
-    regular_owned_file(state_path, "Proton direct Wine state")
-    state = json.loads(state_path.read_text(encoding="utf-8"))
-    if state.get("target") != str(target):
-        raise PrepareError("Proton direct Wine state target mismatch")
-    patched_hash = state.get("patched_sha256", "")
-    if sha256(target) != patched_hash:
-        raise PrepareError("refusing to restore over changed Proton Wine")
-    backup = Path(state.get("backup", ""))
-    regular_owned_file(backup, "Proton ARM64 Wine backup")
-    if sha256(backup) != state.get("original_sha256"):
-        raise PrepareError("Proton ARM64 Wine backup hash mismatch")
-    descriptor, staged_name = tempfile.mkstemp(prefix=".wine.restore.", dir=target.parent)
-    os.close(descriptor)
-    staged = Path(staged_name)
-    try:
-        shutil.copy2(backup, staged)
-        os.chmod(staged, stat.S_IMODE(target.stat().st_mode))
-        os.replace(staged, target)
-    finally:
-        if staged.exists() and not staged.is_symlink():
-            staged.unlink()
-    if read_interpreter(readelf, target) != ORIGINAL_INTERPRETER:
-        raise PrepareError("restored Proton Wine interpreter verification failed")
-    print(f"Restored Proton ARM64 Wine: {target}")
+    records = read_state(state_path)
+    for relative in TARGET_RELATIVES:
+        target = base / relative
+        regular_owned_file(target, "Proton ARM64 executable", executable=True)
+        record = records.get(str(target))
+        if record is None:
+            if read_interpreter(readelf, target) == ORIGINAL_INTERPRETER:
+                print(f"Proton ARM64 executable already original: {target}")
+                continue
+            raise PrepareError(f"prepared target has no restore record: {target}")
+        current_hash = sha256(target)
+        if current_hash == record.get("original_sha256"):
+            if read_interpreter(readelf, target) != ORIGINAL_INTERPRETER:
+                raise PrepareError(f"original target interpreter mismatch: {target}")
+            print(f"Proton ARM64 executable already restored: {target}")
+            continue
+        if current_hash != record.get("patched_sha256"):
+            raise PrepareError(f"refusing to restore over changed executable: {target}")
+        backup = Path(record.get("backup", ""))
+        regular_owned_file(backup, "Proton ARM64 executable backup")
+        if sha256(backup) != record.get("original_sha256"):
+            raise PrepareError(f"Proton ARM64 executable backup hash mismatch: {backup}")
+        descriptor, staged_name = tempfile.mkstemp(
+            prefix=f".{target.name}.restore.", dir=target.parent
+        )
+        os.close(descriptor)
+        staged = Path(staged_name)
+        try:
+            shutil.copy2(backup, staged)
+            os.chmod(staged, stat.S_IMODE(target.stat().st_mode))
+            os.replace(staged, target)
+        finally:
+            if staged.exists() and not staged.is_symlink():
+                staged.unlink()
+        if read_interpreter(readelf, target) != ORIGINAL_INTERPRETER:
+            raise PrepareError(
+                f"restored Proton executable interpreter verification failed: {target}"
+            )
+        print(f"Restored Proton ARM64 executable: {target}")
 
 
 def main() -> int:
