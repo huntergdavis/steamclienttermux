@@ -5,7 +5,7 @@ umask 077
 
 base=${STEAM_ARM64_BASE:-$HOME/steam-arm64}
 dispatcher=${TOMB_RAIDER_DIRECT_DISPATCHER:-$base/compat-bin/pressure-vessel-direct-dispatch.py}
-python=${TOMB_RAIDER_DIRECT_PYTHON:-${PREFIX:-}/bin/python3}
+python=${TOMB_RAIDER_DIRECT_PYTHON:-/data/data/com.termux/files/usr/bin/python3}
 launcher=${TOMB_RAIDER_DIRECT_LAUNCHER:-$HOME/start-steam-native.sh}
 mode=${TOMB_RAIDER_DIRECT_MODE:-proton-entry-smoke}
 socket=$base/run/native-runtime-dispatch/dispatch.sock
