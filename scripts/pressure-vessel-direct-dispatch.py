@@ -460,6 +460,38 @@ def validated_tombraider_command(
     return proton, game
 
 
+def proton_smoke_command(
+    base: Path, runtime_root: Path, proton: Path, command_mode: str
+) -> list[str]:
+    runtime_python = runtime_root / "usr/bin/python3"
+    if not runtime_python.is_file() or not os.access(runtime_python, os.X_OK):
+        fail(f"Runtime Python is unavailable: {runtime_python}")
+    if not proton.is_file() or not os.access(proton, os.X_OK):
+        fail(f"validated Proton entry point is unavailable: {proton}")
+    if command_mode == "proton-entry":
+        return [str(runtime_python), str(proton), "steamclienttermux-probe"]
+    if command_mode == "proton-cmd":
+        command = (
+            base
+            / "client/steamapps/common/Proton 11.0 (ARM64)"
+            / "files/lib/wine/x86_64-windows/cmd.exe"
+        )
+        if not command.is_file() or command.is_symlink():
+            fail(f"validated x86-64 Proton command is unavailable: {command}")
+        return [
+            str(runtime_python),
+            str(proton),
+            "waitforexitandrun",
+            str(command),
+            "/d",
+            "/c",
+            "exit",
+            "/b",
+            "0",
+        ]
+    fail(f"unsupported Proton smoke mode: {command_mode}")
+
+
 def run_final_smoke(
     base: Path,
     payload: dict[str, object],
@@ -540,18 +572,9 @@ def pv_smoke_invocation(
         program, _, _ = runtime_true_from_plan(base, payload)
         command = [str(program)]
         preserve_assignments = True
-    elif command_mode == "proton-entry":
+    elif command_mode in ("proton-entry", "proton-cmd"):
         proton, _ = validated_tombraider_command(base, payload_arguments)
-        runtime_python = runtime_root / "usr/bin/python3"
-        if not runtime_python.is_file() or not os.access(runtime_python, os.X_OK):
-            fail(f"Runtime Python is unavailable: {runtime_python}")
-        if not proton.is_file() or not os.access(proton, os.X_OK):
-            fail(f"validated Proton entry point is unavailable: {proton}")
-        command = [
-            str(runtime_python),
-            str(proton),
-            "steamclienttermux-probe",
-        ]
+        command = proton_smoke_command(base, runtime_root, proton, command_mode)
         preserve_assignments = False
     else:
         fail(f"unsupported pv-adverb command mode: {command_mode}")
@@ -637,6 +660,19 @@ def run_proton_entry_smoke(
     )
 
 
+def run_proton_cmd_smoke(
+    base: Path,
+    payload: dict[str, object],
+    descriptors: list[int],
+) -> tuple[int, int]:
+    loader, arguments, environment = pv_smoke_invocation(
+        base, payload, "proton-cmd"
+    )
+    return run_loader_child(
+        loader, arguments, environment, descriptors, payload["fd_numbers"]
+    )
+
+
 def verify_peer(connection: socket.socket) -> None:
     credentials = connection.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12)
     _, uid, _ = struct.unpack("3i", credentials)
@@ -674,6 +710,10 @@ def serve(base: Path, mode: str) -> int:
                     )
                 elif mode == "proton-entry-smoke":
                     status, observed_tracer = run_proton_entry_smoke(
+                        base, payload, descriptors
+                    )
+                elif mode == "proton-cmd-smoke":
+                    status, observed_tracer = run_proton_cmd_smoke(
                         base, payload, descriptors
                     )
                 else:
@@ -753,7 +793,12 @@ def main() -> int:
             parser.add_argument("--base", default=base_value)
             parser.add_argument(
                 "--mode",
-                choices=("final-smoke", "pv-smoke", "proton-entry-smoke"),
+                choices=(
+                    "final-smoke",
+                    "pv-smoke",
+                    "proton-entry-smoke",
+                    "proton-cmd-smoke",
+                ),
                 default="final-smoke",
             )
             options = parser.parse_args(arguments)

@@ -65,6 +65,36 @@ def main() -> None:
         tablet_base
         / "removable-library/steamapps/common/Tomb Raider/TombRaider.exe"
     )
+    with tempfile.TemporaryDirectory(prefix="proton-cmd-smoke.") as directory:
+        fixture_base = Path(directory)
+        fixture_runtime = fixture_base / "runtime"
+        fixture_python = fixture_runtime / "usr/bin/python3"
+        fixture_proton = (
+            fixture_base
+            / "client/steamapps/common/Proton 11.0 (ARM64)/proton"
+        )
+        fixture_command = (
+            fixture_base
+            / "client/steamapps/common/Proton 11.0 (ARM64)"
+            / "files/lib/wine/x86_64-windows/cmd.exe"
+        )
+        for executable in (fixture_python, fixture_proton, fixture_command):
+            executable.parent.mkdir(parents=True, exist_ok=True)
+            executable.write_bytes(b"fixture")
+            executable.chmod(0o700)
+        assert MODULE.proton_smoke_command(
+            fixture_base, fixture_runtime, fixture_proton, "proton-cmd"
+        ) == [
+            str(fixture_python),
+            str(fixture_proton),
+            "waitforexitandrun",
+            str(fixture_command),
+            "/d",
+            "/c",
+            "exit",
+            "/b",
+            "0",
+        ]
     assert MODULE.request_environment(
         {"environment": ["STEAM_COMPAT_APP_ID=203160", "LD_PRELOAD=unsafe"]}
     ) == {"STEAM_COMPAT_APP_ID": "203160"}

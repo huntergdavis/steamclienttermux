@@ -74,7 +74,7 @@ def main() -> None:
             "--appid 203160 -- -nolauncher",
         ]
         state = (base / "run/tombraider-direct-dispatch.state").read_text()
-        assert "mode=proton-entry-smoke" in state
+        assert "mode=proton-cmd-smoke" in state
         assert "status=complete" in state
         assert "launcher_status=1" in state
         assert "server_status=0" in state
