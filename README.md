@@ -680,6 +680,12 @@ thermal and memory state into
 `~/steam-arm64/logs/tombraider-benchmarks/<series>/series.json`. It does not
 profile, capture, or switch windows during the timed scene.
 
+Between passes it waits for full CPU/GPU policy, GPU thermal level zero, and a
+maximum sensor temperature within 2 C of the warm-up start. That state must
+remain ready for three ten-second samples. The default cooldown timeout is 30
+minutes; a failure is recorded rather than admitting a thermally mismatched
+pass.
+
 The installed command is an absolute-Termux-shebang broker, so Android's
 foreground `RunCommandService` can start it without relying on the interactive
 shell's `termux-exec` preload. The broker invokes the content installed at

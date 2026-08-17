@@ -44,6 +44,50 @@ def main():
         "--check",
     ]
 
+    def snapshot(cpu_policy, gpu_policy, gpu_level, temperature):
+        return {
+            "cpu": [
+                {
+                    "cpu": 7,
+                    "policy_max_khz": cpu_policy,
+                    "hardware_max_khz": 2_995_200,
+                }
+            ],
+            "gpu": {
+                "policy_max_hz": gpu_policy,
+                "hardware_max_hz": 818_000_000,
+                "thermal_pwrlevel": gpu_level,
+            },
+            "thermal": [
+                {"zone": "cpu-1-7", "millidegrees_c": temperature}
+            ],
+        }
+
+    hot = snapshot(1_843_200, 492_000_000, 6, 73_900)
+    ready = snapshot(2_995_200, 818_000_000, 0, 51_000)
+    issues = module.benchmark_readiness_issues(hot, 52_300)
+    assert any("CPU policy is throttled" in issue for issue in issues)
+    assert any("GPU policy is throttled" in issue for issue in issues)
+    assert any("maximum temperature" in issue for issue in issues)
+    assert module.benchmark_readiness_issues(ready, 52_300) == []
+    samples = iter((hot, ready, ready))
+    clock = [0.0]
+
+    def sleep(seconds):
+        clock[0] += seconds
+
+    settled, elapsed = module.wait_for_benchmark_ready(
+        lambda: next(samples),
+        52_300,
+        60,
+        10,
+        2,
+        monotonic=lambda: clock[0],
+        sleeper=sleep,
+    )
+    assert settled is ready
+    assert elapsed == 20.0
+
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
         cgroup = root / "cgroup"

@@ -235,7 +235,8 @@ def system_snapshot(proc_root: Path, cpu_root: Path, kgsl_root: Path, thermal_ro
     }
 
 
-def require_unthrottled(snapshot) -> None:
+def throttle_issues(snapshot) -> list[str]:
+    issues = []
     throttled_cpus = []
     for row in snapshot["cpu"]:
         policy = row["policy_max_khz"]
@@ -243,21 +244,88 @@ def require_unthrottled(snapshot) -> None:
         if policy is not None and hardware is not None and policy < hardware:
             throttled_cpus.append(row["cpu"])
     if throttled_cpus:
-        raise RuntimeError(f"CPU policy is throttled before the pass: {throttled_cpus}")
+        issues.append(f"CPU policy is throttled before the pass: {throttled_cpus}")
     gpu = snapshot["gpu"]
     if (
         isinstance(gpu["policy_max_hz"], int)
         and isinstance(gpu["hardware_max_hz"], int)
         and gpu["policy_max_hz"] < gpu["hardware_max_hz"]
     ):
-        raise RuntimeError(
+        issues.append(
             "GPU policy is throttled before the pass: "
             f"{gpu['policy_max_hz']} < {gpu['hardware_max_hz']}"
         )
     if gpu["thermal_pwrlevel"] not in (None, 0, "0"):
-        raise RuntimeError(
+        issues.append(
             f"GPU thermal power level is nonzero before the pass: {gpu['thermal_pwrlevel']}"
         )
+    return issues
+
+
+def require_unthrottled(snapshot) -> None:
+    issues = throttle_issues(snapshot)
+    if issues:
+        raise RuntimeError("; ".join(issues))
+
+
+def maximum_temperature_millidegrees(snapshot) -> int | None:
+    temperatures = [
+        row["millidegrees_c"]
+        for row in snapshot["thermal"]
+        if isinstance(row.get("millidegrees_c"), int)
+    ]
+    return max(temperatures) if temperatures else None
+
+
+def benchmark_readiness_issues(snapshot, temperature_ceiling: int) -> list[str]:
+    issues = throttle_issues(snapshot)
+    maximum = maximum_temperature_millidegrees(snapshot)
+    if maximum is None:
+        issues.append("thermal-zone temperatures are unavailable")
+    elif maximum > temperature_ceiling:
+        issues.append(
+            f"maximum temperature is {maximum / 1000:.1f}C, "
+            f"above {temperature_ceiling / 1000:.1f}C start ceiling"
+        )
+    return issues
+
+
+def wait_for_benchmark_ready(
+    snapshotter,
+    temperature_ceiling: int,
+    timeout_seconds: int,
+    poll_seconds: int,
+    stable_samples: int,
+    *,
+    monotonic=time.monotonic,
+    sleeper=time.sleep,
+):
+    started = monotonic()
+    stable = 0
+    latest = None
+    latest_issues = []
+    while True:
+        latest = snapshotter()
+        latest_issues = benchmark_readiness_issues(latest, temperature_ceiling)
+        if latest_issues:
+            stable = 0
+        else:
+            stable += 1
+            if stable >= stable_samples:
+                return latest, round(monotonic() - started, 3)
+        elapsed = monotonic() - started
+        if elapsed >= timeout_seconds:
+            raise RuntimeError(
+                f"cooldown did not reach {stable_samples} stable ready samples "
+                f"within {timeout_seconds}s; last state: "
+                + "; ".join(latest_issues or [f"stable samples {stable}/{stable_samples}"])
+            )
+        print(
+            "cooldown: "
+            + "; ".join(latest_issues or [f"stable sample {stable}/{stable_samples}"]),
+            flush=True,
+        )
+        sleeper(min(poll_seconds, max(0, timeout_seconds - elapsed)))
 
 
 def run_logged(command, environment, output: Path) -> float:
@@ -331,6 +399,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--launcher", default=str(home / "start-tombraider-native.sh"))
     parser.add_argument("--display", default=":0")
     parser.add_argument("--output-dir")
+    parser.add_argument("--cooldown-timeout", type=int, default=1800)
+    parser.add_argument("--cooldown-poll", type=int, default=10)
+    parser.add_argument("--cooldown-stable-samples", type=int, default=3)
+    parser.add_argument("--start-temperature-margin-c", type=float, default=2.0)
     return parser
 
 
@@ -341,6 +413,15 @@ def main() -> int:
         return 2
     if not 1 <= arguments.runs <= 10:
         print("runs must be between 1 and 10", file=sys.stderr)
+        return 2
+    if arguments.cooldown_timeout <= 0 or arguments.cooldown_poll <= 0:
+        print("cooldown timeout and poll must be positive", file=sys.stderr)
+        return 2
+    if not 1 <= arguments.cooldown_stable_samples <= 12:
+        print("cooldown stable samples must be between 1 and 12", file=sys.stderr)
+        return 2
+    if not 0 <= arguments.start_temperature_margin_c <= 20:
+        print("start temperature margin must be between 0C and 20C", file=sys.stderr)
         return 2
 
     base = Path(arguments.base).resolve()
@@ -403,6 +484,10 @@ def main() -> int:
                 "fex_profile": arguments.profile,
                 "warmups": arguments.warmups,
                 "recorded_runs": arguments.runs,
+                "cooldown_timeout_seconds": arguments.cooldown_timeout,
+                "cooldown_poll_seconds": arguments.cooldown_poll,
+                "cooldown_stable_samples": arguments.cooldown_stable_samples,
+                "start_temperature_margin_c": arguments.start_temperature_margin_c,
             },
             "method": (
                 "Game command-line -benchmark mode; no profiler, capture, or "
@@ -461,12 +546,37 @@ def main() -> int:
         }
 
         total = arguments.warmups + arguments.runs
+        temperature_ceiling = None
         for index in range(total):
             kind = "warmup" if index < arguments.warmups else "recorded"
             number = index + 1 if kind == "warmup" else index - arguments.warmups + 1
             label = f"{kind}-{number}"
-            before = system_snapshot(proc_root, cpu_root, kgsl_root, thermal_root)
-            require_unthrottled(before)
+            if temperature_ceiling is None:
+                before = system_snapshot(proc_root, cpu_root, kgsl_root, thermal_root)
+                require_unthrottled(before)
+                initial_temperature = maximum_temperature_millidegrees(before)
+                if initial_temperature is None:
+                    raise RuntimeError("thermal-zone temperatures are unavailable")
+                temperature_ceiling = initial_temperature + round(
+                    arguments.start_temperature_margin_c * 1000
+                )
+                series["target"]["initial_max_temperature_millidegrees_c"] = (
+                    initial_temperature
+                )
+                series["target"]["start_temperature_ceiling_millidegrees_c"] = (
+                    temperature_ceiling
+                )
+                cooldown_seconds = 0.0
+            else:
+                before, cooldown_seconds = wait_for_benchmark_ready(
+                    lambda: system_snapshot(
+                        proc_root, cpu_root, kgsl_root, thermal_root
+                    ),
+                    temperature_ceiling,
+                    arguments.cooldown_timeout,
+                    arguments.cooldown_poll,
+                    arguments.cooldown_stable_samples,
+                )
             result_before = file_state(game_directory.glob(RESULT_GLOB))
             guard_before = file_state(guard_directory.glob(GUARD_GLOB))
             launch_log = output_directory / f"{label}-launch.log"
@@ -504,6 +614,7 @@ def main() -> int:
                 "number": number,
                 "metrics": metrics,
                 "elapsed_seconds": round(elapsed, 3),
+                "cooldown_seconds": cooldown_seconds,
                 "source_result": str(result_files[0]),
                 "source_affinity_log": str(ready_guards[0]),
                 "before": before,
