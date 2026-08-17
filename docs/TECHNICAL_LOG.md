@@ -4730,13 +4730,27 @@ selected Termux glibc package intentionally maps both robust-list syscalls to
 `ENOSYS`, so this is a measured ABI boundary rather than a graphics or stale
 shared-object failure.
 
-`termux-glibc-compat` commit `1a4e73a` adds an opt-in syscall shim. With
+`termux-glibc-compat` commit `1a4e73a` added an opt-in syscall shim. With
 `TGCOMPAT_ROBUST_LIST=1`, only the current-thread query receives a lazy,
 thread-local Linux-layout head; all other calls pass to the real glibc
 `syscall`. Its regression verifies distinct thread heads, repeat-query
 identity, exact layout, error handling, and unrelated-syscall forwarding. The
 full host suite passes. The synthetic list is not kernel-registered on Android,
 so owner-death recovery remains explicitly unclaimed.
+
+The first tablet retry changed the captured state from a null `x19` to a valid
+head and passed the length/offset branches, proving that the original fatal was
+cleared. It then reached the adjacent list-corruption branch at the same common
+trap. Disassembly at `0x150ec60` showed Valve loading `head->list.next`, then
+loading the predecessor from eight bytes before that node and requiring it to
+point back to the head. The captured empty list had `head->list.next == head`
+but `*(head - 8) == 1`: that word was our TLS initialization flag. This is
+glibc's private `robust_prev` extension around the public Linux structure.
+
+Commit `3a81a8d` now returns a container with an adjacent predecessor word
+initialized to the head. The regression checks that hidden field as well as
+the public 24-byte layout. Both the workstation suite and the glibc-linked
+tablet test pass before the next Steam retry.
 
 The required `deja "Steam get_robust_list synthetic pthread robust head syscall
 shim Termux glibc"` search returned no indexed implementation. The fix reuses

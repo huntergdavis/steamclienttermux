@@ -631,10 +631,11 @@ the native preflight.
 Termux glibc also returns `ENOSYS` for `get_robust_list`, which Valve's IPC
 thread treats as a fatal initialization error. The native launcher enables the
 separate `libtgcompat-robust.so` experiment for Steam: it returns the exact
-thread-local 24-byte head and `-32` futex offset Valve validates, while
-forwarding unrelated syscalls. Android cannot register that head with the
-kernel, so this clears the userspace initialization gate but does not claim
-kernel owner-death recovery.
+thread-local 24-byte head and `-32` futex offset Valve validates, plus glibc's
+immediately preceding predecessor link used during list mutation. Unrelated
+syscalls are forwarded. Android cannot register that head with the kernel, so
+this clears the userspace initialization gate but does not claim kernel
+owner-death recovery.
 
 The native client and CEF do not run below PRoot. A narrowly gated compatibility
 shim proved that opening exactly `/proc/self/root` with `O_PATH` clears the
