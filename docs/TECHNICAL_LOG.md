@@ -4676,3 +4676,16 @@ required `deja` searches for upstream `test-sysvsem` automation and parallel
 Termux glibc installation found no indexed implementation. Reused work is the
 repository's existing native launcher and game-boundary preflight, the pinned
 official Termux recipe, and glibc's own 2.44 test program.
+
+The first live generic native-client attempt reached the Steam updater in two
+seconds, then exited before creating a window. Its exact fatal assertion was
+that none of `/tmp/dumps` through `/tmp/dumps09` could be created. Unlike the
+PRoot path, a native Android process has no writable Linux `/tmp`; `TMPDIR`
+alone was insufficient because Breakpad uses its own location. The ARM64 Steam
+binary advertises `BREAKPAD_DUMP_LOCATION`, so the native launcher now creates
+a private mode-0700 directory below its validated runtime directory and exports
+that location. It rejects a symbolic-link crash directory. The failed attempt
+did not reach login, mutate authentication state, or start a game. The required
+Deja lookup found no indexed native-Steam solution; this fix reuses Steam's own
+binary-advertised environment control and the launcher's existing private
+runtime directory.
