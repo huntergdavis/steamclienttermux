@@ -5558,3 +5558,30 @@ so the policy collapse is thermal rather than OOM.
 The exact tablet `series.json` is committed unchanged at
 `docs/benchmark-series/tombraider-native-glibc-safe-119hz-20260817.json`. This
 119.92 Hz series is the fixed control for the next Samsung Standard 60 Hz A/B.
+
+## 2026-08-17: Standard 60 Hz improves native-resolution throughput
+
+Samsung Motion smoothness was changed from Adaptive to Standard after the
+119.92 Hz series stopped. The next X11 session reported 2800x1752 at 59.97 Hz,
+making this a verified display-rate change rather than an assumption from the
+Android settings label. All remaining benchmark inputs matched series
+`20260817T161307Z-safe`.
+
+Series `20260817T163931Z-safe` produced a 18.6/33.6/25.6 FPS warm-up and
+recorded results of 17.3/33.8/25.3, 13.4/35.5/24.9, and
+17.9/34.2/25.3 FPS. Its aggregate is 16.200 minimum, 34.500 maximum, and
+25.167 average FPS. Relative to the 119.92 Hz aggregate, minimum improved 2.7%,
+maximum 5.9%, average 7.6%, and average-FPS median 11.5% from 22.7 to 25.3.
+
+This does not prove that lower final temperature caused the improvement. Each
+recorded pass started at 37.0 C with full CPU/GPU policy and level zero, yet
+ended at 492 MHz/thermal level six. End sensor maxima were 63.9, 75.6, and
+77.6 C, while cooldowns were 110.912, 100.862, and 110.975 seconds. The 60 Hz
+route may reduce presentation overhead or contention without avoiding the
+eventual policy cap. Available RAM and free zram after Run 3 were 3,166,504 and
+5,629,180 KiB, again excluding OOM.
+
+The exact raw series is committed at
+`docs/benchmark-series/tombraider-native-glibc-safe-60hz-20260817.json`.
+Samsung Standard 60 Hz becomes the fixed display state for the bundled-Proton
+and `fast` FEX A/Bs.

@@ -709,3 +709,40 @@ display/thermal A/B should the bundled Proton and `fast` FEX profiles be tested.
 The complete machine-readable series, including each source result, affinity
 log, clock, memory, thermal sensor, elapsed time, and aggregate, is retained as
 [`tombraider-native-glibc-safe-119hz-20260817.json`](benchmark-series/tombraider-native-glibc-safe-119hz-20260817.json).
+
+## Completed 59.97 Hz A/B (2026-08-17)
+
+After the 119.92 Hz control completed and Steam/X11 stopped, Samsung Motion
+smoothness was changed to Standard. A newly created X11 session independently
+reported 2800x1752 at 59.97 Hz. No game, FEX, resolution, V-Sync, affinity,
+graphics, launcher, or benchmark-series setting changed.
+
+| Pass | Minimum | Maximum | Average | Cooldown before pass |
+| --- | ---: | ---: | ---: | ---: |
+| warm-up | 18.6 | 33.6 | 25.6 | 0.0 s |
+| recorded 1 | 17.3 | 33.8 | 25.3 | 110.912 s |
+| recorded 2 | 13.4 | 35.5 | 24.9 | 100.862 s |
+| recorded 3 | 17.9 | 34.2 | 25.3 | 110.975 s |
+| recorded mean | **16.200** | **34.500** | **25.167** | n/a |
+
+| Aggregate | 119.92 Hz | 59.97 Hz | Change |
+| --- | ---: | ---: | ---: |
+| minimum mean | 15.767 | 16.200 | +2.7% |
+| maximum mean | 32.567 | 34.500 | +5.9% |
+| average mean | 23.400 | 25.167 | **+7.6%** |
+| average median | 22.700 | 25.300 | **+11.5%** |
+
+The result supports retaining Samsung Standard 60 Hz for this 60 FPS-targeted
+game. It does not yet identify the mechanism. Every recorded 60 Hz pass began
+at full CPU/GPU policy with a maximum sampled temperature of 37.0 C, but still
+ended with the GPU capped at 492 MHz/thermal level six. End temperatures were
+63.9, 75.6, and 77.6 C, and cooldowns were not shorter than the 119.92 Hz
+series. The FPS gain could reflect lower X11/compositor presentation work or
+less CPU/GPU contention without producing a lower final thermal state.
+
+Memory again rules out OOM: after Run 3, available RAM was 3,166,504 KiB and
+free zram was 5,629,180 KiB. The raw 59.97 Hz series is retained as
+[`tombraider-native-glibc-safe-60hz-20260817.json`](benchmark-series/tombraider-native-glibc-safe-60hz-20260817.json).
+The next controlled profiles are Proton's bundled FEX configuration and then
+the opt-in `fast` configuration, both while retaining the winning 59.97 Hz
+display state.

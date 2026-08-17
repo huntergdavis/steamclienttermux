@@ -256,10 +256,15 @@ The first controlled native-glibc FPS series is also complete. At panel-native
 That is 5.4% above the earlier all-PRoot-host 22.2 FPS mean, alongside the
 6.99x launch improvement. Each recorded pass began at full CPU/GPU policy, but
 each ended with the GPU thermally capped at 492 MHz/level six. XRandR exposed a
-119.92 Hz Termux:X11 surface around the game's 60 Hz target, so the next A/B is
-the completed 119.92 Hz control versus Samsung Standard 60 Hz. The
-[raw series](docs/benchmark-series/tombraider-native-glibc-safe-119hz-20260817.json)
-and [benchmark log](docs/TOMB_RAIDER_BENCHMARK.md#completed-native-glibc-11992-hz-control-2026-08-17)
+119.92 Hz Termux:X11 surface around the game's 60 Hz target. Changing only
+Samsung Motion smoothness to Standard produced a verified 59.97 Hz surface and
+a second three-pass mean of **16.20/34.50/25.167 FPS**. Average FPS improved
+7.6%, maximum 5.9%, minimum 2.7%, and the average-FPS median 11.5%. The GPU
+still ended every pass at 492 MHz/thermal level six, so 60 Hz is a measured
+throughput win but not a cure for thermal throttling. The
+[119.92 Hz raw series](docs/benchmark-series/tombraider-native-glibc-safe-119hz-20260817.json),
+[59.97 Hz raw series](docs/benchmark-series/tombraider-native-glibc-safe-60hz-20260817.json),
+and [benchmark log](docs/TOMB_RAIDER_BENCHMARK.md#completed-5997-hz-ab-2026-08-17)
 preserve the evidence.
 
 ![Kingsway running from the microSD through Proton ARM64 and FEX](docs/evidence/kingsway-running.png)

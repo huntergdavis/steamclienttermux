@@ -31,6 +31,11 @@ completed 119.92 Hz `safe` series averaged 23.4 FPS versus the older 22.2 FPS
 all-PRoot-host mean. The Steam/CEF host is no longer under PRoot; one explicit
 outer PRoot remains at the Runtime/Proton game boundary.
 
+Samsung Standard 60 Hz is also established. With XRandR verified at 59.97 Hz,
+the otherwise identical `safe` series averaged 25.167 FPS: 7.6% above the
+119.92 Hz control. Retain Standard 60 Hz for subsequent profiles. It improved
+throughput but did not prevent every pass from ending at GPU thermal level six.
+
 ## Primary path: remove avoidable launch work, then remove PRoot
 
 Keep 2800x1752 fullscreen, Low, motion blur off, V-Sync off, the shared-UID X11
@@ -54,16 +59,15 @@ X11 on CPUs 0-3. Change only the item named by each test.
    cgroups, affinity, and active FEX profile. Reject or explicitly label a run
    whose CPU or GPU policy is already throttled. Do not profile, capture, or
    switch Android windows during the timed scene.
-4. The cooled 119.92 Hz `safe` control is complete at 23.4 FPS. Repeat the exact
-   one-warm-up/three-recorded series at verified Samsung Standard 60 Hz. This is
-   the first optimization A/B.
+4. The cooled display A/B is complete: 23.4 FPS at 119.92 Hz versus 25.167 FPS
+   at verified 59.97 Hz. Retain Samsung Standard 60 Hz as the new baseline.
 5. Continue `termux-glibc-compat` at the remaining game boundary. The versioned
    glibc, same-UID semaphore broker, authentication, native Steam, and CEF host
    are complete. Replace the explicit outer Runtime/Proton PRoot with a
    preconstructed/bindless layout; Android's denied user and mount namespaces
    mean additional libc shims alone cannot make Bubblewrap own that boundary.
-6. Only while the glibc work proceeds, run bounded `proton` and `fast` FEX A/B
-   passes. `proton` previously averaged 11.4% above `safe` at 720p. `fast`
+6. Run bounded `proton` and `fast` FEX A/B passes at verified 59.97 Hz.
+   `proton` previously averaged 11.4% above `safe` at 720p. `fast`
    follows the same-chip TSO-off direction but remains opt-in because FEX warns
    it can break multithreaded software. These are useful interim measurements,
    not substitutes for removing the 60-65%-CPU PRoot tracer.
