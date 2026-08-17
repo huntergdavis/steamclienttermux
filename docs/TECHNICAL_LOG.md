@@ -4713,3 +4713,32 @@ The required Deja searches found no indexed implementation of this native
 Steam failure or shim; the design reuses the launcher's existing narrow,
 environment-gated compatibility pattern and Termux's established `$PREFIX/tmp`
 X11 location.
+
+## 2026-08-16: native Steam robust-list fatal isolated
+
+After the native executable-identity correction, Steam loaded its cached host
+configuration, completed network setup, entered `steamui.so`, and started
+`steamwebhelper`. It then deliberately trapped on the `IPC:CSteamEngin` thread
+at `steamclient.so` file offset `0x150ecbc`. The common trap site follows three
+fatal robust-list checks; the captured register state had `x19 == 0`, selecting
+`futex robust_list not initialized by pthreads` rather than the adjacent
+corrupt-list diagnostic.
+
+The preceding code calls `syscall(SYS_get_robust_list, 0, &head, &len)` and
+requires a non-null head, a 24-byte length, and `futex_offset == -32`. The
+selected Termux glibc package intentionally maps both robust-list syscalls to
+`ENOSYS`, so this is a measured ABI boundary rather than a graphics or stale
+shared-object failure.
+
+`termux-glibc-compat` commit `1a4e73a` adds an opt-in syscall shim. With
+`TGCOMPAT_ROBUST_LIST=1`, only the current-thread query receives a lazy,
+thread-local Linux-layout head; all other calls pass to the real glibc
+`syscall`. Its regression verifies distinct thread heads, repeat-query
+identity, exact layout, error handling, and unrelated-syscall forwarding. The
+full host suite passes. The synthetic list is not kernel-registered on Android,
+so owner-death recovery remains explicitly unclaimed.
+
+The required `deja "Steam get_robust_list synthetic pthread robust head syscall
+shim Termux glibc"` search returned no indexed implementation. The fix reuses
+only the launcher's established gated-preload boundary and the Linux robust
+futex ABI fields proven by the captured Steam instructions.

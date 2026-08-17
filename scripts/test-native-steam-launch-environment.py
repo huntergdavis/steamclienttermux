@@ -24,6 +24,10 @@ def main() -> None:
     assert 'FONTCONFIG_SYSROOT="$linux_root"' in source
     assert 'STEAM_ARM64_LINUX_ROOT="$linux_root"' in source
     assert 'TGCOMPAT_PROC_SELF_EXE="$client/steam"' in source
+    assert 'robust_shim=${TGCOMPAT_ROBUST_SHIM:-' in source
+    assert "grep -aFq 'TGCOMPAT_ROBUST_LIST'" in source
+    assert 'TGCOMPAT_ROBUST_LIST=1' in source
+    assert "preload=$tmp_shim:$robust_shim:$exec_shim:$termux_exec_hook" in source
     assert "grep -aFq 'TGCOMPAT_PROC_SELF_EXE'" in source
     print("native Steam launch-environment tests: PASS")
 

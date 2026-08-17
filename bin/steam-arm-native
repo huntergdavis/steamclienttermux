@@ -15,6 +15,7 @@ crash_dir=$runtime_dir/dumps
 compat_repo=${TGCOMPAT_REPO:-$HOME/workspace/termux-glibc-compat}
 candidate_selector=${TGCOMPAT_GLIBC_ROOT:-$HOME/.local/share/tgcompat/glibc/current}
 exec_shim=${TGCOMPAT_EXEC_SHIM:-$compat_repo/build/libtgcompat-exec.so}
+robust_shim=${TGCOMPAT_ROBUST_SHIM:-$compat_repo/build/libtgcompat-robust.so}
 tmp_shim=${STEAM_ARM64_TMP_SHIM:-$compat_bin/steam-arm64-native-tmp.so}
 linux_root_selector=${STEAM_ARM64_NATIVE_ROOTFS:-$PREFIX/var/lib/proot-distro/containers/debian/rootfs}
 session_tool=$compat_repo/scripts/tgcompat-session.sh
@@ -60,6 +61,10 @@ done
     fail "glibc exec shim is missing: $exec_shim"
 grep -aFq 'TGCOMPAT_PROC_SELF_EXE' "$exec_shim" ||
     fail "glibc exec shim cannot preserve /proc/self/exe: $exec_shim"
+[[ -x $robust_shim && ! -L $robust_shim ]] ||
+    fail "glibc robust-list shim is missing: $robust_shim"
+grep -aFq 'TGCOMPAT_ROBUST_LIST' "$robust_shim" ||
+    fail "glibc robust-list shim has an unexpected build: $robust_shim"
 [[ -f $tmp_shim && ! -L $tmp_shim ]] ||
     fail "native /tmp shim is missing: $tmp_shim"
 [[ -x $session_tool && -x $compat_repo/build/tgcompatd ]] ||
@@ -164,6 +169,7 @@ if [[ ${STEAM_ARM64_NATIVE_CHECK:-0} == 1 ]]; then
     printf 'candidate_sha256=%s\n' "$package_sha"
     printf 'candidate_loader=%s\n' "$loader"
     printf 'exec_shim=%s\n' "$exec_shim"
+    printf 'robust_shim=%s\n' "$robust_shim"
     printf 'linux_runtime=%s\n' "$linux_root"
     printf 'steam=%s\n' "$client/steam"
     printf '%s\n' 'native Steam dependency preflight: PASS'
@@ -268,7 +274,7 @@ dbus_pid=$(<"$dbus_pid_file")
 [[ -n $dbus_address && $dbus_pid =~ ^[1-9][0-9]*$ ]] ||
     fail 'unable to start the private Steam D-Bus session'
 
-preload=$tmp_shim:$exec_shim:$termux_exec_hook
+preload=$tmp_shim:$robust_shim:$exec_shim:$termux_exec_hook
 log=$(python3 "$session_guard" create-log --logs-dir "$base/logs")
 
 removable_mount=$(python3 "$removable_library_helper" --base "$base" mount-info)
@@ -388,6 +394,7 @@ set +e
     STEAM_ARM64_TMP_ROOT="$PREFIX/tmp" \
     STEAM_ARM64_LINUX_ROOT="$linux_root" \
     TGCOMPAT_PROC_SELF_EXE="$client/steam" \
+    TGCOMPAT_ROBUST_LIST=1 \
     BREAKPAD_DUMP_LOCATION="$crash_dir" \
     XDG_RUNTIME_DIR="$runtime_dir" \
     PULSE_SERVER="${PULSE_SERVER:-tcp:127.0.0.1:4713}" \

@@ -13,7 +13,7 @@ def main():
     assert 'BREAKPAD_DUMP_LOCATION="$crash_dir"' in source
     assert "! -L $crash_dir" in source
     assert "tmp_shim=${STEAM_ARM64_TMP_SHIM:-" in source
-    assert "preload=$tmp_shim:$exec_shim:$termux_exec_hook" in source
+    assert "preload=$tmp_shim:$robust_shim:$exec_shim:$termux_exec_hook" in source
     assert 'STEAM_ARM64_TMP_ROOT="$PREFIX/tmp"' in source
     print("native Steam Breakpad path tests: PASS")
 
