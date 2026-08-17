@@ -53,7 +53,7 @@ command -v "$xdotool_command" >/dev/null 2>&1 || {
 
 # Do not put AppID 12210 on Steam's own cold-start command line. Establish the
 # remembered-login-ready native client first, then forward the Rockstar game.
-"$steam_start"
+"$steam_start" "${native_options[@]}"
 
 process_is_top_app() {
     local process=$1 cpuset cpu

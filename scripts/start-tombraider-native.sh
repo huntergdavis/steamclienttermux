@@ -62,7 +62,7 @@ command -v "$xdotool_command" >/dev/null 2>&1 || {
 # window and then loses PRoot vPID 1 to signal 1. The same AppID forwarded to
 # the remembered-login-ready client is stable, so establish that client first.
 # With an existing client this is a quick, focus-free readiness check.
-"$steam_start"
+"$steam_start" "${native_options[@]}"
 
 process_is_top_app() {
     local process=$1 cpuset cpu

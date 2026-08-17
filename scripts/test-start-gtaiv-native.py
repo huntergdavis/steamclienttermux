@@ -27,6 +27,7 @@ def main():
         fake_start.write_text(
             "#!/bin/sh\n"
             'if [ "$#" -eq 0 ]; then printf "prime\\n" >> "$CAPTURE"; exit 0; fi\n'
+            'if [ "$#" -eq 1 ] && [ "$1" = --proton-log ]; then printf "prime-proton-log\\n" >> "$CAPTURE"; exit 0; fi\n'
             'count=$(cat "$COUNT" 2>/dev/null || printf 0)\n'
             'count=$((count + 1)); printf "%s\\n" "$count" > "$COUNT"\n'
             'printf "attempt=%s\\n" "$count" >> "$CAPTURE"\n'
@@ -58,19 +59,20 @@ def main():
             "GTAIV_SUPERVISE_POLL_SECONDS": "1",
         }
         result = subprocess.run(
-            ["bash", str(SCRIPT), "-foo"],
+            ["bash", str(SCRIPT), "--proton-log", "-foo"],
             env=environment,
             text=True,
             capture_output=True,
         )
         assert result.returncode == 0, result.stderr
         lines = capture.read_text().splitlines()
-        assert lines[0] == "prime"
+        assert lines[0] == "prime-proton-log"
         assert [line for line in lines if line.startswith("attempt=")] == [
             "attempt=1",
             "attempt=2",
         ]
         assert lines.count("arg=--appid") == 2
+        assert lines.count("arg=--proton-log") == 2
         assert lines.count("arg=12210") == 2
         assert lines.count("arg=--") == 2
         assert lines.count("arg=-foo") == 2
