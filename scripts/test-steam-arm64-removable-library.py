@@ -166,11 +166,26 @@ def test_hidden_data_refusals(module, temporary):
     else:
         raise AssertionError("external control data was accepted")
     (paths["external_steamapps"] / "appmanifest_unsafe.acf").unlink()
+    marker = paths["target"] / "libraryfolder.vdf"
+    marker.write_text(
+        '"libraryfolder"\n{\n\t"contentid"\t\t"3604794888448386386"\n'
+        '\t"label"\t\t"microSD Windows games"\n}\n'
+    )
+    marker.chmod(0o600)
+    assert module.load_layout(base, storage) == paths
+    marker.write_text("malformed\n")
+    try:
+        module.load_layout(base, storage)
+    except RuntimeError as error:
+        assert "metadata has unexpected contents" in str(error)
+    else:
+        raise AssertionError("malformed Steam library metadata was accepted")
+    marker.unlink()
     (paths["target"] / "unexpected-host-data").write_text("unsafe")
     try:
         module.load_layout(base, storage)
     except RuntimeError as error:
-        assert "internal library mount point must be empty" in str(error)
+        assert "must be empty or contain only Steam metadata" in str(error)
     else:
         raise AssertionError("nonempty internal mount point was accepted")
 

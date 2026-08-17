@@ -52,6 +52,32 @@ def inspect_directory_skeleton(path, label):
     return metadata
 
 
+def inspect_library_mountpoint(path):
+    inspect_directory(path, "internal library mount point")
+    entries = list(path.iterdir())
+    if not entries:
+        return
+    if len(entries) != 1 or entries[0].name != "libraryfolder.vdf":
+        raise RuntimeError("internal library mount point must be empty or contain only Steam metadata")
+    marker = entries[0]
+    metadata = inspect_regular_file(marker, "Steam library metadata")
+    if metadata.st_uid != os.getuid() or stat.S_IMODE(metadata.st_mode) & 0o077:
+        raise RuntimeError("Steam library metadata has unsafe ownership or permissions")
+    if metadata.st_size > 4096:
+        raise RuntimeError("Steam library metadata is unexpectedly large")
+    try:
+        contents = marker.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as error:
+        raise RuntimeError("Steam library metadata is unreadable") from error
+    metadata_pattern = re.compile(
+        r'"libraryfolder"\r?\n\{\r?\n'
+        r'\t"contentid"\t\t"[0-9]+"\r?\n'
+        r'\t"label"\t\t"[^"\r\n]{0,128}"\r?\n\}\r?\n'
+    )
+    if metadata_pattern.fullmatch(contents) is None:
+        raise RuntimeError("Steam library metadata has unexpected contents")
+
+
 def inspect_config(path):
     try:
         metadata = path.lstat()
@@ -208,7 +234,7 @@ def validate_layout(base, source, storage_root=Path("/storage"), staging_binds=N
         raise RuntimeError(f"unexpected removable library path: {source}")
     paths = layout_paths(base, resolved_source)
     inspect_directory(paths["source"], "removable library")
-    inspect_directory(paths["target"], "internal library mount point", require_empty=True)
+    inspect_library_mountpoint(paths["target"])
     inspect_directory(paths["steamapps_control"], "internal Steam control root")
     inspect_directory(paths["external_steamapps"], "external steamapps root")
     unexpected_external = sorted(

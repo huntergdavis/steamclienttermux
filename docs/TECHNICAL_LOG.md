@@ -4882,6 +4882,19 @@ The required `deja "Steam native explicit glibc loader argv0 process detection
 stop script affinity Termux"` search returned no indexed implementation; this
 reuses the launcher's already validated content-addressed loader layout.
 
+Native Steam creates a 90-byte `libraryfolder.vdf` descriptor in the removable
+library mountpoint after startup. The original hidden-data guard required that
+directory to remain completely empty, so a clean client run prevented every
+later AppID forward even though no game payload had been written there. The
+validator now permits only that exact filename when it is a regular
+single-link file owned by the Termux UID, has no group/other permission bits,
+is at most 4 KiB, and exactly matches Steam's content-ID/label VDF grammar.
+Unexpected entries, links, broad permissions, oversized data, malformed text,
+and actual game data remain refusals. The required `deja "Steam removable
+library mount point libraryfolder.vdf generated metadata nonempty native
+client"` search returned no indexed implementation; the accepted schema comes
+from the descriptor produced by the measured native client.
+
 The required `deja "Steam get_robust_list synthetic pthread robust head syscall
 shim Termux glibc"` search returned no indexed implementation. The fix reuses
 only the launcher's established gated-preload boundary and the Linux robust

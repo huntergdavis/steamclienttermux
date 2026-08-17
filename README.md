@@ -669,6 +669,11 @@ loader plus its exact `--argv0` Steam target. This keeps existing-session
 forwarding, CPU affinity, and graceful stop behavior coherent even though the
 kernel-visible first argument is the loader rather than `steam`.
 
+The removable-library hidden-data guard permits Steam's private, owned,
+strictly parsed `libraryfolder.vdf` descriptor in the otherwise-empty bind
+target. It still refuses every unrelated entry or malformed descriptor, so a
+native client can forward a game without weakening payload protection.
+
 The native client and CEF do not run below PRoot. A narrowly gated compatibility
 shim proved that opening exactly `/proc/self/root` with `O_PATH` clears the
 first Pressure Vessel error, but the next boundary is kernel-enforced:
