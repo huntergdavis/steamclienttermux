@@ -1,0 +1,517 @@
+#!/usr/bin/env python3
+"""Run a controlled panel-native Tomb Raider benchmark series."""
+
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import stat
+import statistics
+import subprocess
+import sys
+import time
+
+
+PANEL_GEOMETRY = "2800x1752"
+RESULT_GLOB = "benchmarkresults*.txt"
+GUARD_GLOB = "tomb-raider-affinity-*.log"
+METRIC_PATTERNS = {
+    "minimum_fps": re.compile(
+        r"(?im)^\s*(?:min(?:imum)?\s*fps|minfps)\s*[:=]?\s*([0-9]+(?:\.[0-9]+)?)"
+    ),
+    "maximum_fps": re.compile(
+        r"(?im)^\s*(?:max(?:imum)?\s*fps|maxfps)\s*[:=]?\s*([0-9]+(?:\.[0-9]+)?)"
+    ),
+    "average_fps": re.compile(
+        r"(?im)^\s*(?:(?:avg|average)\s*fps|avgfps|average)\s*[:=]?\s*([0-9]+(?:\.[0-9]+)?)"
+    ),
+}
+
+
+def read_text(path: Path) -> str | None:
+    try:
+        return path.read_text().strip()
+    except (FileNotFoundError, PermissionError, ProcessLookupError, OSError):
+        return None
+
+
+def require_regular(path: Path, label: str, executable: bool = False) -> None:
+    try:
+        metadata = path.lstat()
+    except FileNotFoundError as error:
+        raise RuntimeError(f"{label} is missing: {path}") from error
+    if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
+        raise RuntimeError(f"{label} is not a regular non-symlink file: {path}")
+    if executable and not os.access(path, os.X_OK):
+        raise RuntimeError(f"{label} is not executable: {path}")
+
+
+def cgroup_classes(path: Path = Path("/proc/self/cgroup")) -> dict[str, str]:
+    result = {}
+    text = read_text(path) or ""
+    for line in text.splitlines():
+        _index, separator, remainder = line.partition(":")
+        if not separator:
+            continue
+        controllers, separator, value = remainder.partition(":")
+        if not separator:
+            continue
+        for controller in controllers.split(","):
+            if controller:
+                result[controller] = value
+    return result
+
+
+def require_top_app(path: Path = Path("/proc/self/cgroup")) -> None:
+    classes = cgroup_classes(path)
+    if classes.get("cpuset") != "/top-app" or classes.get("cpu") != "/top-app":
+        raise RuntimeError(
+            "benchmark runner is not in Android top-app cgroups "
+            f"(cpuset={classes.get('cpuset', 'unknown')}, "
+            f"cpu={classes.get('cpu', 'unknown')}); launch it through the "
+            "foreground Termux RunCommandService session"
+        )
+
+
+def process_tokens(path: Path) -> list[bytes]:
+    try:
+        return [token for token in path.read_bytes().split(b"\0") if token]
+    except (FileNotFoundError, PermissionError, ProcessLookupError, OSError):
+        return []
+
+
+def find_exact_processes(proc_root: Path, executable: Path) -> list[int]:
+    target = os.fsencode(str(executable))
+    matches = []
+    for process in proc_root.iterdir():
+        if not process.name.isdecimal():
+            continue
+        if target in process_tokens(process / "cmdline"):
+            matches.append(int(process.name))
+    return sorted(matches)
+
+
+def environment_for_pid(proc_root: Path, pid: int) -> dict[str, str]:
+    data = (proc_root / str(pid) / "environ").read_bytes()
+    result = {}
+    for entry in data.split(b"\0"):
+        key, separator, value = entry.partition(b"=")
+        if separator:
+            result[os.fsdecode(key)] = os.fsdecode(value)
+    return result
+
+
+def file_state(paths) -> dict[str, tuple[int, int, int]]:
+    result = {}
+    for path in paths:
+        try:
+            metadata = path.lstat()
+        except (FileNotFoundError, OSError):
+            continue
+        if stat.S_ISREG(metadata.st_mode) and not stat.S_ISLNK(metadata.st_mode):
+            result[str(path)] = (
+                metadata.st_ino,
+                metadata.st_mtime_ns,
+                metadata.st_size,
+            )
+    return result
+
+
+def changed_regular_files(directory: Path, pattern: str, before) -> list[Path]:
+    current = file_state(directory.glob(pattern))
+    return sorted(
+        Path(path) for path, identity in current.items() if before.get(path) != identity
+    )
+
+
+def decode_result(data: bytes) -> str:
+    if data.startswith((b"\xff\xfe", b"\xfe\xff")) or b"\0" in data[:128]:
+        return data.decode("utf-16")
+    return data.decode("utf-8-sig")
+
+
+def parse_benchmark_result(data: bytes) -> dict[str, float]:
+    text = decode_result(data)
+    result = {}
+    for name, pattern in METRIC_PATTERNS.items():
+        match = pattern.search(text)
+        if match is None:
+            raise RuntimeError(f"benchmark result does not contain {name}")
+        result[name] = float(match.group(1))
+    return result
+
+
+def parse_xrandr_geometry(output: str) -> str | None:
+    match = re.search(r"^Screen 0:.* current (\d+) x (\d+),", output, re.MULTILINE)
+    return f"{match.group(1)}x{match.group(2)}" if match else None
+
+
+def parse_xrandr_refresh(output: str) -> list[float]:
+    refresh = []
+    for line in output.splitlines():
+        if "*" not in line:
+            continue
+        for value in re.findall(r"(?<!\d)(\d+(?:\.\d+)?)\*", line):
+            refresh.append(float(value))
+    return refresh
+
+
+def meminfo(proc_root: Path) -> dict[str, int]:
+    wanted = {"MemAvailable", "SwapFree", "SwapTotal"}
+    result = {}
+    text = read_text(proc_root / "meminfo") or ""
+    for line in text.splitlines():
+        key, separator, value = line.partition(":")
+        if separator and key in wanted:
+            result[f"{key}_kib"] = int(value.split()[0])
+    return result
+
+
+def cpu_snapshot(cpu_root: Path) -> list[dict[str, int | None]]:
+    result = []
+    for cpu in range(os.cpu_count() or 0):
+        root = cpu_root / f"cpu{cpu}" / "cpufreq"
+        row = {"cpu": cpu}
+        for name, filename in (
+            ("current_khz", "scaling_cur_freq"),
+            ("policy_max_khz", "scaling_max_freq"),
+            ("hardware_max_khz", "cpuinfo_max_freq"),
+        ):
+            value = read_text(root / filename)
+            row[name] = int(value) if value and value.isdecimal() else None
+        result.append(row)
+    return result
+
+
+def gpu_snapshot(kgsl_root: Path) -> dict[str, int | str | None]:
+    available = read_text(kgsl_root / "devfreq/available_frequencies")
+    numeric_available = (
+        [int(value) for value in available.split() if value.isdecimal()]
+        if available
+        else []
+    )
+    result: dict[str, int | str | None] = {
+        "busy_percent": read_text(kgsl_root / "gpu_busy_percentage"),
+        "available_frequencies_hz": available,
+        "hardware_max_hz": max(numeric_available) if numeric_available else None,
+    }
+    for name, filename in (
+        ("current_hz", "devfreq/cur_freq"),
+        ("policy_max_hz", "devfreq/max_freq"),
+        ("thermal_pwrlevel", "thermal_pwrlevel"),
+    ):
+        value = read_text(kgsl_root / filename)
+        result[name] = int(value) if value and value.isdecimal() else value
+    return result
+
+
+def thermal_snapshot(thermal_root: Path, limit: int = 12):
+    result = []
+    for zone in thermal_root.glob("thermal_zone*"):
+        name = read_text(zone / "type")
+        value = read_text(zone / "temp")
+        if name is None or value is None:
+            continue
+        try:
+            temperature = int(value)
+        except ValueError:
+            continue
+        result.append({"zone": name, "millidegrees_c": temperature})
+    return sorted(result, key=lambda row: -row["millidegrees_c"])[:limit]
+
+
+def system_snapshot(proc_root: Path, cpu_root: Path, kgsl_root: Path, thermal_root: Path):
+    return {
+        "captured_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "memory": meminfo(proc_root),
+        "cpu": cpu_snapshot(cpu_root),
+        "gpu": gpu_snapshot(kgsl_root),
+        "thermal": thermal_snapshot(thermal_root),
+    }
+
+
+def require_unthrottled(snapshot) -> None:
+    throttled_cpus = []
+    for row in snapshot["cpu"]:
+        policy = row["policy_max_khz"]
+        hardware = row["hardware_max_khz"]
+        if policy is not None and hardware is not None and policy < hardware:
+            throttled_cpus.append(row["cpu"])
+    if throttled_cpus:
+        raise RuntimeError(f"CPU policy is throttled before the pass: {throttled_cpus}")
+    gpu = snapshot["gpu"]
+    if (
+        isinstance(gpu["policy_max_hz"], int)
+        and isinstance(gpu["hardware_max_hz"], int)
+        and gpu["policy_max_hz"] < gpu["hardware_max_hz"]
+    ):
+        raise RuntimeError(
+            "GPU policy is throttled before the pass: "
+            f"{gpu['policy_max_hz']} < {gpu['hardware_max_hz']}"
+        )
+    if gpu["thermal_pwrlevel"] not in (None, 0, "0"):
+        raise RuntimeError(
+            f"GPU thermal power level is nonzero before the pass: {gpu['thermal_pwrlevel']}"
+        )
+
+
+def run_logged(command, environment, output: Path) -> float:
+    started = time.monotonic()
+    completed = subprocess.run(
+        [str(value) for value in command],
+        env=environment,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        errors="replace",
+    )
+    elapsed = time.monotonic() - started
+    output.write_text(completed.stdout)
+    if completed.returncode != 0:
+        raise RuntimeError(
+            f"command exited {completed.returncode}; inspect {output}: "
+            + " ".join(str(value) for value in command)
+        )
+    return elapsed
+
+
+def atomic_json(path: Path, data) -> None:
+    temporary = path.with_name(f".{path.name}.tmp-{os.getpid()}")
+    with temporary.open("w") as output:
+        json.dump(data, output, indent=2, sort_keys=True)
+        output.write("\n")
+        output.flush()
+        os.fsync(output.fileno())
+    os.replace(temporary, path)
+
+
+def aggregate_results(runs) -> dict[str, dict[str, float]]:
+    recorded = [run["metrics"] for run in runs if run["kind"] == "recorded"]
+    if not recorded:
+        raise RuntimeError("benchmark series has no recorded passes")
+    result = {}
+    for metric in ("minimum_fps", "maximum_fps", "average_fps"):
+        values = [row[metric] for row in recorded]
+        result[metric] = {
+            "mean": round(statistics.fmean(values), 3),
+            "median": round(statistics.median(values), 3),
+            "values": values,
+        }
+    return result
+
+
+def build_parser() -> argparse.ArgumentParser:
+    home = Path.home()
+    parser = argparse.ArgumentParser(
+        description="Run one warm-up and a controlled native-host Tomb Raider series"
+    )
+    parser.add_argument("--profile", choices=("safe", "proton", "fast"), default="safe")
+    parser.add_argument("--warmups", type=int, default=1)
+    parser.add_argument("--runs", type=int, default=3)
+    parser.add_argument("--base", default=str(home / "steam-arm64"))
+    parser.add_argument("--primer", default=str(home / "start-steam-native.sh"))
+    parser.add_argument("--launcher", default=str(home / "start-tombraider-native.sh"))
+    parser.add_argument("--display", default=":0")
+    parser.add_argument("--output-dir")
+    return parser
+
+
+def main() -> int:
+    arguments = build_parser().parse_args()
+    if not 0 <= arguments.warmups <= 3:
+        print("warmups must be between 0 and 3", file=sys.stderr)
+        return 2
+    if not 1 <= arguments.runs <= 10:
+        print("runs must be between 1 and 10", file=sys.stderr)
+        return 2
+
+    base = Path(arguments.base).resolve()
+    primer = Path(arguments.primer).resolve()
+    launcher = Path(arguments.launcher).resolve()
+    game_directory = base / "removable-library/steamapps/common/Tomb Raider"
+    guard_directory = base / "logs"
+    profile_checker = base / "compat-bin/configure-tombraider-performance.py"
+    steam_executable = base / "client/steamrtarm64/steam"
+    proc_root = Path("/proc")
+    cpu_root = Path("/sys/devices/system/cpu")
+    kgsl_root = Path("/sys/class/kgsl/kgsl-3d0")
+    thermal_root = Path("/sys/class/thermal")
+    series_id = (
+        dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        + f"-{arguments.profile}"
+    )
+    output_directory = (
+        Path(arguments.output_dir).resolve()
+        if arguments.output_dir
+        else base / "logs/tombraider-benchmarks" / series_id
+    )
+
+    try:
+        require_top_app()
+        for path, label in (
+            (primer, "native Steam primer"),
+            (launcher, "native Tomb Raider launcher"),
+            (profile_checker, "Tomb Raider profile checker"),
+            (steam_executable, "native Steam executable"),
+        ):
+            require_regular(path, label, executable=True)
+        if not game_directory.is_dir() or game_directory.is_symlink():
+            raise RuntimeError(f"game directory is unavailable or unsafe: {game_directory}")
+        if find_exact_processes(proc_root, steam_executable):
+            raise RuntimeError(
+                "native Steam is already active; stop it before a profile-controlled series"
+            )
+        output_directory.mkdir(parents=True, mode=0o700, exist_ok=False)
+
+        environment = {
+            **os.environ,
+            "DISPLAY": arguments.display,
+            "STEAM_BACKGROUND": "1",
+            "STEAM_ARM64_FEX_PROFILE": arguments.profile,
+        }
+        series = {
+            "schema_version": 1,
+            "status": "initializing",
+            "series_id": series_id,
+            "game": "Tomb Raider (2013)",
+            "appid": 203160,
+            "stack": "native glibc Steam host; Runtime 4/PRoot/Proton game boundary",
+            "target": {
+                "resolution": PANEL_GEOMETRY,
+                "graphics": "Low",
+                "vsync": "off",
+                "motion_blur": "off",
+                "fex_profile": arguments.profile,
+                "warmups": arguments.warmups,
+                "recorded_runs": arguments.runs,
+            },
+            "method": (
+                "Game command-line -benchmark mode; no profiler, capture, or "
+                "window switch runs during the timed scene"
+            ),
+            "started_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+            "runs": [],
+        }
+        atomic_json(output_directory / "series.json", series)
+
+        profile_log = output_directory / "profile-check.log"
+        run_logged([profile_checker, "--check"], environment, profile_log)
+        prime_log = output_directory / "steam-prime.log"
+        series["steam_prime_seconds"] = round(
+            run_logged([primer], environment, prime_log), 3
+        )
+        steam_pids = find_exact_processes(proc_root, steam_executable)
+        if len(steam_pids) != 1:
+            raise RuntimeError(
+                f"expected one native Steam process after priming, found {steam_pids}"
+            )
+        steam_environment = environment_for_pid(proc_root, steam_pids[0])
+        effective_profile = steam_environment.get("STEAM_ARM64_FEX_PROFILE")
+        if effective_profile != arguments.profile:
+            raise RuntimeError(
+                f"native Steam inherited FEX profile {effective_profile!r}, "
+                f"expected {arguments.profile!r}"
+            )
+        series["steam_pid"] = steam_pids[0]
+
+        xrandr = subprocess.run(
+            ["xrandr", "--current"],
+            env=environment,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+        (output_directory / "xrandr.txt").write_text(xrandr.stdout)
+        if xrandr.returncode != 0:
+            raise RuntimeError("xrandr preflight failed")
+        geometry = parse_xrandr_geometry(xrandr.stdout)
+        if geometry != PANEL_GEOMETRY:
+            raise RuntimeError(
+                f"X11 geometry is {geometry or 'unknown'}, expected {PANEL_GEOMETRY}"
+            )
+        series["display"] = {
+            "geometry": geometry,
+            "active_refresh_hz": parse_xrandr_refresh(xrandr.stdout),
+        }
+
+        total = arguments.warmups + arguments.runs
+        for index in range(total):
+            kind = "warmup" if index < arguments.warmups else "recorded"
+            number = index + 1 if kind == "warmup" else index - arguments.warmups + 1
+            label = f"{kind}-{number}"
+            before = system_snapshot(proc_root, cpu_root, kgsl_root, thermal_root)
+            require_unthrottled(before)
+            result_before = file_state(game_directory.glob(RESULT_GLOB))
+            guard_before = file_state(guard_directory.glob(GUARD_GLOB))
+            launch_log = output_directory / f"{label}-launch.log"
+            elapsed = run_logged([launcher, "-benchmark"], environment, launch_log)
+
+            result_files = changed_regular_files(
+                game_directory, RESULT_GLOB, result_before
+            )
+            if len(result_files) != 1:
+                raise RuntimeError(
+                    f"{label} produced {len(result_files)} benchmark result files: "
+                    + ", ".join(str(path) for path in result_files)
+                )
+            guard_files = changed_regular_files(guard_directory, GUARD_GLOB, guard_before)
+            ready_guards = [
+                path
+                for path in guard_files
+                if "Tomb Raider performance state: ready;" in (read_text(path) or "")
+            ]
+            if len(ready_guards) != 1:
+                raise RuntimeError(
+                    f"{label} has {len(ready_guards)} ready affinity logs; "
+                    f"changed logs: {guard_files}"
+                )
+
+            raw = result_files[0].read_bytes()
+            metrics = parse_benchmark_result(raw)
+            raw_copy = output_directory / f"{label}-benchmark.txt"
+            raw_copy.write_bytes(raw)
+            guard_copy = output_directory / f"{label}-affinity.log"
+            shutil.copyfile(ready_guards[0], guard_copy)
+            after = system_snapshot(proc_root, cpu_root, kgsl_root, thermal_root)
+            run = {
+                "kind": kind,
+                "number": number,
+                "metrics": metrics,
+                "elapsed_seconds": round(elapsed, 3),
+                "source_result": str(result_files[0]),
+                "source_affinity_log": str(ready_guards[0]),
+                "before": before,
+                "after": after,
+            }
+            series["runs"].append(run)
+            series["status"] = "running"
+            atomic_json(output_directory / "series.json", series)
+            print(
+                f"{label}: min={metrics['minimum_fps']} "
+                f"max={metrics['maximum_fps']} avg={metrics['average_fps']}",
+                flush=True,
+            )
+
+        series["aggregate"] = aggregate_results(series["runs"])
+        series["status"] = "complete"
+        series["finished_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
+        atomic_json(output_directory / "series.json", series)
+        average = series["aggregate"]["average_fps"]
+        print(
+            f"recorded average FPS: mean={average['mean']} "
+            f"median={average['median']} values={average['values']}"
+        )
+        print(output_directory / "series.json")
+    except (OSError, RuntimeError, subprocess.SubprocessError, UnicodeError) as error:
+        print(f"run-tombraider-native-benchmark: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

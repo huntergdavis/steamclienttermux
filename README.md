@@ -655,6 +655,7 @@ STEAM_ARM64_NATIVE_CHECK=1 ~/bin/steam-arm-native
 ~/start-tombraider-native.sh
 ~/start-tombraider-native.sh --proton-log
 ~/start-tombraider-native.sh -benchmark
+~/run-tombraider-native-benchmark --profile safe
 ~/stop-steam-native.sh
 ```
 
@@ -668,6 +669,16 @@ After success the wrapper deliberately remains in the foreground for the
 game's full lifetime; releasing that RunCommandService session was proven to
 deliver signal 1 to the game container. Set `TOMB_RAIDER_LAUNCH_RETRIES=0` to
 restore the thin acknowledgement-only behavior for controlled diagnostics.
+
+The benchmark runner is the controlled FPS path. Start it from a foreground
+Termux session with Steam stopped. It primes the native glibc client once,
+requires the exact 2800x1752 X root and unthrottled CPU/GPU policy, verifies the
+Low/V-Sync-off profile and selected FEX profile, then runs one warm-up and three
+recorded command-line benchmarks. Tomb Raider writes each exact result itself;
+the runner copies those files, the matching affinity proof, and before/after
+thermal and memory state into
+`~/steam-arm64/logs/tombraider-benchmarks/<series>/series.json`. It does not
+profile, capture, or switch windows during the timed scene.
 
 The first command is non-launching: it verifies the content-addressed patched
 glibc marker and uses that exact loader to resolve the Steam bootstrap and CEF

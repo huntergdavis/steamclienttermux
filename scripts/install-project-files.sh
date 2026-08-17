@@ -116,6 +116,8 @@ install_one "$repo_root/scripts/start-tombraider.sh" \
     "$HOME/start-tombraider.sh" 700
 install_one "$repo_root/scripts/start-tombraider-native.sh" \
     "$HOME/start-tombraider-native.sh" 700
+install_one "$repo_root/scripts/run-tombraider-native-benchmark.py" \
+    "$HOME/run-tombraider-native-benchmark" 700
 install_one "$repo_root/scripts/start-gtaiv-native.sh" \
     "$HOME/start-gtaiv-native.sh" 700
 install_one "$repo_root/scripts/stop-steam.sh" "$HOME/stop-steam.sh" 700
