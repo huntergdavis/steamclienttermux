@@ -492,6 +492,14 @@ def proton_smoke_command(
     fail(f"unsupported Proton smoke mode: {command_mode}")
 
 
+def proton_smoke_environment(command_mode: str) -> dict[str, str]:
+    if command_mode == "proton-entry":
+        return {}
+    if command_mode == "proton-cmd":
+        return {"WINELOADERNOEXEC": "1"}
+    fail(f"unsupported Proton smoke mode: {command_mode}")
+
+
 def run_final_smoke(
     base: Path,
     payload: dict[str, object],
@@ -595,6 +603,8 @@ def pv_smoke_invocation(
         fail("pv-adverb compatibility preload is unavailable")
     preload = ":".join(str(path) for path in preloads)
     environment = request_environment(payload)
+    if command_mode in ("proton-entry", "proton-cmd"):
+        environment.update(proton_smoke_environment(command_mode))
     prefix = os.environ.get("PREFIX", "")
     if not prefix.startswith("/"):
         fail("Termux PREFIX is unavailable to the direct dispatcher")

@@ -95,6 +95,10 @@ def main() -> None:
             "/b",
             "0",
         ]
+        assert MODULE.proton_smoke_environment("proton-entry") == {}
+        assert MODULE.proton_smoke_environment("proton-cmd") == {
+            "WINELOADERNOEXEC": "1"
+        }
     assert MODULE.request_environment(
         {"environment": ["STEAM_COMPAT_APP_ID=203160", "LD_PRELOAD=unsafe"]}
     ) == {"STEAM_COMPAT_APP_ID": "203160"}
