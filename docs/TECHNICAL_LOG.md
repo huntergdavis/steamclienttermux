@@ -5709,3 +5709,22 @@ or exit evidence, but the game route cannot assume they remain harmless. The
 next plan must come from a real Tomb Raider request so Proton's exact script,
 FEX, environment, and provider-library requirements are implemented from
 evidence rather than extrapolated from `/bin/true`.
+
+The guarded Android RunCommandService capture then produced that exact evidence
+without executing the game. The temporary `allow-external-apps` change was
+restored byte-for-byte as soon as capture PID 29303 appeared in both `/top-app`
+controllers; the disabled properties file retained SHA-256
+`89094537f49531dc9b380a0dec3a441b2fb92577e0a4f1db505790eb8b7025b0`.
+The capture process returned zero, and the artifact is committed unchanged at
+`docs/evidence/tombraider-pressure-vessel-plan-20260817.json` with SHA-256
+`6080fb732fd375ff08c18a9cad59a92981bdfff3dd6219d02845affbb40dc253`.
+
+The plan has 864 Bubblewrap arguments and 11 referenced descriptors. Its exact
+final payload is Proton 11 ARM64's `proton` Python script with
+`waitforexitandrun`, the protected removable-library `TombRaider.exe`, and
+`-nolauncher`. A credential-pattern audit found only structural strings:
+`--new-session`, `/etc/passwd`, `/run/pressure-vessel/Xauthority`, and the
+passwd memfd name. The capture contains no full process environment or FD
+contents. A graceful post-capture stop found no active game, and the final
+process audit found no Steam, game, Pressure Vessel, PRoot, X11, or PulseAudio
+process.

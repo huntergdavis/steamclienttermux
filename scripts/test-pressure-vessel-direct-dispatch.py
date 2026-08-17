@@ -2,6 +2,7 @@
 
 import importlib.util
 import inspect
+import json
 import os
 from pathlib import Path
 import socket
@@ -9,6 +10,10 @@ import tempfile
 
 
 SCRIPT = Path(__file__).with_name("pressure-vessel-direct-dispatch.py")
+PLAN = (
+    Path(__file__).resolve().parents[1]
+    / "docs/evidence/tombraider-pressure-vessel-plan-20260817.json"
+)
 SPEC = importlib.util.spec_from_file_location("pv_direct_dispatch", SCRIPT)
 assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
@@ -30,6 +35,25 @@ def main() -> None:
     assert "environment" not in serve_source
     assert "REQUEST_RECEIVED=1" in serve_source
     assert "DISPATCH_STATUS=" in serve_source
+
+    plan = json.loads(PLAN.read_text(encoding="utf-8"))
+    assert plan["kind"] == "pressure-vessel-bwrap-plan"
+    assert len(plan["bwrap_args"]) == 864
+    assert len(plan["fd_sources"]) == 11
+    assert plan["payload_argv"][16:] == [
+        "/data/data/com.termux/files/home/steam-arm64/client/steamapps/common/Proton 11.0 (ARM64)/proton",
+        "waitforexitandrun",
+        "/data/data/com.termux/files/home/steam-arm64/removable-library/steamapps/common/Tomb Raider/TombRaider.exe",
+        "-nolauncher",
+    ]
+    plan_binds, plan_symlinks = MODULE.plan_mappings(plan["bwrap_args"])
+    assert MODULE.translated_path(
+        plan["payload_argv"][0], plan_binds, plan_symlinks
+    ) == (
+        "/data/data/com.termux/files/home/steam-arm64/client/steamapps/common/"
+        "SteamLinuxRuntime_4-arm64/pressure-vessel/libexec/"
+        "steam-runtime-tools-0/pv-adverb"
+    )
 
     with (
         tempfile.TemporaryFile() as source8,
