@@ -797,5 +797,38 @@ erase the three-pass average/median result.
 
 The accepted raw artifact is
 [`tombraider-native-glibc-proton-60hz-40c-20260817.json`](benchmark-series/tombraider-native-glibc-proton-60hz-40c-20260817.json).
-The next bounded profile is `fast`, using the same verified 59.97 Hz display
-and fixed 40 C ceiling.
+The subsequent `fast` series used the same verified 59.97 Hz display and fixed
+40 C ceiling.
+
+## Completed matched `fast` profile (2026-08-17)
+
+Series `20260817T195804Z-fast` completed one warm-up and three recorded passes.
+The warm-up reported 13.3/33.3/22.8 FPS. Every recorded pass began at exactly
+37.0 C with full CPU/GPU policy, GPU thermal level zero, and the 818 MHz GPU
+policy ceiling.
+
+| Pass | Start | Minimum | Maximum | Average | Cooldown |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| recorded 1 | 37.0 C | 17.6 | 33.9 | 25.5 | 100.864 s |
+| recorded 2 | 37.0 C | 16.3 | 33.9 | 23.0 | 80.737 s |
+| recorded 3 | 37.0 C | 15.2 | 29.1 | 22.9 | 110.947 s |
+| mean | n/a | **16.367** | **32.300** | **23.800** | n/a |
+
+Against `safe` at 16.200/34.500/25.167 FPS, `fast` improved minimum mean by
+1.0% but reduced maximum mean by 6.4% and average mean by **5.4%**. `safe` is
+5.7% faster when the denominator is `fast`. Average-FPS median was 23.0 versus
+`safe` at 25.3, a 9.1% deficit. Against the matched bundled-Proton series,
+`fast` improved average mean by only 1.0%.
+
+The recorded passes ended at 63.3, 59.5, and 60.5 C, each with the GPU capped
+at 492 MHz/thermal level six. Available RAM after Run 3 was 3,175,508 KiB and
+free zram was 5,437,696 KiB, ruling out OOM. Run 2 was slower than Run 1 despite
+ending cooler, so its drop is not explained by a hotter start or memory
+pressure. The TSO-off `fast` profile does not justify its correctness risk and
+remains opt-in; `safe` remains selected for production launches.
+
+The complete artifact is
+[`tombraider-native-glibc-fast-60hz-40c-20260817.json`](benchmark-series/tombraider-native-glibc-fast-60hz-40c-20260817.json).
+The bounded FEX profile phase is complete. The next primary optimization is
+removing or reducing the remaining game-boundary PRoot cost, with profiling
+used only outside timed benchmark scenes.

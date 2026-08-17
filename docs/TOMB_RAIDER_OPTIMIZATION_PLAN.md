@@ -66,7 +66,8 @@ X11 on CPUs 0-3. Change only the item named by each test.
    are complete. Replace the explicit outer Runtime/Proton PRoot with a
    preconstructed/bindless layout; Android's denied user and mount namespaces
    mean additional libc shims alone cannot make Bubblewrap own that boundary.
-6. Run bounded `proton` and `fast` FEX A/B passes at verified 59.97 Hz.
+6. The bounded `proton` and `fast` FEX A/B passes at verified 59.97 Hz are
+   complete.
    `proton` previously averaged 11.4% above `safe` at 720p. `fast`
    follows the same-chip TSO-off direction but remains opt-in because FEX warns
    it can break multithreaded software. Use a fixed 40 C start ceiling for the
@@ -76,9 +77,11 @@ X11 on CPUs 0-3. Change only the item named by each test.
    interim measurements, not substitutes for removing the 60-65%-CPU PRoot
    tracer.
 
-   The fixed-40 C Proton repeat is complete at 23.567 FPS versus `safe` at
-   25.167 FPS, making Proton 6.4% slower at the native-resolution target.
-   Retain `safe`; only the `fast` series remains in this profile phase.
+   The fixed-40 C Proton repeat averaged 23.567 FPS and the matched `fast`
+   series averaged 23.800 FPS versus `safe` at 25.167 FPS. Proton was 6.4%
+   slower than `safe`; `fast` was 5.4% slower and only 1.0% above Proton. All
+   `fast` recorded passes began at 37.0 C. Retain `safe`; this profile phase is
+   complete, and the remaining game-boundary PRoot is again the primary path.
 
 The one warm-up plus three-pass rule applies to each profile. Compare the
 three-pass mean and median, not an isolated maximum or minimum.
