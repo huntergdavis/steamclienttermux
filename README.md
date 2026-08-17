@@ -674,6 +674,7 @@ STEAM_ARM64_NATIVE_CHECK=1 ~/bin/steam-arm-native
 ~/start-tombraider-native.sh -benchmark
 ~/run-tombraider-native-benchmark --profile safe
 ~/run-tombraider-native-benchmark --profile proton --start-temperature-ceiling-c 40
+~/test-tomb-raider-proton-40c-ceiling.sh
 ~/stop-steam-native.sh
 ```
 
@@ -709,6 +710,8 @@ For comparisons across separate profile series, pass
 well as every recorded pass, replacing the series-relative temperature margin.
 This prevents a warm series from admitting every pass at a consistently higher
 starting temperature than its control.
+`~/test-tomb-raider-proton-40c-ceiling.sh` is the short installed command for
+that exact Proton repeat and forwards any additional benchmark-runner options.
 
 The installed command is an absolute-Termux-shebang broker, so Android's
 foreground `RunCommandService` can start it without relying on the interactive
