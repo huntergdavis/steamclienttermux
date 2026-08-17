@@ -4995,3 +4995,24 @@ preload policy before any overlay object is loaded. The host regression uses a
 sentinel shell target and proves the absolute Bionic path does not execute;
 missing or malformed Linux-root configuration still leaves unrelated execs
 unchanged or fails closed on overflow.
+
+The 05:04:36 UTC tablet retry showed that this `execve`-only redirect was too
+narrow: App ID 203160 again added PID 13184 and immediately removed it with
+exit 127, with the same `/bin/sh` `libGL.so.1` loader failure. Symbol inspection
+then established the actual bypass. Steam imports `execv`, `execvp`, `execvpe`,
+and `execl`; Valve's ARM64 `steam-launch-wrapper` and `reaper` both import
+`execvp`. Those calls enter `libtgcompat-exec.so`, whose internal call to its
+own `execve` cannot interpose backward through the earlier pathname shim.
+
+`termux-glibc-compat` commit `e4375e7` therefore puts the exact-shell policy at
+the common execution boundary. `TGCOMPAT_EXEC_SHELL` redirects only exact
+`/bin/sh` and `/usr/bin/sh` requests before ELF inspection, with process-policy
+fallback for launchers that rebuild the child environment. The existing
+wrappers now apply it uniformly to direct, variadic, PATH, and POSIX-spawn
+entry points. The native launcher requires the new symbol and selects its
+validated Debian shell; the Bionic/PRoot bridge removes the policy at the ABI
+crossing. All compatibility-layer tests and the full client project suite pass
+before the next live retry. The required `deja "SteamLaunch AppId exit 127
+absolute /bin/sh native pathname shim LD_PRELOAD Termux glibc execve"` search
+returned no indexed solution; the implementation reuses the compatibility
+layer's existing full exec-family coverage and content-addressed loader path.

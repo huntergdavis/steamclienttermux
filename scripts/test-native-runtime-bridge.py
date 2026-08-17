@@ -156,6 +156,7 @@ def main() -> None:
 
         bridge_source = SCRIPT.read_text(encoding="utf-8")
         assert "TGCOMPAT_EXEC_LD_PRELOAD" in bridge_source
+        assert "TGCOMPAT_EXEC_SHELL" in bridge_source
 
         (selected_proot / "proot").write_text("changed after stamp\n", encoding="utf-8")
         changed = run_rejected_preflight(prefix, base, selected_proot)
