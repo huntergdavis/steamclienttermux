@@ -53,6 +53,37 @@ def output_path() -> Path:
     return output
 
 
+def pass_through_probe(arguments: list[str]) -> int:
+    base_value = os.environ.get("STEAM_ARM64_BASE", "")
+    selected_value = os.environ.get("STEAM_ARM64_CAPTURE_REAL_BWRAP", "")
+    if not base_value.startswith("/") or not selected_value.startswith("/"):
+        fail("capture probe delegate and Steam base must be absolute")
+    base = owned_directory(Path(base_value), "Steam base")
+    expected = (
+        base
+        / "runtime"
+        / "SteamLinuxRuntime_4-arm64"
+        / "pressure-vessel"
+        / "libexec"
+        / "steam-runtime-tools-0"
+        / "srt-bwrap"
+    )
+    selected = Path(selected_value)
+    if selected != expected:
+        fail("capture probe delegate is not the expected srt-bwrap")
+    metadata = selected.lstat()
+    if (
+        not stat.S_ISREG(metadata.st_mode)
+        or selected.is_symlink()
+        or metadata.st_uid != os.geteuid()
+        or metadata.st_mode & 0o022
+        or not os.access(selected, os.X_OK)
+    ):
+        fail("capture probe delegate is not a protected executable")
+    os.execv(selected, [str(selected), *arguments])
+    fail("cannot execute capture probe delegate")
+
+
 def locate_args_fd(arguments: list[str]) -> tuple[int, int, list[str]]:
     for index, argument in enumerate(arguments):
         if argument == "--args":
@@ -129,8 +160,13 @@ def write_private_json(path: Path, payload: dict[str, object]) -> None:
 
 def main() -> int:
     try:
-        output = output_path()
         arguments = sys.argv[1:]
+        if not any(
+            argument == "--args" or argument.startswith("--args=")
+            for argument in arguments
+        ):
+            return pass_through_probe(arguments)
+        output = output_path()
         args_fd, args_index, invocation = locate_args_fd(arguments)
         bwrap_arguments = read_args(args_fd)
         payload_start = args_index + (2 if arguments[args_index] == "--args" else 1)

@@ -13,6 +13,7 @@ route=$compat_bin/steam-arm64-bwrap-route
 real_bwrap=$runtime_shadow/pressure-vessel/libexec/steam-runtime-tools-0/srt-bwrap
 capture_tool=$compat_bin/capture-pressure-vessel-plan.py
 capture_plan=${STEAM_ARM64_BWRAP_CAPTURE_PLAN:-}
+capture_real_bwrap=
 proc_net=$base/config/proc-net
 hosts=$base/config/hosts-ipv4
 custom_proot_dir=${STEAM_ARM64_PROOT_DIR:-$base/src/proot-production/src}
@@ -68,6 +69,7 @@ if [[ -n $capture_plan ]]; then
         fail 'capture plan must be a new safe JSON path under the runtime plan directory'
     [[ -x $capture_tool && ! -L $capture_tool ]] ||
         fail "Pressure Vessel capture tool is unavailable: $capture_tool"
+    capture_real_bwrap=$real_bwrap
     real_bwrap=$capture_tool
 fi
 [[ -f $runtime_shadow/.steamclienttermux-runtime-shadow &&
@@ -104,9 +106,9 @@ case $bridge_mode in
 esac
 
 if [[ ${STEAM_ARM64_NATIVE_BWRAP_CHECK:-0} == 1 ]]; then
-    printf 'mode=%s\nruntime_direct=%s\nproot=%s\nroute=%s\nreal_bwrap=%s\nruntime_shadow=%s\ncapture_plan=%s\n' \
+    printf 'mode=%s\nruntime_direct=%s\nproot=%s\nroute=%s\nreal_bwrap=%s\nruntime_shadow=%s\ncapture_plan=%s\ncapture_real_bwrap=%s\n' \
         "$bridge_mode" "$runtime_direct" "$proot_binary" "$route" \
-        "$real_bwrap" "$runtime_shadow" "$capture_plan"
+        "$real_bwrap" "$runtime_shadow" "$capture_plan" "$capture_real_bwrap"
     printf '%s\n' 'native game boundary preflight: PASS'
     exit 0
 fi
@@ -205,6 +207,7 @@ pd_args+=(--env "STEAM_ARM64_HOST_VK_DRIVER_FILES=$host_vk_driver_files")
 if [[ -n $capture_plan ]]; then
     pd_args+=(--env "STEAM_ARM64_BASE=$base")
     pd_args+=(--env "STEAM_ARM64_BWRAP_CAPTURE_PLAN=$capture_plan")
+    pd_args+=(--env "STEAM_ARM64_CAPTURE_REAL_BWRAP=$capture_real_bwrap")
 fi
 pd_args+=(--env "PROOT_L2S_EXDEV_PREFIX=$runtime_depot/var/tmp-")
 

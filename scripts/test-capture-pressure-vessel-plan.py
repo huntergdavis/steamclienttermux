@@ -50,14 +50,54 @@ def run_capture(base: Path, output: Path, secret: str = "not-recorded") -> subpr
         os.unlink(args_path)
 
 
+def run_probe(base: Path, delegate: Path) -> subprocess.CompletedProcess[str]:
+    environment = os.environ.copy()
+    environment.update(
+        {
+            "STEAM_ARM64_BASE": str(base),
+            "STEAM_ARM64_CAPTURE_REAL_BWRAP": str(delegate),
+        }
+    )
+    return subprocess.run(
+        [sys.executable, str(SCRIPT), "--version"],
+        env=environment,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+
 def main() -> None:
     with tempfile.TemporaryDirectory(prefix="capture-pv-plan-") as directory:
         base = Path(directory) / "base"
         base.mkdir(mode=0o700)
         (base / "logs").mkdir(mode=0o700)
         (base / "source").mkdir()
+        delegate = (
+            base
+            / "runtime"
+            / "SteamLinuxRuntime_4-arm64"
+            / "pressure-vessel"
+            / "libexec"
+            / "steam-runtime-tools-0"
+            / "srt-bwrap"
+        )
+        delegate.parent.mkdir(parents=True)
+        delegate.write_text(
+            "#!/bin/sh\nprintf 'PROBE:%s\\n' \"$*\"\n", encoding="utf-8"
+        )
+        delegate.chmod(0o700)
         output = base / "logs" / "runtime-plans" / "fixture.json"
         secret = "credential-like-value-must-not-appear"
+
+        probe = run_probe(base, delegate)
+        assert probe.returncode == 0, probe.stderr
+        assert probe.stdout == "PROBE:--version\n"
+        assert not (base / "logs" / "runtime-plans").exists()
+
+        wrong_delegate = run_probe(base, base / "wrong-bwrap")
+        assert wrong_delegate.returncode == 125
+        assert "expected srt-bwrap" in wrong_delegate.stderr
 
         result = run_capture(base, output, secret)
         assert result.returncode == 0, result.stderr

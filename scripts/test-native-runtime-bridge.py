@@ -263,6 +263,10 @@ def main() -> None:
             f"STEAM_ARM64_REAL_BWRAP="
             f"{base / 'compat-bin/capture-pressure-vessel-plan.py'}"
         ) in capture_runtime
+        assert (
+            f"STEAM_ARM64_CAPTURE_REAL_BWRAP="
+            f"{base / 'runtime/SteamLinuxRuntime_4-arm64/pressure-vessel/libexec/steam-runtime-tools-0/srt-bwrap'}"
+        ) in capture_runtime
 
         selected_proot = base / "src" / "native-profile" / "src"
         preflight = run_preflight(prefix, base, selected_proot)
@@ -273,6 +277,10 @@ def main() -> None:
         assert captured.returncode == 0, captured.stderr
         assert f"real_bwrap={base / 'compat-bin/capture-pressure-vessel-plan.py'}" in captured.stdout
         assert f"capture_plan={capture_output}" in captured.stdout
+        assert (
+            f"capture_real_bwrap="
+            f"{base / 'runtime/SteamLinuxRuntime_4-arm64/pressure-vessel/libexec/steam-runtime-tools-0/srt-bwrap'}"
+        ) in captured.stdout
 
         outside_capture = run_capture_preflight(
             prefix, base, base.parent / "outside.json"
