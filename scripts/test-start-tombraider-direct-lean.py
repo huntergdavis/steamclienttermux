@@ -16,7 +16,9 @@ def main() -> None:
         launcher = root / "launcher"
         launcher.write_text(
             "#!/bin/bash\n"
-            "printf '%s\\n' \"${TOMB_RAIDER_DIRECT_CHILD_PRELOAD:-}\" \"$*\" >\"$FIXTURE_RESULT\"\n",
+            "printf '%s\\n' \"${TOMB_RAIDER_DIRECT_CHILD_PRELOAD:-}\" "
+            "\"${STEAM_PROCESS_TIMEOUT:-}\" \"${STEAM_WINDOW_TIMEOUT:-}\" "
+            "\"${STEAM_APP_TIMEOUT:-}\" \"$*\" >\"$FIXTURE_RESULT\"\n",
             encoding="utf-8",
         )
         launcher.chmod(0o700)
@@ -35,6 +37,9 @@ def main() -> None:
         assert completed.returncode == 0, completed.stderr
         assert result.read_text(encoding="utf-8").splitlines() == [
             "lean",
+            "60",
+            "60",
+            "120",
             "test-argument",
         ]
 
