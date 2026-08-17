@@ -159,10 +159,12 @@ def prepare(
     staged = Path(staged_name)
     try:
         shutil.copy2(target, staged)
+        original_mode = stat.S_IMODE(target.stat().st_mode)
+        os.chmod(staged, original_mode | stat.S_IWUSR)
         run_patchelf(patchelf, loader, staged)
         if read_interpreter(readelf, staged) != str(loader):
             raise PrepareError("staged Proton Wine interpreter verification failed")
-        os.chmod(staged, stat.S_IMODE(target.stat().st_mode))
+        os.chmod(staged, original_mode)
         patched_hash = sha256(staged)
         os.replace(staged, target)
     finally:

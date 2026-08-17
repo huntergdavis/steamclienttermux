@@ -20,7 +20,7 @@ def main() -> None:
         target.parent.mkdir(parents=True)
         original = b"INTERP=/lib/ld-linux-aarch64.so.1\nfixture\n"
         target.write_bytes(original)
-        target.chmod(0o700)
+        target.chmod(0o500)
         loader = root / "ld-linux-aarch64.so.1"
         loader.write_bytes(b"loader")
         loader.chmod(0o700)
@@ -70,6 +70,7 @@ def main() -> None:
         prepared = subprocess.run(command, text=True, capture_output=True, check=False)
         assert prepared.returncode == 0, prepared.stderr
         assert target.read_text().splitlines()[0] == f"INTERP={loader}"
+        assert target.stat().st_mode & 0o777 == 0o500
         backups = list((base / "backups/proton-direct-wine").glob("wine-*.original"))
         assert len(backups) == 1
         assert backups[0].read_bytes() == original
@@ -89,6 +90,7 @@ def main() -> None:
         )
         assert restored.returncode == 0, restored.stderr
         assert target.read_bytes() == original
+        assert target.stat().st_mode & 0o777 == 0o500
 
     print("Proton direct Wine preparation tests: PASS")
 
