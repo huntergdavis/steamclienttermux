@@ -405,7 +405,7 @@ start_tomb_raider_affinity_guard() {
 }
 
 maybe_start_tomb_raider_affinity_guard() {
-    if [[ -z "$requested_appid" || "$requested_appid" == 203160 ]]; then
+    if [[ "$requested_appid" == 203160 ]]; then
         start_tomb_raider_affinity_guard
     fi
 }
