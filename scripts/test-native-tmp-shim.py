@@ -67,6 +67,9 @@ int main(void) {
     if (mkdir(directory, 0700) != 0) {
         fail("mkdir");
     }
+    if (chdir(directory) != 0 || chdir("/") != 0) {
+        fail("chdir");
+    }
     if (snprintf(marker, sizeof(marker), "%s/marker", directory) < 0 ||
             snprintf(scratch, sizeof(scratch), "%s/scratch", directory) < 0 ||
             snprintf(renamed, sizeof(renamed), "%s/renamed", directory) < 0 ||

@@ -147,6 +147,7 @@ DEFINE_ONE_PATH_INT(access, (const char *path, int mode), (mapped, mode))
 DEFINE_ONE_PATH_INT(chmod, (const char *path, mode_t mode), (mapped, mode))
 DEFINE_ONE_PATH_INT(chown, (const char *path, uid_t owner, gid_t group),
     (mapped, owner, group))
+DEFINE_ONE_PATH_INT(chdir, (const char *path), (mapped))
 DEFINE_ONE_PATH_INT(mkdir, (const char *path, mode_t mode), (mapped, mode))
 DEFINE_ONE_PATH_INT(remove, (const char *path), (mapped))
 DEFINE_ONE_PATH_INT(rmdir, (const char *path), (mapped))
