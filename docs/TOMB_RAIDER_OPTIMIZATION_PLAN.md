@@ -76,6 +76,10 @@ X11 on CPUs 0-3. Change only the item named by each test.
    interim measurements, not substitutes for removing the 60-65%-CPU PRoot
    tracer.
 
+   The fixed-40 C Proton repeat is complete at 23.567 FPS versus `safe` at
+   25.167 FPS, making Proton 6.4% slower at the native-resolution target.
+   Retain `safe`; only the `fast` series remains in this profile phase.
+
 The one warm-up plus three-pass rule applies to each profile. Compare the
 three-pass mean and median, not an isolated maximum or minimum.
 

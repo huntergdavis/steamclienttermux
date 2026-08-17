@@ -5608,3 +5608,25 @@ The unmatched result is not discarded. Its exact raw series is retained at
 `docs/benchmark-series/tombraider-native-glibc-proton-60hz-unmatched-20260817.json`.
 The focused `deja` query found no indexed implementation to reuse, so the fix
 extends the repository's existing tested cooldown path.
+
+## 2026-08-17: accept the fixed-40 C Proton profile result
+
+The installed short wrapper launched the Proton repeat with a 40 C absolute
+ceiling. XRandR remained 2800x1752 at 59.97 Hz. The warm-up and recorded passes
+began at 37.0-37.6 C after three stable full-policy samples, resolving the
+45.1-47.9 C mismatch in the observational series.
+
+Recorded passes were 5.1/34.7/22.8, 14.4/30.8/22.7, and
+18.0/33.4/25.2 FPS. Their 12.500/32.967/23.567 aggregate is 6.4% below the
+`safe` average of 25.167 FPS; average-FPS median is 22.8 versus 25.3. The
+matched native-resolution result reverses the older 720p Proton lead and keeps
+`safe` as the selected profile.
+
+Recorded Run 1 reached an 83.8 C maximum and ended with the GPU at 492 MHz,
+thermal level six, explaining why its 5.1 FPS minimum should not be generalized.
+Available RAM was still 2,956,196 KiB and free zram 5,680,448 KiB, ruling out
+OOM. All three passes started within the same fixed thermal gate, so the noisy
+minimum does not invalidate the mean and median comparison.
+
+The accepted exact artifact is
+`docs/benchmark-series/tombraider-native-glibc-proton-60hz-40c-20260817.json`.

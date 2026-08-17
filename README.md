@@ -267,6 +267,16 @@ throughput win but not a cure for thermal throttling. The
 and [benchmark log](docs/TOMB_RAIDER_BENCHMARK.md#completed-5997-hz-ab-2026-08-17)
 preserve the evidence.
 
+At the winning 59.97 Hz state, the thermally matched bundled-Proton FEX profile
+then averaged **12.500/32.967/23.567 FPS** from three passes beginning at
+37.0-37.6 C. The `safe` profile's 25.167 FPS mean is 6.8% higher than Proton's
+mean, or Proton is 6.4% lower relative to `safe`; average-FPS medians were 25.3
+and 22.8. `safe` therefore remains the production profile. Proton's 5.1 FPS
+minimum occurred in a pass that ended at 83.8 C, so isolated minimums remain
+thermally noisy. The
+[matched Proton series](docs/benchmark-series/tombraider-native-glibc-proton-60hz-40c-20260817.json)
+preserves the full result.
+
 ![Kingsway running from the microSD through Proton ARM64 and FEX](docs/evidence/kingsway-running.png)
 
 ![Tomb Raider Windows launcher running through Proton ARM64 and FEX](docs/evidence/tombraider-main-menu-2026-08-14.png)

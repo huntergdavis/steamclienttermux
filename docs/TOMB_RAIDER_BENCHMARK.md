@@ -772,3 +772,30 @@ The exact unmatched Proton artifact remains available for audit as
 The required focused `deja` query returned no indexed prior implementation;
 the fixed gate extends the existing tested cooldown and fail-closed series
 method.
+
+The fixed-ceiling repeat completed successfully. Its warm-up began at 37.6 C
+and reported 17.1/33.5/24.2 FPS. The recorded results were:
+
+| Pass | Start | Minimum | Maximum | Average | Cooldown |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| recorded 1 | 37.0 C | 5.1 | 34.7 | 22.8 | 100.885 s |
+| recorded 2 | 37.0 C | 14.4 | 30.8 | 22.7 | 110.819 s |
+| recorded 3 | 37.6 C | 18.0 | 33.4 | 25.2 | 110.902 s |
+| mean | n/a | **12.500** | **32.967** | **23.567** | n/a |
+
+Against `safe` at 16.200/34.500/25.167 FPS, bundled Proton is 22.8% lower in
+minimum mean, 4.4% lower in maximum mean, and **6.4% lower in average mean**.
+Average-FPS median is 22.8 versus `safe` at 25.3, a 9.9% deficit. The earlier
+720p Proton advantage therefore does not generalize to the native-resolution
+60 Hz target; `safe` remains the selected production profile.
+
+The 5.1 FPS minimum belongs to a pass that started at 37.0 C with full policy
+but ended at 83.8 C and GPU thermal level six. It did not OOM: available RAM
+and free zram afterward were 2,956,196 and 5,680,448 KiB. Thermal variance still
+makes isolated minimums unsuitable for profile selection, but it does not
+erase the three-pass average/median result.
+
+The accepted raw artifact is
+[`tombraider-native-glibc-proton-60hz-40c-20260817.json`](benchmark-series/tombraider-native-glibc-proton-60hz-40c-20260817.json).
+The next bounded profile is `fast`, using the same verified 59.97 Hz display
+and fixed 40 C ceiling.
