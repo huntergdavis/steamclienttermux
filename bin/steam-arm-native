@@ -110,9 +110,12 @@ linux_root=$(realpath -e "$linux_root_selector") ||
 [[ -d $linux_root && ! -L $linux_root ]] ||
     fail "Linux runtime root is unsafe: $linux_root"
 linux_lib=$linux_root/usr/lib/aarch64-linux-gnu
+linux_pulse_lib=$linux_lib/pulseaudio
 linux_usr_lib=$linux_root/usr/lib
 [[ -d $linux_lib && ! -L $linux_lib ]] ||
     fail "Linux ARM64 runtime libraries are missing: $linux_lib"
+[[ -d $linux_pulse_lib && ! -L $linux_pulse_lib ]] ||
+    fail "Linux PulseAudio private libraries are missing: $linux_pulse_lib"
 
 # The staged package deliberately supplies only the patched glibc core. Reuse
 # the already-installed Debian runtime libraries by their real host paths;
@@ -120,7 +123,7 @@ linux_usr_lib=$linux_root/usr/lib
 # Put the candidate libc first, Steam's private DSOs second, Turnip third, and
 # the coherent Debian dependency set last. Avoid the active Termux-glibc tree,
 # so one process cannot accidentally mix two libc package revisions.
-library_path=$candidate_lib:$client:$client/libs:$client_root/linuxarm64:$mesa_lib:$linux_lib:$linux_usr_lib
+library_path=$candidate_lib:$client:$client/libs:$client_root/linuxarm64:$mesa_lib:$linux_lib:$linux_pulse_lib:$linux_usr_lib
 
 check_dependencies() {
     local executable=$1 label=$2 output
@@ -139,6 +142,7 @@ check_dependencies() {
 
 check_dependencies "$client/steam" 'Steam bootstrap'
 check_dependencies "$client/steamwebhelper" 'Steam web helper'
+check_dependencies "$client/steamui.so" 'Steam UI'
 
 if [[ ${STEAM_ARM64_NATIVE_CHECK:-0} == 1 ]]; then
     [[ -x $runtime_direct_run && ! -L $runtime_direct_run ]] ||
