@@ -112,10 +112,20 @@ linux_root=$(realpath -e "$linux_root_selector") ||
 linux_lib=$linux_root/usr/lib/aarch64-linux-gnu
 linux_pulse_lib=$linux_lib/pulseaudio
 linux_usr_lib=$linux_root/usr/lib
+ssl_cert_file=$linux_root/etc/ssl/certs/ca-certificates.crt
+ssl_cert_dir=$linux_root/etc/ssl/certs
+fontconfig_file=$linux_root/etc/fonts/fonts.conf
+fontconfig_path=$linux_root/etc/fonts
 [[ -d $linux_lib && ! -L $linux_lib ]] ||
     fail "Linux ARM64 runtime libraries are missing: $linux_lib"
 [[ -d $linux_pulse_lib && ! -L $linux_pulse_lib ]] ||
     fail "Linux PulseAudio private libraries are missing: $linux_pulse_lib"
+[[ -f $ssl_cert_file && ! -L $ssl_cert_file && -d $ssl_cert_dir &&
+        ! -L $ssl_cert_dir ]] ||
+    fail "Linux TLS certificate store is missing: $ssl_cert_dir"
+[[ -f $fontconfig_file && ! -L $fontconfig_file && -d $fontconfig_path &&
+        ! -L $fontconfig_path ]] ||
+    fail "Linux Fontconfig configuration is missing: $fontconfig_path"
 
 # The staged package deliberately supplies only the patched glibc core. Reuse
 # the already-installed Debian runtime libraries by their real host paths;
@@ -322,6 +332,7 @@ esac
 
 printf 'Starting no-PRoot ARM64 Steam on DISPLAY=%s (FEX %s)\nLog: %s\n' \
     "$display" "$fex_profile" "$log"
+cd "$client_root"
 set +e
 env -u GLIBC_LD_LIBRARY_PATH \
     "${fex_profile_env[@]}" \
@@ -332,6 +343,11 @@ env -u GLIBC_LD_LIBRARY_PATH \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
     TMPDIR="$PREFIX/tmp" \
+    SSL_CERT_FILE="$ssl_cert_file" \
+    SSL_CERT_DIR="$ssl_cert_dir" \
+    FONTCONFIG_FILE="$fontconfig_file" \
+    FONTCONFIG_PATH="$fontconfig_path" \
+    FONTCONFIG_SYSROOT="$linux_root" \
     STEAM_ARM64_TMP_ROOT="$PREFIX/tmp" \
     BREAKPAD_DUMP_LOCATION="$crash_dir" \
     XDG_RUNTIME_DIR="$runtime_dir" \
