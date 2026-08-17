@@ -195,9 +195,13 @@ The timer follows Steam's logs from their current end, then records the first
 observed Pressure Vessel, Proton, Wine, wineserver, `TombRaider.exe`, and
 matching visible-window stages in a JSON file under `~/steam-arm64/logs`. The
 primary comparison is Steam's `Game process added` event to the first visible
-game window. This excludes cloud synchronization, interstitials, and user
+game window. A result is complete only after the target process and matching
+window remain continuously present for 30 seconds; the report retains the
+first-window timestamp and records the stability interval separately. This
+excludes cloud synchronization, interstitials, and user
 response time from the PRoot-versus-native-glibc measurement. The timer exits
-before the benchmark starts, so its one-second polling cannot affect FPS.
+after the stability proof and before the benchmark starts, so its one-second
+polling cannot affect FPS.
 
 The first observational PRoot timing on 2026-08-16 began its Steam session at
 09:45:08 PDT and emitted `Game process added` at 09:47:22. Kernel process
@@ -225,6 +229,17 @@ shorter than the 541.236-second PRoot session total. These remain one
 observation per stack, not a latency distribution. The
 [native timing record](docs/launch-timings/tomb-raider-native-clean-20260817.json)
 preserves both attempts rather than hiding the cold failure.
+
+A later hardened cold launch removed the failed-attempt tax. The wrapper first
+started Steam alone, observed remembered-login success, and only then forwarded
+AppID 203160. The real game appeared 29.244 seconds after Runtime launch and
+the first visible window at **58.256 seconds**; both remained present through
+the independent 30-second timing and affinity gates. The foreground supervisor
+was still alive with the game 99 seconds after first-window observation. The
+comparable Runtime-to-window interval is 85.7% shorter, or 6.99x faster, than
+the 407.236-second all-PRoot observation. The
+[supervised cold timing record](docs/launch-timings/tomb-raider-native-supervised-cold-20260817.json)
+preserves the exact stage observations.
 
 ![Kingsway running from the microSD through Proton ARM64 and FEX](docs/evidence/kingsway-running.png)
 
@@ -635,11 +650,15 @@ STEAM_ARM64_NATIVE_CHECK=1 ~/bin/steam-arm-native
 ```
 
 The native Tomb Raider wrapper goes beyond Steam's initial PID-added
-acknowledgement. It waits for an exact AppID 203160 `TombRaider.exe` and
-protected compatdata path. If the outer tracked process reaches Steam's exact
-running-list removal before the game exists, it retries once through the now
-stable client. Set `TOMB_RAIDER_LAUNCH_RETRIES=0` to restore the thin
-acknowledgement-only behavior.
+acknowledgement. It first brings native Steam to remembered-login readiness
+without an AppID, then forwards AppID 203160 through that stable client. It
+requires an exact AppID 203160 `TombRaider.exe`, protected compatdata path,
+Android `/top-app` placement, and a visible game window that remains stable
+for 30 seconds. An early exact running-list removal triggers one bounded retry.
+After success the wrapper deliberately remains in the foreground for the
+game's full lifetime; releasing that RunCommandService session was proven to
+deliver signal 1 to the game container. Set `TOMB_RAIDER_LAUNCH_RETRIES=0` to
+restore the thin acknowledgement-only behavior for controlled diagnostics.
 
 The first command is non-launching: it verifies the content-addressed patched
 glibc marker and uses that exact loader to resolve the Steam bootstrap and CEF

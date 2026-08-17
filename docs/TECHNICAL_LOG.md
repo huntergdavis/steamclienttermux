@@ -5334,3 +5334,76 @@ same 80 paths. Termux temp fell from 2.2 GiB to 595 MiB, while live Tomb Raider
 PID 4594, its 2800x1752 X window, every open shared-memory file, saves, logs,
 and authentication remained intact. The removed stale temp files are not
 recoverable. Commit `d6520dd` contains the utility and installer integration.
+
+## 2026-08-17: make launch success durable
+
+Repeated cold tests showed that PID-added, exact process identity, and even a
+visible window were insufficient success criteria. A failed container could
+briefly expose an AppID- and compatdata-matched `TombRaider.exe`. Later failures
+kept the 2800x1752 window visible for one, ten, and approximately 30 seconds
+before `proot info: vpid 1: terminated with signal 1` and Steam's exact
+`Remove 203160 from running list`. The timer and wrapper now require a live
+target plus matching visible window for 30 continuous seconds. The launcher
+also requires both Android CPU controllers to remain in `/top-app`. Timer
+schema version 2 retains the first-window timestamp and records the stability
+interval, rather than shifting the performance measurement by 30 seconds.
+
+The same live tests exposed an auxiliary affinity race. A wineserver mask read
+back as 1-6 immediately after `taskset`, causing the otherwise retry-aware
+guard to exit and allowing the game to widen to CPUs 0-7. Helper and auxiliary
+mask convergence now treats a residual post-apply mismatch as an unstable
+sample, resets readiness, and retries on the next poll. Execution failures,
+wrong identity, and non-top-app placement still fail. The production guard
+then proved 50 game threads on CPUs 1-7, the RakNet thread on CPU 1,
+wineserver on CPUs 1-7, and nine native Steam helpers on CPU 0. Commits
+`5371489`, `da297c5`, `ad6c963`, and `efd57dc` cover these successive gates.
+
+The required focused recall queries for the transient exact process, visible
+window, auxiliary mask rewrite, and cold signal-1 cases returned no indexed
+solution. The implementation reused the repository's exact AppID/compatdata
+identity contract, measured `/top-app` policy, shared native helper matcher,
+and existing 30-second affinity stability model.
+
+## 2026-08-17: preserve the Android foreground lifetime
+
+The apparent cold Runtime failure was ultimately causal rather than random.
+In multiple tests the game remained healthy until the convenience wrapper
+declared success; `TombRaider.exe`, its X window, and the outer Runtime were
+removed in the exact second that the foreground RunCommandService shell
+exited. Increasing a success timeout only postponed that teardown.
+
+The corrected route makes two structural changes. First, a cold invocation
+starts Steam with `-noshaders -silent` and no AppID, waits for remembered-login
+success, then forwards AppID 203160 through the stable client. Second,
+`start-tombraider-native.sh` logs success after its 30-second validation but
+continues supervising the exact game identity until the user exits the game.
+This keeps the Android foreground lifetime and `/top-app` scheduling in place.
+The existing exact-removal retry remains a fallback. Commit `af388fa` added
+the prime-first ordering; commit `0fe5649` added lifetime supervision. All 31
+project test programs passed after each final correction.
+
+The controlled cold production test established this order:
+
+| Stage | UTC | Seconds after Runtime |
+| --- | ---: | ---: |
+| native Steam client, no AppID | 08:12:06 | n/a |
+| forwarded Runtime launch | 08:12:42 | 0.000 |
+| Pressure Vessel | 08:12:44.700 | 2.701 |
+| Proton | 08:12:53.159 | 11.160 |
+| Wine / wineserver | 08:12:55.257 | 13.257 |
+| `TombRaider.exe` | 08:13:11.243 | 29.244 |
+| first visible 2800x1752 window | 08:13:40.256 | **58.256** |
+| 30-second window proof complete | 08:14:10.598 | 88.598 |
+
+At 08:15:20 the same foreground wrapper, game PID 27731, and window remained
+alive. The game used about 648 MiB RSS, stayed in both `/top-app` controllers,
+and retained 48 ordinary threads on CPUs 1-7 plus RakNet on CPU 1. No new game
+removal event appeared. The 58.256-second Runtime-to-first-window measurement
+is 85.7% shorter, or 6.99x faster, than the 407.236-second all-PRoot result.
+The exact schema-v2 artifact is stored at
+`docs/launch-timings/tomb-raider-native-supervised-cold-20260817.json`.
+
+The final focused recall query for RunCommandService exit delivering signal 1
+returned no indexed solution. The fix reuses the existing guarded top-app
+service launch and exact live-game selectors; the new conclusion comes from
+the synchronized wrapper-exit and Steam-removal timestamps above.

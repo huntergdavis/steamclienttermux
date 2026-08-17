@@ -1,0 +1,112 @@
+{
+  "appid": 203160,
+  "attempt_count": 1,
+  "attempts": [
+    {
+      "attempt": 1,
+      "events": {
+        "game_window": {
+          "observed_at": "2026-08-17T08:13:40.256+00:00",
+          "seconds_after_runtime_launch": 58.256,
+          "stable_seconds": 30.0,
+          "title": "Tomb Raider"
+        },
+        "pressure_vessel": {
+          "executable": "/data/data/com.termux/files/usr/tmp/prooted-27031-2CxrGb",
+          "observed_at": "2026-08-17T08:12:44.700+00:00",
+          "pid": 27153,
+          "process_name": "pressure-vessel",
+          "seconds_after_runtime_launch": 2.701
+        },
+        "proton": {
+          "executable": "/data/data/com.termux/files/usr/tmp/prooted-27031-2CxrGb",
+          "observed_at": "2026-08-17T08:12:53.159+00:00",
+          "pid": 27518,
+          "process_name": "python3",
+          "seconds_after_runtime_launch": 11.16
+        },
+        "target_process": {
+          "executable": "/data/data/com.termux/files/usr/tmp/prooted-27031-2CxrGb",
+          "observed_at": "2026-08-17T08:13:11.243+00:00",
+          "pid": 27731,
+          "process_name": "TombRaider.exe",
+          "seconds_after_runtime_launch": 29.244
+        },
+        "wine": {
+          "executable": "/data/data/com.termux/files/usr/tmp/prooted-27031-2CxrGb",
+          "observed_at": "2026-08-17T08:12:55.257+00:00",
+          "pid": 27526,
+          "process_name": "wine",
+          "seconds_after_runtime_launch": 13.257
+        },
+        "wineserver": {
+          "executable": "/data/data/com.termux/files/usr/tmp/prooted-27031-2CxrGb",
+          "observed_at": "2026-08-17T08:12:55.257+00:00",
+          "pid": 27534,
+          "process_name": "wineserver",
+          "seconds_after_runtime_launch": 13.257
+        }
+      },
+      "runtime_launch_at": "2026-08-17T08:12:42.000+00:00",
+      "seconds_session_to_runtime_launch": 21.0,
+      "status": "complete",
+      "steam_session_at": "2026-08-17T08:12:21.000+00:00"
+    }
+  ],
+  "display": ":0",
+  "events": {
+    "game_window": {
+      "observed_at": "2026-08-17T08:13:40.256+00:00",
+      "seconds_after_runtime_launch": 58.256,
+      "stable_seconds": 30.0,
+      "title": "Tomb Raider"
+    },
+    "pressure_vessel": {
+      "executable": "/data/data/com.termux/files/usr/tmp/prooted-27031-2CxrGb",
+      "observed_at": "2026-08-17T08:12:44.700+00:00",
+      "pid": 27153,
+      "process_name": "pressure-vessel",
+      "seconds_after_runtime_launch": 2.701
+    },
+    "proton": {
+      "executable": "/data/data/com.termux/files/usr/tmp/prooted-27031-2CxrGb",
+      "observed_at": "2026-08-17T08:12:53.159+00:00",
+      "pid": 27518,
+      "process_name": "python3",
+      "seconds_after_runtime_launch": 11.16
+    },
+    "target_process": {
+      "executable": "/data/data/com.termux/files/usr/tmp/prooted-27031-2CxrGb",
+      "observed_at": "2026-08-17T08:13:11.243+00:00",
+      "pid": 27731,
+      "process_name": "TombRaider.exe",
+      "seconds_after_runtime_launch": 29.244
+    },
+    "wine": {
+      "executable": "/data/data/com.termux/files/usr/tmp/prooted-27031-2CxrGb",
+      "observed_at": "2026-08-17T08:12:55.257+00:00",
+      "pid": 27526,
+      "process_name": "wine",
+      "seconds_after_runtime_launch": 13.257
+    },
+    "wineserver": {
+      "executable": "/data/data/com.termux/files/usr/tmp/prooted-27031-2CxrGb",
+      "observed_at": "2026-08-17T08:12:55.257+00:00",
+      "pid": 27534,
+      "process_name": "wineserver",
+      "seconds_after_runtime_launch": 13.257
+    }
+  },
+  "notes": "Steam log timestamps have one-second resolution. Process events are first observations at the configured polling interval. A game window is complete only after the target and matching visible window remain continuously present for window_stable_seconds. A later StartSession for the same AppID closes the incomplete attempt and resets process/window attribution for the retry.",
+  "poll_seconds": 1.0,
+  "process_name": "TombRaider.exe",
+  "runtime_launch_at": "2026-08-17T08:12:42.000+00:00",
+  "schema_version": 2,
+  "seconds_session_to_runtime_launch": 21.0,
+  "status": "complete",
+  "steam_session_at": "2026-08-17T08:12:21.000+00:00",
+  "timer_finished_at": "2026-08-17T08:14:10.598+00:00",
+  "timer_started_at": "2026-08-17T08:11:19.424+00:00",
+  "window_regex": "Tomb Raider",
+  "window_stable_seconds": 30.0
+}
