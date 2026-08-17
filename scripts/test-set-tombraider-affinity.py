@@ -137,8 +137,46 @@ def main():
             {30001: ("steamwebhelper", "0")},
             command="/base/client/steamrtarm64/steamwebhelper",
         )
+        native_helper = add_process(
+            proc_root,
+            30003,
+            "steamwebhelper",
+            {},
+            {30003: ("steamwebhelper", "0")},
+            command=(
+                "/.local/share/tgcompat/glibc/candidate/"
+                "lib/ld-linux-aarch64.so.1\0--inhibit-cache\0--argv0\0"
+                "/base/client/steamrtarm64/steamwebhelper\0"
+                "/base/client/steamrtarm64/steamwebhelper"
+            ),
+        )
+        add_process(
+            proc_root,
+            30004,
+            "steamwebhelper",
+            {},
+            {30004: ("steamwebhelper", "0")},
+            command=(
+                "/tmp/candidate/lib/ld-linux-aarch64.so.1\0--argv0\0"
+                "/base/client/steamrtarm64/steamwebhelper\0"
+                "/base/client/steamrtarm64/steamwebhelper"
+            ),
+        )
+        add_process(
+            proc_root,
+            30005,
+            "steamwebhelper",
+            {},
+            {30005: ("steamwebhelper", "0")},
+            command=(
+                "/.local/share/tgcompat/glibc/candidate/"
+                "lib/ld-linux-aarch64.so.1\0--argv0\0/wrong\0"
+                "/base/client/steamrtarm64/steamwebhelper"
+            ),
+        )
         assert module.find_steam_helpers(Path("/base"), proc_root) == [
-            (30001, helper)
+            (30001, helper),
+            (30003, native_helper),
         ]
         module.verify_uniform_mask(helper, "0")
 

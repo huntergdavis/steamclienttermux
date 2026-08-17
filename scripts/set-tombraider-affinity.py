@@ -132,17 +132,47 @@ def find_auxiliary_processes(
     return sorted(matches)
 
 
+def command_targets(arguments, expected, steam_base):
+    if not arguments:
+        return False
+    if arguments[0] == expected:
+        return True
+
+    loader = Path(os.fsdecode(arguments[0]))
+    loader_root = steam_base.parent / ".local/share/tgcompat/glibc"
+    try:
+        relative = loader.relative_to(loader_root)
+    except ValueError:
+        return False
+    if len(relative.parts) != 3:
+        return False
+    if relative.parts[1:] != ("lib", "ld-linux-aarch64.so.1"):
+        return False
+    if not relative.parts[0]:
+        return False
+
+    has_argv0 = any(
+        arguments[index] == b"--argv0" and arguments[index + 1] == expected
+        for index in range(len(arguments) - 1)
+    )
+    return has_argv0 and expected in arguments[1:]
+
+
 def find_steam_helpers(steam_base, proc_root=Path("/proc")):
-    expected = str(steam_base / "client/steamrtarm64/steamwebhelper")
+    expected = os.fsencode(steam_base / "client/steamrtarm64/steamwebhelper")
     matches = []
     for entry in proc_root.iterdir():
         if not entry.name.isdigit():
             continue
         try:
-            command = (entry / "cmdline").read_bytes().split(b"\0", 1)[0]
+            arguments = [
+                argument
+                for argument in (entry / "cmdline").read_bytes().split(b"\0")
+                if argument
+            ]
         except (FileNotFoundError, PermissionError, ProcessLookupError):
             continue
-        if command.decode("utf-8", "replace") == expected:
+        if command_targets(arguments, expected, steam_base):
             matches.append((int(entry.name), entry))
     return sorted(matches)
 
