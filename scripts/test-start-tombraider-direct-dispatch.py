@@ -100,6 +100,7 @@ def main() -> None:
         ]
         state = (base / "run/tombraider-direct-dispatch.state").read_text()
         assert "mode=tombraider" in state
+        assert "child_preload=full" in state
         assert "status=complete" in state
         assert "launcher_status=1" in state
         assert "server_status=0" in state
@@ -112,6 +113,7 @@ def main() -> None:
         diagnostic_environment = {
             **environment,
             "TOMB_RAIDER_DIRECT_MODE": "tombraider-diagnostic",
+            "TOMB_RAIDER_DIRECT_CHILD_PRELOAD": "lean",
         }
         diagnostic = subprocess.run(
             ["bash", str(SCRIPT)],
@@ -125,6 +127,7 @@ def main() -> None:
             base / "run/tombraider-direct-dispatch.state"
         ).read_text()
         assert "mode=tombraider-diagnostic" in diagnostic_state
+        assert "child_preload=lean" in diagnostic_state
 
         python_link = root / "python3-link"
         python_link.symlink_to(Path(os.sys.executable).resolve())

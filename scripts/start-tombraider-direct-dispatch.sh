@@ -12,6 +12,7 @@ prepare=${TOMB_RAIDER_DIRECT_PREPARE:-$base/compat-bin/prepare-proton-direct-win
 affinity=${TOMB_RAIDER_DIRECT_AFFINITY:-$base/compat-bin/set-tombraider-affinity.py}
 mode=${TOMB_RAIDER_DIRECT_MODE:-tombraider}
 diagnostics=${TOMB_RAIDER_DIRECT_DIAGNOSTICS:-0}
+child_preload=${TOMB_RAIDER_DIRECT_CHILD_PRELOAD:-full}
 socket=$base/run/native-runtime-dispatch/dispatch.sock
 state=$base/run/tombraider-direct-dispatch.state
 
@@ -26,6 +27,8 @@ fail() {
     fail "unsupported direct-dispatch mode: $mode"
 [[ $diagnostics == 0 || $diagnostics == 1 ]] ||
     fail 'TOMB_RAIDER_DIRECT_DIAGNOSTICS must be 0 or 1'
+[[ $child_preload == full || $child_preload == lean ]] ||
+    fail 'TOMB_RAIDER_DIRECT_CHILD_PRELOAD must be full or lean'
 [[ -d $base/run && ! -L $base/run && -d $base/logs && ! -L $base/logs ]] ||
     fail "Steam run or log directory is unavailable below $base"
 [[ -x $python && (! -L $python || $python == "$default_python") ]] ||
@@ -44,7 +47,7 @@ fi
 "$python" "$prepare" prepare --base "$base"
 
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
-server_log=$base/logs/tombraider-direct-$mode-$stamp.log
+server_log=$base/logs/tombraider-direct-$mode-$child_preload-$stamp.log
 server_pid=
 affinity_pid=
 affinity_log=
@@ -61,6 +64,7 @@ cleanup() {
 trap cleanup EXIT HUP INT TERM
 
 STEAM_ARM64_DIRECT_DIAGNOSTICS=$diagnostics \
+STEAM_ARM64_DIRECT_CHILD_PRELOAD=$child_preload \
 "$python" "$dispatcher" serve --base "$base" --mode "$mode" \
     >"$server_log" 2>&1 &
 server_pid=$!
@@ -82,8 +86,9 @@ if [[ $mode == tombraider || $mode == tombraider-diagnostic ]]; then
     affinity_pid=$!
 fi
 
-printf 'pid=%s\nmode=%s\nserver_pid=%s\nserver_log=%s\naffinity_log=%s\nstatus=launching\n' \
-    "$$" "$mode" "$server_pid" "$server_log" "$affinity_log" >"$state"
+printf 'pid=%s\nmode=%s\nchild_preload=%s\nserver_pid=%s\nserver_log=%s\naffinity_log=%s\nstatus=launching\n' \
+    "$$" "$mode" "$child_preload" "$server_pid" "$server_log" \
+    "$affinity_log" >"$state"
 
 set +e
 STEAM_ARM64_BWRAP_DIRECT=1 \
@@ -103,10 +108,11 @@ if [[ -n ${affinity_pid:-} ]] && kill -0 "$affinity_pid" 2>/dev/null; then
 fi
 affinity_pid=
 
-printf 'pid=%s\nmode=%s\nserver_log=%s\naffinity_log=%s\nstatus=complete\nlauncher_status=%s\nserver_status=%s\n' \
-    "$$" "$mode" "$server_log" "$affinity_log" "$launcher_status" "$server_status" >"$state"
-printf 'Tomb Raider direct dispatch completed: mode=%s launcher=%s server=%s log=%s\n' \
-    "$mode" "$launcher_status" "$server_status" "$server_log"
+printf 'pid=%s\nmode=%s\nchild_preload=%s\nserver_log=%s\naffinity_log=%s\nstatus=complete\nlauncher_status=%s\nserver_status=%s\n' \
+    "$$" "$mode" "$child_preload" "$server_log" "$affinity_log" \
+    "$launcher_status" "$server_status" >"$state"
+printf 'Tomb Raider direct dispatch completed: mode=%s child_preload=%s launcher=%s server=%s log=%s\n' \
+    "$mode" "$child_preload" "$launcher_status" "$server_status" "$server_log"
 if (( launcher_status != 0 )); then
     exit "$launcher_status"
 fi

@@ -140,6 +140,8 @@ def main() -> None:
     ) == {"STEAM_COMPAT_APP_ID": "203160"}
     invocation_source = inspect.getsource(MODULE.pv_smoke_invocation)
     assert "libtgcompat-robust.so" in invocation_source
+    assert 'child_preload_profile == "lean"' in invocation_source
+    assert "TGCOMPAT_EXEC_LD_PRELOAD" in invocation_source
     assert '"TGCOMPAT_USERFAULTFD_ENOSYS": "1"' in invocation_source
     assert 'command_mode == "tombraider"' in invocation_source
     game_source = inspect.getsource(MODULE.run_tombraider)

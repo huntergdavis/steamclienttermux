@@ -721,15 +721,25 @@ def pv_smoke_invocation(
         ]
     rewritten.extend(["--set-ld-library-path", libraries, "--", *command])
     compat_repo = Path.home() / "workspace/termux-glibc-compat"
-    preloads = [
+    entry_preloads = [
         base / "compat-bin/steam-arm64-native-tmp.so",
         compat_repo / "build/libtgcompat-android-root.so",
         compat_repo / "build/libtgcompat-exec.so",
         compat_repo / "build/libtgcompat-robust.so",
     ]
-    if any(not path.is_file() for path in preloads):
+    if any(not path.is_file() for path in entry_preloads):
         fail("pv-adverb compatibility preload is unavailable")
-    preload = ":".join(str(path) for path in preloads)
+    child_preload_profile = os.environ.get(
+        "STEAM_ARM64_DIRECT_CHILD_PRELOAD", "full"
+    )
+    if child_preload_profile == "full":
+        child_preloads = entry_preloads
+    elif child_preload_profile == "lean":
+        child_preloads = [entry_preloads[0], entry_preloads[3]]
+    else:
+        fail("STEAM_ARM64_DIRECT_CHILD_PRELOAD must be full or lean")
+    entry_preload = ":".join(str(path) for path in entry_preloads)
+    child_preload = ":".join(str(path) for path in child_preloads)
     environment = request_environment(payload)
     if command_mode in (
         "proton-entry",
@@ -743,12 +753,12 @@ def pv_smoke_invocation(
         fail("Termux PREFIX is unavailable to the direct dispatcher")
     environment.update(
         {
-            "LD_PRELOAD": preload,
+            "LD_PRELOAD": entry_preload,
             "TGCOMPAT_ANDROID_ROOT_O_PATH": "1",
             "TGCOMPAT_PROC_SELF_EXE": str(pv_path),
             "TGCOMPAT_LD_SO": str(loader),
             "TGCOMPAT_LIBRARY_PATH": libraries,
-            "TGCOMPAT_EXEC_LD_PRELOAD": preload,
+            "TGCOMPAT_EXEC_LD_PRELOAD": child_preload,
             "TGCOMPAT_EXEC_SHELL": str(runtime_root / "usr/bin/sh"),
             "TGCOMPAT_USERFAULTFD_ENOSYS": "1",
             "STEAM_ARM64_TMP_ROOT": prefix + "/tmp",
