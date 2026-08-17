@@ -196,3 +196,9 @@ This proves the handoff architecture, not a game performance gain. The current
 server intentionally accepts only `/bin/true`. `pv-adverb`, Proton/FEX, and a
 matched Tomb Raider benchmark remain required before making any FPS or
 launch-time claim.
+
+The following gate ran the actual `pv-adverb` outside PRoot, restored all 11
+transferred descriptors, and let it supervise Runtime `true`. Both sides
+returned zero and the outside process again recorded `TracerPid: 0`. This
+removes `pv-adverb` from the hot tracer in the controlled smoke, but Proton/FEX
+and Tomb Raider remain untested on the new route.

@@ -5694,3 +5694,18 @@ lifecycle. It does not yet claim a game launch: the server still rejects every
 command except Runtime `/bin/true`. The next gate is executing the captured
 `pv-adverb` payload with its descriptors and relocated Runtime/provider paths,
 then Proton/FEX, before exposing the route to Tomb Raider.
+
+The next opt-in `pv-smoke` gate retained the same final-command restriction but
+ran the actual captured `pv-adverb` outside PRoot. The server restored all 11
+descriptors to their original numbers, retained `--fd` and `--assign-fd`,
+relocated the Pressure Vessel prefix and loader path, and omitted only the
+container-root locale, linker-cache, and provider-tree generation options.
+`pv-adverb` launched Runtime `true` and returned zero with `TracerPid: 0`; the
+waiting PRoot client again returned zero.
+
+Manual loader invocation still produced non-fatal warnings for `/` sysroot and
+libdl-token discovery. They are not hidden and do not invalidate the process
+or exit evidence, but the game route cannot assume they remain harmless. The
+next plan must come from a real Tomb Raider request so Proton's exact script,
+FEX, environment, and provider-library requirements are implemented from
+evidence rather than extrapolated from `/bin/true`.
