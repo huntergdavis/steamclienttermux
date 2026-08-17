@@ -27,6 +27,15 @@ Mesa Turnip, official Proton 11 ARM64, and its bundled FEX/DXVK stack.
   Proton/FEX and Turnip. Saved authentication survived full X/KDE/Steam
   recovery and repeated launches without another 2FA prompt. Interactive
   control after the opening mission transition is not yet verified.
+  The no-PRoot native Steam host now reaches the same authenticated Rockstar
+  and game boundary. `~/start-gtaiv-native.sh` primes remembered-login Steam,
+  forwards AppID 12210 with the previously proven `-dontStartService` route,
+  keeps its foreground service alive for the game lifetime, and continuously
+  enforces the measured CPU split. The first controlled native pass reached
+  `Auth -> MainWindow`, `Went Online`, cloud sync, the private-view
+  `GTAIV.exe`, and a visible `GTAIV` window with 64 game threads. Set
+  `GTAIV_DIRECT_LAUNCH=0` only to reproduce the older experimental
+  service-first batch.
 - Tomb Raider (2013) is installed on the microSD as the Windows depot set and
   launches the real `TombRaider.exe` through Steam Linux Runtime 4 ARM64,
   official Proton 11 ARM64, FEX, DXVK, and Turnip. Its launcher and first-run

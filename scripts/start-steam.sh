@@ -70,8 +70,10 @@ base="${STEAM_ARM64_BASE:-$HOME/steam-arm64}"
 steam_launcher="${STEAM_ARM64_LAUNCHER:-$HOME/bin/steam-arm}"
 pulse_helper="$base/prepare-pulseaudio-tcp.sh"
 affinity_helper="$base/compat-bin/set-tombraider-affinity.py"
+gtaiv_affinity_helper="$base/compat-bin/set-gtaiv-affinity.py"
 process_match_helper="$base/compat-bin/steam-arm64-process-match.sh"
 affinity_lock="$base/runtime/tomb-raider-affinity.lock"
+gtaiv_affinity_lock="$base/runtime/gtaiv-affinity.lock"
 x11_component="com.termux.x11/com.termux.x11.MainActivity"
 x11_preferences="/data/data/com.termux.x11/shared_prefs/com.termux.x11_preferences.xml"
 x11_socket="${PREFIX:-}/tmp/.X11-unix/X${display#:}"
@@ -105,7 +107,7 @@ package_uid() {
 }
 
 matching_pids() {
-    local kind="$1" process cmdline first_argument
+    local kind="$1" process cmdline
     for process in /proc/[0-9]*; do
         [[ -r "$process/cmdline" ]] || continue
         cmdline="$(tr '\0' ' ' <"$process/cmdline" 2>/dev/null || true)"
@@ -410,6 +412,40 @@ maybe_start_tomb_raider_affinity_guard() {
     fi
 }
 
+start_gtaiv_affinity_guard() {
+    local stamp guard_log guard_pid
+    [[ -x "$gtaiv_affinity_helper" ]] ||
+        fail "GTA IV affinity helper is unavailable: $gtaiv_affinity_helper"
+    mkdir -p "$base/runtime"
+    stamp="$(date +%Y%m%d-%H%M%S)"
+    guard_log="$base/logs/gtaiv-affinity-$stamp.log"
+    nohup python3 "$gtaiv_affinity_helper" \
+        --watch \
+        --steam-base "$base" \
+        --display "$display" \
+        --lock-file "$gtaiv_affinity_lock" \
+        >"$guard_log" 2>&1 </dev/null &
+    guard_pid=$!
+    if ! taskset -pc 0 "$guard_pid" >/dev/null 2>&1; then
+        sleep 1
+        grep -Fq 'affinity guard: already active' "$guard_log" ||
+            fail "unable to confine GTA IV affinity guard PID $guard_pid to CPU 0"
+    fi
+    sleep 1
+    if ! kill -0 "$guard_pid" 2>/dev/null; then
+        grep -Fq 'affinity guard: already active' "$guard_log" ||
+            fail "GTA IV affinity guard exited; inspect $guard_log"
+    fi
+    printf 'start-steam: GTA IV affinity guard armed; log %s\n' "$guard_log"
+}
+
+maybe_start_game_affinity_guard() {
+    case "$requested_appid" in
+        203160) start_tomb_raider_affinity_guard ;;
+        12210) start_gtaiv_affinity_guard ;;
+    esac
+}
+
 x11_bridge_has_dead_binder() {
     local pid="$1" since recent
     since="$(date +%s)"
@@ -438,6 +474,8 @@ done
 [[ -x "$steam_launcher" ]] || fail "Steam launcher is unavailable: $steam_launcher"
 [[ -x "$pulse_helper" ]] || fail "PulseAudio helper is unavailable: $pulse_helper"
 [[ -x "$affinity_helper" ]] || fail "affinity helper is unavailable: $affinity_helper"
+[[ -x "$gtaiv_affinity_helper" ]] ||
+    fail "GTA IV affinity helper is unavailable: $gtaiv_affinity_helper"
 [[ -f $process_match_helper && ! -L $process_match_helper ]] ||
     fail "process matcher is unavailable: $process_match_helper"
 # shellcheck source=/dev/null
@@ -549,7 +587,7 @@ fi
 if [[ "${#steam_pids[@]}" -eq 1 ]]; then
     require_top_app Steam "${steam_pids[0]}"
     apply_steam_session_affinity "${x11_pids[0]}" "${steam_pids[0]}"
-    maybe_start_tomb_raider_affinity_guard
+    maybe_start_game_affinity_guard
     if [[ "${#steam_arguments[@]}" -gt 0 ]]; then
         forward_log="$base/logs/start-steam-forward-$(date +%Y%m%d-%H%M%S).log"
         nohup env DISPLAY="$display" "$steam_launcher" "${steam_arguments[@]}" \
@@ -604,13 +642,13 @@ fi
 if [[ "${#launcher_pids[@]}" -eq 1 ]]; then
     launcher_pid="${launcher_pids[0]}"
     require_top_app Steam-launcher "$launcher_pid"
-    maybe_start_tomb_raider_affinity_guard
+    maybe_start_game_affinity_guard
     steam_log="$base/logs"
     printf 'start-steam: attaching to Steam initialization under launcher PID %s\n' \
         "$launcher_pid"
 else
     require_top_app launcher "$$"
-    maybe_start_tomb_raider_affinity_guard
+    maybe_start_game_affinity_guard
     steam_log="$base/logs/start-steam-$(date +%Y%m%d-%H%M%S).log"
     nohup env DISPLAY="$display" PULSE_SERVER="$pulse_server" \
         STEAM_ARM64_FEX_PROFILE="$profile" "$steam_launcher" -noshaders \

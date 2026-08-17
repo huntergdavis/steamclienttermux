@@ -15,6 +15,19 @@ if [[ ${1:-} == --proton-log ]]; then
     native_options+=(--proton-log)
     shift
 fi
+direct_launch=${GTAIV_DIRECT_LAUNCH:-1}
+[[ $direct_launch == 0 || $direct_launch == 1 ]] || {
+    printf 'start-gtaiv-native: GTAIV_DIRECT_LAUNCH must be 0 or 1\n' >&2
+    exit 2
+}
+declare -a game_options=("$@")
+if (( direct_launch == 1 )); then
+    # The native container currently exits while the synchronous service-first
+    # batch is waiting in sc.exe. This previously proven Rockstar option lets
+    # the signed launcher start the service asynchronously and preserves the
+    # authenticated profile.
+    game_options=(-dontStartService "${game_options[@]}")
+fi
 
 retry_count=${GTAIV_LAUNCH_RETRIES:-1}
 retry_wait=${GTAIV_RETRY_WAIT_SECONDS:-1200}
@@ -26,7 +39,7 @@ gameprocess_log=${GTAIV_GAMEPROCESS_LOG:-$base/client/logs/gameprocess_log.txt}
 display=${STEAM_X11_DISPLAY:-:0}
 xdotool_command=${GTAIV_XDOTOOL:-xdotool}
 declare -a launch_command=(
-    "$steam_start" "${native_options[@]}" --appid 12210 -- "$@"
+    "$steam_start" "${native_options[@]}" --appid 12210 -- "${game_options[@]}"
 )
 
 for value_name in retry_count retry_wait window_stable_seconds supervise_poll; do

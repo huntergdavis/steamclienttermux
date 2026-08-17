@@ -75,6 +75,7 @@ def main():
         assert lines.count("arg=--proton-log") == 2
         assert lines.count("arg=12210") == 2
         assert lines.count("arg=--") == 2
+        assert lines.count("arg=-dontStartService") == 2
         assert lines.count("arg=-foo") == 2
         assert "pre-game exit detected" in result.stderr
         assert "verified top-app GTAIV.exe" in result.stdout
@@ -102,6 +103,7 @@ def main():
             "arg=--appid",
             "arg=12210",
             "arg=--",
+            "arg=-dontStartService",
             "arg=-bar",
         ]
 

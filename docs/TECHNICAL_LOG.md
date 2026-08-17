@@ -5407,3 +5407,82 @@ The final focused recall query for RunCommandService exit delivering signal 1
 returned no indexed solution. The fix reuses the existing guarded top-app
 service launch and exact live-game selectors; the new conclusion comes from
 the synchronized wrapper-exit and Steam-removal timestamps above.
+
+## 2026-08-17: native Steam reaches authenticated GTA IV
+
+The first two supervised native GTA IV attempts stopped after Steam entered
+Runtime 4 and Proton. A preserved 4,067,136-byte Proton trace proved that the
+Pressure Vessel route correctly changed the payload to
+`cmd.exe /d /c C:\gtaiv-service-first.cmd`. Wine then loaded `sc.exe` and
+`RockstarService.exe`, but it never loaded `PlayGTAIV.exe`; the batch's
+`GTAIV_SERVICE_START_RC` marker was also absent. Both Steam attempts removed
+AppID 12210 before any Rockstar launcher or game process appeared. The trace
+is retained on the tablet as
+`steam-12210-native-service-first-20260817-0136.log`, SHA-256
+`54d191f39cf46cb2f7adac69e98ac2a6cfaeb4fe4ebd15cb770b386fb88b9613`.
+
+A required recall query found the stronger prior control in Codex session
+`019fe348-1247-7530-bc25-8a573aaf4252`: direct
+`PlayGTAIV.exe -dontStartService` had previously produced the complete
+Rockstar process tree on this tablet. The native A/B therefore appended only
+that supported Rockstar option. Appending an argument intentionally bypassed
+the route wrapper's exact no-argument service-first rewrite while retaining
+the validated private executable overlay.
+
+That run crossed every relevant boundary without clearing the prefix or
+requesting another password or 2FA code:
+
+| Stage | UTC |
+| --- | ---: |
+| native Steam remembered-login client | 08:42:10 |
+| AppID 12210 outer Runtime | 08:42:46 |
+| Wine tracked by Steam | 08:43:09 |
+| Rockstar launcher log opened | 08:43:24 |
+| `Auth -> MainWindow` / saved sign-in | 08:46:14 |
+| `Went Online` | 08:46:16 |
+| cloud-save sync complete | 08:47:15 |
+| Rockstar `Launching game...` | 08:47:16 |
+| exact `GTAIV.exe` observed | 08:47:20 |
+| visible `GTAIV` X11 window observed | 08:51:51 |
+
+`/proc/<pid>/maps` resolved `GTAIV.exe` and `binkw32.dll` to the private
+`gtaiv-exec-view-12210`, while Wine's `d3d9.dll` came from the protected
+AppID-12210 prefix. The process environment independently matched AppID 12210
+and `removable-library-compatdata/12210`; both Android CPU controllers were
+`/top-app`. Rockstar's own log recorded online presence, title-list work,
+cloud synchronization, and the exact `GTAIV.exe` command line. This is a
+native-Steam-host success with the game still entering the existing
+PRoot/Runtime/Proton boundary, not a claim that Proton itself is no-PRoot.
+
+The wrapper now uses this direct option by default. Setting
+`GTAIV_DIRECT_LAUNCH=0` retains a bounded way to reproduce the service-first
+diagnostic; the historical batch and prefix are not deleted. Like the native
+Tomb Raider wrapper, `start-gtaiv-native.sh` primes Steam without an AppID,
+forwards through the stable client, requires an exact AppID/compatdata game
+identity plus a visible window for 30 seconds, and retains its foreground
+RunCommandService lifetime until the game exits.
+
+The run also converted the earlier manual affinity split into
+`set-gtaiv-affinity.py`. It accepts only the exact AppID-12210 environment,
+protected compatdata paths, `/top-app` placement, expected executable command
+paths, and measured Tab S8+ CPU topology. It continuously converges GTA on
+CPUs 4-7, PlayGTAIV/Launcher/Social Club/Wine on 4-5, Rockstar Service on 6,
+and the exact game PRoot tracer on 7. This was necessary: GTA grew from 6 to
+24 threads during one manual reapplication, then later had 35 of 59 threads
+on rewritten masks. The installed guard converged a 64-thread visible game to
+zero wrong masks and held the complete required process-role set for the
+30-second readiness interval.
+
+Memory remains the unresolved limit. Before the game window stabilized, free
+zram repeatedly fell below 0.5 GiB and briefly to about 60 MiB. Normal `TERM`
+to individually validated, childless Steam-only CEF zygotes recovered several
+hundred MiB without touching GTA or any Rockstar process, but native Steam can
+respawn those helpers. The earlier controlled result still applies: Rockstar
+CEF cannot be terminated because the launcher then shuts down GTA. No
+screenshot was taken during this high-pressure pass.
+
+All 33 project test programs pass with the direct native route, installer
+integration, FEX-renamed Rockstar selectors, continuous mask convergence, and
+new guard regression coverage. The focused service-first query returned no
+indexed solution; the direct option and CPU split are explicitly reused from
+the prior Codex session above.
