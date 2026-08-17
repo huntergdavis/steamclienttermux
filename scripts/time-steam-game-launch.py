@@ -155,6 +155,27 @@ def event_record(observed: datetime, anchor: datetime, **values: object) -> dict
     }
 
 
+def attempt_record(
+    number: int,
+    status: str,
+    session_start: datetime | None,
+    runtime_launch: datetime | None,
+    events: dict[str, dict[str, object]],
+) -> dict[str, object]:
+    return {
+        "attempt": number,
+        "status": status,
+        "steam_session_at": iso_time(session_start) if session_start else None,
+        "runtime_launch_at": iso_time(runtime_launch) if runtime_launch else None,
+        "seconds_session_to_runtime_launch": (
+            round((runtime_launch - session_start).total_seconds(), 3)
+            if session_start and runtime_launch
+            else None
+        ),
+        "events": dict(events),
+    }
+
+
 def atomic_json(path: Path, report: dict[str, object]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
@@ -178,13 +199,30 @@ def measure(arguments: argparse.Namespace) -> tuple[int, dict[str, object]]:
     deadline = time.monotonic() + arguments.timeout
     runtime_launch = None
     session_start = None
+    session_marker = None
     events: dict[str, dict[str, object]] = {}
+    attempts: list[dict[str, object]] = []
     status = "timeout"
 
     while time.monotonic() < deadline:
         for line in compat.read():
-            if session_start is None and f"StartSession: appID {arguments.appid} " in line:
-                session_start = parse_log_time(line) or utc_now()
+            if f"StartSession: appID {arguments.appid} " not in line:
+                continue
+            observed_session = parse_log_time(line) or utc_now()
+            if session_marker is not None and line != session_marker:
+                attempts.append(
+                    attempt_record(
+                        len(attempts) + 1,
+                        "superseded_by_retry",
+                        session_start,
+                        runtime_launch,
+                        events,
+                    )
+                )
+                runtime_launch = None
+                events = {}
+            session_start = observed_session
+            session_marker = line
         for line in console.read():
             if (
                 runtime_launch is None
@@ -205,7 +243,7 @@ def measure(arguments: argparse.Namespace) -> tuple[int, dict[str, object]]:
                         process_name=process.name,
                         executable=process.executable,
                     )
-            if "game_window" not in events:
+            if "target_process" in events and "game_window" not in events:
                 title = first_visible_window(
                     arguments.display,
                     arguments.window_regex,
@@ -222,8 +260,18 @@ def measure(arguments: argparse.Namespace) -> tuple[int, dict[str, object]]:
         time.sleep(arguments.poll)
 
     finished = utc_now()
+    if session_start is not None or runtime_launch is not None or events:
+        attempts.append(
+            attempt_record(
+                len(attempts) + 1,
+                status,
+                session_start,
+                runtime_launch,
+                events,
+            )
+        )
     report: dict[str, object] = {
-        "schema_version": 1,
+        "schema_version": 2,
         "status": status,
         "appid": arguments.appid,
         "process_name": arguments.process_name,
@@ -240,9 +288,13 @@ def measure(arguments: argparse.Namespace) -> tuple[int, dict[str, object]]:
             else None
         ),
         "events": events,
+        "attempt_count": len(attempts),
+        "attempts": attempts,
         "notes": (
             "Steam log timestamps have one-second resolution. Process and window "
-            "events are first observations at the configured polling interval."
+            "events are first observations at the configured polling interval. "
+            "A later StartSession for the same AppID closes the incomplete attempt "
+            "and resets process/window attribution for the retry."
         ),
     }
     return (0 if status == "complete" else 3), report

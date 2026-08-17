@@ -57,6 +57,21 @@ def main():
         "seconds_after_runtime_launch": 5.25,
         "pid": 5,
     }
+    first_attempt = module.attempt_record(
+        1,
+        "superseded_by_retry",
+        datetime(2026, 8, 17, 7, 8, 9, tzinfo=timezone.utc),
+        datetime(2026, 8, 17, 7, 8, 27, tzinfo=timezone.utc),
+        {"pressure_vessel": event},
+    )
+    assert first_attempt == {
+        "attempt": 1,
+        "status": "superseded_by_retry",
+        "steam_session_at": "2026-08-17T07:08:09.000+00:00",
+        "runtime_launch_at": "2026-08-17T07:08:27.000+00:00",
+        "seconds_session_to_runtime_launch": 18.0,
+        "events": {"pressure_vessel": event},
+    }
     print("Steam game launch timer tests: PASS")
 
 
