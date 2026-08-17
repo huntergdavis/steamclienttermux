@@ -202,6 +202,10 @@ pd_args+=(--env "LD_LIBRARY_PATH=$mesa_lib")
 pd_args+=(--env "STEAM_ARM64_REAL_BWRAP=$real_bwrap")
 pd_args+=(--env "STEAM_ARM64_PROC_NET=$proc_net")
 pd_args+=(--env "STEAM_ARM64_HOST_VK_DRIVER_FILES=$host_vk_driver_files")
+if [[ -n $capture_plan ]]; then
+    pd_args+=(--env "STEAM_ARM64_BASE=$base")
+    pd_args+=(--env "STEAM_ARM64_BWRAP_CAPTURE_PLAN=$capture_plan")
+fi
 pd_args+=(--env "PROOT_L2S_EXDEV_PREFIX=$runtime_depot/var/tmp-")
 
 case $bridge_mode in

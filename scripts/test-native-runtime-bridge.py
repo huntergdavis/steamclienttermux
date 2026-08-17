@@ -78,7 +78,9 @@ def prepare(root: Path) -> tuple[Path, Path]:
     return prefix, base
 
 
-def run_bridge(prefix: Path, base: Path, mode: str) -> list[str]:
+def run_bridge(
+    prefix: Path, base: Path, mode: str, capture_plan: Path | None = None
+) -> list[str]:
     removable_source = base.parent / "fixture-storage"
     removable_target = base / "removable-library"
     game_directory = removable_source / "steamapps" / "common" / "Game"
@@ -106,6 +108,8 @@ def run_bridge(prefix: Path, base: Path, mode: str) -> list[str]:
             ),
         }
     )
+    if capture_plan is not None:
+        environment["STEAM_ARM64_BWRAP_CAPTURE_PLAN"] = str(capture_plan)
     result = subprocess.run(
         [
             "bash",
@@ -251,12 +255,20 @@ def main() -> None:
             f"{base.parent / 'fixture-storage'}-lookalike/Game.exe",
         ]
 
+        capture_output = base / "logs" / "runtime-plans" / "fixture.json"
+        capture_runtime = run_bridge(prefix, base, "runtime", capture_output)
+        assert f"STEAM_ARM64_BASE={base}" in capture_runtime
+        assert f"STEAM_ARM64_BWRAP_CAPTURE_PLAN={capture_output}" in capture_runtime
+        assert (
+            f"STEAM_ARM64_REAL_BWRAP="
+            f"{base / 'compat-bin/capture-pressure-vessel-plan.py'}"
+        ) in capture_runtime
+
         selected_proot = base / "src" / "native-profile" / "src"
         preflight = run_preflight(prefix, base, selected_proot)
         assert f"proot={selected_proot / 'proot'}" in preflight
         assert "native game boundary preflight: PASS" in preflight
 
-        capture_output = base / "logs" / "runtime-plans" / "fixture.json"
         captured = run_capture_preflight(prefix, base, capture_output)
         assert captured.returncode == 0, captured.stderr
         assert f"real_bwrap={base / 'compat-bin/capture-pressure-vessel-plan.py'}" in captured.stdout
