@@ -698,6 +698,9 @@ Steam nevertheless constructs the dependency command from Runtime AppID
 depot `_v2-entry-point` to the protected native bridge binary, across the full
 exec family, while preserving Valve's original `argv[0]`. The official runtime
 files remain unchanged.
+Before the bridge starts Bionic Bash it replaces Steam's Debian-first PATH with
+`$PREFIX/bin:/system/bin`; its safety checks cannot accidentally execute glibc
+utilities until the patched PRoot boundary is active.
 
 Steam replaces `LD_PRELOAD` when it builds a game command, adding its x86
 overlay objects. Native ARM64 `/bin/sh` must start before the game can reach the

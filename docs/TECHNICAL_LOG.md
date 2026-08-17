@@ -5042,3 +5042,15 @@ untouched. The required `deja "SteamLinuxRuntime arm64 run readlink cannot
 execute required file not found Android Termux staged glibc loader"` search
 returned no indexed solution; this reuses the existing synthetic bridge and
 full exec-family policy rather than patching an update-owned runtime script.
+
+The 05:18:14 UTC retry proved that route immediately: the protected bridge
+binary ran, then its own PRoot-stamp check selected `sed`, `grep`, and `tr` from
+Steam's inherited Debian-first PATH. Those glibc executables could not use
+their baked interpreter before PRoot, so the check falsely reported a missing
+patch and stopped. The compiled bridge now replaces PATH with the validated
+Termux prefix plus `/system/bin` after removing native loader policy and before
+starting Bionic Bash. This keeps every pre-PRoot safety command on the Bionic
+side; the script still constructs its separate guest PATH after entry. The
+required `deja "native Steam bridge Bionic bash PATH Debian sed grep tr cannot
+execute before proot-distro"` search returned no indexed solution; this reuses
+the bridge's existing explicit ABI sanitization point.

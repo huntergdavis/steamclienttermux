@@ -167,6 +167,7 @@ def main() -> None:
         assert '"TGCOMPAT_EXEC_SHELL"' in entry_source
         assert '"TGCOMPAT_EXEC_PATH_FROM"' in entry_source
         assert '"TGCOMPAT_EXEC_PATH_TO"' in entry_source
+        assert 'setenv ("PATH", safe_path, 1)' in entry_source
 
         (selected_proot / "proot").write_text("changed after stamp\n", encoding="utf-8")
         changed = run_rejected_preflight(prefix, base, selected_proot)

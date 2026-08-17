@@ -44,20 +44,27 @@ main (int argc, char **argv)
   const char *base = getenv ("STEAM_ARM64_BASE");
   const char *program_name;
   struct stat metadata;
+  char safe_path[PATH_MAX];
   char shell[PATH_MAX];
   char script[PATH_MAX];
   char **arguments;
+  int written;
   size_t index;
 
   errno = 0;
   if (prefix == NULL || prefix[0] != '/' || base == NULL || base[0] != '/')
     fail ("PREFIX and STEAM_ARM64_BASE must be absolute");
-  if (snprintf (shell, sizeof (shell), "%s/bin/bash", prefix) < 0
-      || strlen (shell) >= sizeof (shell)
-      || snprintf (script, sizeof (script),
-                   "%s/compat-bin/steam-arm64-native-bwrap", base) < 0
-      || strlen (script) >= sizeof (script))
+  written = snprintf (shell, sizeof (shell), "%s/bin/bash", prefix);
+  if (written < 0 || (size_t) written >= sizeof (shell))
+    fail ("Bionic shell path is too long");
+  written = snprintf (script, sizeof (script),
+                      "%s/compat-bin/steam-arm64-native-bwrap", base);
+  if (written < 0 || (size_t) written >= sizeof (script))
     fail ("bridge path is too long");
+  written = snprintf (safe_path, sizeof (safe_path), "%s/bin:/system/bin",
+                      prefix);
+  if (written < 0 || (size_t) written >= sizeof (safe_path))
+    fail ("Bionic PATH is too long");
   program_name = strrchr (argv[0], '/');
   program_name = program_name == NULL ? argv[0] : program_name + 1;
   if (strcmp (program_name, "_v2-entry-point") == 0)
@@ -89,6 +96,8 @@ main (int argc, char **argv)
   for (index = 0; removed_variables[index] != NULL; index++)
     if (unsetenv (removed_variables[index]) < 0)
       fail ("cannot sanitize loader environment");
+  if (setenv ("PATH", safe_path, 1) < 0)
+    fail ("cannot select the Bionic command path");
 
   execv (shell, arguments);
   fail ("cannot enter the Bionic game bridge");
