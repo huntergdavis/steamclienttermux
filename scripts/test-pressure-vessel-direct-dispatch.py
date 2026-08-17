@@ -144,6 +144,19 @@ def main() -> None:
     assert 'command_mode == "tombraider"' in invocation_source
     game_source = inspect.getsource(MODULE.run_tombraider)
     assert '"tombraider"' in game_source
+    with tempfile.TemporaryDirectory(prefix="removable-game.") as directory:
+        game_fixture = Path(directory) / "TombRaider.exe"
+        game_fixture.write_bytes(b"game")
+        game_fixture.chmod(0o770)
+        MODULE.validate_removable_executable(game_fixture, "fixture game")
+        game_link = game_fixture.with_name("linked.exe")
+        game_link.symlink_to(game_fixture)
+        try:
+            MODULE.validate_removable_executable(game_link, "fixture link")
+        except MODULE.DispatchError:
+            pass
+        else:
+            raise AssertionError("removable executable validator accepted a symlink")
 
     with (
         tempfile.TemporaryFile() as source8,

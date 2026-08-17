@@ -513,6 +513,20 @@ def validate_owned_executable(path: Path, description: str) -> None:
         fail(f"validated {description} executable is unsafe: {path}")
 
 
+def validate_removable_executable(path: Path, description: str) -> None:
+    """Validate an exact app-scoped SD path with Android FUSE ownership."""
+    try:
+        metadata = path.lstat()
+    except FileNotFoundError:
+        fail(f"validated {description} executable is unavailable: {path}")
+    if (
+        not stat.S_ISREG(metadata.st_mode)
+        or path.is_symlink()
+        or not os.access(path, os.X_OK)
+    ):
+        fail(f"validated {description} executable is unsafe: {path}")
+
+
 def proton_smoke_command(
     base: Path, runtime_root: Path, proton: Path, command_mode: str
 ) -> list[str]:
@@ -658,7 +672,7 @@ def pv_smoke_invocation(
             runtime_python = runtime_root / "usr/bin/python3"
             validate_owned_executable(runtime_python, "Runtime Python")
             validate_owned_executable(proton, "Proton entry point")
-            validate_owned_executable(game, "Tomb Raider")
+            validate_removable_executable(game, "Tomb Raider")
             command = [
                 str(runtime_python),
                 str(proton),
