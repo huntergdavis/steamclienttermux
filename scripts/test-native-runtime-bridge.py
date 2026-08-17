@@ -40,6 +40,7 @@ def prepare(root: Path) -> tuple[Path, Path]:
     stamped_proot(base / "src" / "proot-production" / "src" / "proot")
     executable(base / "compat-bin" / "steam-arm64-bwrap-route")
     executable(base / "compat-bin" / "capture-pressure-vessel-plan.py")
+    executable(base / "compat-bin" / "pressure-vessel-direct-dispatch.py")
     executable(runtime / "_v2-entry-point")
     executable(
         runtime
@@ -155,7 +156,9 @@ def run_preflight(prefix: Path, base: Path, proot_dir: Path) -> list[str]:
     return result.stdout.splitlines()
 
 
-def run_capture_preflight(prefix: Path, base: Path, output: Path) -> subprocess.CompletedProcess[str]:
+def run_capture_preflight(
+    prefix: Path, base: Path, output: Path
+) -> subprocess.CompletedProcess[str]:
     environment = os.environ.copy()
     environment.update(
         {
@@ -174,7 +177,28 @@ def run_capture_preflight(prefix: Path, base: Path, output: Path) -> subprocess.
     )
 
 
-def run_rejected_preflight(prefix: Path, base: Path, proot_dir: Path) -> subprocess.CompletedProcess[str]:
+def run_direct_preflight(prefix: Path, base: Path) -> subprocess.CompletedProcess[str]:
+    environment = os.environ.copy()
+    environment.update(
+        {
+            "PREFIX": str(prefix),
+            "STEAM_ARM64_BASE": str(base),
+            "STEAM_ARM64_NATIVE_BWRAP_CHECK": "1",
+            "STEAM_ARM64_BWRAP_DIRECT": "1",
+        }
+    )
+    return subprocess.run(
+        ["bash", str(SCRIPT)],
+        env=environment,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+
+def run_rejected_preflight(
+    prefix: Path, base: Path, proot_dir: Path
+) -> subprocess.CompletedProcess[str]:
     environment = os.environ.copy()
     environment.update(
         {
@@ -281,6 +305,17 @@ def main() -> None:
             f"capture_real_bwrap="
             f"{base / 'runtime/SteamLinuxRuntime_4-arm64/pressure-vessel/libexec/steam-runtime-tools-0/srt-bwrap'}"
         ) in captured.stdout
+
+        direct = run_direct_preflight(prefix, base)
+        assert direct.returncode == 0, direct.stderr
+        assert "direct_dispatch=1" in direct.stdout
+        assert (
+            f"real_bwrap={base / 'compat-bin/pressure-vessel-direct-dispatch.py'}"
+        ) in direct.stdout
+        assert (
+            f"direct_real_bwrap="
+            f"{base / 'runtime/SteamLinuxRuntime_4-arm64/pressure-vessel/libexec/steam-runtime-tools-0/srt-bwrap'}"
+        ) in direct.stdout
 
         outside_capture = run_capture_preflight(
             prefix, base, base.parent / "outside.json"

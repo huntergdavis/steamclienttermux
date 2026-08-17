@@ -97,6 +97,8 @@ install_one "$repo_root/bin/steam-arm64-native-bwrap" \
     "$base/compat-bin/steam-arm64-native-bwrap" 700
 install_one "$repo_root/scripts/capture-pressure-vessel-plan.py" \
     "$base/compat-bin/capture-pressure-vessel-plan.py" 700
+install_one "$repo_root/scripts/pressure-vessel-direct-dispatch.py" \
+    "$base/compat-bin/pressure-vessel-direct-dispatch.py" 700
 install_one "$native_entry_stage" \
     "$base/compat-bin/steam-arm64-native-bwrap-entry" 700
 install_one "$native_entry_stage" \

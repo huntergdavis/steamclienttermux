@@ -14,6 +14,9 @@ real_bwrap=$runtime_shadow/pressure-vessel/libexec/steam-runtime-tools-0/srt-bwr
 capture_tool=$compat_bin/capture-pressure-vessel-plan.py
 capture_plan=${STEAM_ARM64_BWRAP_CAPTURE_PLAN:-}
 capture_real_bwrap=
+direct_tool=$compat_bin/pressure-vessel-direct-dispatch.py
+direct_dispatch=${STEAM_ARM64_BWRAP_DIRECT:-0}
+direct_real_bwrap=
 proc_net=$base/config/proc-net
 hosts=$base/config/hosts-ipv4
 custom_proot_dir=${STEAM_ARM64_PROOT_DIR:-$base/src/proot-production/src}
@@ -72,6 +75,16 @@ if [[ -n $capture_plan ]]; then
     capture_real_bwrap=$real_bwrap
     real_bwrap=$capture_tool
 fi
+[[ $direct_dispatch == 0 || $direct_dispatch == 1 ]] ||
+    fail 'STEAM_ARM64_BWRAP_DIRECT must be 0 or 1'
+if [[ $direct_dispatch == 1 ]]; then
+    [[ -z $capture_plan ]] ||
+        fail 'direct dispatch and plan capture cannot be enabled together'
+    [[ -x $direct_tool && ! -L $direct_tool ]] ||
+        fail "Pressure Vessel direct dispatcher is unavailable: $direct_tool"
+    direct_real_bwrap=$real_bwrap
+    real_bwrap=$direct_tool
+fi
 [[ -f $runtime_shadow/.steamclienttermux-runtime-shadow &&
         -x $runtime_shadow/_v2-entry-point &&
         -d $runtime_depot && ! -L $runtime_shadow && ! -L $runtime_depot ]] ||
@@ -106,9 +119,10 @@ case $bridge_mode in
 esac
 
 if [[ ${STEAM_ARM64_NATIVE_BWRAP_CHECK:-0} == 1 ]]; then
-    printf 'mode=%s\nruntime_direct=%s\nproot=%s\nroute=%s\nreal_bwrap=%s\nruntime_shadow=%s\ncapture_plan=%s\ncapture_real_bwrap=%s\n' \
+    printf 'mode=%s\nruntime_direct=%s\nproot=%s\nroute=%s\nreal_bwrap=%s\nruntime_shadow=%s\ncapture_plan=%s\ncapture_real_bwrap=%s\ndirect_dispatch=%s\ndirect_real_bwrap=%s\n' \
         "$bridge_mode" "$runtime_direct" "$proot_binary" "$route" \
-        "$real_bwrap" "$runtime_shadow" "$capture_plan" "$capture_real_bwrap"
+        "$real_bwrap" "$runtime_shadow" "$capture_plan" "$capture_real_bwrap" \
+        "$direct_dispatch" "$direct_real_bwrap"
     printf '%s\n' 'native game boundary preflight: PASS'
     exit 0
 fi
@@ -208,6 +222,10 @@ if [[ -n $capture_plan ]]; then
     pd_args+=(--env "STEAM_ARM64_BASE=$base")
     pd_args+=(--env "STEAM_ARM64_BWRAP_CAPTURE_PLAN=$capture_plan")
     pd_args+=(--env "STEAM_ARM64_CAPTURE_REAL_BWRAP=$capture_real_bwrap")
+fi
+if [[ $direct_dispatch == 1 ]]; then
+    pd_args+=(--env "STEAM_ARM64_BASE=$base")
+    pd_args+=(--env "STEAM_ARM64_DIRECT_REAL_BWRAP=$direct_real_bwrap")
 fi
 pd_args+=(--env "PROOT_L2S_EXDEV_PREFIX=$runtime_depot/var/tmp-")
 
