@@ -45,6 +45,14 @@ def regular_owned_file(path: Path, description: str, executable: bool = False) -
         raise PrepareError(f"{description} is not executable: {path}")
 
 
+def resolved_owned_executable(path: Path, description: str) -> None:
+    try:
+        resolved = path.resolve(strict=True)
+    except FileNotFoundError as error:
+        raise PrepareError(f"{description} is unavailable: {path}") from error
+    regular_owned_file(resolved, description, executable=True)
+
+
 def run_command(command: list[str], description: str) -> str:
     result = subprocess.run(
         command,
@@ -128,7 +136,7 @@ def prepare(
     target = base / TARGET_RELATIVE
     regular_owned_file(target, "Proton ARM64 Wine", executable=True)
     regular_owned_file(loader, "tgcompat glibc loader", executable=True)
-    regular_owned_file(readelf, "readelf", executable=True)
+    resolved_owned_executable(readelf, "readelf")
     interpreter = read_interpreter(readelf, target)
     if interpreter == str(loader):
         print(f"Proton direct Wine already prepared: {target}")
@@ -181,7 +189,7 @@ def check(base: Path, loader: Path, readelf: Path) -> None:
     target = base / TARGET_RELATIVE
     regular_owned_file(target, "Proton ARM64 Wine", executable=True)
     regular_owned_file(loader, "tgcompat glibc loader", executable=True)
-    regular_owned_file(readelf, "readelf", executable=True)
+    resolved_owned_executable(readelf, "readelf")
     interpreter = read_interpreter(readelf, target)
     if interpreter != str(loader):
         raise PrepareError(f"Proton direct Wine is not prepared: {interpreter}")
@@ -234,7 +242,12 @@ def main() -> int:
         loader = Path(os.path.abspath(os.path.expanduser(arguments.loader)))
         loader.resolve(strict=True)
         prefix = Path(os.environ.get("PREFIX", "/data/data/com.termux/files/usr"))
-        readelf = Path(arguments.readelf or prefix / "bin/readelf").resolve(strict=True)
+        readelf = Path(
+            os.path.abspath(
+                os.path.expanduser(str(arguments.readelf or prefix / "bin/readelf"))
+            )
+        )
+        resolved_owned_executable(readelf, "readelf")
         if arguments.patchelf:
             patchelf_path = Path(arguments.patchelf).resolve(strict=True)
             regular_owned_file(patchelf_path, "patchelf", executable=True)

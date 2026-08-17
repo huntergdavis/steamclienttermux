@@ -40,16 +40,21 @@ def main() -> None:
             encoding="utf-8",
         )
         patchelf.chmod(0o700)
-        readelf = root / "readelf"
-        readelf.write_text(
+        readelf_target = root / "llvm-readobj"
+        readelf_target.write_text(
             "#!/usr/bin/env python3\n"
             "from pathlib import Path\n"
             "import sys\n"
+            "if Path(sys.argv[0]).name != 'readelf':\n"
+            "    print('LLVM readobj personality')\n"
+            "    raise SystemExit(0)\n"
             "value = Path(sys.argv[2]).read_text().splitlines()[0].split('=', 1)[1]\n"
             "print('      [Requesting program interpreter: ' + value + ']')\n",
             encoding="utf-8",
         )
-        readelf.chmod(0o700)
+        readelf_target.chmod(0o700)
+        readelf = root / "readelf"
+        readelf.symlink_to(readelf_target)
         command = [
             os.sys.executable,
             str(SCRIPT),
