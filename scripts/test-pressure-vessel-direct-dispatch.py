@@ -54,6 +54,20 @@ def main() -> None:
         "SteamLinuxRuntime_4-arm64/pressure-vessel/libexec/"
         "steam-runtime-tools-0/pv-adverb"
     )
+    tablet_base = Path("/data/data/com.termux/files/home/steam-arm64")
+    proton, game = MODULE.validated_tombraider_command(
+        tablet_base, plan["payload_argv"]
+    )
+    assert proton == (
+        tablet_base / "client/steamapps/common/Proton 11.0 (ARM64)/proton"
+    )
+    assert game == (
+        tablet_base
+        / "removable-library/steamapps/common/Tomb Raider/TombRaider.exe"
+    )
+    assert MODULE.request_environment(
+        {"environment": ["STEAM_COMPAT_APP_ID=203160", "LD_PRELOAD=unsafe"]}
+    ) == {"STEAM_COMPAT_APP_ID": "203160"}
 
     with (
         tempfile.TemporaryFile() as source8,

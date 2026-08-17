@@ -9,6 +9,7 @@ import fcntl
 import json
 import os
 from pathlib import Path, PurePosixPath
+import re
 import socket
 import stat
 import struct
@@ -21,6 +22,7 @@ KIND = "steamclienttermux-pressure-vessel-direct"
 MAX_FRAME = 16 * 1024 * 1024
 MAX_FDS = 64
 MAX_ARGS_DATA = 16 * 1024 * 1024
+ENVIRONMENT_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 FD_SOURCE_OPTIONS = {
     "--bind-data",
     "--bind-fd",
@@ -415,6 +417,49 @@ def clean_loader_environment() -> dict[str, str]:
     return environment
 
 
+def request_environment(payload: dict[str, object]) -> dict[str, str]:
+    entries = payload["environment"]
+    assert isinstance(entries, list)
+    environment: dict[str, str] = {}
+    for entry in entries:
+        name, separator, value = entry.partition("=")
+        if not separator or not ENVIRONMENT_NAME.fullmatch(name):
+            fail("dispatch environment contains an invalid assignment")
+        environment[name] = value
+    for name in (
+        "LD_PRELOAD",
+        "LD_LIBRARY_PATH",
+        "GLIBC_LD_LIBRARY_PATH",
+        "TGCOMPAT_LD_SO",
+        "TGCOMPAT_LIBRARY_PATH",
+        "TGCOMPAT_EXEC_LD_PRELOAD",
+        "TGCOMPAT_PROC_SELF_EXE",
+    ):
+        environment.pop(name, None)
+    return environment
+
+
+def validated_tombraider_command(
+    base: Path, payload_arguments: list[str]
+) -> tuple[Path, Path]:
+    if "--" not in payload_arguments:
+        fail("Tomb Raider payload has no command boundary")
+    boundary = payload_arguments.index("--")
+    command = payload_arguments[boundary + 1 :]
+    proton = (
+        base
+        / "client/steamapps/common/Proton 11.0 (ARM64)/proton"
+    )
+    game = (
+        base
+        / "removable-library/steamapps/common/Tomb Raider/TombRaider.exe"
+    )
+    expected = [str(proton), "waitforexitandrun", str(game), "-nolauncher"]
+    if command != expected:
+        fail("direct Proton smoke received an unexpected game command")
+    return proton, game
+
+
 def run_final_smoke(
     base: Path,
     payload: dict[str, object],
@@ -438,13 +483,15 @@ def run_final_smoke(
 
 
 def pv_smoke_invocation(
-    base: Path, payload: dict[str, object]
+    base: Path, payload: dict[str, object], command_mode: str = "runtime-true"
 ) -> tuple[Path, list[str], dict[str, str]]:
-    _, loader, runtime_libraries = runtime_true_from_plan(base, payload)
+    runtime_root, loader, runtime_libraries = selected_runtime(base)
     bwrap_arguments = payload["bwrap_args"]
     payload_arguments = payload["payload_argv"]
     assert isinstance(bwrap_arguments, list)
     assert isinstance(payload_arguments, list)
+    if "--" not in payload_arguments:
+        fail("pv-adverb payload has no command boundary")
     binds, symlinks = plan_mappings(bwrap_arguments)
     boundary = payload_arguments.index("--")
     pv_path = Path(translated_path(payload_arguments[0], binds, symlinks))
@@ -489,12 +536,31 @@ def pv_smoke_invocation(
         else:
             rewritten.append(argument)
         index += 1
-    command = [
-        translated_path(argument, binds, symlinks)
-        if argument.startswith("/")
-        else argument
-        for argument in payload_arguments[boundary + 1 :]
-    ]
+    if command_mode == "runtime-true":
+        program, _, _ = runtime_true_from_plan(base, payload)
+        command = [str(program)]
+        preserve_assignments = True
+    elif command_mode == "proton-entry":
+        proton, _ = validated_tombraider_command(base, payload_arguments)
+        runtime_python = runtime_root / "usr/bin/python3"
+        if not runtime_python.is_file() or not os.access(runtime_python, os.X_OK):
+            fail(f"Runtime Python is unavailable: {runtime_python}")
+        if not proton.is_file() or not os.access(proton, os.X_OK):
+            fail(f"validated Proton entry point is unavailable: {proton}")
+        command = [
+            str(runtime_python),
+            str(proton),
+            "steamclienttermux-probe",
+        ]
+        preserve_assignments = False
+    else:
+        fail(f"unsupported pv-adverb command mode: {command_mode}")
+    if not preserve_assignments:
+        rewritten = [
+            argument
+            for argument in rewritten
+            if not argument.startswith("--assign-fd=")
+        ]
     rewritten.extend(["--set-ld-library-path", libraries, "--", *command])
     compat_repo = Path.home() / "workspace/termux-glibc-compat"
     preloads = [
@@ -505,7 +571,10 @@ def pv_smoke_invocation(
     if any(not path.is_file() for path in preloads):
         fail("pv-adverb compatibility preload is unavailable")
     preload = ":".join(str(path) for path in preloads)
-    environment = clean_loader_environment()
+    environment = request_environment(payload)
+    prefix = os.environ.get("PREFIX", "")
+    if not prefix.startswith("/"):
+        fail("Termux PREFIX is unavailable to the direct dispatcher")
     environment.update(
         {
             "LD_PRELOAD": preload,
@@ -514,8 +583,22 @@ def pv_smoke_invocation(
             "TGCOMPAT_LD_SO": str(loader),
             "TGCOMPAT_LIBRARY_PATH": libraries,
             "TGCOMPAT_EXEC_LD_PRELOAD": preload,
-            "STEAM_ARM64_TMP_ROOT": os.environ.get("PREFIX", "") + "/tmp",
+            "TGCOMPAT_EXEC_SHELL": str(runtime_root / "usr/bin/sh"),
+            "STEAM_ARM64_TMP_ROOT": prefix + "/tmp",
             "STEAM_ARM64_SHM_ROOT": str(base / "run/native-steam/shm"),
+            "STEAM_ARM64_LINUX_ROOT": str(
+                Path(prefix) / "var/lib/proot-distro/containers/debian/rootfs"
+            ),
+            "PATH": ":".join(
+                (
+                    str(base / "compat-bin"),
+                    str(runtime_root / "usr/bin"),
+                    str(runtime_root / "usr/sbin"),
+                    prefix + "/bin",
+                )
+            ),
+            "VK_DRIVER_FILES": str(base / "mesa-kgsl/icd.d/freedreno-private.json"),
+            "VK_ICD_FILENAMES": str(base / "mesa-kgsl/icd.d/freedreno-private.json"),
         }
     )
     loader_arguments = [
@@ -536,6 +619,19 @@ def run_pv_smoke(
     descriptors: list[int],
 ) -> tuple[int, int]:
     loader, arguments, environment = pv_smoke_invocation(base, payload)
+    return run_loader_child(
+        loader, arguments, environment, descriptors, payload["fd_numbers"]
+    )
+
+
+def run_proton_entry_smoke(
+    base: Path,
+    payload: dict[str, object],
+    descriptors: list[int],
+) -> tuple[int, int]:
+    loader, arguments, environment = pv_smoke_invocation(
+        base, payload, "proton-entry"
+    )
     return run_loader_child(
         loader, arguments, environment, descriptors, payload["fd_numbers"]
     )
@@ -574,6 +670,10 @@ def serve(base: Path, mode: str) -> int:
                     )
                 elif mode == "pv-smoke":
                     status, observed_tracer = run_pv_smoke(
+                        base, payload, descriptors
+                    )
+                elif mode == "proton-entry-smoke":
+                    status, observed_tracer = run_proton_entry_smoke(
                         base, payload, descriptors
                     )
                 else:
@@ -652,7 +752,9 @@ def main() -> int:
             parser.add_argument("serve", nargs="?")
             parser.add_argument("--base", default=base_value)
             parser.add_argument(
-                "--mode", choices=("final-smoke", "pv-smoke"), default="final-smoke"
+                "--mode",
+                choices=("final-smoke", "pv-smoke", "proton-entry-smoke"),
+                default="final-smoke",
             )
             options = parser.parse_args(arguments)
             return serve(validated_base(options.base), options.mode)
