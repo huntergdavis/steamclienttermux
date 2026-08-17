@@ -122,6 +122,8 @@ install_one "$repo_root/scripts/run-tombraider-native-benchmark.sh" \
     "$HOME/run-tombraider-native-benchmark" 700
 install_one "$repo_root/scripts/test-tomb-raider-proton-40c-ceiling.sh" \
     "$HOME/test-tomb-raider-proton-40c-ceiling.sh" 700
+install_one "$repo_root/scripts/test-tomb-raider-fast-40c-ceiling.sh" \
+    "$HOME/test-tomb-raider-fast-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/start-gtaiv-native.sh" \
     "$HOME/start-gtaiv-native.sh" 700
 install_one "$repo_root/scripts/stop-steam.sh" "$HOME/stop-steam.sh" 700

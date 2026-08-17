@@ -10,6 +10,9 @@ SCRIPT = Path(__file__).with_name("run-tombraider-native-benchmark.sh")
 PROTON_WRAPPER = Path(__file__).with_name(
     "test-tomb-raider-proton-40c-ceiling.sh"
 )
+FAST_WRAPPER = Path(__file__).with_name(
+    "test-tomb-raider-fast-40c-ceiling.sh"
+)
 
 
 def main():
@@ -79,6 +82,22 @@ def main():
             "arg=40",
             "arg=--runs",
             "arg=1",
+        ]
+
+        fast_capture = root / "fast-capture"
+        wrapper_environment["BENCHMARK_CAPTURE"] = str(fast_capture)
+        subprocess.run(
+            ["bash", str(FAST_WRAPPER), "--runs", "2"],
+            env=wrapper_environment,
+            check=True,
+        )
+        assert fast_capture.read_text().splitlines() == [
+            "arg=--profile",
+            "arg=fast",
+            "arg=--start-temperature-ceiling-c",
+            "arg=40",
+            "arg=--runs",
+            "arg=2",
         ]
 
     print("native Tomb Raider benchmark broker and profile wrapper tests: PASS")
