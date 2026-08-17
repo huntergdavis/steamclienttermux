@@ -301,7 +301,15 @@ def converge_game_affinity(pid, process_dir, isolate_raknet, runner=subprocess.r
     except RuntimeError:
         apply_affinity(pid, process_dir, ready_for_isolation, runner)
         threads = read_threads(process_dir)
-        verify_threads(threads, ready_for_isolation)
+        try:
+            verify_threads(threads, ready_for_isolation)
+        except RuntimeError:
+            # FEX and the game create threads and can update their masks while
+            # taskset -a is walking /proc/PID/task. A residual valid-process
+            # mismatch means the state is not stable yet; the watch loop will
+            # reapply it on its next poll. Execution or identity failures still
+            # propagate from apply_affinity and the process selectors.
+            return False
     return not isolate_raknet or ready_for_isolation
 
 

@@ -119,6 +119,31 @@ def main():
             ["taskset", "-pc", "1", "28142"],
         ]
 
+        # A game/FEX mask rewrite racing taskset is an unstable sample, not a
+        # fatal guard error. A later poll can converge it normally.
+        main_status = process / "task/27038/status"
+        main_status.write_text(
+            "Name:\tTombRaider.exe\nState:\tS (sleeping)\n"
+            "Cpus_allowed_list:\t1-6\n"
+        )
+        retry_calls = []
+
+        def retry_runner(arguments, **kwargs):
+            retry_calls.append((arguments, kwargs))
+            return SimpleNamespace(stdout="", stderr="")
+
+        assert not module.converge_game_affinity(
+            27038, process, True, runner=retry_runner
+        )
+        assert retry_calls
+        main_status.write_text(
+            "Name:\tTombRaider.exe\nState:\tS (sleeping)\n"
+            "Cpus_allowed_list:\t1-7\n"
+        )
+        assert module.converge_game_affinity(
+            27038, process, True, runner=retry_runner
+        )
+
         auxiliary = add_process(
             proc_root,
             30000,
