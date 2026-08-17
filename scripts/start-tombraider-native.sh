@@ -20,7 +20,7 @@ fi
 
 retry_count=${TOMB_RAIDER_LAUNCH_RETRIES:-1}
 retry_wait=${TOMB_RAIDER_RETRY_WAIT_SECONDS:-180}
-window_stable_seconds=${TOMB_RAIDER_WINDOW_STABLE_SECONDS:-10}
+window_stable_seconds=${TOMB_RAIDER_WINDOW_STABLE_SECONDS:-30}
 base=${STEAM_ARM64_BASE:-$HOME/steam-arm64}
 proc_root=${TOMB_RAIDER_PROC_ROOT:-/proc}
 gameprocess_log=${TOMB_RAIDER_GAMEPROCESS_LOG:-$base/client/logs/gameprocess_log.txt}

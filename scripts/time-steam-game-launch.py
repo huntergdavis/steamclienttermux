@@ -352,7 +352,7 @@ def main() -> int:
     parser.add_argument("--display", default=":0")
     parser.add_argument("--poll", type=float, default=1.0)
     parser.add_argument("--timeout", type=float, default=900.0)
-    parser.add_argument("--window-stable-seconds", type=float, default=10.0)
+    parser.add_argument("--window-stable-seconds", type=float, default=30.0)
     parser.add_argument("--proc-root", type=Path, default=Path("/proc"))
     parser.add_argument(
         "--console-log", type=Path, default=base / "client/logs/console_log.txt"
