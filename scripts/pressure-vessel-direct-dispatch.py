@@ -408,7 +408,12 @@ def serve(base: Path) -> int:
             payload, descriptors = receive_request(connection)
             try:
                 validate_request(payload, descriptors)
+                print(f"REQUEST_RECEIVED=1 FD_COUNT={len(descriptors)}", flush=True)
                 status, observed_tracer = run_smoke_payload(base, payload)
+                print(
+                    f"DISPATCH_STATUS={status} TRACER_PID={observed_tracer}",
+                    flush=True,
+                )
                 send_response(connection, status, observed_tracer)
             finally:
                 for descriptor in descriptors:

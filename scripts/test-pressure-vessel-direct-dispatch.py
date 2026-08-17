@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import importlib.util
+import inspect
 import os
 from pathlib import Path
 import socket
@@ -25,6 +26,10 @@ def main() -> None:
     ]
     binds, symlinks = MODULE.plan_mappings(mapping_plan)
     assert MODULE.translated_path("/bin/true", binds, symlinks) == "/runtime/usr/bin/true"
+    serve_source = inspect.getsource(MODULE.serve)
+    assert "environment" not in serve_source
+    assert "REQUEST_RECEIVED=1" in serve_source
+    assert "DISPATCH_STATUS=" in serve_source
 
     with (
         tempfile.TemporaryFile() as source8,
