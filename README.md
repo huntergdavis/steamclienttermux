@@ -701,6 +701,10 @@ files remain unchanged.
 Before the bridge starts Bionic Bash it replaces Steam's Debian-first PATH with
 `$PREFIX/bin:/system/bin`; its safety checks cannot accidentally execute glibc
 utilities until the patched PRoot boundary is active.
+The PRoot game environment keeps the validated native Steam HOME instead of
+`proot-distro`'s default `/root`. Proton's ARM64 `lsteamclient` consequently
+loads `.steam/sdkarm64/steamclient.so` and reaches the same client IPC state;
+the bridge refuses a missing or redirected SDK link.
 
 Steam replaces `LD_PRELOAD` when it builds a game command, adding its x86
 overlay objects. Native ARM64 `/bin/sh` must start before the game can reach the

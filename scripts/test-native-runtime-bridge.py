@@ -53,6 +53,11 @@ def prepare(root: Path) -> tuple[Path, Path]:
     (base / "client" / "steamapps" / "common" / "SteamLinuxRuntime_4-arm64").mkdir(
         parents=True
     )
+    (base / "client" / "linuxarm64").mkdir(parents=True)
+    (base / "native-home" / ".steam").mkdir(parents=True)
+    (base / "native-home" / ".steam" / "sdkarm64").symlink_to(
+        base / "client" / "linuxarm64"
+    )
     (base / "config" / "proc-net").mkdir(parents=True)
     (base / "config" / "proc-net" / "route").write_text("route\n")
     (base / "config" / "proc-net" / "ipv6_route").write_text("route6\n")
@@ -149,6 +154,7 @@ def main() -> None:
 
         runtime = run_bridge(prefix, base, "runtime")
         assert f"PRESSURE_VESSEL_BWRAP={route}" in runtime
+        assert f"HOME={base / 'native-home'}" in runtime
         assert runtime_entry in runtime
         assert runtime[-1] == "--fixture-argument"
 

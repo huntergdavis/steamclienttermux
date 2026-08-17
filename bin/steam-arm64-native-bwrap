@@ -5,6 +5,7 @@ umask 077
 
 base=${STEAM_ARM64_BASE:-$HOME/steam-arm64}
 client_root=$base/client
+native_home=$base/native-home
 runtime_shadow=$base/runtime/SteamLinuxRuntime_4-arm64
 runtime_depot=$client_root/steamapps/common/SteamLinuxRuntime_4-arm64
 compat_bin=$base/compat-bin
@@ -41,6 +42,16 @@ stamped_proot=$(sed -n 's/^proot_sha256=//p' "$proot_patch_stamp")
     fail "patched PRoot does not match its build stamp: $proot_binary"
 [[ -x $proot_distro && ! -L $proot_distro ]] ||
     fail "proot-distro is unavailable: $proot_distro"
+[[ -d $native_home && ! -L $native_home &&
+        -d $native_home/.steam && ! -L $native_home/.steam ]] ||
+    fail "native Steam HOME is unavailable or redirected: $native_home"
+sdk_link=$native_home/.steam/sdkarm64
+[[ -L $sdk_link ]] ||
+    fail 'native Steam ARM64 SDK link is unavailable or redirected'
+sdk_target=$(readlink -- "$sdk_link") ||
+    fail 'native Steam ARM64 SDK link cannot be read'
+[[ $sdk_target == "$client_root/linuxarm64" ]] ||
+    fail 'native Steam ARM64 SDK link is unavailable or redirected'
 [[ -x $route && ! -L $route ]] || fail "bwrap route is unavailable: $route"
 [[ -x $real_bwrap && ! -L $real_bwrap ]] ||
     fail "real ARM64 srt-bwrap is unavailable: $real_bwrap"
@@ -120,6 +131,7 @@ while IFS= read -r -d '' entry; do
 done < /proc/self/environ
 
 guest_path=$compat_bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PREFIX/bin
+pd_args+=(--env "HOME=$native_home")
 pd_args+=(--env "PATH=$guest_path")
 pd_args+=(--env "LD_LIBRARY_PATH=$mesa_lib")
 pd_args+=(--env "STEAM_ARM64_REAL_BWRAP=$real_bwrap")

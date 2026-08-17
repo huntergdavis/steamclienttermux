@@ -5054,3 +5054,32 @@ side; the script still constructs its separate guest PATH after entry. The
 required `deja "native Steam bridge Bionic bash PATH Debian sed grep tr cannot
 execute before proot-distro"` search returned no indexed solution; this reuses
 the bridge's existing explicit ABI sanitization point.
+
+With that correction, the 05:21:25 UTC launch stayed tracked and crossed the
+complete PRoot and Pressure Vessel setup. Proton started its Python driver,
+Wine server, `steam.exe`, and device processes. The first visible Wine window
+was a C++ Runtime Library assertion in
+`C:\\windows\\system32\\steam.exe`; the X capture was preserved outside the
+repository because Wine's surface blacked out the assertion body. PRoot owned
+ptrace, so a second debugger could not attach without disrupting the live
+session.
+
+The process state still isolated the failure. The ARM64 and Windows halves of
+`lsteamclient` were mapped, but no native `steamclient.so` was mapped. Its
+binary names `%s/.steam/sdkarm64/steamclient.so` and
+`Steam_ReleaseThreadLocalMemory`; the game had `HOME=/root`, where `.steam`
+did not exist. Meanwhile the protected native client HOME already contained
+the exact `sdkarm64 -> client/linuxarm64` link, and that target exports
+`Steam_ReleaseThreadLocalMemory`. Valve's Proton issue 9475 independently
+shows this Wine dialog for the same missing-release-symbol assertion in recent
+`lsteamclient`, although the filesystem cause here was determined from the
+tablet's maps and environment.
+
+The bridge now validates the owned native HOME and exact ARM64 SDK link, then
+passes that HOME through `proot-distro` instead of accepting `/root`. The host
+home is already part of the established PRoot binds, so this exposes the
+client's normal SDK and IPC state without copying or modifying authentication
+files. The required `deja "Proton lsteamclient HOME /root .steam/sdkarm64
+steamclient.so native Steam PRoot"` lookup matched only this active session;
+the implementation reuses the native launcher's existing protected HOME and
+SDK-link contract.
