@@ -609,3 +609,63 @@ GameNative benchmark FPS"` and focused benchmark/affinity searches returned no
 indexed prior-session match. The comparisons above come from primary recordings,
 Qualcomm's product brief, GameNative's live compatibility service, and this
 run's measured registry/process state.
+
+## Preliminary native-glibc control (2026-08-17)
+
+The native-glibc work has already produced a decisive startup result, but not
+yet a controlled FPS result. Moving the authenticated Steam client and CEF host
+out of PRoot reduced the comparable Runtime-request-to-visible-window interval
+from 407.236 seconds to 58.256 seconds: 85.7% shorter, or 6.99 times as fast.
+
+Two panel-native 2800x1752 Low-profile warm-up passes produced these
+game-authored results:
+
+| Warm-up | Minimum | Maximum | Average |
+| --- | ---: | ---: | ---: |
+| `20260817T152127Z-safe` | 15.6 | 32.9 | 23.6 |
+| `20260817T154636Z-safe` | 5.3 | 32.0 | 24.2 |
+| preliminary mean | 10.45 | 32.45 | **23.9** |
+
+The 23.9 FPS point estimate is 7.7% above the earlier three-pass all-PRoot-host
+mean of 22.2 FPS. It is not evidence of a 7.7% glibc FPS improvement: these are
+warm-ups rather than a completed one-warm-up/three-recorded series, their
+minimums are noisy, and the first pass ended in severe thermal throttling. It
+also remains below the earlier single hardened 25.7 FPS pass.
+
+The first warm-up began with full CPU/GPU policy and a maximum sampled thermal
+sensor of 50.3 C. It ended at 73.9 C; the little, big, and prime CPU policy
+maximums had fallen to 1.3632, 1.5552, and 1.8432 GHz, while the GPU fell from
+818 to 492 MHz and thermal power level rose from zero to six. Available RAM
+increased slightly and free zram remained about 5.75 GiB, ruling out OOM as the
+cause of this slowdown. The runner now waits for full CPU/GPU policy, thermal
+level zero, and stable near-start temperatures between recorded passes.
+
+The second warm-up wrote the expected new game result, but the series rejected
+it because exFAT/FUSE changed the identity of an older result file. The selector
+now accepts exactly one previously absent timestamped result filename rather
+than treating inode churn as a new result. This preserves fail-closed result
+selection without rejecting a valid pass.
+
+XRandR reported the Termux:X11 surface at 2800x1752 and 119.92 Hz while the
+game-authored result reported a 60 Hz fullscreen target. That presentation-rate
+mismatch is now the first controlled thermal experiment: finish the current
+119.92 Hz native-glibc control, switch Samsung Motion smoothness to Standard
+60 Hz and restart X11, then repeat the same profile. Only afterward should the
+bundled Proton FEX profile and the correctness-risking `fast` TSO-off profile
+be compared.
+
+Native glibc removes PRoot from Steam and CEF, but the game still crosses one
+explicit outer PRoot boundary before Pressure Vessel, Proton, FEX/Wine, and
+`TombRaider.exe`. The earlier live menu profile attributed 60-65% of one CPU to
+that tracer, 215-233% to the game, 31-33% to wineserver, and roughly another
+core to Steam/CEF. Those figures predate the completed native-host route and
+must be remeasured during the new control. They identify the remaining
+structural glibc task: replace the game-boundary PRoot with a bindless,
+preconstructed Runtime/Proton layout. More semaphore or robust-list emulation
+cannot provide Android-denied user and mount namespaces.
+
+The required `deja "Tomb Raider native glibc performance bottlenecks thermal
+refresh rate remaining proot benchmark"` query returned no indexed prior
+session. This section reuses the repository's existing exact game-result,
+thermal-rejection, affinity, and Runtime-to-window measurement contracts and
+the two preserved 2026-08-17 warm-up artifacts.

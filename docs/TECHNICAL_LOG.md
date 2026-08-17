@@ -5486,3 +5486,50 @@ integration, FEX-renamed Rockstar selectors, continuous mask convergence, and
 new guard regression coverage. The focused service-first query returned no
 indexed solution; the direct option and CPU split are explicitly reused from
 the prior Codex session above.
+
+## 2026-08-17: separate native-glibc latency gains from FPS evidence
+
+The native Steam host's startup improvement is now measured independently from
+game throughput. The hardened cold route reached a stable visible Tomb Raider
+window 58.256 seconds after the Runtime request, versus 407.236 seconds for the
+all-PRoot route. This is 85.7% shorter, or 6.99x as fast. Native Steam priming
+in the two subsequent benchmark attempts took 18.716 and 17.821 seconds.
+
+The benchmark series produced two valid game-authored warm-up results at
+2800x1752, exclusive fullscreen, V-Sync off, and Low/off settings:
+15.6/32.9/23.6 FPS and 5.3/32.0/24.2 FPS. Their 23.9 FPS average is a
+preliminary point estimate only. It is 7.7% above the older 22.2 FPS three-pass
+all-PRoot-host mean, but the sample types and thermal states are not matched and
+the series has no recorded passes yet. No FPS improvement is claimed.
+
+The first warm-up raised the maximum sampled thermal sensor from 50.3 to
+73.9 C. CPU policy caps fell from 1.7856/2.496/2.9952 GHz to
+1.3632/1.5552/1.8432 GHz, and the GPU policy fell from 818 to 492 MHz at thermal
+power level six. Memory did not show an OOM: available RAM moved from
+3,179,772 to 3,338,092 KiB and free zram from 6,725,588 to 5,754,076 KiB. The
+runner now cools between passes and rejects anything without full CPU/GPU
+policy, GPU thermal level zero, and stable temperature near the warm-up start.
+
+The next attempt produced a correct new timestamped result file, but exFAT/FUSE
+inode churn made an old file appear changed. Commit `84b9d11` now requires
+exactly one result filename that did not exist before the pass. This accepts the
+new artifact without weakening fail-closed selection. Commits `c9614b9`,
+`701972c`, `28794ce`, `7b1c426`, and `061d325` separately made the foreground
+RunCommand route absolute, recorded preflight failures, settled duplicate
+native bootstrap processes, and added thermal cooldown.
+
+XRandR simultaneously reported the 2800x1752 Termux:X11 surface at 119.92 Hz,
+although the game result requested 60 Hz. The test order is therefore fixed:
+complete the current 119.92 Hz `safe` series, repeat after selecting Samsung
+Standard 60 Hz and restarting X11, then compare bundled Proton and `fast` FEX
+profiles. A fresh live profile will determine how much of the old measured
+60-65% PRoot-core cost remains. The game route still contains one explicit
+outer PRoot between native Steam and Pressure Vessel; removing it requires a
+preconstructed/bindless Runtime layout because Android denies the user and
+mount namespaces needed by Bubblewrap. More libc ABI shims alone cannot remove
+that boundary.
+
+The required focused `deja` query returned no indexed prior-session result.
+This conclusion reuses the established game-authored-result, thermally matched
+series, exact process identity, and schema-v2 Runtime timing methods rather
+than inferring success from UI state.

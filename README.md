@@ -250,6 +250,17 @@ the 407.236-second all-PRoot observation. The
 [supervised cold timing record](docs/launch-timings/tomb-raider-native-supervised-cold-20260817.json)
 preserves the exact stage observations.
 
+That startup result must not be confused with a finished FPS result. Two
+panel-native Low warm-ups under native Steam reported 23.6 and 24.2 FPS, a
+preliminary 23.9 FPS mean versus the earlier all-PRoot-host three-pass mean of
+22.2 FPS. The apparent 7.7% difference is not yet controlled: the first warm-up
+ended at 73.9 C with CPU and GPU policy throttled, and no three-pass recorded
+series has completed. XRandR also exposed a 119.92 Hz Termux:X11 surface around
+the game's 60 Hz target. The runner now cools fully between passes and selects
+only newly named game-authored artifacts; the next A/B is the unchanged
+119.92 Hz control versus Samsung Standard 60 Hz. See the
+[benchmark log](docs/TOMB_RAIDER_BENCHMARK.md#preliminary-native-glibc-control-2026-08-17).
+
 ![Kingsway running from the microSD through Proton ARM64 and FEX](docs/evidence/kingsway-running.png)
 
 ![Tomb Raider Windows launcher running through Proton ARM64 and FEX](docs/evidence/tombraider-main-menu-2026-08-14.png)
