@@ -4796,6 +4796,23 @@ work is the repository's existing executable-boundary shim and the current
 focused trace; an earlier 44 MiB full trace was removed after proving it had
 captured only pre-Steam Termux:X11 startup.
 
+Removing the exported candidate path cleared the shell `SIGBUS` completely.
+`steamsysinfo` exited zero and reported Turnip Adreno 730 with a 5,734,662,144
+byte VRAM budget. The real `steamwebhelper` then started, initialized Chrome
+126, and launched its zygote children. CEF's own log exposed the next fatal:
+creating `/dev/shm/.com.valvesoftware.Steam.*` returned `ENOENT`, followed by
+the explicit Chromium diagnostic that `/dev/shm` was unavailable.
+
+The native pathname shim now maps exact `/dev/shm` operands into a distinct
+private mode-0700 directory below the already validated native runtime. It
+does not expose or modify Android `/dev`, and `/tmp`/X11 mapping remains
+unchanged. The regression creates a virtual `/dev/shm` marker, proves nothing
+appeared in the host namespace, and verifies the mapped content independently.
+The full project suite passes before the next CEF retry. The required
+`deja "Steam webhelper Chromium /dev/shm Android Termux native tmp shim"`
+search returned no indexed implementation; this extends the existing narrow
+path-rewrite boundary using the fatal path CEF itself logged.
+
 The required `deja "Steam get_robust_list synthetic pthread robust head syscall
 shim Termux glibc"` search returned no indexed implementation. The fix reuses
 only the launcher's established gated-preload boundary and the Linux robust

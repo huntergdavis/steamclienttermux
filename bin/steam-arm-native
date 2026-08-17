@@ -12,6 +12,7 @@ compat_bin=$base/compat-bin
 native_home=$base/native-home
 runtime_dir=$base/run/native-steam
 crash_dir=$runtime_dir/dumps
+shm_dir=$runtime_dir/shm
 compat_repo=${TGCOMPAT_REPO:-$HOME/workspace/termux-glibc-compat}
 candidate_selector=${TGCOMPAT_GLIBC_ROOT:-$HOME/.local/share/tgcompat/glibc/current}
 exec_shim=${TGCOMPAT_EXEC_SHIM:-$compat_repo/build/libtgcompat-exec.so}
@@ -205,10 +206,11 @@ python3 "$session_guard" preflight \
 python3 "$runtime_root_prep" --base "$base"
 "$runtime_direct_prep" "$base"
 [[ ! -L $native_home && ! -L $native_home/.steam && ! -L $runtime_dir &&
-        ! -L $crash_dir ]] ||
+        ! -L $crash_dir && ! -L $shm_dir ]] ||
     fail 'native HOME/runtime paths cannot be symbolic links'
 install -d -m 0700 -- \
-    "$native_home" "$native_home/.steam" "$runtime_dir" "$crash_dir"
+    "$native_home" "$native_home/.steam" "$runtime_dir" "$crash_dir" \
+    "$shm_dir"
 
 ensure_link() {
     local target=$1 link=$2
@@ -400,6 +402,7 @@ set +e
     FONTCONFIG_PATH="$fontconfig_path" \
     FONTCONFIG_SYSROOT="$linux_root" \
     STEAM_ARM64_TMP_ROOT="$PREFIX/tmp" \
+    STEAM_ARM64_SHM_ROOT="$shm_dir" \
     STEAM_ARM64_LINUX_ROOT="$linux_root" \
     TGCOMPAT_PROC_SELF_EXE="$client/steam" \
     TGCOMPAT_ROBUST_LIST=1 \

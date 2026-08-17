@@ -625,8 +625,10 @@ directory, and the updater's initial Breakpad probe ignores both `TMPDIR` and
 environment-gated compatibility shim which rewrites only exact `/tmp` and
 `/tmp/...` path arguments to `$PREFIX/tmp`. Its AF_UNIX handling preserves the
 Termux:X11 socket mapping as well. Other absolute and relative paths are left
-unchanged. The shim is compiled during project installation and is required by
-the native preflight.
+unchanged. Chromium's absent `/dev/shm` namespace is mapped separately into a
+private mode-0700 directory below the native runtime; it is never mixed into
+the shared Termux temporary root. The shim is compiled during project
+installation and is required by the native preflight.
 
 Termux glibc also returns `ENOSYS` for `get_robust_list`, which Valve's IPC
 thread treats as a fatal initialization error. The native launcher enables the

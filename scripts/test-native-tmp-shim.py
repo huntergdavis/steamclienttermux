@@ -39,6 +39,7 @@ int main(void) {
     char scratch[320];
     char renamed[320];
     char socket_path[320];
+    char shm_marker[320];
     char link_target[320];
     char certificate[32];
     struct sockaddr_un address;
@@ -55,6 +56,10 @@ int main(void) {
     if (snprintf(directory, sizeof(directory),
             "/tmp/steam-native-tmp-shim-%ld", (long)getpid()) < 0) {
         fail("snprintf directory");
+    }
+    if (snprintf(shm_marker, sizeof(shm_marker),
+            "/dev/shm/steam-native-shm-shim-%ld", (long)getpid()) < 0) {
+        fail("snprintf shm marker");
     }
     if (mkdir(directory, 0700) != 0) {
         fail("mkdir");
@@ -77,6 +82,11 @@ int main(void) {
     }
     if (rename(scratch, renamed) != 0 || unlink(renamed) != 0) {
         fail("rename/unlink");
+    }
+    descriptor = open(shm_marker, O_WRONLY | O_CREAT | O_EXCL, 0600);
+    if (descriptor < 0 || write(descriptor, "shm\n", 4) != 4 ||
+            close(descriptor) != 0) {
+        fail("open shm marker");
     }
     if (access(marker, R_OK) != 0 || stat(marker, &metadata) != 0 ||
             metadata.st_size != 7) {
@@ -139,6 +149,7 @@ int main(void) {
     }
 
     puts(directory);
+    puts(shm_marker);
     return 0;
 }
 """
@@ -153,6 +164,8 @@ def main() -> None:
         temporary_path = Path(temporary)
         mapped_root = temporary_path / "mapped"
         mapped_root.mkdir(mode=0o700)
+        mapped_shm_root = temporary_path / "mapped-shm"
+        mapped_shm_root.mkdir(mode=0o700)
         linux_root = temporary_path / "linux-root"
         certificate_dir = linux_root / "etc" / "ssl" / "certs"
         certificate_dir.mkdir(parents=True, mode=0o700)
@@ -202,12 +215,17 @@ def main() -> None:
             {
                 "LD_PRELOAD": str(shim),
                 "STEAM_ARM64_TMP_ROOT": str(mapped_root),
+                "STEAM_ARM64_SHM_ROOT": str(mapped_shm_root),
                 "STEAM_ARM64_LINUX_ROOT": str(linux_root),
                 "TGCOMPAT_PROC_SELF_EXE": "/virtual/original/steam",
             }
         )
         completed = run([str(driver)], env=environment, capture_output=True)
-        virtual_directory = Path(completed.stdout.strip())
+        output_lines = completed.stdout.splitlines()
+        if len(output_lines) != 2:
+            raise AssertionError(f"unexpected shim output: {completed.stdout!r}")
+        virtual_directory = Path(output_lines[0])
+        virtual_shm_marker = Path(output_lines[1])
         if virtual_directory.parent != Path("/tmp"):
             raise AssertionError(f"unexpected virtual directory: {virtual_directory}")
         if virtual_directory.exists():
@@ -218,6 +236,13 @@ def main() -> None:
             raise AssertionError(f"mapped marker is incorrect: {marker}")
         if (mapped_directory / "socket").exists():
             raise AssertionError("mapped Unix socket was not removed")
+        if virtual_shm_marker.parent != Path("/dev/shm"):
+            raise AssertionError(f"unexpected virtual shm path: {virtual_shm_marker}")
+        if virtual_shm_marker.exists():
+            raise AssertionError(f"shim leaked into real /dev/shm: {virtual_shm_marker}")
+        mapped_shm_marker = mapped_shm_root / virtual_shm_marker.name
+        if mapped_shm_marker.read_text(encoding="utf-8") != "shm\n":
+            raise AssertionError(f"mapped shm marker is incorrect: {mapped_shm_marker}")
 
     print("native /tmp shim tests: PASS")
 

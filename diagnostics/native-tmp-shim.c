@@ -50,6 +50,12 @@ static const char *rewrite_path(const char *path, char output[PATH_MAX]) {
     } else if (strncmp(path, "/tmp/", 5) == 0) {
         suffix = path + 4;
         root = getenv("STEAM_ARM64_TMP_ROOT");
+    } else if (strcmp(path, "/dev/shm") == 0) {
+        suffix = "";
+        root = getenv("STEAM_ARM64_SHM_ROOT");
+    } else if (strncmp(path, "/dev/shm/", 9) == 0) {
+        suffix = path + 8;
+        root = getenv("STEAM_ARM64_SHM_ROOT");
     } else if (strcmp(path, "/etc/ssl") == 0 ||
             strncmp(path, "/etc/ssl/", 9) == 0) {
         suffix = path;

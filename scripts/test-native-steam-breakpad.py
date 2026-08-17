@@ -12,6 +12,9 @@ def main():
     assert '"$runtime_dir" "$crash_dir"' in source
     assert 'BREAKPAD_DUMP_LOCATION="$crash_dir"' in source
     assert "! -L $crash_dir" in source
+    assert "shm_dir=$runtime_dir/shm" in source
+    assert "! -L $shm_dir" in source
+    assert 'STEAM_ARM64_SHM_ROOT="$shm_dir"' in source
     assert "tmp_shim=${STEAM_ARM64_TMP_SHIM:-" in source
     assert "preload=$tmp_shim:$robust_shim:$exec_shim:$termux_exec_hook" in source
     assert 'STEAM_ARM64_TMP_ROOT="$PREFIX/tmp"' in source
