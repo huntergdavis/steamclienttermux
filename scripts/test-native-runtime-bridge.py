@@ -74,6 +74,8 @@ def prepare(root: Path) -> tuple[Path, Path]:
 
 
 def run_bridge(prefix: Path, base: Path, mode: str) -> list[str]:
+    removable_source = Path("/storage/fixture-library")
+    removable_target = base / "removable-library"
     environment = os.environ.copy()
     environment.update(
         {
@@ -81,10 +83,37 @@ def run_bridge(prefix: Path, base: Path, mode: str) -> list[str]:
             "STEAM_ARM64_BASE": str(base),
             "STEAM_ARM64_NATIVE_BRIDGE_MODE": mode,
             "GAME_OPTION_FIXTURE": "preserved value",
+            "STEAM_ARM64_REMOVABLE_SOURCE": str(removable_source),
+            "STEAM_ARM64_REMOVABLE_TARGET": str(removable_target),
+            "STEAM_ARM64_REMOVABLE_STEAMAPPS": str(
+                base / "removable-library-steamapps"
+            ),
+            "STEAM_ARM64_REMOVABLE_COMMON": str(
+                removable_source / "steamapps" / "common"
+            ),
+            "STEAM_ARM64_REMOVABLE_COMPATDATA": str(
+                base / "removable-library-compatdata"
+            ),
+            "STEAM_ARM64_REMOVABLE_DOWNLOADS": str(
+                base / "removable-library-downloads"
+            ),
         }
     )
     result = subprocess.run(
-        ["bash", str(SCRIPT), "--fixture-argument"],
+        [
+            "bash",
+            str(SCRIPT),
+            "--fixture-argument",
+            str(removable_source),
+            str(
+                removable_source
+                / "steamapps"
+                / "common"
+                / "Game"
+                / "Game.exe"
+            ),
+            f"{removable_source}-lookalike/Game.exe",
+        ],
         env=environment,
         text=True,
         capture_output=True,
@@ -156,7 +185,12 @@ def main() -> None:
             f"HOME={base / 'native-home'}",
             route,
         ]
-        assert bwrap[-1] == "--fixture-argument"
+        assert bwrap[-4:] == [
+            "--fixture-argument",
+            str(base / "removable-library"),
+            str(base / "removable-library/steamapps/common/Game/Game.exe"),
+            "/storage/fixture-library-lookalike/Game.exe",
+        ]
 
         runtime = run_bridge(prefix, base, "runtime")
         assert f"PRESSURE_VESSEL_BWRAP={route}" in runtime
@@ -168,7 +202,12 @@ def main() -> None:
             f"HOME={base / 'native-home'}",
             runtime_entry,
         ]
-        assert runtime[-1] == "--fixture-argument"
+        assert runtime[-4:] == [
+            "--fixture-argument",
+            str(base / "removable-library"),
+            str(base / "removable-library/steamapps/common/Game/Game.exe"),
+            "/storage/fixture-library-lookalike/Game.exe",
+        ]
 
         selected_proot = base / "src" / "native-profile" / "src"
         preflight = run_preflight(prefix, base, selected_proot)

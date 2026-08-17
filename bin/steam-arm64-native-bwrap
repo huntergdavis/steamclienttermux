@@ -102,7 +102,8 @@ if [[ -n ${STEAM_ARM64_REMOVABLE_SOURCE:-} ]]; then
     for name in STEAM_ARM64_REMOVABLE_SOURCE STEAM_ARM64_REMOVABLE_TARGET \
             STEAM_ARM64_REMOVABLE_STEAMAPPS STEAM_ARM64_REMOVABLE_COMMON \
             STEAM_ARM64_REMOVABLE_COMPATDATA STEAM_ARM64_REMOVABLE_DOWNLOADS; do
-        [[ ${!name:-} == /* ]] || fail "invalid removable mount variable: $name"
+        [[ ${!name:-} == /* && ${!name} != / && ${!name} != */ ]] ||
+            fail "invalid removable mount variable: $name"
     done
     pd_args+=(--bind \
         "$STEAM_ARM64_REMOVABLE_SOURCE:$STEAM_ARM64_REMOVABLE_TARGET")
@@ -114,6 +115,26 @@ if [[ -n ${STEAM_ARM64_REMOVABLE_SOURCE:-} ]]; then
         "$STEAM_ARM64_REMOVABLE_COMPATDATA:$STEAM_ARM64_REMOVABLE_TARGET/steamapps/compatdata")
     pd_args+=(--bind \
         "$STEAM_ARM64_REMOVABLE_DOWNLOADS:$STEAM_ARM64_REMOVABLE_TARGET/steamapps/downloading")
+fi
+
+declare -a bridge_arguments=("$@")
+if [[ -n ${STEAM_ARM64_REMOVABLE_SOURCE:-} ]]; then
+    # Native Steam records the physical SD-card install path.  PRoot exposes
+    # that library at the protected removable target instead, and Proton's
+    # steam.exe crashes in wcslen(NULL) when wine_get_dos_file_name() cannot
+    # resolve the untranslated /storage path.  Rewrite only exact source-path
+    # arguments and descendants; similarly named paths remain untouched.
+    for argument_index in "${!bridge_arguments[@]}"; do
+        case ${bridge_arguments[argument_index]} in
+            "$STEAM_ARM64_REMOVABLE_SOURCE")
+                bridge_arguments[argument_index]=$STEAM_ARM64_REMOVABLE_TARGET
+                ;;
+            "$STEAM_ARM64_REMOVABLE_SOURCE"/*)
+                argument_suffix=${bridge_arguments[argument_index]#"$STEAM_ARM64_REMOVABLE_SOURCE"}
+                bridge_arguments[argument_index]=$STEAM_ARM64_REMOVABLE_TARGET$argument_suffix
+                ;;
+        esac
+    done
 fi
 
 # proot-distro deliberately resets its guest environment. Preserve arbitrary
@@ -163,4 +184,5 @@ export PROOT_L2S_EXDEV_PREFIX=$runtime_depot/var/tmp-
 # resets HOME to /root.  Set HOME again in the first guest-side executable so
 # Proton's lsteamclient can resolve ~/.steam/sdkarm64/steamclient.so.
 exec "$proot_distro" "${pd_args[@]}" -- \
-    "$guest_env" "HOME=$native_home" "$bridge_command" "$@"
+    "$guest_env" "HOME=$native_home" "$bridge_command" \
+    "${bridge_arguments[@]}"
