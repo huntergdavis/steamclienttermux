@@ -56,6 +56,7 @@ def main() -> None:
         backups = list((base / "backups/proton-direct-wine").glob("wine-*.original"))
         assert len(backups) == 1
         assert backups[0].read_bytes() == original
+        assert not list((base / "backups/proton-direct-wine").glob(".backup.*"))
         checked = subprocess.run(
             [*command[:2], "check", *command[2:]],
             text=True,

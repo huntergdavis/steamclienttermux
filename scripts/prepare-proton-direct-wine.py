@@ -95,7 +95,7 @@ def install_backup(source: Path, destination: Path, expected_hash: str) -> None:
         os.chmod(temporary, 0o600)
         if sha256(temporary) != expected_hash:
             raise PrepareError("staged Proton Wine backup hash mismatch")
-        os.link(temporary, destination)
+        os.replace(temporary, destination)
     finally:
         if temporary.exists() and not temporary.is_symlink():
             temporary.unlink()
