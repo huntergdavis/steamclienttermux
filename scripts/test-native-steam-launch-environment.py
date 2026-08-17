@@ -15,7 +15,7 @@ def main() -> None:
     assert 'cd "$client_root"' in source
     assert 'debug_pid_file=${STEAM_ARM64_DEBUG_PID_FILE:-}' in source
     assert 'debug_prefix=(run_stopped_for_debugger "$debug_pid_file")' in source
-    assert '"${debug_prefix[@]}" env -u GLIBC_LD_LIBRARY_PATH' in source
+    assert '"${debug_prefix[@]}" env -u GLIBC_LD_LIBRARY_PATH -u LD_LIBRARY_PATH' in source
     assert 'set +e' in source
     assert 'SSL_CERT_FILE="$ssl_cert_file"' in source
     assert 'SSL_CERT_DIR="$ssl_cert_dir"' in source
@@ -31,6 +31,8 @@ def main() -> None:
     assert "grep -aFq 'TGCOMPAT_ROBUST_LIST'" in source
     assert 'TGCOMPAT_ROBUST_LIST=1' in source
     assert "preload=$tmp_shim:$robust_shim:$exec_shim:$termux_exec_hook" in source
+    assert 'LD_LIBRARY_PATH="$library_path"' not in source
+    assert 'TGCOMPAT_LIBRARY_PATH="$library_path"' in source
     assert "grep -aFq 'TGCOMPAT_PROC_SELF_EXE'" in source
     print("native Steam launch-environment tests: PASS")
 

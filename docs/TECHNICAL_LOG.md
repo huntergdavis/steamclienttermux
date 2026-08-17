@@ -4775,6 +4775,21 @@ resolved shell remains inside the selected root, and removes
 therefore wrap those standard-interpreter ELF children with the same staged
 loader used by Steam.
 
+A follow-up trace corrected the remaining assumption: CEF still executed the
+absolute `$PREFIX/glibc/bin/sh` and reproduced the same `SIGBUS`. This path is
+compiled into Termux glibc's internal `system()` implementation, so changing
+`PATH` cannot affect it and preload interposition cannot replace glibc's hidden
+spawn call.
+
+The staged loader already receives `--library-path` explicitly for the Steam
+parent, and the execution shim supplies the same argument to every wrapped
+Linux child from `TGCOMPAT_LIBRARY_PATH`. Exporting `LD_LIBRARY_PATH` is
+therefore redundant and harmful to the unwrapped active-glibc shell. The
+launcher now explicitly unsets inherited `LD_LIBRARY_PATH`, retains the
+explicit loader path and execution-shim control, and keeps absolute preload
+paths. A direct tablet A/B established that the complete preload chain with no
+candidate `LD_LIBRARY_PATH` starts `$PREFIX/glibc/bin/sh` successfully.
+
 The required `deja "native ARM64 Steam webhelper immediately restarts exits no
 window Termux glibc"` search returned no indexed implementation. The retained
 work is the repository's existing executable-boundary shim and the current

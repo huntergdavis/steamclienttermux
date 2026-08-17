@@ -385,7 +385,7 @@ if [[ -n $debug_pid_file ]]; then
 fi
 
 set +e
-"${debug_prefix[@]}" env -u GLIBC_LD_LIBRARY_PATH \
+"${debug_prefix[@]}" env -u GLIBC_LD_LIBRARY_PATH -u LD_LIBRARY_PATH \
     "${fex_profile_env[@]}" \
     "${removable_environment[@]}" \
     STEAM_ARM64_BASE="$base" \
@@ -410,7 +410,6 @@ set +e
     PRESSURE_VESSEL_BWRAP="$native_bwrap" \
     STEAM_ARM64_PROC_NET="$proc_net_shadow" \
     LD_PRELOAD="$preload" \
-    LD_LIBRARY_PATH="$library_path" \
     TGCOMPAT_SOCKET="$socket_path" \
     TGCOMPAT_LD_SO="$loader" \
     TGCOMPAT_LIBRARY_PATH="$library_path" \
