@@ -5192,3 +5192,34 @@ held the temporary uncommented property only until the exact
 the original commented file. The saved Steam and Rockstar authentication
 trees were never touched. The required recall query for this asynchronous
 RunCommandService property race returned no indexed solution.
+
+## 2026-08-17: make the affinity guard understand native Steam paths
+
+The first native game remained healthy, but its process mask stayed at the
+Android-inherited `0-5,7` and the affinity guard remained resident without an
+attachment message. Its empty live log and exact process environment exposed
+two native-only selector mismatches rather than a scheduler failure.
+
+First, `STEAM_COMPAT_DATA_PATH` was the protected physical
+`removable-library-compatdata/203160` path, while the guard accepted only the
+guest `removable-library/steamapps/compatdata/203160` form. The validator now
+accepts exactly those two paths beneath the configured Steam base; an
+identical suffix beneath a decoy base is rejected. Second, native
+`steamwebhelper` command lines begin with the content-addressed glibc loader.
+The helper matcher now reuses the shared native-process contract: either the
+target is direct argv zero, or the loader is under the configured glibc store
+and contains both the exact `--argv0` pair and target operand. Wrong loader
+roots and wrong targets remain nonmatches. The required
+`deja "native Steam Tomb Raider affinity guard does not attach process
+environment compatdata path mask 0-5,7"` and focused loader-wrapper query
+returned no indexed solution; the reused design is the repository's existing
+native Steam process matcher.
+
+All 28 project test programs passed after each correction. Commits `be4e3bb`
+and `d64b071` were then deployed without restarting X, Steam, Wine, or the
+game. The stale guard PID was validated by its exact command line and stopped
+with TERM; the replacement immediately attached to live Tomb Raider PID
+26220. After its 30-second stability gate it reported 52 game threads on CPUs
+1-7, the one `Raknet-RecvFrom` thread on CPU 1, native loader-wrapped Steam
+helpers on CPU 0, and exited normally. The same 2800x1752 window remained
+visible with about 1.9 GiB RAM available.

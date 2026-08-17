@@ -67,7 +67,9 @@ Mesa Turnip, official Proton 11 ARM64, and its bundled FEX/DXVK stack.
   request reached `TombRaider.exe` in about 39 seconds and its fullscreen
   swapchain in about 74 seconds. Vulkan loader tracing was enabled and the
   Runtime 4 cache had just been exercised, so this is launch-path evidence,
-  not the final controlled latency or FPS result.
+  not the final controlled latency or FPS result. The native-aware affinity
+  guard subsequently converged the live 52-thread game to CPUs 1-7, isolated
+  RakNet on CPU 1, and placed loader-wrapped Steam helpers on CPU 0.
   See the [benchmark report](docs/TOMB_RAIDER_BENCHMARK.md) and the ranked
   [optimization plan](docs/TOMB_RAIDER_OPTIMIZATION_PLAN.md).
 - Burnout remains experimental; its detailed EA, FEX, and DXVK investigation is
