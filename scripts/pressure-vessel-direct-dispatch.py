@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import array
+import fcntl
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -311,25 +312,10 @@ def tracer_pid(process: int) -> int:
     return -1
 
 
-def run_smoke_payload(base: Path, payload: dict[str, object]) -> tuple[int, int]:
-    bwrap_arguments = payload["bwrap_args"]
-    payload_arguments = payload["payload_argv"]
-    assert isinstance(bwrap_arguments, list)
-    assert isinstance(payload_arguments, list)
-    if "--" not in payload_arguments:
-        fail("pv-adverb payload has no command boundary")
-    boundary = payload_arguments.index("--")
-    command = payload_arguments[boundary + 1 :]
-    if command != ["/bin/true"]:
-        fail("direct dispatcher smoke accepts only /bin/true")
-    binds, symlinks = plan_mappings(bwrap_arguments)
-    program = Path(translated_path(command[0], binds, symlinks)).resolve(strict=True)
+def selected_runtime(base: Path) -> tuple[Path, Path, str]:
     runtime_root = (base / "runtime/SteamLinuxRuntime_4-arm64-direct/current").resolve(
         strict=True
     )
-    expected = (runtime_root / "usr/bin/true").resolve(strict=True)
-    if program != expected or not program.is_file() or not os.access(program, os.X_OK):
-        fail(f"translated smoke payload is not Runtime true: {program}")
     glibc_root = (Path.home() / ".local/share/tgcompat/glibc/current").resolve(
         strict=True
     )
@@ -344,6 +330,38 @@ def run_smoke_payload(base: Path, payload: dict[str, object]) -> tuple[int, int]
             runtime_root / "usr/lib",
         )
     )
+    return runtime_root, loader, libraries
+
+
+def remap_descriptors(received: list[int], targets: list[int]) -> None:
+    if len(received) != len(targets):
+        fail("received descriptor count changed before execution")
+    minimum = max([64, *received, *targets]) + 1
+    temporary: list[tuple[int, int]] = []
+    try:
+        for source, target in zip(received, targets):
+            duplicate = fcntl.fcntl(source, fcntl.F_DUPFD_CLOEXEC, minimum)
+            temporary.append((duplicate, target))
+            minimum = duplicate + 1
+        for source in received:
+            os.close(source)
+        for duplicate, target in temporary:
+            os.dup2(duplicate, target, inheritable=True)
+    finally:
+        for duplicate, _ in temporary:
+            try:
+                os.close(duplicate)
+            except OSError:
+                pass
+
+
+def run_loader_child(
+    loader: Path,
+    arguments: list[str],
+    environment: dict[str, str],
+    descriptors: list[int],
+    target_numbers: list[int],
+) -> tuple[int, int]:
     ready_read, ready_write = os.pipe()
     process = os.fork()
     if process == 0:
@@ -352,20 +370,8 @@ def run_smoke_payload(base: Path, payload: dict[str, object]) -> tuple[int, int]
             if os.read(ready_read, 1) != b"x":
                 os._exit(125)
             os.close(ready_read)
-            environment = os.environ.copy()
-            for name in ("LD_PRELOAD", "LD_LIBRARY_PATH", "GLIBC_LD_LIBRARY_PATH"):
-                environment.pop(name, None)
-            os.execve(
-                loader,
-                [
-                    str(loader),
-                    "--inhibit-cache",
-                    "--library-path",
-                    libraries,
-                    str(program),
-                ],
-                environment,
-            )
+            remap_descriptors(descriptors, target_numbers)
+            os.execve(loader, arguments, environment)
         except BaseException:
             os._exit(125)
     os.close(ready_read)
@@ -382,6 +388,159 @@ def run_smoke_payload(base: Path, payload: dict[str, object]) -> tuple[int, int]
     return 125, observed_tracer
 
 
+def runtime_true_from_plan(base: Path, payload: dict[str, object]) -> tuple[Path, Path, str]:
+    bwrap_arguments = payload["bwrap_args"]
+    payload_arguments = payload["payload_argv"]
+    assert isinstance(bwrap_arguments, list)
+    assert isinstance(payload_arguments, list)
+    if "--" not in payload_arguments:
+        fail("pv-adverb payload has no command boundary")
+    boundary = payload_arguments.index("--")
+    command = payload_arguments[boundary + 1 :]
+    if command != ["/bin/true"]:
+        fail("direct dispatcher smoke accepts only /bin/true")
+    binds, symlinks = plan_mappings(bwrap_arguments)
+    program = Path(translated_path(command[0], binds, symlinks)).resolve(strict=True)
+    runtime_root, loader, libraries = selected_runtime(base)
+    expected = (runtime_root / "usr/bin/true").resolve(strict=True)
+    if program != expected or not program.is_file() or not os.access(program, os.X_OK):
+        fail(f"translated smoke payload is not Runtime true: {program}")
+    return program, loader, libraries
+
+
+def clean_loader_environment() -> dict[str, str]:
+    environment = os.environ.copy()
+    for name in ("LD_PRELOAD", "LD_LIBRARY_PATH", "GLIBC_LD_LIBRARY_PATH"):
+        environment.pop(name, None)
+    return environment
+
+
+def run_final_smoke(
+    base: Path,
+    payload: dict[str, object],
+    descriptors: list[int],
+) -> tuple[int, int]:
+    program, loader, libraries = runtime_true_from_plan(base, payload)
+    arguments = [
+        str(loader),
+        "--inhibit-cache",
+        "--library-path",
+        libraries,
+        str(program),
+    ]
+    return run_loader_child(
+        loader,
+        arguments,
+        clean_loader_environment(),
+        descriptors,
+        payload["fd_numbers"],
+    )
+
+
+def pv_smoke_invocation(
+    base: Path, payload: dict[str, object]
+) -> tuple[Path, list[str], dict[str, str]]:
+    _, loader, runtime_libraries = runtime_true_from_plan(base, payload)
+    bwrap_arguments = payload["bwrap_args"]
+    payload_arguments = payload["payload_argv"]
+    assert isinstance(bwrap_arguments, list)
+    assert isinstance(payload_arguments, list)
+    binds, symlinks = plan_mappings(bwrap_arguments)
+    boundary = payload_arguments.index("--")
+    pv_path = Path(translated_path(payload_arguments[0], binds, symlinks))
+    expected_pv = (
+        base
+        / "client/steamapps/common/SteamLinuxRuntime_4-arm64/pressure-vessel"
+        / "libexec/steam-runtime-tools-0/pv-adverb"
+    )
+    if not pv_path.is_file() or not os.access(pv_path, os.X_OK):
+        fail(f"translated pv-adverb is unavailable: {pv_path}")
+    if not expected_pv.exists() or not os.path.samefile(pv_path, expected_pv):
+        fail(f"translated pv-adverb is unexpected: {pv_path}")
+    pv_library = (
+        expected_pv.parent.parent.parent
+        / "lib/aarch64-linux-gnu/steam-runtime-tools-0"
+    )
+    glibc_library, separator, remaining_libraries = runtime_libraries.partition(":")
+    if not separator:
+        fail("Runtime library path is incomplete")
+    libraries = f"{glibc_library}:{pv_library}:{remaining_libraries}"
+    rewritten = [str(pv_path)]
+    index = 1
+    removed_flags = {"--generate-locales"}
+    removed_pairs = {
+        "--regenerate-ld.so-cache",
+        "--add-ld.so-path",
+        "--set-ld-library-path",
+        "--overrides-path",
+    }
+    while index < boundary:
+        argument = payload_arguments[index]
+        if argument in removed_flags:
+            index += 1
+            continue
+        if argument in removed_pairs:
+            if index + 1 >= boundary:
+                fail(f"pv-adverb option is missing its value: {argument}")
+            index += 2
+            continue
+        if argument.startswith("--prefix="):
+            rewritten.append(f"--prefix={expected_pv.parent.parent.parent}")
+        else:
+            rewritten.append(argument)
+        index += 1
+    command = [
+        translated_path(argument, binds, symlinks)
+        if argument.startswith("/")
+        else argument
+        for argument in payload_arguments[boundary + 1 :]
+    ]
+    rewritten.extend(["--set-ld-library-path", libraries, "--", *command])
+    compat_repo = Path.home() / "workspace/termux-glibc-compat"
+    preloads = [
+        base / "compat-bin/steam-arm64-native-tmp.so",
+        compat_repo / "build/libtgcompat-android-root.so",
+        compat_repo / "build/libtgcompat-exec.so",
+    ]
+    if any(not path.is_file() for path in preloads):
+        fail("pv-adverb compatibility preload is unavailable")
+    preload = ":".join(str(path) for path in preloads)
+    environment = clean_loader_environment()
+    environment.update(
+        {
+            "LD_PRELOAD": preload,
+            "TGCOMPAT_ANDROID_ROOT_O_PATH": "1",
+            "TGCOMPAT_PROC_SELF_EXE": str(pv_path),
+            "TGCOMPAT_LD_SO": str(loader),
+            "TGCOMPAT_LIBRARY_PATH": libraries,
+            "TGCOMPAT_EXEC_LD_PRELOAD": preload,
+            "STEAM_ARM64_TMP_ROOT": os.environ.get("PREFIX", "") + "/tmp",
+            "STEAM_ARM64_SHM_ROOT": str(base / "run/native-steam/shm"),
+        }
+    )
+    loader_arguments = [
+        str(loader),
+        "--inhibit-cache",
+        "--library-path",
+        libraries,
+        "--argv0",
+        str(pv_path),
+        *rewritten,
+    ]
+    return loader, loader_arguments, environment
+
+
+def run_pv_smoke(
+    base: Path,
+    payload: dict[str, object],
+    descriptors: list[int],
+) -> tuple[int, int]:
+    loader, arguments, environment = pv_smoke_invocation(base, payload)
+    return run_loader_child(
+        loader, arguments, environment, descriptors, payload["fd_numbers"]
+    )
+
+
 def verify_peer(connection: socket.socket) -> None:
     credentials = connection.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12)
     _, uid, _ = struct.unpack("3i", credentials)
@@ -389,7 +548,7 @@ def verify_peer(connection: socket.socket) -> None:
         fail("dispatch peer uid does not match")
 
 
-def serve(base: Path) -> int:
+def serve(base: Path, mode: str) -> int:
     path = dispatch_socket(base)
     if path.exists() or path.is_symlink():
         metadata = path.lstat()
@@ -409,7 +568,16 @@ def serve(base: Path) -> int:
             try:
                 validate_request(payload, descriptors)
                 print(f"REQUEST_RECEIVED=1 FD_COUNT={len(descriptors)}", flush=True)
-                status, observed_tracer = run_smoke_payload(base, payload)
+                if mode == "final-smoke":
+                    status, observed_tracer = run_final_smoke(
+                        base, payload, descriptors
+                    )
+                elif mode == "pv-smoke":
+                    status, observed_tracer = run_pv_smoke(
+                        base, payload, descriptors
+                    )
+                else:
+                    fail(f"unsupported server mode: {mode}")
                 print(
                     f"DISPATCH_STATUS={status} TRACER_PID={observed_tracer}",
                     flush=True,
@@ -483,8 +651,11 @@ def main() -> int:
             parser = argparse.ArgumentParser()
             parser.add_argument("serve", nargs="?")
             parser.add_argument("--base", default=base_value)
+            parser.add_argument(
+                "--mode", choices=("final-smoke", "pv-smoke"), default="final-smoke"
+            )
             options = parser.parse_args(arguments)
-            return serve(validated_base(options.base))
+            return serve(validated_base(options.base), options.mode)
         if arguments and arguments[0] == "client":
             arguments = arguments[1:]
         return client(arguments, validated_base(base_value))
