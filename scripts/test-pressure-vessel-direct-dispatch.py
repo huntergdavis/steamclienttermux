@@ -107,8 +107,13 @@ def main() -> None:
             fixture_base, fixture_runtime, fixture_proton, "proton-arm64-cmd"
         )[3] == str(fixture_arm64_command)
         assert MODULE.proton_smoke_environment("proton-entry") == {}
-        assert MODULE.proton_smoke_environment("proton-cmd") == {}
-        assert MODULE.proton_smoke_environment("proton-arm64-cmd") == {}
+        wine_debug = "+timestamp,+pid,+tid,+process,+module,+loaddll,+seh"
+        assert MODULE.proton_smoke_environment("proton-cmd") == {
+            "WINEDEBUG": wine_debug
+        }
+        assert MODULE.proton_smoke_environment("proton-arm64-cmd") == {
+            "WINEDEBUG": wine_debug
+        }
     assert MODULE.request_environment(
         {"environment": ["STEAM_COMPAT_APP_ID=203160", "LD_PRELOAD=unsafe"]}
     ) == {"STEAM_COMPAT_APP_ID": "203160"}
