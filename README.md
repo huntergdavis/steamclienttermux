@@ -607,8 +607,8 @@ does not start X11, Steam, a game, or an authentication flow.
 
 Place `--proton-log` before the AppID (or before Tomb Raider's game arguments)
 for one diagnostic session. The native wrapper enables Proton's own log and
-writes `steam-APPID.log` under `~/steam-arm64/logs`; normal launches remain
-unchanged.
+writes `steam-APPID.log` under `~/steam-arm64/logs`; it also enables Vulkan
+loader diagnostics in that log. Normal launches remain unchanged.
 
 The selected official package was built from Termux glibc-packages commit
 `954c6b2`, copied without repacking, hash-checked on the tablet, extracted into

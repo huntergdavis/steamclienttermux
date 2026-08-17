@@ -31,6 +31,7 @@ def main() -> None:
             "#!/bin/sh\n"
             'printf "proton_log=%s\\n" "${PROTON_LOG-}" > "$CAPTURE"\n'
             'printf "proton_log_dir=%s\\n" "${PROTON_LOG_DIR-}" >> "$CAPTURE"\n'
+            'printf "vk_loader_debug=%s\\n" "${VK_LOADER_DEBUG-}" >> "$CAPTURE"\n'
             'printf "launcher=%s\\n" "$STEAM_ARM64_LAUNCHER" >> "$CAPTURE"\n'
             'printf "arg=%s\\n" "$@" >> "$CAPTURE"\n',
         )
@@ -58,6 +59,7 @@ def main() -> None:
         assert capture.read_text(encoding="utf-8").splitlines() == [
             "proton_log=1",
             f"proton_log_dir={logs}",
+            "vk_loader_debug=all",
             f"launcher={launcher}",
             "arg=--appid",
             "arg=203160",

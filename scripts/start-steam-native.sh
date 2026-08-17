@@ -16,6 +16,7 @@ if [[ ${1:-} == --proton-log ]]; then
     }
     export PROTON_LOG=1
     export PROTON_LOG_DIR=$base/logs
+    export VK_LOADER_DEBUG=all
 fi
 
 [[ -x $native_launcher ]] || {
