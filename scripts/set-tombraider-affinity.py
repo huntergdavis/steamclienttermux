@@ -31,17 +31,24 @@ def parse_environment(data):
     return environment
 
 
-def validate_environment(environment):
+def validate_environment(environment, steam_base):
     if environment.get(b"STEAM_COMPAT_APP_ID") != APP_ID:
         return False
     for key in (b"SteamAppId", b"SteamGameId"):
         if key in environment and environment[key] != APP_ID:
             return False
     compatdata = environment.get(b"STEAM_COMPAT_DATA_PATH", b"").rstrip(b"/")
-    return compatdata.endswith(b"/steamapps/compatdata/" + APP_ID)
+    encoded_base = os.fsencode(steam_base)
+    expected = {
+        encoded_base + b"/removable-library/steamapps/compatdata/" + APP_ID,
+        encoded_base + b"/removable-library-compatdata/" + APP_ID,
+    }
+    return compatdata in expected
 
 
-def find_game_processes(proc_root=Path("/proc")):
+def find_game_processes(
+    proc_root=Path("/proc"), steam_base=Path.home() / "steam-arm64"
+):
     matches = []
     for entry in proc_root.iterdir():
         if not entry.name.isdigit():
@@ -53,7 +60,7 @@ def find_game_processes(proc_root=Path("/proc")):
             environment = parse_environment((entry / "environ").read_bytes())
         except (FileNotFoundError, PermissionError, ProcessLookupError):
             continue
-        if validate_environment(environment):
+        if validate_environment(environment, steam_base):
             matches.append((int(entry.name), entry))
     return sorted(matches)
 
@@ -106,7 +113,9 @@ def read_process_environment(entry):
         return None
 
 
-def find_auxiliary_processes(proc_root=Path("/proc")):
+def find_auxiliary_processes(
+    proc_root=Path("/proc"), steam_base=Path.home() / "steam-arm64"
+):
     matches = []
     for entry in proc_root.iterdir():
         if not entry.name.isdigit():
@@ -118,7 +127,7 @@ def find_auxiliary_processes(proc_root=Path("/proc")):
         if comm not in AUXILIARY_COMMS:
             continue
         environment = read_process_environment(entry)
-        if environment is not None and validate_environment(environment):
+        if environment is not None and validate_environment(environment, steam_base):
             matches.append((int(entry.name), entry, comm))
     return sorted(matches)
 
@@ -320,7 +329,7 @@ def watch_for_ready_game(arguments, runner=subprocess.run):
                 if helper_dir.exists():
                     raise
 
-        matches = find_game_processes(proc_root)
+        matches = find_game_processes(proc_root, steam_base)
         if len(matches) > 1:
             raise RuntimeError(
                 "expected at most one verified App ID 203160 Tomb Raider process, "
@@ -350,7 +359,7 @@ def watch_for_ready_game(arguments, runner=subprocess.run):
                 continue
             raise
 
-        auxiliary_matches = find_auxiliary_processes(proc_root)
+        auxiliary_matches = find_auxiliary_processes(proc_root, steam_base)
         auxiliary_ready = any(
             comm == "wineserver" for _pid, _directory, comm in auxiliary_matches
         )
@@ -437,7 +446,8 @@ def main():
                     print("Tomb Raider affinity guard: already active")
                     return 0
             return watch_for_ready_game(arguments)
-        matches = find_game_processes(Path(arguments.proc_root))
+        steam_base = Path(arguments.steam_base)
+        matches = find_game_processes(Path(arguments.proc_root), steam_base)
         if len(matches) != 1:
             raise RuntimeError(
                 "expected exactly one verified App ID 203160 Tomb Raider process, "
@@ -449,7 +459,9 @@ def main():
         print(f"Tomb Raider PID {pid}: {len(before)} threads")
         if arguments.check:
             verify_threads(before, arguments.raknet_cpu1)
-            auxiliaries = find_auxiliary_processes(Path(arguments.proc_root))
+            auxiliaries = find_auxiliary_processes(
+                Path(arguments.proc_root), steam_base
+            )
             if not any(comm == "wineserver" for _pid, _path, comm in auxiliaries):
                 raise RuntimeError("no verified App ID 203160 wineserver found")
             for _auxiliary_pid, auxiliary_dir, _comm in auxiliaries:

@@ -60,8 +60,25 @@ def main():
         environment = {
             b"STEAM_COMPAT_APP_ID": b"203160",
             b"SteamAppId": b"203160",
-            b"STEAM_COMPAT_DATA_PATH": b"/x/steamapps/compatdata/203160",
+            b"STEAM_COMPAT_DATA_PATH": (
+                b"/base/removable-library/steamapps/compatdata/203160"
+            ),
         }
+        native_environment = {
+            **environment,
+            b"STEAM_COMPAT_DATA_PATH": (
+                b"/base/removable-library-compatdata/203160"
+            ),
+        }
+        decoy_environment = {
+            **environment,
+            b"STEAM_COMPAT_DATA_PATH": (
+                b"/decoy/removable-library-compatdata/203160"
+            ),
+        }
+        assert module.validate_environment(environment, Path("/base"))
+        assert module.validate_environment(native_environment, Path("/base"))
+        assert not module.validate_environment(decoy_environment, Path("/base"))
         process = add_process(
             proc_root,
             27038,
@@ -76,7 +93,9 @@ def main():
             {**environment, b"SteamAppId": b"1"},
             {2: ("TombRaider.exe", "0-7")},
         )
-        assert module.find_game_processes(proc_root) == [(27038, process)]
+        assert module.find_game_processes(proc_root, Path("/base")) == [
+            (27038, process)
+        ]
         module.validate_top_app(process)
         threads = module.read_threads(process)
         module.verify_threads(threads, isolate_raknet=True)
@@ -107,7 +126,7 @@ def main():
             environment,
             {30000: ("wineserver", "1-7")},
         )
-        assert module.find_auxiliary_processes(proc_root) == [
+        assert module.find_auxiliary_processes(proc_root, Path("/base")) == [
             (30000, auxiliary, "wineserver")
         ]
         helper = add_process(
