@@ -38,6 +38,8 @@ def main() -> None:
     arm64_source = inspect.getsource(MODULE.run_proton_arm64_cmd_smoke)
     assert "proton-arm64-wine-" in arm64_source
     assert "trace_path" in arm64_source
+    loader_source = inspect.getsource(MODULE.run_loader_child)
+    assert '"-k"' in loader_source
 
     plan = json.loads(PLAN.read_text(encoding="utf-8"))
     assert plan["kind"] == "pressure-vessel-bwrap-plan"

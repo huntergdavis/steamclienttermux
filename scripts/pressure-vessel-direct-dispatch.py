@@ -391,6 +391,7 @@ def run_loader_child(
             str(strace),
             "-f",
             "-qq",
+            "-k",
             "-s",
             "256",
             "-o",
