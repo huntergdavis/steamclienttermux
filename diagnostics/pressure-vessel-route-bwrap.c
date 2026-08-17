@@ -765,11 +765,16 @@ main (int argc, char **argv)
       /* Pressure Vessel rewrites the private host ICD to a generated
        * /overrides manifest. PRoot cannot materialize that individual
        * generated file, although the original protected host path remains
-       * visible in the container. A final payload environment assignment
-       * selects the validated original manifest without bypassing the
-       * provider library or the rest of Pressure Vessel's overrides. */
+       * visible in the container. Final assignments for both the current and
+       * legacy Vulkan-loader variables select the validated original manifest
+       * without bypassing the provider library or the rest of Pressure
+       * Vessel's overrides. Winevulkan consults the legacy name even when a
+       * native Vulkan client prefers VK_DRIVER_FILES. */
       write_arg (replacement_fd, "--setenv");
       write_arg (replacement_fd, "VK_DRIVER_FILES");
+      write_arg (replacement_fd, host_vk_driver_files);
+      write_arg (replacement_fd, "--setenv");
+      write_arg (replacement_fd, "VK_ICD_FILENAMES");
       write_arg (replacement_fd, host_vk_driver_files);
     }
   write_all (replacement_fd, args_data + payload_offset,

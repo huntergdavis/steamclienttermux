@@ -61,6 +61,7 @@ def mock_bwrap():
     injected = None
     gtaiv_injected = None
     vk_driver_files_injected = None
+    vk_icd_filenames_injected = None
     gtaiv_directory_injections = []
     for index, arg in enumerate(args[:-2]):
         if arg == "--ro-bind-fd":
@@ -72,6 +73,8 @@ def mock_bwrap():
                 gtaiv_directory_injections.append(index)
         elif arg == "--setenv" and args[index + 1] == "VK_DRIVER_FILES":
             vk_driver_files_injected = index
+        elif arg == "--setenv" and args[index + 1] == "VK_ICD_FILENAMES":
+            vk_icd_filenames_injected = index
 
     if injected is None:
         print(
@@ -156,7 +159,15 @@ def mock_bwrap():
                     or vk_driver_files_injected < args.index("--")
                 ),
                 "vk_driver_files_at_end": (
-                    vk_driver_files_injected == len(args) - 3
+                    vk_driver_files_injected == len(args) - 6
+                ),
+                "vk_icd_filenames": args[vk_icd_filenames_injected + 2],
+                "vk_icd_filenames_before_terminator": (
+                    "--" not in args
+                    or vk_icd_filenames_injected < args.index("--")
+                ),
+                "vk_icd_filenames_at_end": (
+                    vk_icd_filenames_injected == len(args) - 3
                 ),
                 "host_vk_driver_files_env": os.environ.get(
                     "STEAM_ARM64_HOST_VK_DRIVER_FILES"
@@ -321,8 +332,11 @@ def run_tests():
         assert result.returncode == 0, result.stderr
         payload = json.loads(result.stdout)
         assert payload["vk_driver_files"] == str(private_icd)
+        assert payload["vk_icd_filenames"] == str(private_icd)
         assert payload["vk_driver_files_before_terminator"] is True
+        assert payload["vk_icd_filenames_before_terminator"] is True
         assert payload["vk_driver_files_at_end"] is False
+        assert payload["vk_icd_filenames_at_end"] is False
         assert payload["host_vk_driver_files_env"] is None
 
         result = invoke(
@@ -336,7 +350,9 @@ def run_tests():
         assert result.returncode == 0, result.stderr
         payload = json.loads(result.stdout)
         assert payload["vk_driver_files"] == str(private_icd)
+        assert payload["vk_icd_filenames"] == str(private_icd)
         assert payload["vk_driver_files_at_end"] is True
+        assert payload["vk_icd_filenames_at_end"] is True
 
         result = invoke(
             wrapper,
