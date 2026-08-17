@@ -48,6 +48,7 @@ fi
 
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
 server_log=$base/logs/tombraider-direct-$mode-$child_preload-$stamp.log
+launcher_log=$base/logs/tombraider-direct-launcher-$mode-$child_preload-$stamp.log
 server_pid=
 affinity_pid=
 affinity_log=
@@ -86,9 +87,9 @@ if [[ $mode == tombraider || $mode == tombraider-diagnostic ]]; then
     affinity_pid=$!
 fi
 
-printf 'pid=%s\nmode=%s\nchild_preload=%s\nserver_pid=%s\nserver_log=%s\naffinity_log=%s\nstatus=launching\n' \
+printf 'pid=%s\nmode=%s\nchild_preload=%s\nserver_pid=%s\nserver_log=%s\nlauncher_log=%s\naffinity_log=%s\nstatus=launching\n' \
     "$$" "$mode" "$child_preload" "$server_pid" "$server_log" \
-    "$affinity_log" >"$state"
+    "$launcher_log" "$affinity_log" >"$state"
 
 set +e
 STEAM_ARM64_BWRAP_DIRECT=1 \
@@ -96,8 +97,11 @@ STEAM_BACKGROUND=1 \
 STEAM_PROCESS_TIMEOUT=${STEAM_PROCESS_TIMEOUT:-180} \
 STEAM_WINDOW_TIMEOUT=${STEAM_WINDOW_TIMEOUT:-300} \
 STEAM_APP_TIMEOUT=${STEAM_APP_TIMEOUT:-300} \
-"$launcher" --appid 203160 -- -nolauncher
+"$launcher" --appid 203160 -- -nolauncher >"$launcher_log" 2>&1
 launcher_status=$?
+if (( launcher_status != 0 )) && kill -0 "$server_pid" 2>/dev/null; then
+    kill -TERM "$server_pid" 2>/dev/null || true
+fi
 wait "$server_pid"
 server_status=$?
 set -e
@@ -108,11 +112,12 @@ if [[ -n ${affinity_pid:-} ]] && kill -0 "$affinity_pid" 2>/dev/null; then
 fi
 affinity_pid=
 
-printf 'pid=%s\nmode=%s\nchild_preload=%s\nserver_log=%s\naffinity_log=%s\nstatus=complete\nlauncher_status=%s\nserver_status=%s\n' \
-    "$$" "$mode" "$child_preload" "$server_log" "$affinity_log" \
-    "$launcher_status" "$server_status" >"$state"
-printf 'Tomb Raider direct dispatch completed: mode=%s child_preload=%s launcher=%s server=%s log=%s\n' \
-    "$mode" "$child_preload" "$launcher_status" "$server_status" "$server_log"
+printf 'pid=%s\nmode=%s\nchild_preload=%s\nserver_log=%s\nlauncher_log=%s\naffinity_log=%s\nstatus=complete\nlauncher_status=%s\nserver_status=%s\n' \
+    "$$" "$mode" "$child_preload" "$server_log" "$launcher_log" \
+    "$affinity_log" "$launcher_status" "$server_status" >"$state"
+printf 'Tomb Raider direct dispatch completed: mode=%s child_preload=%s launcher=%s server=%s server_log=%s launcher_log=%s\n' \
+    "$mode" "$child_preload" "$launcher_status" "$server_status" \
+    "$server_log" "$launcher_log"
 if (( launcher_status != 0 )); then
     exit "$launcher_status"
 fi

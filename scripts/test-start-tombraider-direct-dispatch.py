@@ -104,6 +104,7 @@ def main() -> None:
         assert "status=complete" in state
         assert "launcher_status=1" in state
         assert "server_status=0" in state
+        assert "launcher_log=" in state
         assert affinity_result.read_text().splitlines() == [
             f"--watch --raknet-cpu1 --steam-base {base} "
             f"--lock-file {base}/run/tombraider-direct-affinity.lock"
@@ -128,6 +129,24 @@ def main() -> None:
         ).read_text()
         assert "mode=tombraider-diagnostic" in diagnostic_state
         assert "child_preload=lean" in diagnostic_state
+
+        (base / "run/native-runtime-dispatch/dispatch.sock").unlink()
+        executable(launcher, "#!/bin/bash\nexit 7\n")
+        failed = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env=environment,
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=5,
+        )
+        assert failed.returncode == 7, failed.stderr
+        failed_state = (
+            base / "run/tombraider-direct-dispatch.state"
+        ).read_text()
+        assert "status=complete" in failed_state
+        assert "launcher_status=7" in failed_state
+        assert "launcher_log=" in failed_state
 
         python_link = root / "python3-link"
         python_link.symlink_to(Path(os.sys.executable).resolve())
