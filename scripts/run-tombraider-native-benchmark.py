@@ -280,6 +280,10 @@ def run_logged(command, environment, output: Path) -> float:
     return elapsed
 
 
+def python_tool_command(tool: Path, *arguments: str) -> list[Path | str]:
+    return [Path(sys.executable), tool, *arguments]
+
+
 def atomic_json(path: Path, data) -> None:
     temporary = path.with_name(f".{path.name}.tmp-{os.getpid()}")
     with temporary.open("w") as output:
@@ -400,7 +404,14 @@ def main() -> int:
         atomic_json(output_directory / "series.json", series)
 
         profile_log = output_directory / "profile-check.log"
-        run_logged([profile_checker, "--check"], environment, profile_log)
+        # RunCommandService does not inherit the interactive termux-exec
+        # preload, so a child cannot resolve this tool's /usr/bin/env shebang.
+        # Reuse the already-resolved absolute Python interpreter instead.
+        run_logged(
+            python_tool_command(profile_checker, "--check"),
+            environment,
+            profile_log,
+        )
         prime_log = output_directory / "steam-prime.log"
         series["steam_prime_seconds"] = round(
             run_logged([primer], environment, prime_log), 3

@@ -37,6 +37,12 @@ def main():
     )
     assert module.parse_xrandr_geometry(xrandr) == "2800x1752"
     assert module.parse_xrandr_refresh(xrandr) == [119.92]
+    checker = Path("/base/compat-bin/configure-tombraider-performance.py")
+    assert module.python_tool_command(checker, "--check") == [
+        Path(module.sys.executable),
+        checker,
+        "--check",
+    ]
 
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
