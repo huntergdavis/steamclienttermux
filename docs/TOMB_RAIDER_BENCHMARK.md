@@ -746,3 +746,29 @@ free zram was 5,629,180 KiB. The raw 59.97 Hz series is retained as
 The next controlled profiles are Proton's bundled FEX configuration and then
 the opt-in `fast` configuration, both while retaining the winning 59.97 Hz
 display state.
+
+## Preliminary Proton profile series and fixed cross-series ceiling
+
+The first 59.97 Hz bundled-Proton series completed at 15.9/30.0/23.2,
+14.8/32.4/23.1, and 11.9/31.3/22.6 FPS. Its recorded aggregate was
+14.200/31.233/22.967 FPS, 8.7% below the `safe` average. This series is retained
+as observational evidence, not accepted as the profile A/B.
+
+Inspection before publication found that Proton's recorded passes began at
+45.5, 45.1, and 47.9 C, while all three `safe` passes began at 37.0 C. Both
+series began each pass with full CPU/GPU policy and GPU thermal level zero, but
+the 8.1-10.9 C headroom difference can bias when throttling begins. The runner's
+original ceiling was derived independently from each warm-up start, so it
+matched passes within a series without guaranteeing a cross-series match.
+
+The runner now accepts `--start-temperature-ceiling-c`. A fixed ceiling applies
+to the warm-up and every recorded pass and still requires full CPU/GPU policy,
+GPU thermal level zero, and three stable samples. The accepted Proton repeat
+and subsequent `fast` series use a 40 C ceiling. The existing `safe` control
+qualifies because all recorded starts were 37.0 C.
+
+The exact unmatched Proton artifact remains available for audit as
+[`tombraider-native-glibc-proton-60hz-unmatched-20260817.json`](benchmark-series/tombraider-native-glibc-proton-60hz-unmatched-20260817.json).
+The required focused `deja` query returned no indexed prior implementation;
+the fixed gate extends the existing tested cooldown and fail-closed series
+method.

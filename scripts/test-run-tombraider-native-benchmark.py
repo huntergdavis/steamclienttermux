@@ -43,6 +43,11 @@ def main():
         checker,
         "--check",
     ]
+    fixed = module.build_parser().parse_args(
+        ["--profile", "proton", "--start-temperature-ceiling-c", "40"]
+    )
+    assert fixed.profile == "proton"
+    assert fixed.start_temperature_ceiling_c == 40.0
 
     def snapshot(cpu_policy, gpu_policy, gpu_level, temperature):
         return {

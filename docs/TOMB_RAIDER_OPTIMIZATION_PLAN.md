@@ -69,8 +69,12 @@ X11 on CPUs 0-3. Change only the item named by each test.
 6. Run bounded `proton` and `fast` FEX A/B passes at verified 59.97 Hz.
    `proton` previously averaged 11.4% above `safe` at 720p. `fast`
    follows the same-chip TSO-off direction but remains opt-in because FEX warns
-   it can break multithreaded software. These are useful interim measurements,
-   not substitutes for removing the 60-65%-CPU PRoot tracer.
+   it can break multithreaded software. Use a fixed 40 C start ceiling for the
+   warm-up and every recorded pass; the first native-resolution Proton series
+   started at 45.1-47.9 C versus the `safe` control's 37.0 C and is therefore
+   observational rather than the accepted profile A/B. These are useful
+   interim measurements, not substitutes for removing the 60-65%-CPU PRoot
+   tracer.
 
 The one warm-up plus three-pass rule applies to each profile. Compare the
 three-pass mean and median, not an isolated maximum or minimum.

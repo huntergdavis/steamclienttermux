@@ -673,6 +673,7 @@ STEAM_ARM64_NATIVE_CHECK=1 ~/bin/steam-arm-native
 ~/start-tombraider-native.sh --proton-log
 ~/start-tombraider-native.sh -benchmark
 ~/run-tombraider-native-benchmark --profile safe
+~/run-tombraider-native-benchmark --profile proton --start-temperature-ceiling-c 40
 ~/stop-steam-native.sh
 ```
 
@@ -702,6 +703,12 @@ maximum sensor temperature within 2 C of the warm-up start. That state must
 remain ready for three ten-second samples. The default cooldown timeout is 30
 minutes; a failure is recorded rather than admitting a thermally mismatched
 pass.
+
+For comparisons across separate profile series, pass
+`--start-temperature-ceiling-c 40`. The fixed ceiling applies to the warm-up as
+well as every recorded pass, replacing the series-relative temperature margin.
+This prevents a warm series from admitting every pass at a consistently higher
+starting temperature than its control.
 
 The installed command is an absolute-Termux-shebang broker, so Android's
 foreground `RunCommandService` can start it without relying on the interactive

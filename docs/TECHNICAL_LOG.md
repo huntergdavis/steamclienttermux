@@ -5585,3 +5585,26 @@ The exact raw series is committed at
 `docs/benchmark-series/tombraider-native-glibc-safe-60hz-20260817.json`.
 Samsung Standard 60 Hz becomes the fixed display state for the bundled-Proton
 and `fast` FEX A/Bs.
+
+## 2026-08-17: reject a thermally unmatched Proton profile conclusion
+
+The first bundled-Proton series at verified 59.97 Hz completed at
+14.200/31.233/22.967 FPS, apparently 8.7% below the 25.167 FPS `safe` mean.
+Before committing that profile conclusion, the raw snapshots exposed different
+starting thermal headroom. Proton's recorded passes began at 45.5, 45.1, and
+47.9 C; `safe` began all three at 37.0 C. CPU/GPU policy was fully restored in
+both, but the warmer Proton starts can move thermal throttling earlier into the
+timed scene.
+
+The cause was methodological: the runner derived its ceiling from each
+series's own warm-up start plus two degrees. That creates internally matched
+passes but does not match independent series. The new optional
+`--start-temperature-ceiling-c` applies one absolute ceiling to the warm-up and
+every recorded pass, while retaining full-policy, GPU-level-zero, stable-sample,
+and timeout requirements. Cross-profile runs use 40 C. The existing `safe`
+control's 37.0 C starts satisfy that gate; Proton must be repeated.
+
+The unmatched result is not discarded. Its exact raw series is retained at
+`docs/benchmark-series/tombraider-native-glibc-proton-60hz-unmatched-20260817.json`.
+The focused `deja` query found no indexed implementation to reuse, so the fix
+extends the repository's existing tested cooldown path.

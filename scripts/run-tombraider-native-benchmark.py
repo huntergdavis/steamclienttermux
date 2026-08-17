@@ -401,6 +401,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--cooldown-poll", type=int, default=10)
     parser.add_argument("--cooldown-stable-samples", type=int, default=3)
     parser.add_argument("--start-temperature-margin-c", type=float, default=2.0)
+    parser.add_argument(
+        "--start-temperature-ceiling-c",
+        type=float,
+        help=(
+            "fixed maximum starting sensor temperature for every pass; "
+            "use this instead of the warm-up-relative margin for cross-series A/Bs"
+        ),
+    )
     return parser
 
 
@@ -420,6 +428,15 @@ def main() -> int:
         return 2
     if not 0 <= arguments.start_temperature_margin_c <= 20:
         print("start temperature margin must be between 0C and 20C", file=sys.stderr)
+        return 2
+    if (
+        arguments.start_temperature_ceiling_c is not None
+        and not 20 <= arguments.start_temperature_ceiling_c <= 80
+    ):
+        print(
+            "start temperature ceiling must be between 20C and 80C",
+            file=sys.stderr,
+        )
         return 2
 
     base = Path(arguments.base).resolve()
@@ -544,7 +561,19 @@ def main() -> int:
         }
 
         total = arguments.warmups + arguments.runs
-        temperature_ceiling = None
+        temperature_ceiling = (
+            round(arguments.start_temperature_ceiling_c * 1000)
+            if arguments.start_temperature_ceiling_c is not None
+            else None
+        )
+        fixed_temperature_ceiling = temperature_ceiling is not None
+        if fixed_temperature_ceiling:
+            series["target"]["configured_start_temperature_ceiling_millidegrees_c"] = (
+                temperature_ceiling
+            )
+            series["target"]["start_temperature_ceiling_millidegrees_c"] = (
+                temperature_ceiling
+            )
         for index in range(total):
             kind = "warmup" if index < arguments.warmups else "recorded"
             number = index + 1 if kind == "warmup" else index - arguments.warmups + 1
@@ -575,6 +604,10 @@ def main() -> int:
                     arguments.cooldown_poll,
                     arguments.cooldown_stable_samples,
                 )
+                if fixed_temperature_ceiling and index == 0:
+                    series["target"]["initial_max_temperature_millidegrees_c"] = (
+                        maximum_temperature_millidegrees(before)
+                    )
             result_before = file_state(game_directory.glob(RESULT_GLOB))
             guard_before = file_state(guard_directory.glob(GUARD_GLOB))
             launch_log = output_directory / f"{label}-launch.log"
