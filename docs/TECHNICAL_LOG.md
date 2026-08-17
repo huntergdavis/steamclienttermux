@@ -5630,3 +5630,35 @@ minimum does not invalidate the mean and median comparison.
 
 The accepted exact artifact is
 `docs/benchmark-series/tombraider-native-glibc-proton-60hz-40c-20260817.json`.
+
+## 2026-08-17: patched glibc crosses the Runtime boundary directly
+
+A plan-only `/bin/true` launch captured Pressure Vessel's real Bubblewrap
+request without executing its payload. The request contained 1,237 arguments:
+the materialized Runtime 4 `/usr`, the provider-library `/overrides` tree,
+Pressure Vessel helpers, writable linker state, three explicit environment
+assignments, and the final `pv-adverb` command. This confirms that replacing
+the remaining PRoot boundary is a filesystem-plan problem rather than another
+Steam authentication or FEX-selection problem.
+
+Stock Runtime 4 glibc could not execute its own `usr/bin/true` directly on the
+tablet. `strace` recorded `SIGSYS` on `set_robust_list`, matching Android's
+seccomp policy and the compatibility repository's existing NPTL diagnosis.
+The active content-addressed `termux-glibc-compat` loader then ran the exact
+same Runtime binary directly with exit status zero, without PRoot or
+Bubblewrap. The same loader ran Pressure Vessel 0.20260714.0's `pv-adverb`,
+and `pv-adverb` supervised the Runtime binary with exit status zero.
+
+The next bridge therefore keeps the existing short PRoot setup phase only to
+produce Valve's dynamic plan. A private same-UID Unix-socket dispatcher will
+transfer that in-memory plan and its inherited file descriptors to an
+outside-PRoot helper. The helper can materialize the required provider paths
+under the Steam run directory and launch `pv-adverb`, Proton, and FEX through
+the patched loader. The PRoot-side client waits for the outside process so
+Steam retains normal game lifecycle, but the game's hot process tree is no
+longer ptrace-translated.
+
+The focused `deja` recall found only this current investigation, so no earlier
+dispatcher implementation was reused. The direct ELF execution reuses
+`termux-glibc-compat`'s existing patched glibc and exec-boundary shim; the
+captured plan and dispatcher remain Steam-specific work in this repository.
