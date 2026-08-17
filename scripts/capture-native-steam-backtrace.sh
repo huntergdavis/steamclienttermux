@@ -81,6 +81,7 @@ exec gdb -q -nx -batch \
     -ex 'set pagination off' \
     -ex 'set debuginfod enabled off' \
     -ex 'set print thread-events off' \
+    -ex 'handle SIGSTOP nostop noprint nopass' \
     -ex 'handle SIGPIPE nostop noprint pass' \
     -ex 'handle SIGCHLD nostop noprint pass' \
     -ex 'continue' \
