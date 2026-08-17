@@ -66,6 +66,10 @@ def prepare(root: Path) -> tuple[Path, Path]:
     (base / "mesa-kgsl" / "usr" / "lib" / "aarch64-linux-gnu").mkdir(
         parents=True
     )
+    private_icd = base / "mesa-kgsl" / "icd.d" / "freedreno-private.json"
+    private_icd.parent.mkdir(parents=True)
+    private_icd.write_text("{}\n", encoding="utf-8")
+    private_icd.chmod(0o600)
     executable(
         prefix / "bin" / "proot-distro",
         "#!/bin/sh\nprintf '%s\\n' \"$@\"\n",
@@ -194,6 +198,10 @@ def main() -> None:
             base / "removable-library/steamapps/common/Game"
         )
         assert f"PWD={base / 'removable-library/steamapps/common/Game'}" in bwrap
+        assert (
+            f"STEAM_ARM64_HOST_VK_DRIVER_FILES="
+            f"{base / 'mesa-kgsl/icd.d/freedreno-private.json'}"
+        ) in bwrap
         assert bwrap[-4:] == [
             "--fixture-argument",
             str(base / "removable-library"),

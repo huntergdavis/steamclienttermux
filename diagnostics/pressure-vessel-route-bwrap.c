@@ -21,6 +21,7 @@
 #define GTAIV_PLAY_SUFFIX "/Grand Theft Auto IV/GTAIV/PlayGTAIV.exe"
 #define GTAIV_SERVICE_FIRST_BATCH "C:\\gtaiv-service-first.cmd"
 #define PROC_NET_SUFFIX "/config/proc-net"
+#define HOST_VK_ICD_SUFFIX "/mesa-kgsl/icd.d/freedreno-private.json"
 
 struct expected_file
 {
@@ -474,6 +475,38 @@ validate_proc_net (const char *path)
   return directory_fd;
 }
 
+static void
+validate_host_vk_driver_files (const char *proc_net_path, const char *path)
+{
+  char expected[PATH_MAX];
+  size_t proc_net_length;
+  int fd;
+
+  if (path == NULL)
+    return;
+  if (path[0] != '/')
+    fail ("STEAM_ARM64_HOST_VK_DRIVER_FILES must be an absolute path");
+
+  proc_net_length = strlen (proc_net_path);
+  if (proc_net_length <= strlen (PROC_NET_SUFFIX)
+      || strcmp (proc_net_path + proc_net_length - strlen (PROC_NET_SUFFIX),
+                 PROC_NET_SUFFIX) != 0)
+    fail ("cannot derive native Vulkan ICD path");
+  if (snprintf (expected, sizeof (expected), "%.*s%s",
+                (int) (proc_net_length - strlen (PROC_NET_SUFFIX)),
+                proc_net_path, HOST_VK_ICD_SUFFIX) < 0
+      || strlen (expected) >= sizeof (expected))
+    fail ("native Vulkan ICD path is too long");
+  if (strcmp (path, expected) != 0)
+    fail ("unexpected native Vulkan ICD path: %s", path);
+
+  fd = open (path, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
+  if (fd < 0)
+    fail ("cannot open native Vulkan ICD: %s", strerror (errno));
+  validate_regular_file (fd, "native Vulkan ICD", false);
+  close (fd);
+}
+
 static int
 create_args_fd (void)
 {
@@ -603,6 +636,8 @@ main (int argc, char **argv)
 {
   const char *real_bwrap = getenv ("STEAM_ARM64_REAL_BWRAP");
   const char *proc_net_path = getenv ("STEAM_ARM64_PROC_NET");
+  const char *host_vk_driver_files =
+    getenv ("STEAM_ARM64_HOST_VK_DRIVER_FILES");
   const char *fd_value = NULL;
   char **replacement_argv;
   char replacement_fd_value[32];
@@ -673,22 +708,21 @@ main (int argc, char **argv)
     }
 
   proc_net_fd = validate_proc_net (proc_net_path);
+  validate_host_vk_driver_files (proc_net_path, host_vk_driver_files);
   gtaiv_view_fd = validate_gtaiv_view (proc_net_path, proc_net_fd,
                                        gtaiv_target, sizeof (gtaiv_target),
                                        gtaiv_directory_fds,
                                        sizeof (gtaiv_directory_fds)
                                          / sizeof (gtaiv_directory_fds[0]));
-  payload_offset = gtaiv_view_fd >= 0
-    ? find_payload_terminator (args_data, args_size)
-    : 0;
+  payload_offset = find_payload_terminator (args_data, args_size);
   /* Current Pressure Vessel puts the payload in ordinary argv after
    * --args, so the NUL stream can contain mounts only. Appending to that
    * stream is then the last-mount-wins position. Older forms can include a
    * literal -- terminator in the stream; insert immediately before it. */
-  if (gtaiv_view_fd >= 0 && payload_offset == 0)
+  if (payload_offset == 0)
     payload_offset = args_size;
-  if (gtaiv_view_fd >= 0 && payload_offset < insertion_offset)
-    fail ("cannot locate GTA IV payload boundary");
+  if (payload_offset < insertion_offset)
+    fail ("cannot locate payload boundary");
   gtaiv_service_first = is_gtaiv_play_payload (argc, argv, args_index,
                                                gtaiv_view_fd);
   replacement_fd = create_args_fd ();
@@ -699,10 +733,10 @@ main (int argc, char **argv)
   write_arg (replacement_fd, "--ro-bind-fd");
   write_arg (replacement_fd, replacement_fd_value);
   write_arg (replacement_fd, "/proc/net");
+  write_all (replacement_fd, args_data + insertion_offset,
+             payload_offset - insertion_offset);
   if (gtaiv_view_fd >= 0)
     {
-      write_all (replacement_fd, args_data + insertion_offset,
-                 payload_offset - insertion_offset);
       snprintf (replacement_fd_value, sizeof (replacement_fd_value), "%d",
                 gtaiv_view_fd);
       write_arg (replacement_fd, "--ro-bind-fd");
@@ -725,12 +759,21 @@ main (int argc, char **argv)
           write_arg (replacement_fd, replacement_fd_value);
           write_arg (replacement_fd, gtaiv_directory_target);
         }
-      write_all (replacement_fd, args_data + payload_offset,
-                 args_size - payload_offset);
     }
-  else
-    write_all (replacement_fd, args_data + insertion_offset,
-               args_size - insertion_offset);
+  if (host_vk_driver_files != NULL)
+    {
+      /* Pressure Vessel rewrites the private host ICD to a generated
+       * /overrides manifest. PRoot cannot materialize that individual
+       * generated file, although the original protected host path remains
+       * visible in the container. A final payload environment assignment
+       * selects the validated original manifest without bypassing the
+       * provider library or the rest of Pressure Vessel's overrides. */
+      write_arg (replacement_fd, "--setenv");
+      write_arg (replacement_fd, "VK_DRIVER_FILES");
+      write_arg (replacement_fd, host_vk_driver_files);
+    }
+  write_all (replacement_fd, args_data + payload_offset,
+             args_size - payload_offset);
   free (args_data);
 
   if (lseek (replacement_fd, 0, SEEK_SET) < 0)
@@ -773,6 +816,8 @@ main (int argc, char **argv)
    * Vessel's superseded stream into srt-bwrap or its payload. */
   if (close (args_fd) < 0)
     fail ("cannot close original --args fd: %s", strerror (errno));
+  if (unsetenv ("STEAM_ARM64_HOST_VK_DRIVER_FILES") < 0)
+    fail ("cannot clear native Vulkan ICD handoff: %s", strerror (errno));
 
   execv (real_bwrap, replacement_argv);
   fail ("cannot execute real bwrap: %s", strerror (errno));

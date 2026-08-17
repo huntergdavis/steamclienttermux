@@ -60,6 +60,7 @@ def mock_bwrap():
 
     injected = None
     gtaiv_injected = None
+    vk_driver_files_injected = None
     gtaiv_directory_injections = []
     for index, arg in enumerate(args[:-2]):
         if arg == "--ro-bind-fd":
@@ -69,6 +70,8 @@ def mock_bwrap():
                 gtaiv_injected = index
             elif "/Grand Theft Auto IV/GTAIV/" in args[index + 2]:
                 gtaiv_directory_injections.append(index)
+        elif arg == "--setenv" and args[index + 1] == "VK_DRIVER_FILES":
+            vk_driver_files_injected = index
 
     if injected is None:
         print(
@@ -97,9 +100,7 @@ def mock_bwrap():
             gtaiv_directory_sources.append(
                 os.readlink(f"/proc/self/fd/{source_fd}")
             )
-    print(
-        json.dumps(
-            {
+    payload = {
                 "injected": True,
                 "source": str(source),
                 "destination": args[injected + 2],
@@ -146,8 +147,23 @@ def mock_bwrap():
                     else None
                 ),
             }
+    if vk_driver_files_injected is not None:
+        payload.update(
+            {
+                "vk_driver_files": args[vk_driver_files_injected + 2],
+                "vk_driver_files_before_terminator": (
+                    "--" not in args
+                    or vk_driver_files_injected < args.index("--")
+                ),
+                "vk_driver_files_at_end": (
+                    vk_driver_files_injected == len(args) - 3
+                ),
+                "host_vk_driver_files_env": os.environ.get(
+                    "STEAM_ARM64_HOST_VK_DRIVER_FILES"
+                ),
+            }
         )
-    )
+    print(json.dumps(payload))
     return 0
 
 
@@ -236,6 +252,12 @@ def run_tests():
         route.chmod(0o600)
         ipv6_route.write_text("")
         ipv6_route.chmod(0o600)
+        private_icd = (
+            tempdir / "mesa-kgsl" / "icd.d" / "freedreno-private.json"
+        )
+        private_icd.parent.mkdir(parents=True)
+        private_icd.write_text("{}\n")
+        private_icd.chmod(0o600)
 
         subprocess.run(
             [
@@ -279,6 +301,53 @@ def run_tests():
             "gtaiv_directory_targets": [],
             "gtaiv_directory_after_view": None,
         }
+
+        result = invoke(
+            wrapper,
+            proc_net,
+            [
+                "--proc",
+                "/proc",
+                "--setenv",
+                "VK_DRIVER_FILES",
+                "/overrides/share/vulkan/icd.d/freedreno-private.json",
+                "--",
+                "/bin/true",
+            ],
+            env_overrides={
+                "STEAM_ARM64_HOST_VK_DRIVER_FILES": str(private_icd)
+            },
+        )
+        assert result.returncode == 0, result.stderr
+        payload = json.loads(result.stdout)
+        assert payload["vk_driver_files"] == str(private_icd)
+        assert payload["vk_driver_files_before_terminator"] is True
+        assert payload["vk_driver_files_at_end"] is False
+        assert payload["host_vk_driver_files_env"] is None
+
+        result = invoke(
+            wrapper,
+            proc_net,
+            ["--proc", "/proc", "--ro-bind", "/", "/"],
+            env_overrides={
+                "STEAM_ARM64_HOST_VK_DRIVER_FILES": str(private_icd)
+            },
+        )
+        assert result.returncode == 0, result.stderr
+        payload = json.loads(result.stdout)
+        assert payload["vk_driver_files"] == str(private_icd)
+        assert payload["vk_driver_files_at_end"] is True
+
+        result = invoke(
+            wrapper,
+            proc_net,
+            ["--proc", "/proc", "--", "/bin/true"],
+            env_overrides={
+                "STEAM_ARM64_HOST_VK_DRIVER_FILES": str(tempdir / "wrong.json")
+            },
+        )
+        assert result.returncode == 125
+        assert "unexpected native Vulkan ICD path" in result.stderr
 
         result = invoke(
             wrapper,

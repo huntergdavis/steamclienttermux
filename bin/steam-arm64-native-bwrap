@@ -19,6 +19,7 @@ proot_patch_stamp=${custom_proot_dir%/src}/.steamclienttermux-patchset
 required_proot_patch=proot-runtime-directory-bind-target.patch
 proot_distro=${PREFIX:-}/bin/proot-distro
 mesa_lib=$base/mesa-kgsl/usr/lib/aarch64-linux-gnu
+host_vk_driver_files=$base/mesa-kgsl/icd.d/freedreno-private.json
 bridge_mode=${STEAM_ARM64_NATIVE_BRIDGE_MODE:-bwrap}
 runtime_direct=${STEAM_ARM64_RUNTIME_DIRECT:-1}
 direct_run=$base/config/steamlinuxruntime4-run-direct
@@ -66,6 +67,15 @@ sdk_target=$(readlink -- "$sdk_link") ||
     fail 'validated hosts or /proc/net shadow is unavailable'
 [[ -d $mesa_lib && ! -L $mesa_lib ]] ||
     fail "Mesa library directory is unavailable: $mesa_lib"
+[[ -f $host_vk_driver_files && ! -L $host_vk_driver_files &&
+        -s $host_vk_driver_files ]] ||
+    fail "private Vulkan ICD is unavailable: $host_vk_driver_files"
+[[ $(stat -c %u -- "$host_vk_driver_files") == $(id -u) ]] ||
+    fail 'private Vulkan ICD has an unexpected owner'
+icd_mode=$(stat -c %a -- "$host_vk_driver_files")
+[[ $icd_mode =~ ^[0-7]{3,4}$ ]] || fail 'private Vulkan ICD has an invalid mode'
+(( (8#$icd_mode & 0022) == 0 )) ||
+    fail 'private Vulkan ICD must not be group- or other-writable'
 [[ $runtime_direct == 0 || $runtime_direct == 1 ]] ||
     fail 'STEAM_ARM64_RUNTIME_DIRECT must be 0 or 1'
 if [[ $runtime_direct == 1 ]]; then
@@ -178,6 +188,7 @@ pd_args+=(--env "PATH=$guest_path")
 pd_args+=(--env "LD_LIBRARY_PATH=$mesa_lib")
 pd_args+=(--env "STEAM_ARM64_REAL_BWRAP=$real_bwrap")
 pd_args+=(--env "STEAM_ARM64_PROC_NET=$proc_net")
+pd_args+=(--env "STEAM_ARM64_HOST_VK_DRIVER_FILES=$host_vk_driver_files")
 pd_args+=(--env "PROOT_L2S_EXDEV_PREFIX=$runtime_depot/var/tmp-")
 
 case $bridge_mode in
