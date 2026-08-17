@@ -4899,3 +4899,38 @@ The required `deja "Steam get_robust_list synthetic pthread robust head syscall
 shim Termux glibc"` search returned no indexed implementation. The fix reuses
 only the launcher's established gated-preload boundary and the Linux robust
 futex ABI fields proven by the captured Steam instructions.
+
+## 2026-08-16: expose the split removable library to native Steam
+
+The first App ID 203160 forward into the stable native client reached Steam:
+the singleton accepted the command and `stats_log.txt` loaded Tomb Raider's
+schema at 04:30:33 UTC. It never wrote an `AppID 203160 adding PID` record.
+Both copies of `libraryfolders.vdf` explained why: the registered removable
+entry had an empty `apps` block, and its native path contained only Steam's
+90-byte `libraryfolder.vdf`. The old PRoot client had populated this same guest
+path with layered binds, but a truly native client had no view of the internal
+appmanifests or SD-card `common` payload.
+
+The fix keeps the established split-storage policy. An exact
+`removable-library/steamapps` link exposes the internal F2FS control tree to the
+native client. Exact `common`, `compatdata`, and `downloading` links within that
+tree expose, respectively, the removable payload and the two dedicated internal
+backings. A live tablet probe proved that PRoot's outer and nested binds override
+these symlink-backed targets: the internal control marker and external payload
+were both visible in the guest, while the host target remained untouched.
+Thus the game boundary retains the existing bind topology and native Steam gains
+the library view it was missing.
+
+`prepare` validates every target and link owner, refuses redirected or
+non-directory data, and now refuses to mutate while Steam, a webhelper, or Wine
+is active. An older directory-only mountpoint skeleton is accepted only after a
+recursive no-files/no-links check, then moved intact to a timestamped backup;
+the migration rolls back completed link operations on failure. Host regressions
+cover fresh setup, idempotence, storage reconfiguration, link redirection,
+legacy migration, malformed metadata, and the prior staging/registration paths.
+The required `deja "native Steam accepts forwarded steam://rungameid command but
+gameprocess does not launch removable library Android Termux"` and `deja "PRoot
+bind target is symlink nested bind Steam library common symlink external
+storage"` searches returned no indexed solution. The design reuses this
+repository's existing internal-control/external-payload split and exact nested
+bind order.

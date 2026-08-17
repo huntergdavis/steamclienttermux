@@ -52,30 +52,54 @@ def inspect_directory_skeleton(path, label):
     return metadata
 
 
-def inspect_library_mountpoint(path):
-    inspect_directory(path, "internal library mount point")
-    entries = list(path.iterdir())
-    if not entries:
-        return
-    if len(entries) != 1 or entries[0].name != "libraryfolder.vdf":
-        raise RuntimeError("internal library mount point must be empty or contain only Steam metadata")
-    marker = entries[0]
-    metadata = inspect_regular_file(marker, "Steam library metadata")
-    if metadata.st_uid != os.getuid() or stat.S_IMODE(metadata.st_mode) & 0o077:
-        raise RuntimeError("Steam library metadata has unsafe ownership or permissions")
-    if metadata.st_size > 4096:
-        raise RuntimeError("Steam library metadata is unexpectedly large")
+def inspect_exact_directory_link(path, expected, label):
     try:
-        contents = marker.read_text(encoding="utf-8")
-    except (OSError, UnicodeError) as error:
-        raise RuntimeError("Steam library metadata is unreadable") from error
-    metadata_pattern = re.compile(
-        r'"libraryfolder"\r?\n\{\r?\n'
-        r'\t"contentid"\t\t"[0-9]+"\r?\n'
-        r'\t"label"\t\t"[^"\r\n]{0,128}"\r?\n\}\r?\n'
+        metadata = path.lstat()
+    except FileNotFoundError as error:
+        raise RuntimeError(f"{label} is missing: {path}") from error
+    if not stat.S_ISLNK(metadata.st_mode):
+        raise RuntimeError(f"{label} is not a symbolic link: {path}")
+    if metadata.st_uid != os.getuid():
+        raise RuntimeError(f"{label} has an unexpected owner: {path}")
+    target = os.readlink(path)
+    if target != str(expected):
+        raise RuntimeError(
+            f"{label} has an unexpected target: {path} -> {target}"
+        )
+    inspect_directory(expected, f"{label} target")
+    return metadata
+
+
+def inspect_library_mountpoint(path, steamapps_control):
+    inspect_directory(path, "internal library mount point")
+    entries = {entry.name: entry for entry in path.iterdir()}
+    unexpected = sorted(set(entries) - {"libraryfolder.vdf", "steamapps"})
+    if unexpected:
+        raise RuntimeError(
+            "internal library mount point contains unexpected data: "
+            + ", ".join(unexpected)
+        )
+    inspect_exact_directory_link(
+        path / "steamapps", steamapps_control, "native Steam control link"
     )
-    if metadata_pattern.fullmatch(contents) is None:
-        raise RuntimeError("Steam library metadata has unexpected contents")
+    marker = entries.get("libraryfolder.vdf")
+    if marker is not None:
+        metadata = inspect_regular_file(marker, "Steam library metadata")
+        if metadata.st_uid != os.getuid() or stat.S_IMODE(metadata.st_mode) & 0o077:
+            raise RuntimeError("Steam library metadata has unsafe ownership or permissions")
+        if metadata.st_size > 4096:
+            raise RuntimeError("Steam library metadata is unexpectedly large")
+        try:
+            contents = marker.read_text(encoding="utf-8")
+        except (OSError, UnicodeError) as error:
+            raise RuntimeError("Steam library metadata is unreadable") from error
+        metadata_pattern = re.compile(
+            r'"libraryfolder"\r?\n\{\r?\n'
+            r'\t"contentid"\t\t"[0-9]+"\r?\n'
+            r'\t"label"\t\t"[^"\r\n]{0,128}"\r?\n\}\r?\n'
+        )
+        if metadata_pattern.fullmatch(contents) is None:
+            raise RuntimeError("Steam library metadata has unexpected contents")
 
 
 def inspect_config(path):
@@ -140,6 +164,103 @@ def layout_paths(base, source):
         "download_state": base / "removable-library-downloads",
         "config": base / "config" / CONFIG_NAME,
     }
+
+
+def install_native_library_view(paths, backups_dir, prior_paths=None):
+    """Install exact links that expose the split library outside PRoot."""
+    specs = (
+        (
+            paths["target"] / "steamapps",
+            paths["steamapps_control"],
+            None if prior_paths is None else prior_paths["steamapps_control"],
+            "target-steamapps",
+            "native Steam control link",
+        ),
+        (
+            paths["steamapps_control"] / "common",
+            paths["external_common"],
+            None if prior_paths is None else prior_paths["external_common"],
+            "control-common",
+            "native Steam payload link",
+        ),
+        (
+            paths["steamapps_control"] / "compatdata",
+            paths["compatdata"],
+            None if prior_paths is None else prior_paths["compatdata"],
+            "control-compatdata",
+            "native Steam compatdata link",
+        ),
+        (
+            paths["steamapps_control"] / "downloading",
+            paths["download_state"],
+            None if prior_paths is None else prior_paths["download_state"],
+            "control-downloading",
+            "native Steam download-state link",
+        ),
+    )
+    actions = []
+    for path, expected, prior, backup_name, label in specs:
+        inspect_directory(expected, f"{label} target")
+        try:
+            metadata = path.lstat()
+        except FileNotFoundError:
+            actions.append(("create", path, expected, None, backup_name, label))
+            continue
+        if stat.S_ISLNK(metadata.st_mode):
+            current = os.readlink(path)
+            if current == str(expected):
+                if metadata.st_uid != os.getuid():
+                    raise RuntimeError(f"{label} has an unexpected owner: {path}")
+                continue
+            if prior is not None and current == str(prior):
+                actions.append(
+                    ("replace", path, expected, current, backup_name, label)
+                )
+                continue
+            raise RuntimeError(f"{label} has an unexpected target: {path} -> {current}")
+        inspect_directory_skeleton(path, f"legacy {label}")
+        actions.append(("migrate", path, expected, None, backup_name, label))
+
+    backup = None
+    if any(action[0] == "migrate" for action in actions):
+        backups_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+        stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        backup = Path(
+            tempfile.mkdtemp(
+                prefix=f"removable-library-native-view-{stamp}-",
+                dir=backups_dir,
+            )
+        )
+
+    completed = []
+    try:
+        for action, path, expected, prior, backup_name, label in actions:
+            backup_path = None
+            if action == "migrate":
+                backup_path = backup / backup_name
+                os.replace(path, backup_path)
+            elif action == "replace":
+                path.unlink()
+            path.symlink_to(expected, target_is_directory=True)
+            inspect_exact_directory_link(path, expected, label)
+            completed.append((action, path, prior, backup_path))
+    except Exception:
+        for action, path, prior, backup_path in reversed(completed):
+            try:
+                path.unlink()
+                if action == "migrate":
+                    os.replace(backup_path, path)
+                elif action == "replace":
+                    path.symlink_to(prior, target_is_directory=True)
+            except OSError:
+                pass
+        if backup is not None:
+            try:
+                backup.rmdir()
+            except OSError:
+                pass
+        raise
+    return backup
 
 
 def inspect_staging_tree(path, label):
@@ -234,7 +355,6 @@ def validate_layout(base, source, storage_root=Path("/storage"), staging_binds=N
         raise RuntimeError(f"unexpected removable library path: {source}")
     paths = layout_paths(base, resolved_source)
     inspect_directory(paths["source"], "removable library")
-    inspect_library_mountpoint(paths["target"])
     inspect_directory(paths["steamapps_control"], "internal Steam control root")
     inspect_directory(paths["external_steamapps"], "external steamapps root")
     unexpected_external = sorted(
@@ -251,18 +371,22 @@ def validate_layout(base, source, storage_root=Path("/storage"), staging_binds=N
     inspect_directory(paths["external_staging"], "external staging root")
     inspect_directory(paths["compatdata"], "internal removable-library compatdata")
     inspect_directory(paths["download_state"], "internal removable-library downloads")
-    inspect_directory_skeleton(
+    inspect_exact_directory_link(
         paths["steamapps_control"] / "common",
-        "internal common mount point",
+        paths["external_common"],
+        "native Steam payload link",
     )
-    inspect_directory_skeleton(
+    inspect_exact_directory_link(
         paths["steamapps_control"] / "compatdata",
-        "internal compatdata mount point",
+        paths["compatdata"],
+        "native Steam compatdata link",
     )
-    inspect_directory_skeleton(
+    inspect_exact_directory_link(
         paths["steamapps_control"] / "downloading",
-        "internal downloads mount point",
+        paths["download_state"],
+        "native Steam download-state link",
     )
+    inspect_library_mountpoint(paths["target"], paths["steamapps_control"])
     if not os.access(paths["source"], os.R_OK | os.W_OK | os.X_OK):
         raise RuntimeError(f"removable library is not readable and writable: {resolved_source}")
     free_bytes = os.statvfs(resolved_source).f_bavail * os.statvfs(resolved_source).f_frsize
@@ -459,24 +583,28 @@ def prepare_layout(base, external_parent, storage_root=Path("/storage")):
     download_state = base / "removable-library-downloads"
     target.mkdir(mode=0o700, exist_ok=True)
     steamapps_control.mkdir(mode=0o700, exist_ok=True)
-    (steamapps_control / "common").mkdir(mode=0o700, exist_ok=True)
-    (steamapps_control / "compatdata").mkdir(mode=0o700, exist_ok=True)
-    (steamapps_control / "downloading").mkdir(mode=0o700, exist_ok=True)
     compatdata.mkdir(mode=0o700, exist_ok=True)
     download_state.mkdir(mode=0o700, exist_ok=True)
     staging_binds = {}
+    prior_paths = None
     config = base / "config" / CONFIG_NAME
     if inspect_config(config) is not None:
         payload = load_config_payload(config)
+        prior_source = Path(payload["source"])
+        if prior_source.is_absolute():
+            prior_paths = layout_paths(base, prior_source)
         if payload["source"] == str(source):
             staging_binds = payload["staging_binds"]
+    view_backup = install_native_library_view(
+        layout_paths(base, source), base / "backups", prior_paths
+    )
     paths = validate_layout(base, source, storage_root, staging_binds)
     backup = write_config(
         paths["config"],
         config_bytes(paths["source"], staging_binds),
         base / "backups",
     )
-    return paths, backup
+    return paths, backup, view_backup
 
 
 def load_config_payload(config):
@@ -978,7 +1106,13 @@ def main():
     storage_root = Path(args.storage_root)
     try:
         if args.action == "prepare":
-            paths, backup = prepare_layout(
+            running = find_running_processes()
+            if running:
+                details = ", ".join(f"{pid}:{comm}" for pid, comm in running)
+                raise RuntimeError(
+                    f"refusing to prepare the library while processes are active: {details}"
+                )
+            paths, backup, view_backup = prepare_layout(
                 base, Path(args.external_parent), storage_root
             )
             print(f"Removable Steam library prepared: {paths['source']}")
@@ -988,6 +1122,8 @@ def main():
             print(f"Internal download state: {paths['download_state']}")
             if backup is not None:
                 print(f"Previous configuration backup: {backup}")
+            if view_backup is not None:
+                print(f"Previous mountpoint skeleton backup: {view_backup}")
             print("With Steam stopped, run register and deploy the launcher before starting Steam.")
             return 0
 

@@ -71,8 +71,9 @@ def write_depot_manifest(path, depot_id, manifest_gid, original_size):
 
 def test_prepare_and_idempotence(module, temporary):
     storage, external, link, base = fixture(temporary)
-    paths, backup = module.prepare_layout(base, link, storage)
+    paths, backup, view_backup = module.prepare_layout(base, link, storage)
     assert backup is None
+    assert view_backup is None
     assert paths["source"] == external / module.LIBRARY_NAME
     assert paths["target"].is_dir()
     assert paths["steamapps_control"].is_dir()
@@ -80,9 +81,22 @@ def test_prepare_and_idempotence(module, temporary):
     assert paths["external_staging"].is_dir()
     assert paths["compatdata"].is_dir()
     assert paths["download_state"].is_dir()
-    assert (paths["steamapps_control"] / "common").is_dir()
-    assert (paths["steamapps_control"] / "compatdata").is_dir()
-    assert (paths["steamapps_control"] / "downloading").is_dir()
+    assert (paths["target"] / "steamapps").is_symlink()
+    assert os.readlink(paths["target"] / "steamapps") == str(
+        paths["steamapps_control"]
+    )
+    assert (paths["steamapps_control"] / "common").is_symlink()
+    assert os.readlink(paths["steamapps_control"] / "common") == str(
+        paths["external_common"]
+    )
+    assert (paths["steamapps_control"] / "compatdata").is_symlink()
+    assert os.readlink(paths["steamapps_control"] / "compatdata") == str(
+        paths["compatdata"]
+    )
+    assert (paths["steamapps_control"] / "downloading").is_symlink()
+    assert os.readlink(paths["steamapps_control"] / "downloading") == str(
+        paths["download_state"]
+    )
     config = paths["config"]
     assert stat.S_IMODE(config.stat().st_mode) == 0o600
     assert json.loads(config.read_text()) == {
@@ -92,72 +106,74 @@ def test_prepare_and_idempotence(module, temporary):
     }
     loaded = module.load_layout(base, storage)
     assert loaded == paths
-    second_paths, second_backup = module.prepare_layout(base, link, storage)
+    second_paths, second_backup, second_view_backup = module.prepare_layout(
+        base, link, storage
+    )
     assert second_paths == paths
     assert second_backup is None
+    assert second_view_backup is None
     assert not (base / "backups").exists()
 
 
 def test_reconfiguration_backup(module, temporary):
     storage, _external, link, base = fixture(temporary)
-    paths, _backup = module.prepare_layout(base, link, storage)
+    paths, _backup, _view_backup = module.prepare_layout(base, link, storage)
     original = paths["config"].read_bytes()
     other = storage / "ABCD-1234/Android/data/com.termux/files"
     other.mkdir(parents=True)
     other_link = temporary / "external-2"
     other_link.symlink_to(other)
-    _new_paths, backup = module.prepare_layout(base, other_link, storage)
+    new_paths, backup, view_backup = module.prepare_layout(base, other_link, storage)
     assert backup is not None
+    assert view_backup is None
     assert (backup / module.CONFIG_NAME).read_bytes() == original
     assert stat.S_IMODE(backup.stat().st_mode) == 0o700
+    assert os.readlink(new_paths["steamapps_control"] / "common") == str(
+        new_paths["external_common"]
+    )
 
 
 def test_hidden_data_refusals(module, temporary):
     storage, _external, link, base = fixture(temporary)
-    paths, _backup = module.prepare_layout(base, link, storage)
-    compatdata_mount = paths["steamapps_control"] / "compatdata"
-    downloads_mount = paths["steamapps_control"] / "downloading"
+    paths, _backup, _view_backup = module.prepare_layout(base, link, storage)
     common_mount = paths["steamapps_control"] / "common"
-    (compatdata_mount / "588950").mkdir()
-    (downloads_mount / "588951").mkdir()
-    (common_mount / "Kingsway").mkdir()
     assert module.load_layout(base, storage) == paths
-    (compatdata_mount / "588950" / "unexpected-prefix").write_text("unsafe")
+    common_mount.unlink()
+    common_mount.mkdir()
+    (common_mount / "unexpected-payload").write_text("unsafe")
     try:
         module.load_layout(base, storage)
     except RuntimeError as error:
-        assert "internal compatdata mount point contains non-directory data" in str(
-            error
-        )
+        assert "native Steam payload link is not a symbolic link" in str(error)
     else:
-        raise AssertionError("internal compatdata file was accepted")
-    (compatdata_mount / "588950" / "unexpected-prefix").unlink()
-    (downloads_mount / "588951" / "unexpected-download").write_text("unsafe")
-    try:
-        module.load_layout(base, storage)
-    except RuntimeError as error:
-        assert "internal downloads mount point contains non-directory data" in str(error)
-    else:
-        raise AssertionError("internal downloads file was accepted")
-    (downloads_mount / "588951" / "unexpected-download").unlink()
-    (common_mount / "Kingsway" / "unexpected-payload").write_text("unsafe")
-    try:
-        module.load_layout(base, storage)
-    except RuntimeError as error:
-        assert "internal common mount point contains non-directory data" in str(error)
-    else:
-        raise AssertionError("internal common file was accepted")
-    (common_mount / "Kingsway" / "unexpected-payload").unlink()
+        raise AssertionError("real native payload directory was accepted")
+    (common_mount / "unexpected-payload").unlink()
+    common_mount.rmdir()
+    common_mount.symlink_to(paths["external_common"], target_is_directory=True)
     unsafe_target = temporary / "unsafe-target"
     unsafe_target.mkdir()
-    (common_mount / "unsafe-link").symlink_to(unsafe_target)
+    compatdata_link = paths["steamapps_control"] / "compatdata"
+    compatdata_link.unlink()
+    compatdata_link.symlink_to(unsafe_target, target_is_directory=True)
     try:
         module.load_layout(base, storage)
     except RuntimeError as error:
-        assert "internal common mount point contains non-directory data" in str(error)
+        assert "native Steam compatdata link has an unexpected target" in str(error)
     else:
-        raise AssertionError("internal common symlink was accepted")
-    (common_mount / "unsafe-link").unlink()
+        raise AssertionError("redirected native compatdata link was accepted")
+    compatdata_link.unlink()
+    compatdata_link.symlink_to(paths["compatdata"], target_is_directory=True)
+    steamapps_link = paths["target"] / "steamapps"
+    steamapps_link.unlink()
+    steamapps_link.symlink_to(unsafe_target, target_is_directory=True)
+    try:
+        module.load_layout(base, storage)
+    except RuntimeError as error:
+        assert "native Steam control link has an unexpected target" in str(error)
+    else:
+        raise AssertionError("redirected native control link was accepted")
+    steamapps_link.unlink()
+    steamapps_link.symlink_to(paths["steamapps_control"], target_is_directory=True)
     (paths["external_steamapps"] / "appmanifest_unsafe.acf").write_text("unsafe")
     try:
         module.load_layout(base, storage)
@@ -185,14 +201,41 @@ def test_hidden_data_refusals(module, temporary):
     try:
         module.load_layout(base, storage)
     except RuntimeError as error:
-        assert "must be empty or contain only Steam metadata" in str(error)
+        assert "internal library mount point contains unexpected data" in str(error)
     else:
         raise AssertionError("nonempty internal mount point was accepted")
 
 
+def test_legacy_native_view_migration(module, temporary):
+    storage, _external, link, base = fixture(temporary)
+    target = base / "removable-library"
+    control = base / "removable-library-steamapps"
+    target_steamapps = target / "steamapps"
+    common = control / "common"
+    compatdata = control / "compatdata"
+    downloading = control / "downloading"
+    (target_steamapps / "legacy").mkdir(parents=True)
+    (common / "Tomb Raider").mkdir(parents=True)
+    (compatdata / "203160").mkdir(parents=True)
+    downloading.mkdir(parents=True)
+
+    paths, config_backup, view_backup = module.prepare_layout(base, link, storage)
+    assert config_backup is None
+    assert view_backup is not None
+    assert (view_backup / "target-steamapps/legacy").is_dir()
+    assert (view_backup / "control-common/Tomb Raider").is_dir()
+    assert (view_backup / "control-compatdata/203160").is_dir()
+    assert (view_backup / "control-downloading").is_dir()
+    assert (paths["target"] / "steamapps").is_symlink()
+    assert (paths["steamapps_control"] / "common").is_symlink()
+    assert (paths["steamapps_control"] / "compatdata").is_symlink()
+    assert (paths["steamapps_control"] / "downloading").is_symlink()
+    assert module.load_layout(base, storage) == paths
+
+
 def test_configuration_refusals(module, temporary):
     storage, _external, link, base = fixture(temporary)
-    paths, _backup = module.prepare_layout(base, link, storage)
+    paths, _backup, _view_backup = module.prepare_layout(base, link, storage)
     config = paths["config"]
     config.chmod(0o644)
     try:
@@ -216,13 +259,8 @@ def test_configuration_refusals(module, temporary):
 
 def test_removed_card(module, temporary):
     storage, external, link, base = fixture(temporary)
-    paths, _backup = module.prepare_layout(base, link, storage)
+    paths, _backup, _view_backup = module.prepare_layout(base, link, storage)
     library = paths["source"]
-    control = paths["steamapps_control"]
-    (control / "common").rmdir()
-    (control / "compatdata").rmdir()
-    (control / "downloading").rmdir()
-    control.rmdir()
     paths["external_common"].rmdir()
     paths["external_steamapps"].rmdir()
     paths["external_staging"].rmdir()
@@ -244,7 +282,7 @@ def test_disabled(module, temporary):
 
 def test_staging_bind(module, temporary):
     storage, _external, link, base = fixture(temporary)
-    paths, _backup = module.prepare_layout(base, link, storage)
+    paths, _backup, _view_backup = module.prepare_layout(base, link, storage)
     appid = "12210"
     external_staging = paths["external_staging"] / appid
     internal_staging = paths["download_state"] / appid
@@ -305,7 +343,7 @@ def test_staging_bind(module, temporary):
 
 def test_commit_staging(module, temporary):
     storage, _external, link, base = fixture(temporary)
-    paths, _backup = module.prepare_layout(base, link, storage)
+    paths, _backup, _view_backup = module.prepare_layout(base, link, storage)
     appid = "12210"
     external_staging = paths["external_staging"] / appid
     internal_staging = paths["download_state"] / appid
@@ -399,7 +437,7 @@ def test_commit_staging(module, temporary):
 
 def test_commit_staging_rejects_mismatched_overlap(module, temporary):
     storage, _external, link, base = fixture(temporary)
-    paths, _backup = module.prepare_layout(base, link, storage)
+    paths, _backup, _view_backup = module.prepare_layout(base, link, storage)
     appid = "12210"
     external_staging = paths["external_staging"] / appid
     internal_staging = paths["download_state"] / appid
@@ -436,7 +474,7 @@ def test_commit_staging_rejects_mismatched_overlap(module, temporary):
 
 def test_registration(module, temporary):
     storage, _external, link, base = fixture(temporary)
-    paths, _backup = module.prepare_layout(base, link, storage)
+    paths, _backup, _view_backup = module.prepare_layout(base, link, storage)
     libraryfolders = base / "client/steamapps/libraryfolders.vdf"
     original = libraryfolders.read_bytes()
     backup, index = module.register_library(base, paths)
@@ -455,7 +493,7 @@ def test_registration(module, temporary):
 
 def test_registration_refusals(module, temporary):
     storage, _external, link, base = fixture(temporary)
-    paths, _backup = module.prepare_layout(base, link, storage)
+    paths, _backup, _view_backup = module.prepare_layout(base, link, storage)
     libraryfolders = base / "client/steamapps/libraryfolders.vdf"
     before = libraryfolders.read_bytes()
     try:
@@ -483,6 +521,7 @@ def main():
         test_prepare_and_idempotence,
         test_reconfiguration_backup,
         test_hidden_data_refusals,
+        test_legacy_native_view_migration,
         test_configuration_refusals,
         test_removed_card,
         test_disabled,

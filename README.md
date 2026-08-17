@@ -669,10 +669,13 @@ loader plus its exact `--argv0` Steam target. This keeps existing-session
 forwarding, CPU affinity, and graceful stop behavior coherent even though the
 kernel-visible first argument is the loader rather than `steam`.
 
-The removable-library hidden-data guard permits Steam's private, owned,
-strictly parsed `libraryfolder.vdf` descriptor in the otherwise-empty bind
-target. It still refuses every unrelated entry or malformed descriptor, so a
-native client can forward a game without weakening payload protection.
+The removable-library hidden-data guard permits only Steam's private, owned,
+strictly parsed `libraryfolder.vdf` descriptor and an exact `steamapps` link in
+the bind target. That native view leads to the internal, lock-safe manifest
+tree; exact links expose the card-backed `common` payload and the dedicated
+internal compatdata/download trees. The existing PRoot game boundary overlays
+the same paths with nested binds. Unrelated entries, redirected links, and
+malformed descriptors remain refusals.
 
 The native client and CEF do not run below PRoot. A narrowly gated compatibility
 shim proved that opening exactly `/proc/self/root` with `O_PATH` clears the
@@ -826,7 +829,10 @@ Use this library only for Windows game depots. The launcher keeps Steam's
 and uses dedicated internal compatdata and active-download directories. Android's
 portable-storage FUSE does not implement the file locks Steam needs for manifests
 or patch state. The launcher fails early if the card is absent or the layout is
-unsafe.
+unsafe. `prepare` also installs the exact native-client links needed to see that
+split layout without PRoot. When upgrading an older layout, its directory-only
+mountpoint skeletons are moved intact to a timestamped backup before the links
+are installed.
 
 Large depots can make Steam's cross-filesystem commit path spend seconds per
 file under PRoot. With Steam stopped, copy one numeric `downloading/<appid>`
