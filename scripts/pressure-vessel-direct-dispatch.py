@@ -363,7 +363,43 @@ def run_loader_child(
     environment: dict[str, str],
     descriptors: list[int],
     target_numbers: list[int],
+    trace_path: Path | None = None,
 ) -> tuple[int, int]:
+    executable = loader
+    execution_arguments = arguments
+    execution_environment = environment
+    if trace_path is not None:
+        prefix = os.environ.get("PREFIX", "")
+        strace = Path(prefix) / "bin/strace"
+        metadata = strace.lstat()
+        if (
+            not stat.S_ISREG(metadata.st_mode)
+            or strace.is_symlink()
+            or metadata.st_uid != os.geteuid()
+            or metadata.st_mode & 0o022
+            or not os.access(strace, os.X_OK)
+        ):
+            fail(f"Termux strace is unavailable or unsafe: {strace}")
+        execution_environment = environment.copy()
+        forwarded: list[str] = []
+        for name in ("LD_PRELOAD", "LD_LIBRARY_PATH", "GLIBC_LD_LIBRARY_PATH"):
+            value = execution_environment.pop(name, None)
+            if value is not None:
+                forwarded.extend(["-E", f"{name}={value}"])
+        executable = strace
+        execution_arguments = [
+            str(strace),
+            "-f",
+            "-qq",
+            "-s",
+            "256",
+            "-o",
+            str(trace_path),
+            "-e",
+            "trace=%file,%process,%memory",
+            *forwarded,
+            *arguments,
+        ]
     ready_read, ready_write = os.pipe()
     process = os.fork()
     if process == 0:
@@ -373,7 +409,7 @@ def run_loader_child(
                 os._exit(125)
             os.close(ready_read)
             remap_descriptors(descriptors, target_numbers)
-            os.execve(loader, arguments, environment)
+            os.execve(executable, execution_arguments, execution_environment)
         except BaseException:
             os._exit(125)
     os.close(ready_read)
@@ -698,8 +734,16 @@ def run_proton_arm64_cmd_smoke(
     loader, arguments, environment = pv_smoke_invocation(
         base, payload, "proton-arm64-cmd"
     )
+    logs = private_directory(base / "logs", "Steam log directory")
+    trace_path = logs / f"proton-arm64-wine-{os.getpid()}.strace"
+    print(f"STRACE_LOG={trace_path}", flush=True)
     return run_loader_child(
-        loader, arguments, environment, descriptors, payload["fd_numbers"]
+        loader,
+        arguments,
+        environment,
+        descriptors,
+        payload["fd_numbers"],
+        trace_path,
     )
 
 

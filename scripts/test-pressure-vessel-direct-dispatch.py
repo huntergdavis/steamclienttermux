@@ -35,6 +35,9 @@ def main() -> None:
     assert "environment" not in serve_source
     assert "REQUEST_RECEIVED=1" in serve_source
     assert "DISPATCH_STATUS=" in serve_source
+    arm64_source = inspect.getsource(MODULE.run_proton_arm64_cmd_smoke)
+    assert "proton-arm64-wine-" in arm64_source
+    assert "trace_path" in arm64_source
 
     plan = json.loads(PLAN.read_text(encoding="utf-8"))
     assert plan["kind"] == "pressure-vessel-bwrap-plan"
