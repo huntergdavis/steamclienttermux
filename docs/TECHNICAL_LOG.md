@@ -4640,3 +4640,39 @@ or library root is not a safe generic prefix. The candidate remains available
 for a future game-specific end-to-end A/B after choosing and validating a
 narrow prefix. Exact trials are in
 [`docs/evidence/proot-native-fastpath-profile-20260816.txt`](evidence/proot-native-fastpath-profile-20260816.txt).
+
+## 2026-08-16: signal-correct glibc candidate ready for native A/B
+
+The first official patched package passed this project's control/wakeup probe,
+but glibc 2.44's own `sysvipc/test-sysvsem.c` exposed two public-contract gaps:
+a blocked `semop` swallowed `EINTR`, and an unrepresentable `semtimedop`
+timeout returned `EINVAL` instead of `EOVERFLOW`. The client transport now has
+an interruptible receive path. On signal interruption it closes the waiting
+broker connection, returns `EINTR`, and reconnects on the next semaphore call;
+the glibc overlay also performs the required timeout range check.
+
+The pinned official Termux recipe produced a new 9,828,432-byte ARM64 package
+with SHA-256
+`52f5ce13b66fc3307f48285d32b72951472493e91b96fc3e08c0c42772d999f3`.
+Its exported `semget`, `semctl`, `semop`, and `semtimedop` symbols retain
+`GLIBC_2.17` versions. The package hash matched after transfer to the Tab S8+;
+the extraction-only control/wakeup gate passed, the package was staged below
+`~/.local/share/tgcompat/glibc/<sha256>`, and upstream `test-sysvsem` exited
+zero through the candidate loader. The complete non-launching native
+Steam/CEF and generic Pressure Vessel boundary preflight then passed with the
+new selector.
+
+The active `$PREFIX/glibc`, official Steam files, and authenticated client
+state were not changed, and no Steam UI or game was launched during these
+gates. The ordinary test command is now `~/start-tombraider-native.sh`; the
+existing structured timer should measure `Game process added` through first
+visible window for the direct comparison with the 6:47 PRoot boundary and
+9:01 full-session observation.
+
+The package overlay now preserves Termux's configured job count in both the
+overridden build and install steps. This removes the one-job multilib
+install-time dependency refresh observed during this official build. The
+required `deja` searches for upstream `test-sysvsem` automation and parallel
+Termux glibc installation found no indexed implementation. Reused work is the
+repository's existing native launcher and game-boundary preflight, the pinned
+official Termux recipe, and glibc's own 2.44 test program.

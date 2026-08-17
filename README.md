@@ -76,12 +76,13 @@ Mesa Turnip, official Proton 11 ARM64, and its bundled FEX/DXVK stack.
   the ARM64 Steam bootstrap plus POSIX spawn, and the experimental launcher
   resolves Steam and CEF dependencies directly from staged glibc, official
   client, Turnip, and existing Debian library trees. The official glibc 2.44
-  package built from the pinned Termux recipe now passes an extracted-package
-  SysV-semaphore control/wakeup test on the tablet. Its exact SHA-256 is
-  `bd490b547660f7857e26a02fff168d7818e1b6d49adab37f0cc7d7566c9aed7c`.
-  The non-launching native Steam/CEF preflight passes against that
-  content-addressed candidate; the installed tablet glibc, active all-PRoot
-  launcher, and saved Steam login remain untouched.
+  package built from the pinned Termux recipe now passes both the extracted
+  SysV-semaphore control/wakeup test and upstream glibc 2.44 `test-sysvsem` on
+  the tablet. Its exact SHA-256 is
+  `52f5ce13b66fc3307f48285d32b72951472493e91b96fc3e08c0c42772d999f3`.
+  The non-launching native Steam/CEF and generic game-boundary preflights pass
+  against that content-addressed candidate; the installed tablet glibc,
+  active all-PRoot launcher, and saved Steam login remain untouched.
 
 ### Current benchmark target: Tomb Raider (2013)
 
@@ -600,8 +601,11 @@ The selected official package was built from Termux glibc-packages commit
 `954c6b2`, copied without repacking, hash-checked on the tablet, extracted into
 its own content-addressed directory, and tested there before selection. The
 black-box probe compiled and ran with the candidate loader and reported
-`SysV semaphore control and wakeup: ok`. No package was installed over
-`$PREFIX/glibc`.
+`SysV semaphore control and wakeup: ok`. Upstream glibc 2.44's complete
+`test-sysvsem` then exited zero against the same candidate and broker. The
+selected package hash is
+`52f5ce13b66fc3307f48285d32b72951472493e91b96fc3e08c0c42772d999f3`;
+no package was installed over `$PREFIX/glibc`.
 
 The loader shim changes no Steam binary. At each child boundary it reads the
 ELF interpreter and wraps matching AArch64 Linux targets with the staged
