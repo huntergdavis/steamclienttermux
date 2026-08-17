@@ -15,6 +15,7 @@ crash_dir=$runtime_dir/dumps
 compat_repo=${TGCOMPAT_REPO:-$HOME/workspace/termux-glibc-compat}
 candidate_selector=${TGCOMPAT_GLIBC_ROOT:-$HOME/.local/share/tgcompat/glibc/current}
 exec_shim=${TGCOMPAT_EXEC_SHIM:-$compat_repo/build/libtgcompat-exec.so}
+tmp_shim=${STEAM_ARM64_TMP_SHIM:-$compat_bin/steam-arm64-native-tmp.so}
 linux_root_selector=${STEAM_ARM64_NATIVE_ROOTFS:-$PREFIX/var/lib/proot-distro/containers/debian/rootfs}
 session_tool=$compat_repo/scripts/tgcompat-session.sh
 termux_exec_hook=${TERMUX_EXEC_GLIBC:-$PREFIX/glibc/lib/libtermux-exec.so}
@@ -57,6 +58,8 @@ done
 [[ -d $mesa_lib && -f $icd ]] || fail "Turnip/Mesa runtime is incomplete: $base/mesa-kgsl"
 [[ -x $exec_shim && ! -L $exec_shim ]] ||
     fail "glibc exec shim is missing: $exec_shim"
+[[ -f $tmp_shim && ! -L $tmp_shim ]] ||
+    fail "native /tmp shim is missing: $tmp_shim"
 [[ -x $session_tool && -x $compat_repo/build/tgcompatd ]] ||
     fail "native semaphore broker is not built: $compat_repo"
 [[ -f $termux_exec_hook && ! -L $termux_exec_hook ]] ||
@@ -249,7 +252,7 @@ dbus_pid=$(<"$dbus_pid_file")
 [[ -n $dbus_address && $dbus_pid =~ ^[1-9][0-9]*$ ]] ||
     fail 'unable to start the private Steam D-Bus session'
 
-preload=$exec_shim:$termux_exec_hook
+preload=$tmp_shim:$exec_shim:$termux_exec_hook
 log=$(python3 "$session_guard" create-log --logs-dir "$base/logs")
 
 removable_mount=$(python3 "$removable_library_helper" --base "$base" mount-info)
@@ -325,6 +328,7 @@ env -u GLIBC_LD_LIBRARY_PATH \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
     TMPDIR="$PREFIX/tmp" \
+    STEAM_ARM64_TMP_ROOT="$PREFIX/tmp" \
     BREAKPAD_DUMP_LOCATION="$crash_dir" \
     XDG_RUNTIME_DIR="$runtime_dir" \
     PULSE_SERVER="${PULSE_SERVER:-tcp:127.0.0.1:4713}" \

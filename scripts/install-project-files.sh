@@ -43,6 +43,7 @@ install_one() {
 
 wrapper_stage="$(mktemp "${TMPDIR:-$PREFIX/tmp}/steam-arm64-bwrap-route.XXXXXX")"
 native_entry_stage="$(mktemp "${TMPDIR:-$PREFIX/tmp}/steam-arm64-native-entry.XXXXXX")"
+tmp_shim_stage="$(mktemp "${TMPDIR:-$PREFIX/tmp}/steam-arm64-native-tmp.XXXXXX")"
 cleanup_wrapper_stage() {
     if [[ -n "$wrapper_stage" ]] && [[ -f "$wrapper_stage" ]] &&
             [[ ! -L "$wrapper_stage" ]]; then
@@ -51,6 +52,10 @@ cleanup_wrapper_stage() {
     if [[ -n "$native_entry_stage" ]] && [[ -f "$native_entry_stage" ]] &&
             [[ ! -L "$native_entry_stage" ]]; then
         unlink -- "$native_entry_stage"
+    fi
+    if [[ -n "$tmp_shim_stage" ]] && [[ -f "$tmp_shim_stage" ]] &&
+            [[ ! -L "$tmp_shim_stage" ]]; then
+        unlink -- "$tmp_shim_stage"
     fi
 }
 trap cleanup_wrapper_stage EXIT
@@ -65,6 +70,13 @@ env -u LD_PRELOAD -u LD_LIBRARY_PATH -u GLIBC_LD_LIBRARY_PATH \
     -Wl,-O2,--as-needed,--gc-sections,-z,relro,-z,now \
     -Wl,--dynamic-linker=/lib/ld-linux-aarch64.so.1 \
     -o "$native_entry_stage"
+env -u LD_PRELOAD -u LD_LIBRARY_PATH -u GLIBC_LD_LIBRARY_PATH \
+    grun -s gcc -std=c11 -O3 -DNDEBUG -flto -fPIC -shared -fno-plt \
+    -fno-semantic-interposition -ffunction-sections -fdata-sections \
+    -Wall -Wextra -Werror -Wpedantic -Wformat=2 -Wshadow \
+    "$repo_root/diagnostics/native-tmp-shim.c" \
+    -Wl,-O2,--as-needed,--gc-sections,-z,relro,-z,now -ldl \
+    -o "$tmp_shim_stage"
 
 install_one "$repo_root/bin/steam-arm" "$HOME/bin/steam-arm" 700
 install_one "$repo_root/bin/steam-arm-native" "$HOME/bin/steam-arm-native" 700
@@ -74,6 +86,8 @@ install_one "$native_entry_stage" \
     "$base/compat-bin/steam-arm64-native-bwrap-entry" 700
 install_one "$native_entry_stage" \
     "$base/runtime/SteamLinuxRuntime_4-arm64-native/_v2-entry-point" 700
+install_one "$tmp_shim_stage" \
+    "$base/compat-bin/steam-arm64-native-tmp.so" 700
 install_one "$repo_root/scripts/start-steam.sh" "$HOME/start-steam.sh" 700
 install_one "$repo_root/scripts/start-steam-native.sh" \
     "$HOME/start-steam-native.sh" 700
@@ -125,6 +139,8 @@ unlink -- "$wrapper_stage"
 wrapper_stage=""
 unlink -- "$native_entry_stage"
 native_entry_stage=""
+unlink -- "$tmp_shim_stage"
+tmp_shim_stage=""
 trap - EXIT
 
 install_one "$repo_root/config/hosts-ipv4" "$base/config/hosts-ipv4" 600
