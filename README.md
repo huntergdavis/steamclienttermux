@@ -602,6 +602,20 @@ does not intentionally take Termux or supervised `sshd` down with X. An active
 Steam game is protected unless `--force` is explicit; `--dry-run` lists the
 matched processes without changing them, and `--keep-pulse` leaves audio up.
 
+Steam/CEF can leave 25 MiB shared-memory files in Termux temp after abnormal or
+diagnostic runs. Inspect and then remove only old, closed exact-name files with:
+
+```sh
+cleanup-steam-temp
+cleanup-steam-temp --apply
+```
+
+Dry-run is the default. The apply path accepts only owned, single-link,
+mode-0700 `u<uid>-Shm_<hex>` regular files at least one hour old, scans every
+same-UID `/proc/*/fd`, and fails closed if that descriptor scan is incomplete.
+It does not select logs, dumps, sockets, directories, open shared memory, or
+recent files.
+
 ### Experimental native Steam host
 
 `~/bin/steam-arm-native` is the generic, no-PRoot client launcher. It accepts
@@ -619,6 +633,13 @@ STEAM_ARM64_NATIVE_CHECK=1 ~/bin/steam-arm-native
 ~/start-tombraider-native.sh -benchmark
 ~/stop-steam-native.sh
 ```
+
+The native Tomb Raider wrapper goes beyond Steam's initial PID-added
+acknowledgement. It waits for an exact AppID 203160 `TombRaider.exe` and
+protected compatdata path. If the outer tracked process reaches Steam's exact
+running-list removal before the game exists, it retries once through the now
+stable client. Set `TOMB_RAIDER_LAUNCH_RETRIES=0` to restore the thin
+acknowledgement-only behavior.
 
 The first command is non-launching: it verifies the content-addressed patched
 glibc marker and uses that exact loader to resolve the Steam bootstrap and CEF

@@ -5288,3 +5288,49 @@ attempt at schema version 2. It also refuses to claim a window before observing
 the target process. Commit `23253d2` and the complete project suite passed.
 The required recall query for multi-attempt launch-timer attribution returned
 no indexed solution.
+
+## 2026-08-17: verify the game process and retry a cold fast exit
+
+The cold Runtime failure exposed a contract gap in the convenience wrapper.
+`start-steam.sh` correctly returned after Steam logged the outer AppID PID, but
+that acknowledgement preceded Proton and did not prove the Windows game
+existed. In the failed attempt Steam added PID 1131, PRoot's guest vPID 1
+received signal 1, and Steam removed AppID 203160 from its running list three
+seconds later.
+
+`start-tombraider-native.sh` now retains its foreground caller after the
+acknowledgement and validates an exact `TombRaider.exe`, AppID 203160
+environment, and one of the two protected compatdata paths. It reads only the
+new part of `gameprocess_log.txt`; an exact `Remove 203160 from running list`
+before that process appears triggers one retry through the stable native Steam
+client. The final attempt fails explicitly on another removal or a bounded
+no-process timeout. `TOMB_RAIDER_LAUNCH_RETRIES=0` preserves the old thin
+wrapper for controlled callers. Regression coverage simulates the three-second
+outer-process exit, verifies one retry, and accepts only the exact second
+attempt process. Commit `48c5016` passed the complete suite. The required
+focused recall query for the cold PRoot signal-1 behavior returned no indexed
+solution.
+
+## 2026-08-17: reclaim leaked Steam shared memory safely
+
+The tablet's Termux temp tree had grown to 2.2 GiB. Exact inventory found 107
+`u10469-Shm_<hex>` files, commonly 25 MiB each. A same-UID descriptor scan
+proved that 17 were open in the live Steam/game stack while 90 closed inodes
+accounted for about 1.89 GiB. Broad temp deletion was therefore unsafe.
+
+The installed `cleanup-steam-temp` command is dry-run by default. It confines
+itself to the real owned `$PREFIX/tmp`, accepts only the current UID's exact
+hex shared-memory name, regular-file type, owner, one link, mode 0700, a 1 GiB
+size ceiling, and a configurable age floor that defaults to one hour. It scans
+every accessible same-UID `/proc/PID/fd` inode and refuses apply mode if any
+such descriptor directory cannot be proven. Candidate metadata and inode
+identity are checked again immediately before unlink. Tests preserve open,
+recent, wrong-mode, and malformed-name cases.
+
+The first production dry run enumerated 80 closed files older than one hour,
+totaling exactly 1,677,853,952 bytes; four old open files and 23 other candidates
+were excluded, with zero descriptor-scan errors. Apply removed exactly the
+same 80 paths. Termux temp fell from 2.2 GiB to 595 MiB, while live Tomb Raider
+PID 4594, its 2800x1752 X window, every open shared-memory file, saves, logs,
+and authentication remained intact. The removed stale temp files are not
+recoverable. Commit `d6520dd` contains the utility and installer integration.
