@@ -90,6 +90,10 @@ fi
 
 (( $# > 0 )) || fail 'srt-bwrap arguments are required'
 
+launch_work_dir=$(pwd -P) || fail 'cannot resolve launch working directory'
+[[ $launch_work_dir == /* ]] || fail 'launch working directory must be absolute'
+bridge_work_dir=$launch_work_dir
+
 declare -a pd_args=(login debian --shared-tmp)
 pd_args+=(--bind "$hosts:/etc/hosts")
 pd_args+=(--bind "$proc_net:/proc/net")
@@ -115,7 +119,22 @@ if [[ -n ${STEAM_ARM64_REMOVABLE_SOURCE:-} ]]; then
         "$STEAM_ARM64_REMOVABLE_COMPATDATA:$STEAM_ARM64_REMOVABLE_TARGET/steamapps/compatdata")
     pd_args+=(--bind \
         "$STEAM_ARM64_REMOVABLE_DOWNLOADS:$STEAM_ARM64_REMOVABLE_TARGET/steamapps/downloading")
+
+    # Steam changes into the physical game directory before invoking this
+    # wrapper.  Translate that directory along with the executable arguments,
+    # otherwise proot-distro starts the guest in /root and Windows games cannot
+    # open relative data files from the protected removable-library view.
+    case $bridge_work_dir in
+        "$STEAM_ARM64_REMOVABLE_SOURCE")
+            bridge_work_dir=$STEAM_ARM64_REMOVABLE_TARGET
+            ;;
+        "$STEAM_ARM64_REMOVABLE_SOURCE"/*)
+            work_dir_suffix=${bridge_work_dir#"$STEAM_ARM64_REMOVABLE_SOURCE"}
+            bridge_work_dir=$STEAM_ARM64_REMOVABLE_TARGET$work_dir_suffix
+            ;;
+    esac
 fi
+pd_args+=(--work-dir "$bridge_work_dir")
 
 declare -a bridge_arguments=("$@")
 if [[ -n ${STEAM_ARM64_REMOVABLE_SOURCE:-} ]]; then
@@ -144,7 +163,7 @@ while IFS= read -r -d '' entry; do
     name=${entry%%=*}
     [[ $name =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
     case $name in
-        LD_PRELOAD|LD_LIBRARY_PATH|GLIBC_LD_LIBRARY_PATH|PATH|PREFIX|SHELL|\
+        LD_PRELOAD|LD_LIBRARY_PATH|GLIBC_LD_LIBRARY_PATH|PATH|PREFIX|PWD|SHELL|\
         TGCOMPAT_*|PRESSURE_VESSEL_BWRAP)
             continue
             ;;
@@ -154,6 +173,7 @@ done < /proc/self/environ
 
 guest_path=$compat_bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PREFIX/bin
 pd_args+=(--env "HOME=$native_home")
+pd_args+=(--env "PWD=$bridge_work_dir")
 pd_args+=(--env "PATH=$guest_path")
 pd_args+=(--env "LD_LIBRARY_PATH=$mesa_lib")
 pd_args+=(--env "STEAM_ARM64_REAL_BWRAP=$real_bwrap")
@@ -184,5 +204,5 @@ export PROOT_L2S_EXDEV_PREFIX=$runtime_depot/var/tmp-
 # resets HOME to /root.  Set HOME again in the first guest-side executable so
 # Proton's lsteamclient can resolve ~/.steam/sdkarm64/steamclient.so.
 exec "$proot_distro" "${pd_args[@]}" -- \
-    "$guest_env" "HOME=$native_home" "$bridge_command" \
+    "$guest_env" "HOME=$native_home" "PWD=$bridge_work_dir" "$bridge_command" \
     "${bridge_arguments[@]}"

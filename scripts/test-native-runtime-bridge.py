@@ -74,8 +74,10 @@ def prepare(root: Path) -> tuple[Path, Path]:
 
 
 def run_bridge(prefix: Path, base: Path, mode: str) -> list[str]:
-    removable_source = Path("/storage/fixture-library")
+    removable_source = base.parent / "fixture-storage"
     removable_target = base / "removable-library"
+    game_directory = removable_source / "steamapps" / "common" / "Game"
+    game_directory.mkdir(parents=True, exist_ok=True)
     environment = os.environ.copy()
     environment.update(
         {
@@ -115,6 +117,7 @@ def run_bridge(prefix: Path, base: Path, mode: str) -> list[str]:
             f"{removable_source}-lookalike/Game.exe",
         ],
         env=environment,
+        cwd=game_directory,
         text=True,
         capture_output=True,
         check=True,
@@ -180,16 +183,22 @@ def main() -> None:
         assert "GAME_OPTION_FIXTURE=preserved value" in bwrap
         assert route in bwrap
         guest_boundary = bwrap.index("--", bwrap.index("--shared-tmp"))
-        assert bwrap[guest_boundary + 1 : guest_boundary + 4] == [
+        assert bwrap[guest_boundary + 1 : guest_boundary + 5] == [
             "/usr/bin/env",
             f"HOME={base / 'native-home'}",
+            f"PWD={base / 'removable-library/steamapps/common/Game'}",
             route,
         ]
+        work_dir = bwrap.index("--work-dir")
+        assert bwrap[work_dir + 1] == str(
+            base / "removable-library/steamapps/common/Game"
+        )
+        assert f"PWD={base / 'removable-library/steamapps/common/Game'}" in bwrap
         assert bwrap[-4:] == [
             "--fixture-argument",
             str(base / "removable-library"),
             str(base / "removable-library/steamapps/common/Game/Game.exe"),
-            "/storage/fixture-library-lookalike/Game.exe",
+            f"{base.parent / 'fixture-storage'}-lookalike/Game.exe",
         ]
 
         runtime = run_bridge(prefix, base, "runtime")
@@ -197,16 +206,21 @@ def main() -> None:
         assert f"HOME={base / 'native-home'}" in runtime
         assert runtime_entry in runtime
         guest_boundary = runtime.index("--", runtime.index("--shared-tmp"))
-        assert runtime[guest_boundary + 1 : guest_boundary + 4] == [
+        assert runtime[guest_boundary + 1 : guest_boundary + 5] == [
             "/usr/bin/env",
             f"HOME={base / 'native-home'}",
+            f"PWD={base / 'removable-library/steamapps/common/Game'}",
             runtime_entry,
         ]
+        work_dir = runtime.index("--work-dir")
+        assert runtime[work_dir + 1] == str(
+            base / "removable-library/steamapps/common/Game"
+        )
         assert runtime[-4:] == [
             "--fixture-argument",
             str(base / "removable-library"),
             str(base / "removable-library/steamapps/common/Game/Game.exe"),
-            "/storage/fixture-library-lookalike/Game.exe",
+            f"{base.parent / 'fixture-storage'}-lookalike/Game.exe",
         ]
 
         selected_proot = base / "src" / "native-profile" / "src"
