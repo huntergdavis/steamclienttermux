@@ -124,7 +124,10 @@ def main():
         before = module.file_state(results.glob(module.RESULT_GLOB))
         new = results / "benchmarkresults-new.txt"
         new.write_text("new")
-        assert module.changed_regular_files(results, module.RESULT_GLOB, before) == [new]
+        # Removable-storage metadata for an existing name can change between
+        # scans. Only a previously absent timestamped result is a new pass.
+        old.write_text("old rewritten")
+        assert module.new_regular_files(results, module.RESULT_GLOB, before) == [new]
 
     runs = [
         {

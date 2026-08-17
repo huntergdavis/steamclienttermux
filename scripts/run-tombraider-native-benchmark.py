@@ -122,11 +122,9 @@ def file_state(paths) -> dict[str, tuple[int, int, int]]:
     return result
 
 
-def changed_regular_files(directory: Path, pattern: str, before) -> list[Path]:
+def new_regular_files(directory: Path, pattern: str, before) -> list[Path]:
     current = file_state(directory.glob(pattern))
-    return sorted(
-        Path(path) for path, identity in current.items() if before.get(path) != identity
-    )
+    return sorted(Path(path) for path in current if path not in before)
 
 
 def decode_result(data: bytes) -> str:
@@ -582,15 +580,13 @@ def main() -> int:
             launch_log = output_directory / f"{label}-launch.log"
             elapsed = run_logged([launcher, "-benchmark"], environment, launch_log)
 
-            result_files = changed_regular_files(
-                game_directory, RESULT_GLOB, result_before
-            )
+            result_files = new_regular_files(game_directory, RESULT_GLOB, result_before)
             if len(result_files) != 1:
                 raise RuntimeError(
                     f"{label} produced {len(result_files)} benchmark result files: "
                     + ", ".join(str(path) for path in result_files)
                 )
-            guard_files = changed_regular_files(guard_directory, GUARD_GLOB, guard_before)
+            guard_files = new_regular_files(guard_directory, GUARD_GLOB, guard_before)
             ready_guards = [
                 path
                 for path in guard_files
