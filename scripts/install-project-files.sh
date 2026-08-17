@@ -129,6 +129,8 @@ install_one "$repo_root/bin/prepare-pulseaudio-tcp.sh" "$base/prepare-pulseaudio
 install_one "$repo_root/bin/prepare-runtime-direct-run.sh" \
     "$base/prepare-runtime-direct-run.sh" 700
 install_one "$repo_root/bin/lsof" "$base/compat-bin/lsof" 700
+install_one "$repo_root/bin/steam-arm64-process-match.sh" \
+    "$base/compat-bin/steam-arm64-process-match.sh" 600
 install_one "$repo_root/bin/steam-arm64-session-guard.py" \
     "$base/compat-bin/steam-arm64-session-guard.py" 700
 install_one "$repo_root/bin/steam-arm64-removable-library.py" \

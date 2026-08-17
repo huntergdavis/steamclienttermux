@@ -70,6 +70,7 @@ base="${STEAM_ARM64_BASE:-$HOME/steam-arm64}"
 steam_launcher="${STEAM_ARM64_LAUNCHER:-$HOME/bin/steam-arm}"
 pulse_helper="$base/prepare-pulseaudio-tcp.sh"
 affinity_helper="$base/compat-bin/set-tombraider-affinity.py"
+process_match_helper="$base/compat-bin/steam-arm64-process-match.sh"
 affinity_lock="$base/runtime/tomb-raider-affinity.lock"
 x11_component="com.termux.x11/com.termux.x11.MainActivity"
 x11_preferences="/data/data/com.termux.x11/shared_prefs/com.termux.x11_preferences.xml"
@@ -114,14 +115,13 @@ matching_pids() {
                     continue
                 ;;
             steam)
-                first_argument="${cmdline%% *}"
-                [[ "$first_argument" == "$base/client/steamrtarm64/steam" ]] ||
+                steam_arm64_process_matches "${process#/proc/}" \
+                    "$base/client/steamrtarm64/steam" ||
                     continue
                 ;;
             steamwebhelper)
-                first_argument="${cmdline%% *}"
-                [[ "$first_argument" == \
-                    "$base/client/steamrtarm64/steamwebhelper" ]] || continue
+                steam_arm64_process_matches "${process#/proc/}" \
+                    "$base/client/steamrtarm64/steamwebhelper" || continue
                 ;;
             launcher)
                 [[ "$cmdline" == *" $steam_launcher "* ||
@@ -136,11 +136,7 @@ matching_pids() {
 }
 
 steam_pid_is_current() {
-    local pid="$1" cmdline first_argument
-    [[ "$pid" =~ ^[0-9]+$ && -r "/proc/$pid/cmdline" ]] || return 1
-    cmdline="$(tr '\0' ' ' <"/proc/$pid/cmdline" 2>/dev/null || true)"
-    first_argument="${cmdline%% *}"
-    [[ "$first_argument" == "$base/client/steamrtarm64/steam" ]]
+    steam_arm64_process_matches "$1" "$base/client/steamrtarm64/steam"
 }
 
 x11_is_ready() {
@@ -442,6 +438,10 @@ done
 [[ -x "$steam_launcher" ]] || fail "Steam launcher is unavailable: $steam_launcher"
 [[ -x "$pulse_helper" ]] || fail "PulseAudio helper is unavailable: $pulse_helper"
 [[ -x "$affinity_helper" ]] || fail "affinity helper is unavailable: $affinity_helper"
+[[ -f $process_match_helper && ! -L $process_match_helper ]] ||
+    fail "process matcher is unavailable: $process_match_helper"
+# shellcheck source=/dev/null
+source "$process_match_helper"
 mkdir -p "$base/logs"
 
 termux_uid="$(package_uid com.termux)"

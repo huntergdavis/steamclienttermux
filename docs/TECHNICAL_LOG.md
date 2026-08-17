@@ -4870,6 +4870,18 @@ conversion without changing the process locale or Steam files. The required
 Steam native"` search found no indexed solution; the fix reuses the already
 validated Debian dependency root selected by the native launcher.
 
+The first stable run also exposed a control-plane mismatch: `/proc/PID/cmdline`
+starts with the explicit content-addressed loader, even though `--argv0` names
+Steam. The existing start/stop selectors consequently missed the live parent
+and every native webhelper. A shared exact matcher now accepts either a direct
+Steam executable or the validated `$HOME/.local/share/tgcompat/glibc/...`
+loader with both an exact `--argv0` target and executable operand. Synthetic
+proc-tree tests reject a decoy target, wrong loader root, and missing
+`--argv0`. Start, affinity, forwarding, and stop paths all use the same matcher.
+The required `deja "Steam native explicit glibc loader argv0 process detection
+stop script affinity Termux"` search returned no indexed implementation; this
+reuses the launcher's already validated content-addressed loader layout.
+
 The required `deja "Steam get_robust_list synthetic pthread robust head syscall
 shim Termux glibc"` search returned no indexed implementation. The fix reuses
 only the launcher's established gated-preload boundary and the Linux robust

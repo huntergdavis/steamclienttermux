@@ -664,6 +664,11 @@ The native launcher points `XLOCALEDIR` at the validated Debian locale tree;
 without it, `XwcTextListToTextProperty` leaves an output sentinel untouched
 and Valve's unchecked `XFree` aborts the client after `BrowserReady`.
 
+Session scripts recognize native processes by the content-addressed glibc
+loader plus its exact `--argv0` Steam target. This keeps existing-session
+forwarding, CPU affinity, and graceful stop behavior coherent even though the
+kernel-visible first argument is the loader rather than `steam`.
+
 The native client and CEF do not run below PRoot. A narrowly gated compatibility
 shim proved that opening exactly `/proc/self/root` with `O_PATH` clears the
 first Pressure Vessel error, but the next boundary is kernel-enforced:

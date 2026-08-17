@@ -45,6 +45,7 @@ display="${STEAM_X11_DISPLAY:-:0}"
 steam_launcher="${STEAM_ARM64_LAUNCHER:-$HOME/bin/steam-arm}"
 affinity_helper="$base/compat-bin/set-tombraider-affinity.py"
 session_guard="$base/compat-bin/steam-arm64-session-guard.py"
+process_match_helper="$base/compat-bin/steam-arm64-process-match.sh"
 x11_socket="${PREFIX:-}/tmp/.X11-unix/X${display#:}"
 steam_timeout="${STEAM_STOP_TIMEOUT:-60}"
 term_timeout="${STEAM_TERM_TIMEOUT:-15}"
@@ -63,6 +64,10 @@ for timeout_name in steam_timeout term_timeout x11_timeout; do
 done
 [[ -n "${PREFIX:-}" ]] || fail 'PREFIX is not set; run this from Termux'
 [[ "$display" =~ ^:[0-9]+$ ]] || fail "invalid X display: $display"
+[[ -f $process_match_helper && ! -L $process_match_helper ]] ||
+    fail "process matcher is unavailable: $process_match_helper"
+# shellcheck source=/dev/null
+source "$process_match_helper"
 
 process_matches() {
     local pid="$1" kind="$2" cmdline first_argument
@@ -74,11 +79,12 @@ process_matches() {
             [[ "$cmdline" == *'SteamLaunch AppId='* ]]
             ;;
         steam)
-            [[ "$first_argument" == "$base/client/steamrtarm64/steam" ]]
+            steam_arm64_process_matches "$pid" \
+                "$base/client/steamrtarm64/steam"
             ;;
         steamwebhelper)
-            [[ "$first_argument" == \
-                "$base/client/steamrtarm64/steamwebhelper" ]]
+            steam_arm64_process_matches "$pid" \
+                "$base/client/steamrtarm64/steamwebhelper"
             ;;
         launcher)
             [[ "$cmdline" == *" $steam_launcher "* ||
