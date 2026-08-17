@@ -79,6 +79,8 @@ install_one "$repo_root/scripts/start-steam-native.sh" \
     "$HOME/start-steam-native.sh" 700
 install_one "$repo_root/scripts/start-tombraider.sh" \
     "$HOME/start-tombraider.sh" 700
+install_one "$repo_root/scripts/start-tombraider-native.sh" \
+    "$HOME/start-tombraider-native.sh" 700
 install_one "$repo_root/scripts/stop-steam.sh" "$HOME/stop-steam.sh" 700
 install_one "$repo_root/scripts/stop-steam-native.sh" \
     "$HOME/stop-steam-native.sh" 700

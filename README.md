@@ -582,6 +582,8 @@ STEAM_ARM64_NATIVE_CHECK=1 ~/bin/steam-arm-native
 ~/bin/check-native-steam-stack
 ~/start-steam-native.sh
 ~/start-steam-native.sh --appid 203160 -- -nolauncher
+~/start-tombraider-native.sh
+~/start-tombraider-native.sh -benchmark
 ~/stop-steam-native.sh
 ```
 
