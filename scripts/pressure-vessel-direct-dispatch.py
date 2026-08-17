@@ -471,6 +471,7 @@ def request_environment(payload: dict[str, object]) -> dict[str, str]:
         "TGCOMPAT_LIBRARY_PATH",
         "TGCOMPAT_EXEC_LD_PRELOAD",
         "TGCOMPAT_PROC_SELF_EXE",
+        "TGCOMPAT_USERFAULTFD_ENOSYS",
     ):
         environment.pop(name, None)
     return environment
@@ -642,6 +643,7 @@ def pv_smoke_invocation(
         base / "compat-bin/steam-arm64-native-tmp.so",
         compat_repo / "build/libtgcompat-android-root.so",
         compat_repo / "build/libtgcompat-exec.so",
+        compat_repo / "build/libtgcompat-robust.so",
     ]
     if any(not path.is_file() for path in preloads):
         fail("pv-adverb compatibility preload is unavailable")
@@ -661,6 +663,7 @@ def pv_smoke_invocation(
             "TGCOMPAT_LIBRARY_PATH": libraries,
             "TGCOMPAT_EXEC_LD_PRELOAD": preload,
             "TGCOMPAT_EXEC_SHELL": str(runtime_root / "usr/bin/sh"),
+            "TGCOMPAT_USERFAULTFD_ENOSYS": "1",
             "STEAM_ARM64_TMP_ROOT": prefix + "/tmp",
             "STEAM_ARM64_SHM_ROOT": str(base / "run/native-steam/shm"),
             "STEAM_ARM64_LINUX_ROOT": str(

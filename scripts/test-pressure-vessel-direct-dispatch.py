@@ -120,8 +120,17 @@ def main() -> None:
             "WINEDEBUG": wine_debug
         }
     assert MODULE.request_environment(
-        {"environment": ["STEAM_COMPAT_APP_ID=203160", "LD_PRELOAD=unsafe"]}
+        {
+            "environment": [
+                "STEAM_COMPAT_APP_ID=203160",
+                "LD_PRELOAD=unsafe",
+                "TGCOMPAT_USERFAULTFD_ENOSYS=unsafe",
+            ]
+        }
     ) == {"STEAM_COMPAT_APP_ID": "203160"}
+    invocation_source = inspect.getsource(MODULE.pv_smoke_invocation)
+    assert "libtgcompat-robust.so" in invocation_source
+    assert '"TGCOMPAT_USERFAULTFD_ENOSYS": "1"' in invocation_source
 
     with (
         tempfile.TemporaryFile() as source8,
