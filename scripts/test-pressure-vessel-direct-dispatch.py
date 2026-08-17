@@ -38,6 +38,7 @@ def main() -> None:
     arm64_source = inspect.getsource(MODULE.run_proton_arm64_cmd_smoke)
     assert "proton-arm64-wine-" in arm64_source
     assert "trace_path" in arm64_source
+    assert 'diagnostics == "1"' in arm64_source
     loader_source = inspect.getsource(MODULE.run_loader_child)
     assert '"-k"' in loader_source
 
@@ -112,11 +113,17 @@ def main() -> None:
             fixture_base, fixture_runtime, fixture_proton, "proton-arm64-cmd"
         )[3] == str(fixture_arm64_command)
         assert MODULE.proton_smoke_environment("proton-entry") == {}
-        wine_debug = "+timestamp,+pid,+tid,+process,+module,+loaddll,+seh"
         assert MODULE.proton_smoke_environment("proton-cmd") == {
-            "WINEDEBUG": wine_debug
+            "WINEDEBUG": "-all"
         }
         assert MODULE.proton_smoke_environment("proton-arm64-cmd") == {
+            "WINEDEBUG": "-all"
+        }
+        wine_debug = "+timestamp,+pid,+tid,+process,+module,+loaddll,+seh"
+        assert MODULE.proton_smoke_environment("proton-cmd", True) == {
+            "WINEDEBUG": wine_debug
+        }
+        assert MODULE.proton_smoke_environment("proton-arm64-cmd", True) == {
             "WINEDEBUG": wine_debug
         }
     assert MODULE.request_environment(

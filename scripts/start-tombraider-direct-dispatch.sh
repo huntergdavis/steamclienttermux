@@ -9,7 +9,8 @@ default_python=/data/data/com.termux/files/usr/bin/python3
 python=${TOMB_RAIDER_DIRECT_PYTHON:-$default_python}
 launcher=${TOMB_RAIDER_DIRECT_LAUNCHER:-$HOME/start-steam-native.sh}
 prepare=${TOMB_RAIDER_DIRECT_PREPARE:-$base/compat-bin/prepare-proton-direct-wine.py}
-mode=${TOMB_RAIDER_DIRECT_MODE:-proton-arm64-cmd-smoke}
+mode=${TOMB_RAIDER_DIRECT_MODE:-proton-cmd-smoke}
+diagnostics=${TOMB_RAIDER_DIRECT_DIAGNOSTICS:-0}
 socket=$base/run/native-runtime-dispatch/dispatch.sock
 state=$base/run/tombraider-direct-dispatch.state
 
@@ -21,6 +22,8 @@ fail() {
 [[ $mode == proton-entry-smoke || $mode == proton-cmd-smoke ||
     $mode == proton-arm64-cmd-smoke ]] ||
     fail "unsupported direct-dispatch mode: $mode"
+[[ $diagnostics == 0 || $diagnostics == 1 ]] ||
+    fail 'TOMB_RAIDER_DIRECT_DIAGNOSTICS must be 0 or 1'
 [[ -d $base/run && ! -L $base/run && -d $base/logs && ! -L $base/logs ]] ||
     fail "Steam run or log directory is unavailable below $base"
 [[ -x $python && (! -L $python || $python == "$default_python") ]] ||
@@ -45,6 +48,7 @@ cleanup() {
 }
 trap cleanup EXIT HUP INT TERM
 
+STEAM_ARM64_DIRECT_DIAGNOSTICS=$diagnostics \
 "$python" "$dispatcher" serve --base "$base" --mode "$mode" \
     >"$server_log" 2>&1 &
 server_pid=$!
@@ -78,4 +82,7 @@ printf 'pid=%s\nmode=%s\nserver_log=%s\nstatus=complete\nlauncher_status=%s\nser
     "$$" "$mode" "$server_log" "$launcher_status" "$server_status" >"$state"
 printf 'Tomb Raider direct dispatch completed: mode=%s launcher=%s server=%s log=%s\n' \
     "$mode" "$launcher_status" "$server_status" "$server_log"
-exit "$launcher_status"
+if (( launcher_status != 0 )); then
+    exit "$launcher_status"
+fi
+exit "$server_status"

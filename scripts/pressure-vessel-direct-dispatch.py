@@ -535,13 +535,17 @@ def proton_smoke_command(
     fail(f"unsupported Proton smoke mode: {command_mode}")
 
 
-def proton_smoke_environment(command_mode: str) -> dict[str, str]:
+def proton_smoke_environment(
+    command_mode: str, diagnostics: bool = False
+) -> dict[str, str]:
     if command_mode == "proton-entry":
         return {}
     if command_mode in ("proton-cmd", "proton-arm64-cmd"):
-        return {
-            "WINEDEBUG": "+timestamp,+pid,+tid,+process,+module,+loaddll,+seh"
-        }
+        if diagnostics:
+            return {
+                "WINEDEBUG": "+timestamp,+pid,+tid,+process,+module,+loaddll,+seh"
+            }
+        return {"WINEDEBUG": "-all"}
     fail(f"unsupported Proton smoke mode: {command_mode}")
 
 
@@ -568,7 +572,10 @@ def run_final_smoke(
 
 
 def pv_smoke_invocation(
-    base: Path, payload: dict[str, object], command_mode: str = "runtime-true"
+    base: Path,
+    payload: dict[str, object],
+    command_mode: str = "runtime-true",
+    diagnostics: bool = False,
 ) -> tuple[Path, list[str], dict[str, str]]:
     runtime_root, loader, runtime_libraries = selected_runtime(base)
     bwrap_arguments = payload["bwrap_args"]
@@ -650,7 +657,7 @@ def pv_smoke_invocation(
     preload = ":".join(str(path) for path in preloads)
     environment = request_environment(payload)
     if command_mode in ("proton-entry", "proton-cmd", "proton-arm64-cmd"):
-        environment.update(proton_smoke_environment(command_mode))
+        environment.update(proton_smoke_environment(command_mode, diagnostics))
     prefix = os.environ.get("PREFIX", "")
     if not prefix.startswith("/"):
         fail("Termux PREFIX is unavailable to the direct dispatcher")
@@ -735,12 +742,17 @@ def run_proton_arm64_cmd_smoke(
     payload: dict[str, object],
     descriptors: list[int],
 ) -> tuple[int, int]:
+    diagnostics = os.environ.get("STEAM_ARM64_DIRECT_DIAGNOSTICS", "0")
+    if diagnostics not in ("0", "1"):
+        fail("STEAM_ARM64_DIRECT_DIAGNOSTICS must be 0 or 1")
     loader, arguments, environment = pv_smoke_invocation(
-        base, payload, "proton-arm64-cmd"
+        base, payload, "proton-arm64-cmd", diagnostics == "1"
     )
-    logs = private_directory(base / "logs", "Steam log directory")
-    trace_path = logs / f"proton-arm64-wine-{os.getpid()}.strace"
-    print(f"STRACE_LOG={trace_path}", flush=True)
+    trace_path = None
+    if diagnostics == "1":
+        logs = private_directory(base / "logs", "Steam log directory")
+        trace_path = logs / f"proton-arm64-wine-{os.getpid()}.strace"
+        print(f"STRACE_LOG={trace_path}", flush=True)
     return run_loader_child(
         loader,
         arguments,
@@ -766,6 +778,7 @@ def serve(base: Path, mode: str) -> int:
             fail(f"refusing unsafe existing dispatch socket: {path}")
         path.unlink()
     listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    status = 125
     try:
         listener.bind(str(path))
         os.chmod(path, 0o600)
@@ -814,7 +827,7 @@ def serve(base: Path, mode: str) -> int:
             metadata = path.lstat()
             if stat.S_ISSOCK(metadata.st_mode) and metadata.st_uid == os.geteuid():
                 path.unlink()
-    return 0
+    return status
 
 
 def delegate_probe(arguments: list[str], base: Path) -> NoReturn:
