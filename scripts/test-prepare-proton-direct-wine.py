@@ -40,6 +40,16 @@ def main() -> None:
             encoding="utf-8",
         )
         patchelf.chmod(0o700)
+        readelf = root / "readelf"
+        readelf.write_text(
+            "#!/usr/bin/env python3\n"
+            "from pathlib import Path\n"
+            "import sys\n"
+            "value = Path(sys.argv[2]).read_text().splitlines()[0].split('=', 1)[1]\n"
+            "print('      [Requesting program interpreter: ' + value + ']')\n",
+            encoding="utf-8",
+        )
+        readelf.chmod(0o700)
         command = [
             os.sys.executable,
             str(SCRIPT),
@@ -49,6 +59,8 @@ def main() -> None:
             str(loader),
             "--patchelf",
             str(patchelf),
+            "--readelf",
+            str(readelf),
         ]
         prepared = subprocess.run(command, text=True, capture_output=True, check=False)
         assert prepared.returncode == 0, prepared.stderr

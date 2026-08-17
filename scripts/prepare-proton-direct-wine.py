@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import stat
 import subprocess
@@ -44,9 +45,9 @@ def regular_owned_file(path: Path, description: str, executable: bool = False) -
         raise PrepareError(f"{description} is not executable: {path}")
 
 
-def run_patchelf(patchelf: Path, *arguments: str) -> str:
+def run_command(command: list[str], description: str) -> str:
     result = subprocess.run(
-        [str(patchelf), *arguments],
+        command,
         check=False,
         text=True,
         stdout=subprocess.PIPE,
@@ -59,8 +60,25 @@ def run_patchelf(patchelf: Path, *arguments: str) -> str:
     )
     if result.returncode != 0:
         detail = result.stderr.strip() or result.stdout.strip()
-        raise PrepareError(f"patchelf failed ({result.returncode}): {detail}")
+        raise PrepareError(f"{description} failed ({result.returncode}): {detail}")
     return result.stdout.strip()
+
+
+def read_interpreter(readelf: Path, target: Path) -> str:
+    output = run_command([str(readelf), "-l", str(target)], "readelf")
+    matches = re.findall(r"Requesting program interpreter: ([^]]+)", output)
+    if len(matches) != 1:
+        raise PrepareError(f"cannot identify one ELF interpreter in: {target}")
+    return matches[0]
+
+
+def run_patchelf(command: list[str], loader: Path, target: Path) -> None:
+    for path in (loader, target):
+        if not re.fullmatch(r"/[A-Za-z0-9._/-]+", str(path)):
+            raise PrepareError(f"patchelf runner path is not shell-safe: {path}")
+    run_command(
+        [*command, "--set-interpreter", str(loader), str(target)], "patchelf"
+    )
 
 
 def write_json_atomic(path: Path, value: dict[str, str]) -> None:
@@ -101,12 +119,17 @@ def install_backup(source: Path, destination: Path, expected_hash: str) -> None:
             temporary.unlink()
 
 
-def prepare(base: Path, loader: Path, patchelf: Path) -> None:
+def prepare(
+    base: Path,
+    loader: Path,
+    patchelf: list[str],
+    readelf: Path,
+) -> None:
     target = base / TARGET_RELATIVE
     regular_owned_file(target, "Proton ARM64 Wine", executable=True)
     regular_owned_file(loader, "tgcompat glibc loader", executable=True)
-    regular_owned_file(patchelf, "patchelf", executable=True)
-    interpreter = run_patchelf(patchelf, "--print-interpreter", str(target))
+    regular_owned_file(readelf, "readelf", executable=True)
+    interpreter = read_interpreter(readelf, target)
     if interpreter == str(loader):
         print(f"Proton direct Wine already prepared: {target}")
         return
@@ -121,13 +144,15 @@ def prepare(base: Path, loader: Path, patchelf: Path) -> None:
     backup = backup_root / f"wine-{original_hash}.original"
     install_backup(target, backup, original_hash)
 
-    descriptor, staged_name = tempfile.mkstemp(prefix=".wine.direct.", dir=target.parent)
+    if backup_root.stat().st_dev != target.parent.stat().st_dev:
+        raise PrepareError("Proton Wine backup and target are on different filesystems")
+    descriptor, staged_name = tempfile.mkstemp(prefix="wine.direct.", dir=backup_root)
     os.close(descriptor)
     staged = Path(staged_name)
     try:
         shutil.copy2(target, staged)
-        run_patchelf(patchelf, "--set-interpreter", str(loader), str(staged))
-        if run_patchelf(patchelf, "--print-interpreter", str(staged)) != str(loader):
+        run_patchelf(patchelf, loader, staged)
+        if read_interpreter(readelf, staged) != str(loader):
             raise PrepareError("staged Proton Wine interpreter verification failed")
         os.chmod(staged, stat.S_IMODE(target.stat().st_mode))
         patched_hash = sha256(staged)
@@ -152,18 +177,18 @@ def prepare(base: Path, loader: Path, patchelf: Path) -> None:
     print(f"Original backup: {backup}")
 
 
-def check(base: Path, loader: Path, patchelf: Path) -> None:
+def check(base: Path, loader: Path, readelf: Path) -> None:
     target = base / TARGET_RELATIVE
     regular_owned_file(target, "Proton ARM64 Wine", executable=True)
     regular_owned_file(loader, "tgcompat glibc loader", executable=True)
-    regular_owned_file(patchelf, "patchelf", executable=True)
-    interpreter = run_patchelf(patchelf, "--print-interpreter", str(target))
+    regular_owned_file(readelf, "readelf", executable=True)
+    interpreter = read_interpreter(readelf, target)
     if interpreter != str(loader):
         raise PrepareError(f"Proton direct Wine is not prepared: {interpreter}")
     print(f"Proton direct Wine check: PASS interpreter={interpreter}")
 
 
-def restore(base: Path, patchelf: Path) -> None:
+def restore(base: Path, readelf: Path) -> None:
     target = base / TARGET_RELATIVE
     state_path = base / "backups/proton-direct-wine/state.json"
     regular_owned_file(target, "Proton ARM64 Wine", executable=True)
@@ -188,7 +213,7 @@ def restore(base: Path, patchelf: Path) -> None:
     finally:
         if staged.exists() and not staged.is_symlink():
             staged.unlink()
-    if run_patchelf(patchelf, "--print-interpreter", str(target)) != ORIGINAL_INTERPRETER:
+    if read_interpreter(readelf, target) != ORIGINAL_INTERPRETER:
         raise PrepareError("restored Proton Wine interpreter verification failed")
     print(f"Restored Proton ARM64 Wine: {target}")
 
@@ -201,23 +226,29 @@ def main() -> int:
         "--loader",
         default=str(Path.home() / ".local/share/tgcompat/glibc/current/lib/ld-linux-aarch64.so.1"),
     )
-    parser.add_argument(
-        "--patchelf",
-        default=os.environ.get("PREFIX", "/data/data/com.termux/files/usr")
-        + "/glibc/bin/patchelf",
-    )
+    parser.add_argument("--patchelf")
+    parser.add_argument("--readelf")
     arguments = parser.parse_args()
     try:
         base = Path(arguments.base).resolve(strict=True)
         loader = Path(os.path.abspath(os.path.expanduser(arguments.loader)))
         loader.resolve(strict=True)
-        patchelf = Path(arguments.patchelf).resolve(strict=True)
-        if arguments.action == "prepare":
-            prepare(base, loader, patchelf)
-        elif arguments.action == "check":
-            check(base, loader, patchelf)
+        prefix = Path(os.environ.get("PREFIX", "/data/data/com.termux/files/usr"))
+        readelf = Path(arguments.readelf or prefix / "bin/readelf").resolve(strict=True)
+        if arguments.patchelf:
+            patchelf_path = Path(arguments.patchelf).resolve(strict=True)
+            regular_owned_file(patchelf_path, "patchelf", executable=True)
+            patchelf = [str(patchelf_path)]
         else:
-            restore(base, patchelf)
+            runner = (prefix / "bin/grun").resolve(strict=True)
+            regular_owned_file(runner, "glibc-runner", executable=True)
+            patchelf = [str(runner), "-s", "patchelf"]
+        if arguments.action == "prepare":
+            prepare(base, loader, patchelf, readelf)
+        elif arguments.action == "check":
+            check(base, loader, readelf)
+        else:
+            restore(base, readelf)
     except (PrepareError, OSError, ValueError, json.JSONDecodeError) as error:
         print(f"prepare-proton-direct-wine: {error}", file=os.sys.stderr)
         return 1
