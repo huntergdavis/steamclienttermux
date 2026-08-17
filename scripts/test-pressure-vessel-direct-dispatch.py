@@ -157,6 +157,31 @@ def main() -> None:
             pass
         else:
             raise AssertionError("removable executable validator accepted a symlink")
+    with tempfile.TemporaryDirectory(prefix="runtime-python.") as directory:
+        runtime_fixture = Path(directory)
+        python_target = runtime_fixture / "usr/bin/python3.13"
+        python_target.parent.mkdir(parents=True)
+        python_target.write_bytes(b"python")
+        python_target.chmod(0o700)
+        python_link = python_target.with_name("python3")
+        python_link.symlink_to(python_target.name)
+        MODULE.validate_runtime_executable(
+            python_link, runtime_fixture, "fixture Runtime Python"
+        )
+        outside = runtime_fixture.parent / f"{runtime_fixture.name}-outside"
+        outside.write_bytes(b"outside")
+        outside.chmod(0o700)
+        escaping_link = python_target.with_name("python-outside")
+        escaping_link.symlink_to(outside)
+        try:
+            MODULE.validate_runtime_executable(
+                escaping_link, runtime_fixture, "escaping Runtime Python"
+            )
+        except MODULE.DispatchError:
+            pass
+        else:
+            raise AssertionError("Runtime executable validator accepted an escape")
+        outside.unlink()
 
     with (
         tempfile.TemporaryFile() as source8,

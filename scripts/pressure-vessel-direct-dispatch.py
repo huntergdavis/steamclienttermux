@@ -527,6 +527,22 @@ def validate_removable_executable(path: Path, description: str) -> None:
         fail(f"validated {description} executable is unsafe: {path}")
 
 
+def validate_runtime_executable(
+    path: Path, runtime_root: Path, description: str
+) -> None:
+    """Allow a Runtime-owned version symlink that cannot escape its root."""
+    try:
+        metadata = path.lstat()
+        resolved_root = runtime_root.resolve(strict=True)
+        resolved = path.resolve(strict=True)
+        resolved.relative_to(resolved_root)
+    except (FileNotFoundError, ValueError):
+        fail(f"validated {description} executable escapes its Runtime: {path}")
+    if metadata.st_uid != os.geteuid():
+        fail(f"validated {description} link has an unexpected owner: {path}")
+    validate_owned_executable(resolved, description)
+
+
 def proton_smoke_command(
     base: Path, runtime_root: Path, proton: Path, command_mode: str
 ) -> list[str]:
@@ -670,7 +686,9 @@ def pv_smoke_invocation(
         proton, game = validated_tombraider_command(base, payload_arguments)
         if command_mode == "tombraider":
             runtime_python = runtime_root / "usr/bin/python3"
-            validate_owned_executable(runtime_python, "Runtime Python")
+            validate_runtime_executable(
+                runtime_python, runtime_root, "Runtime Python"
+            )
             validate_owned_executable(proton, "Proton entry point")
             validate_removable_executable(game, "Tomb Raider")
             command = [
