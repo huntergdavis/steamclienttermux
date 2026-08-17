@@ -25,6 +25,7 @@ DRIVER_SOURCE = r"""
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <sys/un.h>
 #include <unistd.h>
 
@@ -52,6 +53,8 @@ int main(void) {
     int accepted;
     ssize_t link_length;
     socklen_t address_length;
+    pid_t child;
+    int child_status;
 
     if (snprintf(directory, sizeof(directory),
             "/tmp/steam-native-tmp-shim-%ld", (long)getpid()) < 0) {
@@ -154,6 +157,22 @@ int main(void) {
         fail("accept/cleanup socket");
     }
 
+    child = fork();
+    if (child < 0) {
+        fail("fork lsof redirect");
+    }
+    if (child == 0) {
+        char *arguments[] = {"/bin/lsof", NULL};
+        extern char **environ;
+        execve("/bin/lsof", arguments, environ);
+        _exit(127);
+    }
+    if (waitpid(child, &child_status, 0) != child ||
+            !WIFEXITED(child_status) || WEXITSTATUS(child_status) != 0) {
+        errno = ECHILD;
+        fail("lsof redirect");
+    }
+
     puts(directory);
     puts(shm_marker);
     return 0;
@@ -224,6 +243,7 @@ def main() -> None:
                 "STEAM_ARM64_SHM_ROOT": str(mapped_shm_root),
                 "STEAM_ARM64_LINUX_ROOT": str(linux_root),
                 "TGCOMPAT_PROC_SELF_EXE": "/virtual/original/steam",
+                "STEAM_ARM64_LSOF": "/bin/true",
             }
         )
         completed = run([str(driver)], env=environment, capture_output=True)

@@ -625,10 +625,21 @@ directory, and the updater's initial Breakpad probe ignores both `TMPDIR` and
 environment-gated compatibility shim which rewrites only exact `/tmp` and
 `/tmp/...` path arguments to `$PREFIX/tmp`. Its AF_UNIX handling preserves the
 Termux:X11 socket mapping as well. Other absolute and relative paths are left
-unchanged. Chromium's absent `/dev/shm` namespace is mapped separately into a
-private mode-0700 directory below the native runtime; it is never mixed into
-the shared Termux temporary root. The shim is compiled during project
-installation and is required by the native preflight.
+unchanged. Chromium's absent `/dev/shm` namespace is mapped separately for
+ordinary public pathname calls into a private mode-0700 directory below the
+native runtime; it is never mixed into the shared Termux temporary root.
+Chromium's internal direct `openat` bypasses interposition, so the native
+launcher also idempotently adds `--disable-dev-shm-usage` to Steam's webhelper
+wrapper. CEF then uses the already mapped `TMPDIR` and reaches `BrowserReady`
+without a `/dev/shm` failure. The shim and patch helper are installed and
+required by the native path.
+
+Steam's absolute `/bin/lsof` WebSocket check would otherwise select Android's
+bionic Toybox binary and cross the wrong loader boundary. A native compiled
+helper answers only Steam's loopback webhelper NetworkService query, reusing
+the repository's established scoped response instead of exposing unrelated
+process data. The preload redirects only `/bin/lsof` and `/usr/bin/lsof` when
+the launcher provides the validated helper path.
 
 Termux glibc also returns `ENOSYS` for `get_robust_list`, which Valve's IPC
 thread treats as a fatal initialization error. The native launcher enables the

@@ -18,6 +18,7 @@ candidate_selector=${TGCOMPAT_GLIBC_ROOT:-$HOME/.local/share/tgcompat/glibc/curr
 exec_shim=${TGCOMPAT_EXEC_SHIM:-$compat_repo/build/libtgcompat-exec.so}
 robust_shim=${TGCOMPAT_ROBUST_SHIM:-$compat_repo/build/libtgcompat-robust.so}
 tmp_shim=${STEAM_ARM64_TMP_SHIM:-$compat_bin/steam-arm64-native-tmp.so}
+native_lsof=$compat_bin/steam-arm64-native-lsof
 linux_root_selector=${STEAM_ARM64_NATIVE_ROOTFS:-$PREFIX/var/lib/proot-distro/containers/debian/rootfs}
 session_tool=$compat_repo/scripts/tgcompat-session.sh
 termux_exec_hook=${TERMUX_EXEC_GLIBC:-$PREFIX/glibc/lib/libtermux-exec.so}
@@ -66,8 +67,9 @@ grep -aFq 'TGCOMPAT_PROC_SELF_EXE' "$exec_shim" ||
     fail "glibc robust-list shim is missing: $robust_shim"
 grep -aFq 'TGCOMPAT_ROBUST_LIST' "$robust_shim" ||
     fail "glibc robust-list shim has an unexpected build: $robust_shim"
-[[ -f $tmp_shim && ! -L $tmp_shim ]] ||
-    fail "native /tmp shim is missing: $tmp_shim"
+[[ -f $tmp_shim && ! -L $tmp_shim && -x $native_lsof &&
+        ! -L $native_lsof ]] ||
+    fail "native path helpers are missing: $tmp_shim, $native_lsof"
 [[ -x $session_tool && -x $compat_repo/build/tgcompatd ]] ||
     fail "native semaphore broker is not built: $compat_repo"
 [[ -f $termux_exec_hook && ! -L $termux_exec_hook ]] ||
@@ -404,6 +406,7 @@ set +e
     STEAM_ARM64_TMP_ROOT="$PREFIX/tmp" \
     STEAM_ARM64_SHM_ROOT="$shm_dir" \
     STEAM_ARM64_LINUX_ROOT="$linux_root" \
+    STEAM_ARM64_LSOF="$native_lsof" \
     TGCOMPAT_PROC_SELF_EXE="$client/steam" \
     TGCOMPAT_ROBUST_LIST=1 \
     BREAKPAD_DUMP_LOCATION="$crash_dir" \

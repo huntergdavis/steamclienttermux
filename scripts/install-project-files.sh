@@ -44,6 +44,7 @@ install_one() {
 wrapper_stage="$(mktemp "${TMPDIR:-$PREFIX/tmp}/steam-arm64-bwrap-route.XXXXXX")"
 native_entry_stage="$(mktemp "${TMPDIR:-$PREFIX/tmp}/steam-arm64-native-entry.XXXXXX")"
 tmp_shim_stage="$(mktemp "${TMPDIR:-$PREFIX/tmp}/steam-arm64-native-tmp.XXXXXX")"
+native_lsof_stage="$(mktemp "${TMPDIR:-$PREFIX/tmp}/steam-arm64-native-lsof.XXXXXX")"
 cleanup_wrapper_stage() {
     if [[ -n "$wrapper_stage" ]] && [[ -f "$wrapper_stage" ]] &&
             [[ ! -L "$wrapper_stage" ]]; then
@@ -56,6 +57,10 @@ cleanup_wrapper_stage() {
     if [[ -n "$tmp_shim_stage" ]] && [[ -f "$tmp_shim_stage" ]] &&
             [[ ! -L "$tmp_shim_stage" ]]; then
         unlink -- "$tmp_shim_stage"
+    fi
+    if [[ -n "$native_lsof_stage" ]] && [[ -f "$native_lsof_stage" ]] &&
+            [[ ! -L "$native_lsof_stage" ]]; then
+        unlink -- "$native_lsof_stage"
     fi
 }
 trap cleanup_wrapper_stage EXIT
@@ -77,6 +82,14 @@ env -u LD_PRELOAD -u LD_LIBRARY_PATH -u GLIBC_LD_LIBRARY_PATH \
     "$repo_root/diagnostics/native-tmp-shim.c" \
     -Wl,-O2,--as-needed,--gc-sections,-z,relro,-z,now -ldl \
     -o "$tmp_shim_stage"
+env -u LD_PRELOAD -u LD_LIBRARY_PATH -u GLIBC_LD_LIBRARY_PATH \
+    grun -s gcc -std=c11 -O3 -DNDEBUG -flto -fno-plt \
+    -ffunction-sections -fdata-sections \
+    -Wall -Wextra -Werror -Wpedantic -Wformat=2 -Wshadow \
+    "$repo_root/diagnostics/native-lsof.c" \
+    -Wl,-O2,--as-needed,--gc-sections,-z,relro,-z,now \
+    -Wl,--dynamic-linker=/lib/ld-linux-aarch64.so.1 \
+    -o "$native_lsof_stage"
 
 install_one "$repo_root/bin/steam-arm" "$HOME/bin/steam-arm" 700
 install_one "$repo_root/bin/steam-arm-native" "$HOME/bin/steam-arm-native" 700
@@ -88,6 +101,8 @@ install_one "$native_entry_stage" \
     "$base/runtime/SteamLinuxRuntime_4-arm64-native/_v2-entry-point" 700
 install_one "$tmp_shim_stage" \
     "$base/compat-bin/steam-arm64-native-tmp.so" 700
+install_one "$native_lsof_stage" \
+    "$base/compat-bin/steam-arm64-native-lsof" 700
 install_one "$repo_root/scripts/start-steam.sh" "$HOME/start-steam.sh" 700
 install_one "$repo_root/scripts/start-steam-native.sh" \
     "$HOME/start-steam-native.sh" 700
@@ -107,6 +122,8 @@ install_one "$repo_root/scripts/check-native-steam-stack.sh" \
 install_one "$repo_root/bin/ensure-sshd-supervised.sh" \
     "$HOME/bin/ensure-sshd-supervised" 700
 install_one "$repo_root/bin/patch-steam-network-ui.sh" "$base/patch-steam-network-ui.sh" 700
+install_one "$repo_root/bin/patch-steamwebhelper-native.sh" \
+    "$base/patch-steamwebhelper-native.sh" 700
 install_one "$repo_root/bin/prepare-proc-net-shadow.sh" "$base/prepare-proc-net-shadow.sh" 700
 install_one "$repo_root/bin/prepare-pulseaudio-tcp.sh" "$base/prepare-pulseaudio-tcp.sh" 700
 install_one "$repo_root/bin/prepare-runtime-direct-run.sh" \
@@ -145,6 +162,8 @@ unlink -- "$native_entry_stage"
 native_entry_stage=""
 unlink -- "$tmp_shim_stage"
 tmp_shim_stage=""
+unlink -- "$native_lsof_stage"
+native_lsof_stage=""
 trap - EXIT
 
 install_one "$repo_root/config/hosts-ipv4" "$base/config/hosts-ipv4" 600

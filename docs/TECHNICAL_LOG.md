@@ -4819,6 +4819,37 @@ The full project suite passes before the next CEF retry. The required
 search returned no indexed implementation; this extends the existing narrow
 path-rewrite boundary using the fatal path CEF itself logged.
 
+The retry established that Chromium's internal `openat` does not cross the
+public glibc symbol boundary either: the wrapper existed and passed its direct
+regression, but CEF continued issuing the unchanged `/dev/shm` syscall. Steam's
+ARM64 `steamwebhelper.sh` already owns the Chromium argument boundary. Adding
+`--disable-dev-shm-usage` there made CEF select `TMPDIR`; on a clean launch the
+fresh CEF log contained no `/dev/shm` failures, `BrowserReady` appeared, and
+the browser, zygote, network, storage, and renderer processes all remained
+alive. The launcher now reapplies that one exact, backed-up line change
+idempotently so a Steam update cannot silently restore the failing flag set.
+
+That successful browser startup exposed the next boundary instead of hiding
+it behind a crash loop. Steam validates its loopback WebSocket with absolute
+`/usr/bin/lsof` and `/bin/lsof`. Android's latter path is the bionic Toybox
+binary; the glibc execution shim treated it as a Linux child and tried to load
+it with the staged glibc loader. Every validation therefore failed with
+`/bin/lsof: cannot execute`, Steam reaped the browser, lost the WebSocket, and
+finally aborted with `free(): invalid pointer`.
+
+The repository already had a narrowly scoped `lsof` responder for exactly
+this otherwise-unobservable Android `/proc/net` query. The native path reuses
+that proven output contract in a small compiled helper: it scans only for the
+Steam webhelper NetworkService, emits the requested loopback identity fields,
+and rejects unrelated queries. The native preload redirects only those two
+absolute `lsof` exec paths when `STEAM_ARM64_LSOF` names the validated helper;
+all other execs are unchanged. Host regressions cover the exec redirection,
+synthetic-proc response, unsupported-query failure, and idempotent webhelper
+patch. The required `deja "native Steam BrowserReady /bin/lsof cannot execute
+websocket free invalid pointer Termux"` search returned no indexed solution;
+the reused work is the repository's existing Steam-specific `lsof` response
+format and its established native preload boundary.
+
 The required `deja "Steam get_robust_list synthetic pthread robust head syscall
 shim Termux glibc"` search returned no indexed implementation. The fix reuses
 only the launcher's established gated-preload boundary and the Linux robust

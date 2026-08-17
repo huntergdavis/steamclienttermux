@@ -82,6 +82,32 @@ static const char *rewrite_path(const char *path, char output[PATH_MAX]) {
     return output;
 }
 
+static const char *rewrite_exec_path(const char *path) {
+    const char *helper;
+
+    if (path == NULL ||
+            (strcmp(path, "/bin/lsof") != 0 &&
+                strcmp(path, "/usr/bin/lsof") != 0)) {
+        return path;
+    }
+    helper = getenv("STEAM_ARM64_LSOF");
+    if (helper == NULL || helper[0] != '/' || helper[1] == '\0') {
+        return path;
+    }
+    return helper;
+}
+
+int execve(const char *path, char *const arguments[],
+        char *const environment[]) {
+    static int (*next)(const char *, char *const[], char *const[]);
+    const char *mapped = rewrite_exec_path(path);
+
+    if (next == NULL && !resolve_next(&next, sizeof(next), "execve")) {
+        return -1;
+    }
+    return next(mapped, arguments, environment);
+}
+
 #define DEFINE_ONE_PATH_INT(name, arguments, call_arguments)                 \
     int name arguments {                                                     \
         static int (*next) arguments;                                        \
