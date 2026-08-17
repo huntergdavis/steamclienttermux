@@ -93,6 +93,8 @@ install_one "$repo_root/scripts/start-steam-native.sh" \
     "$HOME/start-steam-native.sh" 700
 install_one "$repo_root/scripts/trace-steam-native.sh" \
     "$HOME/trace-steam-native.sh" 700
+install_one "$repo_root/scripts/capture-native-steam-backtrace.sh" \
+    "$HOME/capture-native-steam-backtrace.sh" 700
 install_one "$repo_root/scripts/start-tombraider.sh" \
     "$HOME/start-tombraider.sh" 700
 install_one "$repo_root/scripts/start-tombraider-native.sh" \
