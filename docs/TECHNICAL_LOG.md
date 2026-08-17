@@ -4689,3 +4689,27 @@ did not reach login, mutate authentication state, or start a game. The required
 Deja lookup found no indexed native-Steam solution; this fix reuses Steam's own
 binary-advertised environment control and the launcher's existing private
 runtime directory.
+
+A second clean launch proved that advertised control is not honored by the
+updater's initial Breakpad probe: the process repeated the same search from
+`/tmp/dumps` through `/tmp/dumps09` and exited. String and import inspection
+showed direct use of the ordinary glibc pathname calls. The replacement is a
+native-only, environment-gated preload shim: it maps only exact `/tmp` and
+`/tmp/...` operands to `$PREFIX/tmp`, leaving every other path unchanged. It
+also maps pathname AF_UNIX `bind` and `connect` addresses so the same rule
+continues to reach Termux:X11's real socket. The launcher validates that the
+shim is a regular non-symlink, prepends it to its existing exec shims, and
+exports the mapping root.
+
+The regression creates files, exercises rename/stat/directory operations, and
+connects a real Unix client/server pair through virtual `/tmp` paths while
+asserting that nothing appeared in the host's actual `/tmp` namespace. It
+passed both on the development host and after compiling the shim as an AArch64
+shared object on the Tab S8+. The tablet's complete non-launching native
+Steam/CEF and generic game-boundary preflight then passed. Steam, display
+`:0`, PulseAudio, and the semaphore broker were stopped after validation; no
+UI, login flow, or game ran, and saved authentication state was not modified.
+The required Deja searches found no indexed implementation of this native
+Steam failure or shim; the design reuses the launcher's existing narrow,
+environment-gated compatibility pattern and Termux's established `$PREFIX/tmp`
+X11 location.

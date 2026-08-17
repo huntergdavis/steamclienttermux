@@ -81,8 +81,12 @@ Mesa Turnip, official Proton 11 ARM64, and its bundled FEX/DXVK stack.
   the tablet. Its exact SHA-256 is
   `52f5ce13b66fc3307f48285d32b72951472493e91b96fc3e08c0c42772d999f3`.
   The non-launching native Steam/CEF and generic game-boundary preflights pass
-  against that content-addressed candidate; the installed tablet glibc,
-  active all-PRoot launcher, and saved Steam login remain untouched.
+  against that content-addressed candidate. A native-only preload shim maps
+  exact `/tmp` paths into Termux's real temp directory, including pathname
+  Unix sockets, so Steam's hard-coded Breakpad directory can be created
+  without broad path rewriting. Its host and on-tablet regressions pass; the
+  installed tablet glibc, active all-PRoot launcher, and saved Steam login
+  remain untouched.
 
 ### Current benchmark target: Tomb Raider (2013)
 
@@ -614,6 +618,15 @@ ELF interpreter and wraps matching AArch64 Linux targets with the staged
 loader, covering Steam's imported `execv`, `execvp`, `execvpe`, and `execl`
 paths plus direct exec and POSIX spawn. The selected `safe`, `fast`, or
 `proton` FEX profile is preserved.
+
+Native Android processes cannot create Steam's hard-coded `/tmp/dumps`
+directory, and the updater's initial Breakpad probe ignores both `TMPDIR` and
+`BREAKPAD_DUMP_LOCATION`. The launcher therefore preloads a separate,
+environment-gated compatibility shim which rewrites only exact `/tmp` and
+`/tmp/...` path arguments to `$PREFIX/tmp`. Its AF_UNIX handling preserves the
+Termux:X11 socket mapping as well. Other absolute and relative paths are left
+unchanged. The shim is compiled during project installation and is required by
+the native preflight.
 
 The native client and CEF do not run below PRoot. A narrowly gated compatibility
 shim proved that opening exactly `/proc/self/root` with `O_PATH` clears the
