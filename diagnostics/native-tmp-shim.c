@@ -35,7 +35,7 @@ static bool resolve_next(void *destination, size_t size, const char *name) {
     return true;
 }
 
-static const char *rewrite_tmp(const char *path, char output[PATH_MAX]) {
+static const char *rewrite_path(const char *path, char output[PATH_MAX]) {
     const char *root;
     const char *suffix;
     size_t root_length;
@@ -46,13 +46,18 @@ static const char *rewrite_tmp(const char *path, char output[PATH_MAX]) {
     }
     if (strcmp(path, "/tmp") == 0) {
         suffix = "";
+        root = getenv("STEAM_ARM64_TMP_ROOT");
     } else if (strncmp(path, "/tmp/", 5) == 0) {
         suffix = path + 4;
+        root = getenv("STEAM_ARM64_TMP_ROOT");
+    } else if (strcmp(path, "/etc/ssl") == 0 ||
+            strncmp(path, "/etc/ssl/", 9) == 0) {
+        suffix = path;
+        root = getenv("STEAM_ARM64_LINUX_ROOT");
     } else {
         return path;
     }
 
-    root = getenv("STEAM_ARM64_TMP_ROOT");
     if (root == NULL || root[0] != '/') {
         return path;
     }
@@ -75,7 +80,7 @@ static const char *rewrite_tmp(const char *path, char output[PATH_MAX]) {
     int name arguments {                                                     \
         static int (*next) arguments;                                        \
         char rewritten[PATH_MAX];                                            \
-        const char *mapped = rewrite_tmp(path, rewritten);                   \
+        const char *mapped = rewrite_path(path, rewritten);                  \
         if (mapped == NULL ||                                                \
                 (next == NULL &&                                             \
                     !resolve_next(&next, sizeof(next), #name))) {             \
@@ -113,7 +118,7 @@ DEFINE_ONE_PATH_INT(utimes, (const char *path, const struct timeval times[2]),
     int name(int version, const char *path, stat_type *buffer) {              \
         static int (*next)(int, const char *, stat_type *);                   \
         char rewritten[PATH_MAX];                                            \
-        const char *mapped = rewrite_tmp(path, rewritten);                   \
+        const char *mapped = rewrite_path(path, rewritten);                  \
         if (mapped == NULL ||                                                \
                 (next == NULL &&                                             \
                     !resolve_next(&next, sizeof(next), #name))) {             \
@@ -142,7 +147,7 @@ static bool open_has_mode(int flags) {
     int name(const char *path, int flags, ...) {                             \
         static int (*next)(const char *, int, ...);                          \
         char rewritten[PATH_MAX];                                            \
-        const char *mapped = rewrite_tmp(path, rewritten);                   \
+        const char *mapped = rewrite_path(path, rewritten);                  \
         mode_t mode = 0;                                                     \
         if (open_has_mode(flags)) {                                          \
             va_list arguments;                                               \
@@ -166,7 +171,7 @@ DEFINE_OPEN(open64)
     FILE *name(const char *path, const char *mode) {                         \
         static FILE *(*next)(const char *, const char *);                    \
         char rewritten[PATH_MAX];                                            \
-        const char *mapped = rewrite_tmp(path, rewritten);                   \
+        const char *mapped = rewrite_path(path, rewritten);                  \
         if (mapped == NULL ||                                                \
                 (next == NULL &&                                             \
                     !resolve_next(&next, sizeof(next), #name))) {             \
@@ -181,7 +186,7 @@ DEFINE_FOPEN(fopen64)
 DIR *opendir(const char *path) {
     static DIR *(*next)(const char *);
     char rewritten[PATH_MAX];
-    const char *mapped = rewrite_tmp(path, rewritten);
+    const char *mapped = rewrite_path(path, rewritten);
 
     if (mapped == NULL ||
             (next == NULL && !resolve_next(&next, sizeof(next), "opendir"))) {
@@ -190,10 +195,49 @@ DIR *opendir(const char *path) {
     return next(mapped);
 }
 
+static const char *virtual_proc_self_exe(const char *path) {
+    const char *target;
+    size_t target_length;
+
+    if (path == NULL || strcmp(path, "/proc/self/exe") != 0) {
+        return NULL;
+    }
+    target = getenv("TGCOMPAT_PROC_SELF_EXE");
+    if (target == NULL || target[0] != '/') {
+        return NULL;
+    }
+    target_length = strlen(target);
+    if (target_length < 2 || target_length >= PATH_MAX) {
+        return NULL;
+    }
+    return target;
+}
+
+static ssize_t copy_link_target(const char *target, char *buffer,
+        size_t size) {
+    size_t target_length;
+    size_t copy_length;
+
+    if (size == 0) {
+        errno = EINVAL;
+        return -1;
+    }
+    target_length = strlen(target);
+    copy_length = target_length < size ? target_length : size;
+    memcpy(buffer, target, copy_length);
+    return (ssize_t)copy_length;
+}
+
 ssize_t readlink(const char *path, char *buffer, size_t size) {
     static ssize_t (*next)(const char *, char *, size_t);
     char rewritten[PATH_MAX];
-    const char *mapped = rewrite_tmp(path, rewritten);
+    const char *virtual_target = virtual_proc_self_exe(path);
+    const char *mapped;
+
+    if (virtual_target != NULL) {
+        return copy_link_target(virtual_target, buffer, size);
+    }
+    mapped = rewrite_path(path, rewritten);
 
     if (mapped == NULL ||
             (next == NULL && !resolve_next(&next, sizeof(next), "readlink"))) {
@@ -202,10 +246,29 @@ ssize_t readlink(const char *path, char *buffer, size_t size) {
     return next(mapped, buffer, size);
 }
 
+ssize_t readlinkat(int descriptor, const char *path, char *buffer,
+        size_t size) {
+    static ssize_t (*next)(int, const char *, char *, size_t);
+    char rewritten[PATH_MAX];
+    const char *virtual_target = virtual_proc_self_exe(path);
+    const char *mapped;
+
+    if (virtual_target != NULL) {
+        return copy_link_target(virtual_target, buffer, size);
+    }
+    mapped = rewrite_path(path, rewritten);
+    if (mapped == NULL ||
+            (next == NULL &&
+                !resolve_next(&next, sizeof(next), "readlinkat"))) {
+        return -1;
+    }
+    return next(descriptor, mapped, buffer, size);
+}
+
 char *realpath(const char *path, char *resolved) {
     static char *(*next)(const char *, char *);
     char rewritten[PATH_MAX];
-    const char *mapped = rewrite_tmp(path, rewritten);
+    const char *mapped = rewrite_path(path, rewritten);
 
     if (mapped == NULL ||
             (next == NULL && !resolve_next(&next, sizeof(next), "realpath"))) {
@@ -219,9 +282,9 @@ char *realpath(const char *path, char *resolved) {
         static int (*next)(const char *, const char *);                      \
         char source_buffer[PATH_MAX];                                        \
         char destination_buffer[PATH_MAX];                                   \
-        const char *mapped_source = rewrite_tmp(source, source_buffer);      \
+        const char *mapped_source = rewrite_path(source, source_buffer);     \
         const char *mapped_destination =                                    \
-            rewrite_tmp(destination, destination_buffer);                    \
+            rewrite_path(destination, destination_buffer);                   \
         if (mapped_source == NULL || mapped_destination == NULL ||           \
                 (next == NULL &&                                             \
                     !resolve_next(&next, sizeof(next), #name))) {             \
@@ -236,7 +299,7 @@ DEFINE_TWO_PATH_INT(rename)
 int symlink(const char *target, const char *path) {
     static int (*next)(const char *, const char *);
     char rewritten[PATH_MAX];
-    const char *mapped = rewrite_tmp(path, rewritten);
+    const char *mapped = rewrite_path(path, rewritten);
 
     if (mapped == NULL ||
             (next == NULL && !resolve_next(&next, sizeof(next), "symlink"))) {
@@ -268,7 +331,7 @@ static int rewrite_unix_address(const struct sockaddr *address,
     if (path_length == path_capacity) {
         return 0;
     }
-    mapped = rewrite_tmp(unix_address->sun_path, rewritten);
+    mapped = rewrite_path(unix_address->sun_path, rewritten);
     if (mapped == NULL) {
         return -1;
     }

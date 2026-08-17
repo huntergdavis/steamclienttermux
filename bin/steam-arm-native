@@ -46,7 +46,7 @@ fail() {
     exit 1
 }
 
-for command in realpath stat sha256sum python3 dbus-daemon bash; do
+for command in realpath stat sha256sum python3 dbus-daemon bash grep; do
     command -v "$command" >/dev/null 2>&1 ||
         fail "required command is missing: $command"
 done
@@ -58,6 +58,8 @@ done
 [[ -d $mesa_lib && -f $icd ]] || fail "Turnip/Mesa runtime is incomplete: $base/mesa-kgsl"
 [[ -x $exec_shim && ! -L $exec_shim ]] ||
     fail "glibc exec shim is missing: $exec_shim"
+grep -aFq 'TGCOMPAT_PROC_SELF_EXE' "$exec_shim" ||
+    fail "glibc exec shim cannot preserve /proc/self/exe: $exec_shim"
 [[ -f $tmp_shim && ! -L $tmp_shim ]] ||
     fail "native /tmp shim is missing: $tmp_shim"
 [[ -x $session_tool && -x $compat_repo/build/tgcompatd ]] ||
@@ -349,6 +351,8 @@ env -u GLIBC_LD_LIBRARY_PATH \
     FONTCONFIG_PATH="$fontconfig_path" \
     FONTCONFIG_SYSROOT="$linux_root" \
     STEAM_ARM64_TMP_ROOT="$PREFIX/tmp" \
+    STEAM_ARM64_LINUX_ROOT="$linux_root" \
+    TGCOMPAT_PROC_SELF_EXE="$client/steam" \
     BREAKPAD_DUMP_LOCATION="$crash_dir" \
     XDG_RUNTIME_DIR="$runtime_dir" \
     PULSE_SERVER="${PULSE_SERVER:-tcp:127.0.0.1:4713}" \

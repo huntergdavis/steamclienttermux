@@ -39,6 +39,8 @@ int main(void) {
     char scratch[320];
     char renamed[320];
     char socket_path[320];
+    char link_target[320];
+    char certificate[32];
     struct sockaddr_un address;
     struct stat metadata;
     DIR *stream;
@@ -47,6 +49,7 @@ int main(void) {
     int server;
     int client;
     int accepted;
+    ssize_t link_length;
     socklen_t address_length;
 
     if (snprintf(directory, sizeof(directory),
@@ -82,6 +85,32 @@ int main(void) {
     stream = opendir(directory);
     if (stream == NULL || closedir(stream) != 0) {
         fail("opendir");
+    }
+
+    file = fopen("/etc/ssl/certs/ca-certificates.crt", "r");
+    if (file == NULL || fgets(certificate, sizeof(certificate), file) == NULL ||
+            fclose(file) != 0 || strcmp(certificate, "mapped-cert\n") != 0) {
+        fail("mapped certificate");
+    }
+    link_length = readlink("/proc/self/exe", link_target,
+        sizeof(link_target) - 1);
+    if (link_length < 0) {
+        fail("readlink proc self exe");
+    }
+    link_target[link_length] = '\0';
+    if (strcmp(link_target, "/virtual/original/steam") != 0) {
+        errno = EINVAL;
+        fail("readlink proc self exe value");
+    }
+    link_length = readlinkat(AT_FDCWD, "/proc/self/exe", link_target,
+        sizeof(link_target) - 1);
+    if (link_length < 0) {
+        fail("readlinkat proc self exe");
+    }
+    link_target[link_length] = '\0';
+    if (strcmp(link_target, "/virtual/original/steam") != 0) {
+        errno = EINVAL;
+        fail("readlinkat proc self exe value");
     }
 
     if (strlen(socket_path) >= sizeof(address.sun_path)) {
@@ -124,6 +153,12 @@ def main() -> None:
         temporary_path = Path(temporary)
         mapped_root = temporary_path / "mapped"
         mapped_root.mkdir(mode=0o700)
+        linux_root = temporary_path / "linux-root"
+        certificate_dir = linux_root / "etc" / "ssl" / "certs"
+        certificate_dir.mkdir(parents=True, mode=0o700)
+        (certificate_dir / "ca-certificates.crt").write_text(
+            "mapped-cert\n", encoding="utf-8"
+        )
         shim = temporary_path / "native-tmp-shim.so"
         driver_source = temporary_path / "driver.c"
         driver = temporary_path / "driver"
@@ -167,6 +202,8 @@ def main() -> None:
             {
                 "LD_PRELOAD": str(shim),
                 "STEAM_ARM64_TMP_ROOT": str(mapped_root),
+                "STEAM_ARM64_LINUX_ROOT": str(linux_root),
+                "TGCOMPAT_PROC_SELF_EXE": "/virtual/original/steam",
             }
         )
         completed = run([str(driver)], env=environment, capture_output=True)

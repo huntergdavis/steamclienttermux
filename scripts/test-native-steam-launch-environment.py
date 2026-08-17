@@ -8,7 +8,7 @@ SCRIPT = Path(__file__).resolve().parents[1] / "bin" / "steam-arm-native"
 
 def main() -> None:
     source = SCRIPT.read_text(encoding="utf-8")
-    assert "dbus-daemon bash; do" in source
+    assert "dbus-daemon bash grep; do" in source
     assert 'if ! bash "$session_tool" status' in source
     assert 'bash "$session_tool" start' in source
     assert '\n    "$session_tool" start\n' not in source
@@ -18,6 +18,9 @@ def main() -> None:
     assert 'FONTCONFIG_FILE="$fontconfig_file"' in source
     assert 'FONTCONFIG_PATH="$fontconfig_path"' in source
     assert 'FONTCONFIG_SYSROOT="$linux_root"' in source
+    assert 'STEAM_ARM64_LINUX_ROOT="$linux_root"' in source
+    assert 'TGCOMPAT_PROC_SELF_EXE="$client/steam"' in source
+    assert "grep -aFq 'TGCOMPAT_PROC_SELF_EXE'" in source
     print("native Steam launch-environment tests: PASS")
 
 
