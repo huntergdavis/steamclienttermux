@@ -309,6 +309,15 @@ def aggregate_results(runs) -> dict[str, dict[str, float]]:
     return result
 
 
+def mark_series_failed(series: dict, error: BaseException) -> None:
+    series["status"] = "failed"
+    series["failure"] = {
+        "type": type(error).__name__,
+        "message": str(error),
+    }
+    series["finished_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
+
+
 def build_parser() -> argparse.ArgumentParser:
     home = Path.home()
     parser = argparse.ArgumentParser(
@@ -354,6 +363,7 @@ def main() -> int:
         if arguments.output_dir
         else base / "logs/tombraider-benchmarks" / series_id
     )
+    series = None
 
     try:
         require_top_app()
@@ -519,6 +529,16 @@ def main() -> int:
         )
         print(output_directory / "series.json")
     except (OSError, RuntimeError, subprocess.SubprocessError, UnicodeError) as error:
+        if series is not None and output_directory.is_dir():
+            mark_series_failed(series, error)
+            try:
+                atomic_json(output_directory / "series.json", series)
+            except OSError as artifact_error:
+                print(
+                    "run-tombraider-native-benchmark: could not record failure: "
+                    f"{artifact_error}",
+                    file=sys.stderr,
+                )
         print(f"run-tombraider-native-benchmark: {error}", file=sys.stderr)
         return 1
     return 0

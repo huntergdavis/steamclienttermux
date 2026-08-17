@@ -106,6 +106,14 @@ def main():
         "median": 22.0,
         "values": [20.0, 22.0, 24.0],
     }
+    failed = {"status": "initializing", "runs": []}
+    module.mark_series_failed(failed, RuntimeError("controlled failure"))
+    assert failed["status"] == "failed"
+    assert failed["failure"] == {
+        "type": "RuntimeError",
+        "message": "controlled failure",
+    }
+    assert failed["finished_at"].endswith("+00:00")
     print("native Tomb Raider benchmark runner tests: PASS")
 
 
