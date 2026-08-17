@@ -155,6 +155,25 @@ def event_record(observed: datetime, anchor: datetime, **values: object) -> dict
     }
 
 
+def update_window_stability(
+    first_seen: datetime | None,
+    first_title: str | None,
+    observed: datetime,
+    target_present: bool,
+    title: str | None,
+    required_seconds: float,
+) -> tuple[datetime | None, str | None, bool]:
+    if not target_present or title is None:
+        return None, None, False
+    if first_seen is None:
+        return observed, title, False
+    return (
+        first_seen,
+        first_title,
+        (observed - first_seen).total_seconds() >= required_seconds,
+    )
+
+
 def attempt_record(
     number: int,
     status: str,
@@ -203,6 +222,8 @@ def measure(arguments: argparse.Namespace) -> tuple[int, dict[str, object]]:
     events: dict[str, dict[str, object]] = {}
     attempts: list[dict[str, object]] = []
     status = "timeout"
+    window_first_seen = None
+    window_first_title = None
 
     while time.monotonic() < deadline:
         for line in compat.read():
@@ -221,6 +242,8 @@ def measure(arguments: argparse.Namespace) -> tuple[int, dict[str, object]]:
                 )
                 runtime_launch = None
                 events = {}
+                window_first_seen = None
+                window_first_title = None
             session_start = observed_session
             session_marker = line
         for line in console.read():
@@ -232,9 +255,10 @@ def measure(arguments: argparse.Namespace) -> tuple[int, dict[str, object]]:
 
         if runtime_launch is not None:
             observed = utc_now()
-            for stage, process in stage_processes(
+            current_stages = stage_processes(
                 process_snapshot(arguments.proc_root), arguments.process_name
-            ).items():
+            )
+            for stage, process in current_stages.items():
                 if stage not in events:
                     events[stage] = event_record(
                         observed,
@@ -243,18 +267,31 @@ def measure(arguments: argparse.Namespace) -> tuple[int, dict[str, object]]:
                         process_name=process.name,
                         executable=process.executable,
                     )
-            if "target_process" in events and "game_window" not in events:
+            title = None
+            if "target_process" in current_stages:
                 title = first_visible_window(
                     arguments.display,
                     arguments.window_regex,
                     min(5.0, max(0.25, arguments.poll)),
                 )
-                if title is not None:
-                    observed = utc_now()
-                    events["game_window"] = event_record(
-                        observed, runtime_launch, title=title
-                    )
-            if "target_process" in events and "game_window" in events:
+            observed = utc_now()
+            window_first_seen, window_first_title, window_stable = (
+                update_window_stability(
+                    window_first_seen,
+                    window_first_title,
+                    observed,
+                    "target_process" in current_stages,
+                    title,
+                    arguments.window_stable_seconds,
+                )
+            )
+            if window_stable:
+                events["game_window"] = event_record(
+                    window_first_seen,
+                    runtime_launch,
+                    title=window_first_title,
+                    stable_seconds=arguments.window_stable_seconds,
+                )
                 status = "complete"
                 break
         time.sleep(arguments.poll)
@@ -278,6 +315,7 @@ def measure(arguments: argparse.Namespace) -> tuple[int, dict[str, object]]:
         "window_regex": arguments.window_regex,
         "display": arguments.display,
         "poll_seconds": arguments.poll,
+        "window_stable_seconds": arguments.window_stable_seconds,
         "timer_started_at": iso_time(started),
         "timer_finished_at": iso_time(finished),
         "steam_session_at": iso_time(session_start) if session_start else None,
@@ -291,8 +329,10 @@ def measure(arguments: argparse.Namespace) -> tuple[int, dict[str, object]]:
         "attempt_count": len(attempts),
         "attempts": attempts,
         "notes": (
-            "Steam log timestamps have one-second resolution. Process and window "
-            "events are first observations at the configured polling interval. "
+            "Steam log timestamps have one-second resolution. Process events are "
+            "first observations at the configured polling interval. "
+            "A game window is complete only after the target and matching visible "
+            "window remain continuously present for window_stable_seconds. "
             "A later StartSession for the same AppID closes the incomplete attempt "
             "and resets process/window attribution for the retry."
         ),
@@ -312,6 +352,7 @@ def main() -> int:
     parser.add_argument("--display", default=":0")
     parser.add_argument("--poll", type=float, default=1.0)
     parser.add_argument("--timeout", type=float, default=900.0)
+    parser.add_argument("--window-stable-seconds", type=float, default=10.0)
     parser.add_argument("--proc-root", type=Path, default=Path("/proc"))
     parser.add_argument(
         "--console-log", type=Path, default=base / "client/logs/console_log.txt"
@@ -331,6 +372,8 @@ def main() -> int:
         parser.error("--poll must be between 0.25 and 10 seconds")
     if not 1.0 <= arguments.timeout <= 3600.0:
         parser.error("--timeout must be between 1 and 3600 seconds")
+    if not 1.0 <= arguments.window_stable_seconds <= 120.0:
+        parser.error("--window-stable-seconds must be between 1 and 120 seconds")
     if not arguments.process_name or not arguments.window_regex:
         parser.error("process and window names must not be empty")
 

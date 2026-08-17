@@ -57,6 +57,17 @@ def main():
         "seconds_after_runtime_launch": 5.25,
         "pid": 5,
     }
+    first_seen, title, stable = module.update_window_stability(
+        None, None, parsed, True, "Tomb Raider", 10.0
+    )
+    assert (first_seen, title, stable) == (parsed, "Tomb Raider", False)
+    later = datetime(2026, 8, 16, 16, 47, 32, tzinfo=timezone.utc)
+    assert module.update_window_stability(
+        first_seen, title, later, True, "Tomb Raider", 10.0
+    ) == (first_seen, title, True)
+    assert module.update_window_stability(
+        first_seen, title, later, False, None, 10.0
+    ) == (None, None, False)
     first_attempt = module.attempt_record(
         1,
         "superseded_by_retry",

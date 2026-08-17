@@ -89,12 +89,14 @@ def main():
             '  mkdir -p "$PROC_ROOT/10"\n'
             '  printf "TombRaider.exe\\n" > "$PROC_ROOT/10/comm"\n'
             '  printf "STEAM_COMPAT_APP_ID=203160\\0STEAM_COMPAT_DATA_PATH=%s/removable-library-compatdata/203160\\0" "$STEAM_ARM64_BASE" > "$PROC_ROOT/10/environ"\n'
+            '  printf "3:cpuset:/top-app\\n2:cpu:/top-app\\n" > "$PROC_ROOT/10/cgroup"\n'
             '  printf "AppID 203160 adding PID 10\\nRemove 203160 from running list\\n" >> "$GAME_LOG"\n'
             "else\n"
             '  rm -rf "$PROC_ROOT/10"\n'
             '  mkdir -p "$PROC_ROOT/27038"\n'
             '  printf "TombRaider.exe\\n" > "$PROC_ROOT/27038/comm"\n'
             '  printf "STEAM_COMPAT_APP_ID=203160\\0STEAM_COMPAT_DATA_PATH=%s/removable-library-compatdata/203160\\0" "$STEAM_ARM64_BASE" > "$PROC_ROOT/27038/environ"\n'
+            '  printf "3:cpuset:/top-app\\n2:cpu:/top-app\\n" > "$PROC_ROOT/27038/cgroup"\n'
             "fi\n"
         )
         retry_start.chmod(0o700)
@@ -110,7 +112,8 @@ def main():
             "TOMB_RAIDER_PROC_ROOT": str(proc_root),
             "TOMB_RAIDER_XDOTOOL": str(fake_xdotool),
             "TOMB_RAIDER_LAUNCH_RETRIES": "1",
-            "TOMB_RAIDER_RETRY_WAIT_SECONDS": "2",
+            "TOMB_RAIDER_RETRY_WAIT_SECONDS": "4",
+            "TOMB_RAIDER_WINDOW_STABLE_SECONDS": "2",
         }
         retry = subprocess.run(
             ["bash", str(SCRIPT)],
@@ -125,7 +128,7 @@ def main():
             "attempt=2",
         ]
         assert "fast pre-game exit detected" in retry.stderr
-        assert "verified TombRaider.exe and visible game window on attempt 2" in retry.stdout
+        assert "verified top-app TombRaider.exe and visible game window for 2s on attempt 2" in retry.stdout
 
     print("native Tomb Raider wrapper tests: PASS")
 

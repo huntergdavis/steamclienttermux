@@ -20,6 +20,7 @@ fi
 
 retry_count=${TOMB_RAIDER_LAUNCH_RETRIES:-1}
 retry_wait=${TOMB_RAIDER_RETRY_WAIT_SECONDS:-180}
+window_stable_seconds=${TOMB_RAIDER_WINDOW_STABLE_SECONDS:-10}
 base=${STEAM_ARM64_BASE:-$HOME/steam-arm64}
 proc_root=${TOMB_RAIDER_PROC_ROOT:-/proc}
 gameprocess_log=${TOMB_RAIDER_GAMEPROCESS_LOG:-$base/client/logs/gameprocess_log.txt}
@@ -37,6 +38,10 @@ declare -a launch_command=(
     printf 'start-tombraider-native: TOMB_RAIDER_RETRY_WAIT_SECONDS must be positive\n' >&2
     exit 2
 }
+[[ $window_stable_seconds =~ ^[1-9][0-9]*$ ]] || {
+    printf 'start-tombraider-native: TOMB_RAIDER_WINDOW_STABLE_SECONDS must be positive\n' >&2
+    exit 2
+}
 # Preserve the original thin-wrapper behavior for explicit callers and the
 # argument-contract test. Production defaults to one verified fast-exit retry.
 if (( retry_count == 0 )); then
@@ -46,6 +51,14 @@ command -v "$xdotool_command" >/dev/null 2>&1 || {
     printf 'start-tombraider-native: xdotool is unavailable: %s\n' \
         "$xdotool_command" >&2
     exit 1
+}
+
+process_is_top_app() {
+    local process=$1 cpuset cpu
+    [[ -r $process/cgroup ]] || return 1
+    cpuset=$(sed -n 's#^[0-9][0-9]*:cpuset:##p' "$process/cgroup" | head -n 1)
+    cpu=$(sed -n 's#^[0-9][0-9]*:cpu:##p' "$process/cgroup" | head -n 1)
+    [[ $cpuset == /top-app && $cpu == /top-app ]]
 }
 
 verified_game_running() {
@@ -58,7 +71,7 @@ verified_game_running() {
         compatdata=$(sed -n 's/^STEAM_COMPAT_DATA_PATH=//p' <<<"$environment")
         case "$compatdata" in
             "$base/removable-library/steamapps/compatdata/203160"|"$base/removable-library-compatdata/203160")
-                return 0
+                process_is_top_app "$process" && return 0
                 ;;
         esac
     done
@@ -85,11 +98,18 @@ for ((attempt = 0; attempt <= retry_count; attempt++)); do
     "${launch_command[@]}"
 
     removed=0
+    stable_since=-1
     for _ in $(seq 1 "$retry_wait"); do
         if verified_game_running && visible_game_window; then
-            printf 'start-tombraider-native: verified TombRaider.exe and visible game window on attempt %s\n' \
-                "$((attempt + 1))"
-            exit 0
+            if (( stable_since < 0 )); then
+                stable_since=$SECONDS
+            elif (( SECONDS - stable_since >= window_stable_seconds )); then
+                printf 'start-tombraider-native: verified top-app TombRaider.exe and visible game window for %ss on attempt %s\n' \
+                    "$window_stable_seconds" "$((attempt + 1))"
+                exit 0
+            fi
+        else
+            stable_since=-1
         fi
         if app_removed_since "$log_offset"; then
             removed=1
