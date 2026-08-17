@@ -95,8 +95,22 @@ def main() -> None:
             "/b",
             "0",
         ]
+        fixture_arm64_command = (
+            fixture_base
+            / "client/steamapps/common/Proton 11.0 (ARM64)"
+            / "files/lib/wine/aarch64-windows/cmd.exe"
+        )
+        fixture_arm64_command.parent.mkdir(parents=True, exist_ok=True)
+        fixture_arm64_command.write_bytes(b"fixture")
+        fixture_arm64_command.chmod(0o700)
+        assert MODULE.proton_smoke_command(
+            fixture_base, fixture_runtime, fixture_proton, "proton-arm64-cmd"
+        )[3] == str(fixture_arm64_command)
         assert MODULE.proton_smoke_environment("proton-entry") == {}
         assert MODULE.proton_smoke_environment("proton-cmd") == {
+            "WINELOADERNOEXEC": "1"
+        }
+        assert MODULE.proton_smoke_environment("proton-arm64-cmd") == {
             "WINELOADERNOEXEC": "1"
         }
     assert MODULE.request_environment(

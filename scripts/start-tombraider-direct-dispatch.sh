@@ -8,7 +8,7 @@ dispatcher=${TOMB_RAIDER_DIRECT_DISPATCHER:-$base/compat-bin/pressure-vessel-dir
 default_python=/data/data/com.termux/files/usr/bin/python3
 python=${TOMB_RAIDER_DIRECT_PYTHON:-$default_python}
 launcher=${TOMB_RAIDER_DIRECT_LAUNCHER:-$HOME/start-steam-native.sh}
-mode=${TOMB_RAIDER_DIRECT_MODE:-proton-cmd-smoke}
+mode=${TOMB_RAIDER_DIRECT_MODE:-proton-arm64-cmd-smoke}
 socket=$base/run/native-runtime-dispatch/dispatch.sock
 state=$base/run/tombraider-direct-dispatch.state
 
@@ -17,7 +17,8 @@ fail() {
     exit 1
 }
 
-[[ $mode == proton-entry-smoke || $mode == proton-cmd-smoke ]] ||
+[[ $mode == proton-entry-smoke || $mode == proton-cmd-smoke ||
+    $mode == proton-arm64-cmd-smoke ]] ||
     fail "unsupported direct-dispatch mode: $mode"
 [[ -d $base/run && ! -L $base/run && -d $base/logs && ! -L $base/logs ]] ||
     fail "Steam run or log directory is unavailable below $base"

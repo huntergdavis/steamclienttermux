@@ -470,14 +470,19 @@ def proton_smoke_command(
         fail(f"validated Proton entry point is unavailable: {proton}")
     if command_mode == "proton-entry":
         return [str(runtime_python), str(proton), "steamclienttermux-probe"]
-    if command_mode == "proton-cmd":
+    if command_mode in ("proton-cmd", "proton-arm64-cmd"):
+        architecture = (
+            "x86_64-windows"
+            if command_mode == "proton-cmd"
+            else "aarch64-windows"
+        )
         command = (
             base
             / "client/steamapps/common/Proton 11.0 (ARM64)"
-            / "files/lib/wine/x86_64-windows/cmd.exe"
+            / f"files/lib/wine/{architecture}/cmd.exe"
         )
         if not command.is_file() or command.is_symlink():
-            fail(f"validated x86-64 Proton command is unavailable: {command}")
+            fail(f"validated Proton command is unavailable: {command}")
         return [
             str(runtime_python),
             str(proton),
@@ -495,7 +500,7 @@ def proton_smoke_command(
 def proton_smoke_environment(command_mode: str) -> dict[str, str]:
     if command_mode == "proton-entry":
         return {}
-    if command_mode == "proton-cmd":
+    if command_mode in ("proton-cmd", "proton-arm64-cmd"):
         return {"WINELOADERNOEXEC": "1"}
     fail(f"unsupported Proton smoke mode: {command_mode}")
 
@@ -580,7 +585,7 @@ def pv_smoke_invocation(
         program, _, _ = runtime_true_from_plan(base, payload)
         command = [str(program)]
         preserve_assignments = True
-    elif command_mode in ("proton-entry", "proton-cmd"):
+    elif command_mode in ("proton-entry", "proton-cmd", "proton-arm64-cmd"):
         proton, _ = validated_tombraider_command(base, payload_arguments)
         command = proton_smoke_command(base, runtime_root, proton, command_mode)
         preserve_assignments = False
@@ -603,7 +608,7 @@ def pv_smoke_invocation(
         fail("pv-adverb compatibility preload is unavailable")
     preload = ":".join(str(path) for path in preloads)
     environment = request_environment(payload)
-    if command_mode in ("proton-entry", "proton-cmd"):
+    if command_mode in ("proton-entry", "proton-cmd", "proton-arm64-cmd"):
         environment.update(proton_smoke_environment(command_mode))
     prefix = os.environ.get("PREFIX", "")
     if not prefix.startswith("/"):
@@ -683,6 +688,19 @@ def run_proton_cmd_smoke(
     )
 
 
+def run_proton_arm64_cmd_smoke(
+    base: Path,
+    payload: dict[str, object],
+    descriptors: list[int],
+) -> tuple[int, int]:
+    loader, arguments, environment = pv_smoke_invocation(
+        base, payload, "proton-arm64-cmd"
+    )
+    return run_loader_child(
+        loader, arguments, environment, descriptors, payload["fd_numbers"]
+    )
+
+
 def verify_peer(connection: socket.socket) -> None:
     credentials = connection.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12)
     _, uid, _ = struct.unpack("3i", credentials)
@@ -724,6 +742,10 @@ def serve(base: Path, mode: str) -> int:
                     )
                 elif mode == "proton-cmd-smoke":
                     status, observed_tracer = run_proton_cmd_smoke(
+                        base, payload, descriptors
+                    )
+                elif mode == "proton-arm64-cmd-smoke":
+                    status, observed_tracer = run_proton_arm64_cmd_smoke(
                         base, payload, descriptors
                     )
                 else:
@@ -808,6 +830,7 @@ def main() -> int:
                     "pv-smoke",
                     "proton-entry-smoke",
                     "proton-cmd-smoke",
+                    "proton-arm64-cmd-smoke",
                 ),
                 default="final-smoke",
             )
