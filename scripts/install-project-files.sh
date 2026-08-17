@@ -159,6 +159,8 @@ install_one "$repo_root/scripts/set-tombraider-affinity.py" \
     "$base/compat-bin/set-tombraider-affinity.py" 700
 install_one "$repo_root/scripts/monitor-termux-game-session.sh" \
     "$base/compat-bin/monitor-termux-game-session.sh" 700
+install_one "$repo_root/scripts/cleanup-steam-temp.py" \
+    "$HOME/bin/cleanup-steam-temp" 700
 install_one "$wrapper_stage" "$base/compat-bin/steam-arm64-bwrap-route" 700
 unlink -- "$wrapper_stage"
 wrapper_stage=""
