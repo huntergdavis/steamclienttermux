@@ -83,10 +83,16 @@ int main(void) {
     if (rename(scratch, renamed) != 0 || unlink(renamed) != 0) {
         fail("rename/unlink");
     }
-    descriptor = open(shm_marker, O_WRONLY | O_CREAT | O_EXCL, 0600);
+    descriptor = openat(AT_FDCWD, shm_marker,
+        O_WRONLY | O_CREAT | O_EXCL, 0600);
     if (descriptor < 0 || write(descriptor, "shm\n", 4) != 4 ||
             close(descriptor) != 0) {
-        fail("open shm marker");
+        fail("openat shm marker");
+    }
+    if (faccessat(AT_FDCWD, "/dev/shm", W_OK | X_OK, 0) != 0 ||
+            fstatat(AT_FDCWD, shm_marker, &metadata, 0) != 0 ||
+            metadata.st_size != 4) {
+        fail("faccessat/fstatat shm marker");
     }
     if (access(marker, R_OK) != 0 || stat(marker, &metadata) != 0 ||
             metadata.st_size != 7) {

@@ -120,6 +120,41 @@ DEFINE_ONE_PATH_INT(utime, (const char *path, const struct utimbuf *times),
 DEFINE_ONE_PATH_INT(utimes, (const char *path, const struct timeval times[2]),
     (mapped, times))
 
+#define DEFINE_AT_PATH_INT(name, arguments, call_arguments)                  \
+    int name arguments {                                                     \
+        static int (*next) arguments;                                        \
+        char rewritten[PATH_MAX];                                            \
+        const char *mapped = rewrite_path(path, rewritten);                  \
+        if (mapped == NULL ||                                                \
+                (next == NULL &&                                             \
+                    !resolve_next(&next, sizeof(next), #name))) {             \
+            return -1;                                                       \
+        }                                                                    \
+        return next call_arguments;                                          \
+    }
+
+DEFINE_AT_PATH_INT(faccessat,
+    (int descriptor, const char *path, int mode, int flags),
+    (descriptor, mapped, mode, flags))
+DEFINE_AT_PATH_INT(fchmodat,
+    (int descriptor, const char *path, mode_t mode, int flags),
+    (descriptor, mapped, mode, flags))
+DEFINE_AT_PATH_INT(fchownat,
+    (int descriptor, const char *path, uid_t owner, gid_t group, int flags),
+    (descriptor, mapped, owner, group, flags))
+DEFINE_AT_PATH_INT(fstatat,
+    (int descriptor, const char *path, struct stat *buffer, int flags),
+    (descriptor, mapped, buffer, flags))
+DEFINE_AT_PATH_INT(fstatat64,
+    (int descriptor, const char *path, struct stat64 *buffer, int flags),
+    (descriptor, mapped, buffer, flags))
+DEFINE_AT_PATH_INT(mkdirat,
+    (int descriptor, const char *path, mode_t mode),
+    (descriptor, mapped, mode))
+DEFINE_AT_PATH_INT(unlinkat,
+    (int descriptor, const char *path, int flags),
+    (descriptor, mapped, flags))
+
 #define DEFINE_XSTAT(name, stat_type)                                        \
     int name(int version, const char *path, stat_type *buffer) {              \
         static int (*next)(int, const char *, stat_type *);                   \
@@ -172,6 +207,31 @@ static bool open_has_mode(int flags) {
 
 DEFINE_OPEN(open)
 DEFINE_OPEN(open64)
+
+#define DEFINE_OPENAT(name)                                                  \
+    int name(int descriptor, const char *path, int flags, ...) {             \
+        static int (*next)(int, const char *, int, ...);                     \
+        char rewritten[PATH_MAX];                                            \
+        const char *mapped = rewrite_path(path, rewritten);                  \
+        mode_t mode = 0;                                                     \
+        if (open_has_mode(flags)) {                                          \
+            va_list arguments;                                               \
+            va_start(arguments, flags);                                      \
+            mode = va_arg(arguments, mode_t);                                \
+            va_end(arguments);                                               \
+        }                                                                    \
+        if (mapped == NULL ||                                                \
+                (next == NULL &&                                             \
+                    !resolve_next(&next, sizeof(next), #name))) {             \
+            return -1;                                                       \
+        }                                                                    \
+        return open_has_mode(flags)                                          \
+            ? next(descriptor, mapped, flags, mode)                          \
+            : next(descriptor, mapped, flags);                               \
+    }
+
+DEFINE_OPENAT(openat)
+DEFINE_OPENAT(openat64)
 
 #define DEFINE_FOPEN(name)                                                   \
     FILE *name(const char *path, const char *mode) {                         \

@@ -4806,7 +4806,13 @@ the explicit Chromium diagnostic that `/dev/shm` was unavailable.
 The native pathname shim now maps exact `/dev/shm` operands into a distinct
 private mode-0700 directory below the already validated native runtime. It
 does not expose or modify Android `/dev`, and `/tmp`/X11 mapping remains
-unchanged. The regression creates a virtual `/dev/shm` marker, proves nothing
+unchanged. The first retry proved Chromium calls `openat` directly: a focused
+file-syscall trace captured
+`openat(AT_FDCWD, "/dev/shm/.com.valvesoftware.Steam.*", ...) = ENOENT`,
+bypassing the shim's original `open` family. The boundary now covers the
+corresponding `openat`, `faccessat`, `fstatat`, ownership/mode, directory, and
+unlink calls as well. The regression creates and inspects a virtual
+`/dev/shm` marker entirely through those `*at` entry points, proves nothing
 appeared in the host namespace, and verifies the mapped content independently.
 The full project suite passes before the next CEF retry. The required
 `deja "Steam webhelper Chromium /dev/shm Android Termux native tmp shim"`
