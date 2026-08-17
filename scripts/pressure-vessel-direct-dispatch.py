@@ -364,6 +364,7 @@ def run_loader_child(
     descriptors: list[int],
     target_numbers: list[int],
     trace_path: Path | None = None,
+    trace_stacks: bool = True,
 ) -> tuple[int, int]:
     executable = loader
     execution_arguments = arguments
@@ -387,17 +388,25 @@ def run_loader_child(
             if value is not None:
                 forwarded.extend(["-E", f"{name}={value}"])
         executable = strace
-        execution_arguments = [
+        trace_arguments = [
             str(strace),
             "-f",
             "-qq",
-            "-k",
             "-s",
             "256",
             "-o",
             str(trace_path),
             "-e",
-            "trace=%file,%process,%memory",
+            (
+                "trace=%file,%process,%memory"
+                if trace_stacks
+                else "trace=%process,%signal"
+            ),
+        ]
+        if trace_stacks:
+            trace_arguments.append("-k")
+        execution_arguments = [
+            *trace_arguments,
             *forwarded,
             *arguments,
         ]
@@ -847,6 +856,28 @@ def run_tombraider(
     )
 
 
+def run_tombraider_diagnostic(
+    base: Path,
+    payload: dict[str, object],
+    descriptors: list[int],
+) -> tuple[int, int]:
+    loader, arguments, environment = pv_smoke_invocation(
+        base, payload, "tombraider"
+    )
+    logs = private_directory(base / "logs", "Steam log directory")
+    trace_path = logs / f"tombraider-direct-process-{os.getpid()}.strace"
+    print(f"PROCESS_TRACE_LOG={trace_path}", flush=True)
+    return run_loader_child(
+        loader,
+        arguments,
+        environment,
+        descriptors,
+        payload["fd_numbers"],
+        trace_path,
+        False,
+    )
+
+
 def verify_peer(connection: socket.socket) -> None:
     credentials = connection.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12)
     _, uid, _ = struct.unpack("3i", credentials)
@@ -897,6 +928,10 @@ def serve(base: Path, mode: str) -> int:
                     )
                 elif mode == "tombraider":
                     status, observed_tracer = run_tombraider(
+                        base, payload, descriptors
+                    )
+                elif mode == "tombraider-diagnostic":
+                    status, observed_tracer = run_tombraider_diagnostic(
                         base, payload, descriptors
                     )
                 else:
@@ -983,6 +1018,7 @@ def main() -> int:
                     "proton-cmd-smoke",
                     "proton-arm64-cmd-smoke",
                     "tombraider",
+                    "tombraider-diagnostic",
                 ),
                 default="final-smoke",
             )

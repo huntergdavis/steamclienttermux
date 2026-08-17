@@ -21,7 +21,8 @@ fail() {
 }
 
 [[ $mode == proton-entry-smoke || $mode == proton-cmd-smoke ||
-    $mode == proton-arm64-cmd-smoke || $mode == tombraider ]] ||
+    $mode == proton-arm64-cmd-smoke || $mode == tombraider ||
+    $mode == tombraider-diagnostic ]] ||
     fail "unsupported direct-dispatch mode: $mode"
 [[ $diagnostics == 0 || $diagnostics == 1 ]] ||
     fail 'TOMB_RAIDER_DIRECT_DIAGNOSTICS must be 0 or 1'
@@ -35,7 +36,7 @@ fail() {
     fail "native Steam launcher is unavailable: $launcher"
 [[ -x $prepare && ! -L $prepare ]] ||
     fail "Proton direct Wine preparation tool is unavailable: $prepare"
-if [[ $mode == tombraider ]]; then
+if [[ $mode == tombraider || $mode == tombraider-diagnostic ]]; then
     [[ -f $affinity && ! -L $affinity ]] ||
         fail "Tomb Raider affinity guard is unavailable: $affinity"
 fi
@@ -73,7 +74,7 @@ done
     fail 'direct dispatcher did not create its socket'
 }
 
-if [[ $mode == tombraider ]]; then
+if [[ $mode == tombraider || $mode == tombraider-diagnostic ]]; then
     affinity_log=$base/logs/tombraider-direct-affinity-$stamp.log
     "$python" "$affinity" --watch --raknet-cpu1 --steam-base "$base" \
         --lock-file "$base/run/tombraider-direct-affinity.lock" \

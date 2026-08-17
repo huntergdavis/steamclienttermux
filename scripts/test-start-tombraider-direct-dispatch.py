@@ -108,6 +108,24 @@ def main() -> None:
             f"--lock-file {base}/run/tombraider-direct-affinity.lock"
         ]
 
+        (base / "run/native-runtime-dispatch/dispatch.sock").unlink()
+        diagnostic_environment = {
+            **environment,
+            "TOMB_RAIDER_DIRECT_MODE": "tombraider-diagnostic",
+        }
+        diagnostic = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env=diagnostic_environment,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        assert diagnostic.returncode == 1, diagnostic.stderr
+        diagnostic_state = (
+            base / "run/tombraider-direct-dispatch.state"
+        ).read_text()
+        assert "mode=tombraider-diagnostic" in diagnostic_state
+
         python_link = root / "python3-link"
         python_link.symlink_to(Path(os.sys.executable).resolve())
         rejected_environment = {

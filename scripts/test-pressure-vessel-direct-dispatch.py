@@ -144,6 +144,10 @@ def main() -> None:
     assert 'command_mode == "tombraider"' in invocation_source
     game_source = inspect.getsource(MODULE.run_tombraider)
     assert '"tombraider"' in game_source
+    diagnostic_source = inspect.getsource(MODULE.run_tombraider_diagnostic)
+    assert "tombraider-direct-process-" in diagnostic_source
+    assert "trace_path" in diagnostic_source
+    assert "False" in diagnostic_source
     with tempfile.TemporaryDirectory(prefix="removable-game.") as directory:
         game_fixture = Path(directory) / "TombRaider.exe"
         game_fixture.write_bytes(b"game")

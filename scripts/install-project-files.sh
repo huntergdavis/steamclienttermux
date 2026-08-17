@@ -126,6 +126,8 @@ install_one "$repo_root/scripts/capture-tombraider-pressure-vessel-plan.sh" \
     "$HOME/capture-tombraider-pressure-vessel-plan" 700
 install_one "$repo_root/scripts/start-tombraider-direct-dispatch.sh" \
     "$HOME/start-tombraider-direct-dispatch" 700
+install_one "$repo_root/scripts/start-tombraider-direct-diagnostic.sh" \
+    "$HOME/start-tombraider-direct-diagnostic" 700
 install_one "$repo_root/scripts/run-tombraider-native-benchmark.py" \
     "$base/compat-bin/run-tombraider-native-benchmark.py" 600
 install_one "$repo_root/scripts/run-tombraider-native-benchmark.sh" \
