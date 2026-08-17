@@ -5662,3 +5662,35 @@ The focused `deja` recall found only this current investigation, so no earlier
 dispatcher implementation was reused. The direct ELF execution reuses
 `termux-glibc-compat`'s existing patched glibc and exec-boundary shim; the
 captured plan and dispatcher remain Steam-specific work in this repository.
+
+## 2026-08-17: live Runtime plan exits PRoot with no tracer
+
+The first opt-in dispatcher is deliberately limited to Pressure Vessel plans
+whose final command is exactly `/bin/true`. Its PRoot-side client reads the
+NUL-delimited Bubblewrap argument file, discovers referenced descriptors, and
+sends the plan, environment, and descriptors over a mode-0600 Unix socket.
+The outside Termux server requires the same Android UID via `SO_PEERCRED`,
+accepts at most a 16 MiB frame and 64 descriptors, maps `/bin` through the
+captured merged-`/usr` layout, and accepts only the exact prepared Runtime 4
+`usr/bin/true` target. Neither the environment nor descriptor contents are
+written to logs.
+
+The live headless smoke used Runtime 4's normal `_v2-entry-point` and
+Pressure Vessel setup under the existing short PRoot boundary. The server
+received the real plan plus 11 inherited descriptors, forked the selected
+patched-glibc child outside PRoot, and recorded:
+
+```text
+REQUEST_RECEIVED=1 FD_COUNT=11
+DISPATCH_STATUS=0 TRACER_PID=0
+direct Runtime smoke: PASS tracer_pid=0
+DIRECT_CLIENT_RC=0
+```
+
+Both the one-shot server and the waiting PRoot client exited cleanly. This is
+the first live proof that Valve's generated game-runtime request can leave the
+PRoot tracer while the PRoot-side caller remains blocked for normal Steam
+lifecycle. It does not yet claim a game launch: the server still rejects every
+command except Runtime `/bin/true`. The next gate is executing the captured
+`pv-adverb` payload with its descriptors and relocated Runtime/provider paths,
+then Proton/FEX, before exposing the route to Tomb Raider.

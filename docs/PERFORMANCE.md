@@ -184,3 +184,15 @@ have identical host and guest paths and no nested translated bind. Neither an
 entire Steam library nor Runtime 4 can be assumed to meet that rule. Keep the
 candidate and `PROOT_NODEREF_FAST_PATH` opt-in until a narrow per-workload
 prefix passes a real game launch.
+
+## Live no-hot-PRoot dispatch smoke
+
+Pressure Vessel built its real plan under the short setup PRoot and transferred
+it plus 11 file descriptors to a private same-UID Termux server. That server
+launched Runtime 4's `usr/bin/true` through the patched glibc with
+`TracerPid: 0`; the waiting PRoot client then returned zero.
+
+This proves the handoff architecture, not a game performance gain. The current
+server intentionally accepts only `/bin/true`. `pv-adverb`, Proton/FEX, and a
+matched Tomb Raider benchmark remain required before making any FPS or
+launch-time claim.
