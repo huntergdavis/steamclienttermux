@@ -637,6 +637,13 @@ syscalls are forwarded. Android cannot register that head with the kernel, so
 this clears the userspace initialization gate but does not claim kernel
 owner-death recovery.
 
+Native child commands are resolved from the Debian ARM64 runtime before the
+ordinary Termux path. This lets the execution shim pair those ELF files with
+the same staged loader and libraries as Steam. Putting `$PREFIX/glibc/bin`
+first is unsafe here: its active loader combined with the staged candidate's
+`LD_LIBRARY_PATH` reproduced an immediate pre-`main()` `SIGBUS` in `sh` and
+prevented `steamwebhelper.sh` from starting.
+
 The native client and CEF do not run below PRoot. A narrowly gated compatibility
 shim proved that opening exactly `/proc/self/root` with `O_PATH` clears the
 first Pressure Vessel error, but the next boundary is kernel-enforced:

@@ -119,6 +119,8 @@ linux_root=$(realpath -e "$linux_root_selector") ||
 linux_lib=$linux_root/usr/lib/aarch64-linux-gnu
 linux_pulse_lib=$linux_lib/pulseaudio
 linux_usr_lib=$linux_root/usr/lib
+linux_usr_bin=$linux_root/usr/bin
+linux_usr_sbin=$linux_root/usr/sbin
 ssl_cert_file=$linux_root/etc/ssl/certs/ca-certificates.crt
 ssl_cert_dir=$linux_root/etc/ssl/certs
 fontconfig_file=$linux_root/etc/fonts/fonts.conf
@@ -127,6 +129,12 @@ fontconfig_path=$linux_root/etc/fonts
     fail "Linux ARM64 runtime libraries are missing: $linux_lib"
 [[ -d $linux_pulse_lib && ! -L $linux_pulse_lib ]] ||
     fail "Linux PulseAudio private libraries are missing: $linux_pulse_lib"
+linux_shell=$(realpath -e "$linux_usr_bin/sh") ||
+    fail "Linux shell is unavailable: $linux_usr_bin/sh"
+[[ $linux_shell == "$linux_root"/* && -x $linux_shell && ! -L $linux_shell &&
+        -d $linux_usr_bin && ! -L $linux_usr_bin &&
+        -d $linux_usr_sbin && ! -L $linux_usr_sbin ]] ||
+    fail "Linux command runtime is incomplete or unsafe: $linux_usr_bin"
 [[ -f $ssl_cert_file && ! -L $ssl_cert_file && -d $ssl_cert_dir &&
         ! -L $ssl_cert_dir ]] ||
     fail "Linux TLS certificate store is missing: $ssl_cert_dir"
@@ -412,7 +420,7 @@ set +e
     MESA_LOADER_DRIVER_OVERRIDE=kgsl \
     TU_DEBUG=noconform \
     MESA_VK_WSI_PRESENT_MODE=mailbox \
-    PATH="$PREFIX/glibc/bin:$compat_bin:$PATH" \
+    PATH="$compat_bin:$linux_usr_bin:$linux_usr_sbin:$PATH" \
     "$loader" --inhibit-cache --library-path "$library_path" \
         --argv0 "$client/steam" "$client/steam" \
         -no-cef-sandbox -cef-disable-gpu -chromeosnopreallocate \

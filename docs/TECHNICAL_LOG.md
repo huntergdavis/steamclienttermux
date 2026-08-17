@@ -4752,6 +4752,35 @@ initialized to the head. The regression checks that hidden field as well as
 the public 24-byte layout. Both the workstation suite and the glibc-linked
 tablet test pass before the next Steam retry.
 
+That retry was the first to keep the native Steam parent alive beyond IPC
+initialization: it reached device enumeration, held 31 threads at roughly
+195 MiB RSS, and repeatedly attempted CEF. A focused 20-second
+process/signal-only trace then showed why no window appeared. Both
+`steamwebhelper.sh` attempts died before their next `execve` with
+`SIGBUS/BUS_ADRALN` at address `0x26181`; the small `wpctl` and Runtime Launch
+Service shell children failed with the same signal.
+
+Steam was resolving `sh` to `$PREFIX/glibc/bin/sh`. That selects the active
+Termux glibc loader while inheriting the staged candidate's first-position
+`LD_LIBRARY_PATH` and all candidate-built preloads. The failure reproduced
+outside Steam: the full inherited library path/preload set made a trivial
+`sh -c 'exit 0'` return 135 with `SIGBUS`, while each preload with its native
+library set passed. The Debian runtime's `usr/bin/sh` also passed under the
+candidate loader.
+
+The native launcher now puts its compatibility helpers and Debian ARM64
+`usr/bin`/`usr/sbin` ahead of the ordinary Termux path, validates that the
+resolved shell remains inside the selected root, and removes
+`$PREFIX/glibc/bin` from this child-command boundary. The execution shim can
+therefore wrap those standard-interpreter ELF children with the same staged
+loader used by Steam.
+
+The required `deja "native ARM64 Steam webhelper immediately restarts exits no
+window Termux glibc"` search returned no indexed implementation. The retained
+work is the repository's existing executable-boundary shim and the current
+focused trace; an earlier 44 MiB full trace was removed after proving it had
+captured only pre-Steam Termux:X11 startup.
+
 The required `deja "Steam get_robust_list synthetic pthread robust head syscall
 shim Termux glibc"` search returned no indexed implementation. The fix reuses
 only the launcher's established gated-preload boundary and the Linux robust
