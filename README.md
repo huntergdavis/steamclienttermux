@@ -586,7 +586,9 @@ STEAM_ARM64_NATIVE_CHECK=1 ~/bin/steam-arm-native
 ~/bin/check-native-steam-stack
 ~/start-steam-native.sh
 ~/start-steam-native.sh --appid 203160 -- -nolauncher
+~/start-steam-native.sh --proton-log --appid 203160 -- -nolauncher
 ~/start-tombraider-native.sh
+~/start-tombraider-native.sh --proton-log
 ~/start-tombraider-native.sh -benchmark
 ~/stop-steam-native.sh
 ```
@@ -602,6 +604,11 @@ select another complete ARM64 Linux runtime tree.
 and then independently validates the stamped PRoot and generic Pressure Vessel
 boundary. Use `--proot-dir /absolute/candidate/src` for an isolated A/B; it
 does not start X11, Steam, a game, or an authentication flow.
+
+Place `--proton-log` before the AppID (or before Tomb Raider's game arguments)
+for one diagnostic session. The native wrapper enables Proton's own log and
+writes `steam-APPID.log` under `~/steam-arm64/logs`; normal launches remain
+unchanged.
 
 The selected official package was built from Termux glibc-packages commit
 `954c6b2`, copied without repacking, hash-checked on the tablet, extracted into

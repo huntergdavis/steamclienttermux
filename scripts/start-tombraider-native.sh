@@ -12,4 +12,9 @@ steam_start="${STEAM_START_SCRIPT:-$HOME/start-steam-native.sh}"
 # Keep the same direct, backgrounded Tomb Raider route as start-tombraider.sh,
 # but select the no-PRoot Steam/CEF host. Additional game arguments are kept.
 export STEAM_BACKGROUND=1
-exec "$steam_start" --appid 203160 -- -nolauncher "$@"
+declare -a native_options=()
+if [[ ${1:-} == --proton-log ]]; then
+    native_options+=(--proton-log)
+    shift
+fi
+exec "$steam_start" "${native_options[@]}" --appid 203160 -- -nolauncher "$@"

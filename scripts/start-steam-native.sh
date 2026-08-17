@@ -7,6 +7,17 @@ start_script=${STEAM_START_SCRIPT:-$HOME/start-steam.sh}
 base=${STEAM_ARM64_BASE:-$HOME/steam-arm64}
 webhelper_patch=$base/patch-steamwebhelper-native.sh
 
+if [[ ${1:-} == --proton-log ]]; then
+    shift
+    [[ -d $base/logs && ! -L $base/logs ]] || {
+        printf 'start-steam-native: log directory is unavailable: %s\n' \
+            "$base/logs" >&2
+        exit 1
+    }
+    export PROTON_LOG=1
+    export PROTON_LOG_DIR=$base/logs
+fi
+
 [[ -x $native_launcher ]] || {
     printf 'start-steam-native: launcher is unavailable: %s\n' \
         "$native_launcher" >&2

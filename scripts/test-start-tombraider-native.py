@@ -41,6 +41,21 @@ def main():
             "arg=-foo",
         ]
 
+        subprocess.run(
+            ["bash", str(SCRIPT), "--proton-log", "-benchmark"],
+            env=environment,
+            check=True,
+        )
+        assert capture.read_text().splitlines() == [
+            "background=1",
+            "arg=--proton-log",
+            "arg=--appid",
+            "arg=203160",
+            "arg=--",
+            "arg=-nolauncher",
+            "arg=-benchmark",
+        ]
+
         missing = subprocess.run(
             ["bash", str(SCRIPT)],
             env={**os.environ, "STEAM_START_SCRIPT": str(root / "missing")},
