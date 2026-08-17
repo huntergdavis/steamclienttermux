@@ -1,0 +1,98 @@
+{
+  "schema_version": 2,
+  "status": "complete_after_retry",
+  "measurement_kind": "one_second_external_watcher_with_log_reconstruction",
+  "appid": 203160,
+  "game": "Tomb Raider (2013)",
+  "stack": "native glibc Steam; PRoot plus Runtime 4 at game boundary",
+  "state": {
+    "steam_client": "cold",
+    "steam_authentication": "remembered",
+    "proton_log": false,
+    "vulkan_loader_debug": false,
+    "fex_profile": "safe",
+    "display": "2800x1752"
+  },
+  "steam_process_started_at": "2026-08-17T07:07:35+00:00",
+  "attempt_count": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "status": "failed_before_proton",
+      "steam_session_at": "2026-08-17T07:08:09+00:00",
+      "runtime_launch_at": "2026-08-17T07:08:27+00:00",
+      "seconds_session_to_runtime_launch": 18.0,
+      "events": {
+        "pressure_vessel": {
+          "observed_at": "2026-08-17T07:08:29.045+00:00",
+          "seconds_after_runtime_launch": 2.045,
+          "pid": 1168
+        },
+        "tracked_process_removed": {
+          "observed_at": "2026-08-17T07:08:30+00:00",
+          "seconds_after_runtime_launch": 3.0,
+          "pid": 1131,
+          "exit_code": 0
+        }
+      },
+      "failure": "proot guest vPID 1 terminated with signal 1"
+    },
+    {
+      "attempt": 2,
+      "status": "complete",
+      "steam_session_at": "2026-08-17T07:09:42+00:00",
+      "runtime_launch_at": "2026-08-17T07:09:48+00:00",
+      "seconds_session_to_runtime_launch": 6.0,
+      "events": {
+        "proton": {
+          "observed_at": "2026-08-17T07:09:58.172+00:00",
+          "seconds_after_runtime_launch": 10.172,
+          "pid": 4425
+        },
+        "wine": {
+          "observed_at": "2026-08-17T07:09:59.267+00:00",
+          "seconds_after_runtime_launch": 11.267,
+          "pid": 4428
+        },
+        "wineserver": {
+          "observed_at": "2026-08-17T07:10:00.353+00:00",
+          "seconds_after_runtime_launch": 12.353,
+          "pid": 4432
+        },
+        "target_process": {
+          "observed_at": "2026-08-17T07:10:15.758+00:00",
+          "seconds_after_runtime_launch": 27.758,
+          "pid": 4594,
+          "process_name": "TombRaider.exe"
+        },
+        "game_window": {
+          "observed_at": "2026-08-17T07:10:47.917+00:00",
+          "seconds_after_runtime_launch": 59.917,
+          "title": "Tomb Raider",
+          "geometry": "2800x1752+0+0"
+        }
+      }
+    }
+  ],
+  "seconds_first_session_to_game_window": 158.917,
+  "seconds_steam_process_to_game_window": 192.917,
+  "comparison": {
+    "proot_runtime_to_window_seconds": 407.236,
+    "native_retry_runtime_to_window_seconds": 59.917,
+    "runtime_to_window_speedup": 6.797,
+    "runtime_to_window_reduction_percent": 85.287,
+    "proot_session_to_window_seconds": 541.236,
+    "native_first_session_to_window_seconds": 158.917,
+    "session_to_window_speedup": 3.406,
+    "session_to_window_reduction_percent": 70.638
+  },
+  "precision": {
+    "steam_log_seconds": 1.0,
+    "process_and_window_poll_seconds": 1.0
+  },
+  "notes": [
+    "The original schema-1 timer output anchored attempt-2 events to attempt 1; this record corrects that attribution from the same raw logs.",
+    "The retry followed a three-second cold Runtime failure, so its Runtime and compatibility caches were not fully cold.",
+    "The comparison has one observation per stack and is not yet a latency distribution."
+  ]
+}

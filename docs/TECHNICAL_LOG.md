@@ -5223,3 +5223,68 @@ with TERM; the replacement immediately attached to live Tomb Raider PID
 1-7, the one `Raknet-RecvFrom` thread on CPU 1, native loader-wrapped Steam
 helpers on CPU 0, and exited normally. The same 2800x1752 window remained
 visible with about 1.9 GiB RAM available.
+
+## 2026-08-17: tolerate launch-time affinity rewrites
+
+The first logging-free retry created the real game while the original guard
+was walking its rapidly growing thread tree. `taskset -a` requested CPUs 1-7,
+but five early threads read back as 1-6 and the guard exited immediately. A
+later live audit proved CPUs 0-7 were online and available to `/top-app`; the
+game had subsequently widened its main and new threads to 0-7. This was a
+normal concurrent FEX/game affinity rewrite, not CPU 7 being unavailable.
+
+`converge_game_affinity` now distinguishes that transient valid-process state
+from an execution or identity failure. A residual mask mismatch returns
+"not stable" to the existing watch loop, which reapplies on its next poll and
+resets the 30-second gate. Failed `taskset` calls, wrong App IDs, background
+cgroups, and malformed process state still fail immediately. The required
+`deja "taskset requested CPUs 1-7 results 1-6 Android top-app effective cpuset
+dynamic affinity guard"` query returned no indexed solution. Regression tests
+simulate the residual 1-6 mask and its later convergence.
+
+Commit `a40422f` was hot-deployed to the still-live clean game. Its replacement
+guard attached to PID 4594, converged all 52 threads despite the earlier
+rewrite, held 51 threads on CPUs 1-7 plus the RakNet thread on CPU 1 for 30
+seconds, verified native CEF helpers on CPU 0, and exited normally. The game
+window remained visible and about 2.54 GiB RAM was available afterward.
+
+## 2026-08-17: logging-free native launch timing
+
+A clean native client was launched through the guarded Android top-app route
+without `PROTON_LOG` or Vulkan loader tracing. Steam started at 07:07:35 UTC
+and restored the authenticated UI. Its first session at 07:08:09 emitted the
+Runtime launch at 07:08:27, entered Pressure Vessel two seconds later, then
+logged `proot info: vpid 1: terminated with signal 1` and removed the tracked
+process at 07:08:30. Proton and Wine never started. This repeats the observed
+one-time cold Runtime failure without implicating the now-proven Vulkan path.
+
+The stable native Steam process accepted a retry. Its second session began at
+07:09:42 and emitted Runtime PID 3918 at 07:09:48. The external one-second
+watcher then observed:
+
+| Stage | UTC | Seconds after retry Runtime |
+| --- | ---: | ---: |
+| Proton | 07:09:58.172 | 10.172 |
+| Wine | 07:09:59.267 | 11.267 |
+| wineserver | 07:10:00.353 | 12.353 |
+| `TombRaider.exe` | 07:10:15.758 | 27.758 |
+| visible 2800x1752 window | 07:10:47.917 | **59.917** |
+
+The game remained live, initialized DirectX 11, PulseAudio, every content pack,
+and online services, then passed the corrected affinity stability gate. The
+59.917-second retry Runtime-to-window interval is 85.3% shorter, or 6.80 times
+faster, than the earlier 407.236-second all-PRoot observation. From the first
+native session through its failed attempt and successful retry took 158.917
+seconds, 70.6% shorter than the old 541.236-second PRoot session total. Each is
+still a single observation, and the native retry had warm Runtime state after
+the failed attempt.
+
+The first timer report incorrectly anchored every later process to the first
+failed Runtime launch, producing a misleading 140.918-second result. The
+recorder now treats each new AppID `StartSession` as an attempt boundary,
+closes an incomplete attempt as `superseded_by_retry`, clears its process and
+window attribution, and emits both a retry-aware attempt list and the final
+attempt at schema version 2. It also refuses to claim a window before observing
+the target process. Commit `23253d2` and the complete project suite passed.
+The required recall query for multi-attempt launch-timer attribution returned
+no indexed solution.

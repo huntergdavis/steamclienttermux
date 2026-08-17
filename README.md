@@ -213,6 +213,19 @@ warm-compatibility-cache observation rather than a completed A/B series. The
 preserves the stage timestamps and their measurement precision for the future
 native-glibc A/B.
 
+The first logging-free native-Steam measurement is now complete. Its initial
+cold Runtime 4 attempt exited before Proton after three seconds; the automatic
+workflow remained healthy and the successful retry reached Proton in 10.2
+seconds, `TombRaider.exe` in 27.8 seconds, and the visible 2800x1752 window in
+**59.917 seconds** from the retry's Runtime launch. That comparable
+runtime-to-window interval is 85.3% shorter, or 6.80x faster, than the 407.236
+second PRoot observation. Counting from the first native Steam session through
+the failed attempt and retry, the window took 158.917 seconds, still 70.6%
+shorter than the 541.236-second PRoot session total. These remain one
+observation per stack, not a latency distribution. The
+[native timing record](docs/launch-timings/tomb-raider-native-clean-20260817.json)
+preserves both attempts rather than hiding the cold failure.
+
 ![Kingsway running from the microSD through Proton ARM64 and FEX](docs/evidence/kingsway-running.png)
 
 ![Tomb Raider Windows launcher running through Proton ARM64 and FEX](docs/evidence/tombraider-main-menu-2026-08-14.png)
