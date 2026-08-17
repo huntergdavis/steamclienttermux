@@ -21,6 +21,7 @@ fi
 retry_count=${TOMB_RAIDER_LAUNCH_RETRIES:-1}
 retry_wait=${TOMB_RAIDER_RETRY_WAIT_SECONDS:-180}
 window_stable_seconds=${TOMB_RAIDER_WINDOW_STABLE_SECONDS:-30}
+supervise_poll=${TOMB_RAIDER_SUPERVISE_POLL_SECONDS:-5}
 base=${STEAM_ARM64_BASE:-$HOME/steam-arm64}
 proc_root=${TOMB_RAIDER_PROC_ROOT:-/proc}
 gameprocess_log=${TOMB_RAIDER_GAMEPROCESS_LOG:-$base/client/logs/gameprocess_log.txt}
@@ -40,6 +41,10 @@ declare -a launch_command=(
 }
 [[ $window_stable_seconds =~ ^[1-9][0-9]*$ ]] || {
     printf 'start-tombraider-native: TOMB_RAIDER_WINDOW_STABLE_SECONDS must be positive\n' >&2
+    exit 2
+}
+[[ $supervise_poll =~ ^[1-9][0-9]*$ ]] || {
+    printf 'start-tombraider-native: TOMB_RAIDER_SUPERVISE_POLL_SECONDS must be positive\n' >&2
     exit 2
 }
 # Preserve the original thin-wrapper behavior for explicit callers and the
@@ -67,8 +72,8 @@ process_is_top_app() {
     [[ $cpuset == /top-app && $cpu == /top-app ]]
 }
 
-verified_game_running() {
-    local process environment compatdata
+verified_game_identity() {
+    local require_top_app=$1 process environment compatdata
     for process in "$proc_root"/[0-9]*; do
         [[ -r $process/comm && -r $process/environ ]] || continue
         [[ $(<"$process/comm") == TombRaider.exe ]] || continue
@@ -77,11 +82,21 @@ verified_game_running() {
         compatdata=$(sed -n 's/^STEAM_COMPAT_DATA_PATH=//p' <<<"$environment")
         case "$compatdata" in
             "$base/removable-library/steamapps/compatdata/203160"|"$base/removable-library-compatdata/203160")
-                process_is_top_app "$process" && return 0
+                if (( require_top_app == 0 )) || process_is_top_app "$process"; then
+                    return 0
+                fi
                 ;;
         esac
     done
     return 1
+}
+
+verified_game_running() {
+    verified_game_identity 1
+}
+
+verified_game_exists() {
+    verified_game_identity 0
 }
 
 visible_game_window() {
@@ -112,6 +127,13 @@ for ((attempt = 0; attempt <= retry_count; attempt++)); do
             elif (( SECONDS - stable_since >= window_stable_seconds )); then
                 printf 'start-tombraider-native: verified top-app TombRaider.exe and visible game window for %ss on attempt %s\n' \
                     "$window_stable_seconds" "$((attempt + 1))"
+                # RunCommandService owns the foreground Android lifetime. Its
+                # shell exiting has repeatedly delivered signal 1 to the game
+                # container in the same second, so supervise until game exit.
+                while verified_game_exists; do
+                    sleep "$supervise_poll"
+                done
+                printf 'start-tombraider-native: TombRaider.exe exited; foreground supervision complete\n'
                 exit 0
             fi
         else
