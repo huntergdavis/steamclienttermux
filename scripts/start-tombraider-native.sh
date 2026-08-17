@@ -19,10 +19,12 @@ if [[ ${1:-} == --proton-log ]]; then
 fi
 
 retry_count=${TOMB_RAIDER_LAUNCH_RETRIES:-1}
-retry_wait=${TOMB_RAIDER_RETRY_WAIT_SECONDS:-60}
+retry_wait=${TOMB_RAIDER_RETRY_WAIT_SECONDS:-180}
 base=${STEAM_ARM64_BASE:-$HOME/steam-arm64}
 proc_root=${TOMB_RAIDER_PROC_ROOT:-/proc}
 gameprocess_log=${TOMB_RAIDER_GAMEPROCESS_LOG:-$base/client/logs/gameprocess_log.txt}
+display=${STEAM_X11_DISPLAY:-:0}
+xdotool_command=${TOMB_RAIDER_XDOTOOL:-xdotool}
 declare -a launch_command=(
     "$steam_start" "${native_options[@]}" --appid 203160 -- -nolauncher "$@"
 )
@@ -35,12 +37,16 @@ declare -a launch_command=(
     printf 'start-tombraider-native: TOMB_RAIDER_RETRY_WAIT_SECONDS must be positive\n' >&2
     exit 2
 }
-
 # Preserve the original thin-wrapper behavior for explicit callers and the
 # argument-contract test. Production defaults to one verified fast-exit retry.
 if (( retry_count == 0 )); then
     exec "${launch_command[@]}"
 fi
+command -v "$xdotool_command" >/dev/null 2>&1 || {
+    printf 'start-tombraider-native: xdotool is unavailable: %s\n' \
+        "$xdotool_command" >&2
+    exit 1
+}
 
 verified_game_running() {
     local process environment compatdata
@@ -59,6 +65,11 @@ verified_game_running() {
     return 1
 }
 
+visible_game_window() {
+    DISPLAY="$display" timeout 2 "$xdotool_command" search --onlyvisible \
+        --class '^steam_app_203160$' 2>/dev/null | grep -Eq '^[0-9]+$'
+}
+
 app_removed_since() {
     local offset=$1 size
     [[ -f $gameprocess_log && ! -L $gameprocess_log ]] || return 1
@@ -75,8 +86,8 @@ for ((attempt = 0; attempt <= retry_count; attempt++)); do
 
     removed=0
     for _ in $(seq 1 "$retry_wait"); do
-        if verified_game_running; then
-            printf 'start-tombraider-native: verified TombRaider.exe on attempt %s\n' \
+        if verified_game_running && visible_game_window; then
+            printf 'start-tombraider-native: verified TombRaider.exe and visible game window on attempt %s\n' \
                 "$((attempt + 1))"
             exit 0
         fi
@@ -88,7 +99,7 @@ for ((attempt = 0; attempt <= retry_count; attempt++)); do
     done
 
     if (( removed == 0 )); then
-        printf 'start-tombraider-native: Steam acknowledged AppID 203160 but no verified game appeared in %ss\n' \
+        printf 'start-tombraider-native: Steam acknowledged AppID 203160 but no verified game window appeared in %ss\n' \
             "$retry_wait" >&2
         exit 1
     fi
