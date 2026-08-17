@@ -680,6 +680,12 @@ thermal and memory state into
 `~/steam-arm64/logs/tombraider-benchmarks/<series>/series.json`. It does not
 profile, capture, or switch windows during the timed scene.
 
+The installed command is an absolute-Termux-shebang broker, so Android's
+foreground `RunCommandService` can start it without relying on the interactive
+shell's `termux-exec` preload. The broker invokes the content installed at
+`~/steam-arm64/compat-bin/run-tombraider-native-benchmark.py` with Termux's
+absolute Python path and forwards every benchmark option unchanged.
+
 The first command is non-launching: it verifies the content-addressed patched
 glibc marker and uses that exact loader to resolve the Steam bootstrap and CEF
 helper before any UI, D-Bus, PulseAudio, manifest, or HOME change. It reads

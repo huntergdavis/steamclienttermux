@@ -117,6 +117,8 @@ install_one "$repo_root/scripts/start-tombraider.sh" \
 install_one "$repo_root/scripts/start-tombraider-native.sh" \
     "$HOME/start-tombraider-native.sh" 700
 install_one "$repo_root/scripts/run-tombraider-native-benchmark.py" \
+    "$base/compat-bin/run-tombraider-native-benchmark.py" 600
+install_one "$repo_root/scripts/run-tombraider-native-benchmark.sh" \
     "$HOME/run-tombraider-native-benchmark" 700
 install_one "$repo_root/scripts/start-gtaiv-native.sh" \
     "$HOME/start-gtaiv-native.sh" 700
