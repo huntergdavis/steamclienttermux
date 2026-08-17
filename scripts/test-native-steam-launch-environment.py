@@ -22,6 +22,8 @@ def main() -> None:
     assert 'FONTCONFIG_FILE="$fontconfig_file"' in source
     assert 'FONTCONFIG_PATH="$fontconfig_path"' in source
     assert 'FONTCONFIG_SYSROOT="$linux_root"' in source
+    assert 'XLOCALEDIR="$xlocale_dir"' in source
+    assert "xlocale_dir=$linux_root/usr/share/X11/locale" in source
     assert 'linux_shell=$(realpath -e "$linux_usr_bin/sh")' in source
     assert 'PATH="$compat_bin:$linux_usr_bin:$linux_usr_sbin:$PATH"' in source
     assert 'PATH="$PREFIX/glibc/bin:$compat_bin:$PATH"' not in source

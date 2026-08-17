@@ -4850,6 +4850,26 @@ websocket free invalid pointer Termux"` search returned no indexed solution;
 the reused work is the repository's existing Steam-specific `lsof` response
 format and its established native preload boundary.
 
+The tablet retry confirmed the compiled route: the prior repeated
+`/bin/lsof: cannot execute` and WebSocket failures disappeared. Steam then
+aborted in the main thread with `free(): invalid pointer`; CEF's D-Bus
+disconnect happened only after launcher teardown. A bounded GDB capture put
+the allocator failure at `XFree`, called from `vgui2_s.so` immediately after
+`XwcTextListToTextProperty`. Disassembly showed that Valve ignores the
+conversion return code and unconditionally frees `XTextProperty.value`; the
+captured value was the untouched stack sentinel `0xffffffff`.
+
+The same run printed `XOpenIM() failed, LANG = C.UTF-8`. Native Xlib was using
+its compiled absolute `/usr/share/X11/locale`, which does not exist in
+Android's root namespace, even though the selected Debian runtime contains the
+complete locale tree and a `C.UTF-8 -> en_US.UTF-8` alias. The launcher now
+validates that real non-symlink tree and exports `XLOCALEDIR` to it. This gives
+Xlib the data needed by both input-method setup and wide-character text
+conversion without changing the process locale or Steam files. The required
+`deja "XwcTextListToTextProperty XFree invalid pointer XLOCALEDIR C.UTF-8
+Steam native"` search found no indexed solution; the fix reuses the already
+validated Debian dependency root selected by the native launcher.
+
 The required `deja "Steam get_robust_list synthetic pthread robust head syscall
 shim Termux glibc"` search returned no indexed implementation. The fix reuses
 only the launcher's established gated-preload boundary and the Linux robust

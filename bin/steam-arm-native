@@ -128,6 +128,7 @@ ssl_cert_file=$linux_root/etc/ssl/certs/ca-certificates.crt
 ssl_cert_dir=$linux_root/etc/ssl/certs
 fontconfig_file=$linux_root/etc/fonts/fonts.conf
 fontconfig_path=$linux_root/etc/fonts
+xlocale_dir=$linux_root/usr/share/X11/locale
 [[ -d $linux_lib && ! -L $linux_lib ]] ||
     fail "Linux ARM64 runtime libraries are missing: $linux_lib"
 [[ -d $linux_pulse_lib && ! -L $linux_pulse_lib ]] ||
@@ -144,6 +145,9 @@ linux_shell=$(realpath -e "$linux_usr_bin/sh") ||
 [[ -f $fontconfig_file && ! -L $fontconfig_file && -d $fontconfig_path &&
         ! -L $fontconfig_path ]] ||
     fail "Linux Fontconfig configuration is missing: $fontconfig_path"
+[[ -d $xlocale_dir && ! -L $xlocale_dir &&
+        -f $xlocale_dir/locale.alias && ! -L $xlocale_dir/locale.alias ]] ||
+    fail "Linux X11 locale data is missing: $xlocale_dir"
 
 # The staged package deliberately supplies only the patched glibc core. Reuse
 # the already-installed Debian runtime libraries by their real host paths;
@@ -403,6 +407,7 @@ set +e
     FONTCONFIG_FILE="$fontconfig_file" \
     FONTCONFIG_PATH="$fontconfig_path" \
     FONTCONFIG_SYSROOT="$linux_root" \
+    XLOCALEDIR="$xlocale_dir" \
     STEAM_ARM64_TMP_ROOT="$PREFIX/tmp" \
     STEAM_ARM64_SHM_ROOT="$shm_dir" \
     STEAM_ARM64_LINUX_ROOT="$linux_root" \

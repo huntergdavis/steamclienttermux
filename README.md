@@ -659,6 +659,11 @@ candidate path is therefore supplied by explicit loader arguments and
 loader with the staged candidate's libraries reproduced an immediate
 pre-`main()` `SIGBUS` and prevented `steamwebhelper.sh` from starting.
 
+Xlib's compiled `/usr/share/X11/locale` path is absent from Android's root.
+The native launcher points `XLOCALEDIR` at the validated Debian locale tree;
+without it, `XwcTextListToTextProperty` leaves an output sentinel untouched
+and Valve's unchecked `XFree` aborts the client after `BrowserReady`.
+
 The native client and CEF do not run below PRoot. A narrowly gated compatibility
 shim proved that opening exactly `/proc/self/root` with `O_PATH` clears the
 first Pressure Vessel error, but the next boundary is kernel-enforced:
