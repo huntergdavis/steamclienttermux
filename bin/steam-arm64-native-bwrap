@@ -140,7 +140,8 @@ esac
 # route helper are Bionic. Remove glibc loader state at this one explicit ABI
 # crossing; the game payload gets its runtime environment from Pressure Vessel.
 unset LD_PRELOAD LD_LIBRARY_PATH GLIBC_LD_LIBRARY_PATH
-unset TGCOMPAT_LD_SO TGCOMPAT_LIBRARY_PATH TGCOMPAT_EXEC_MATCH_INTERPRETER
+unset TGCOMPAT_LD_SO TGCOMPAT_LIBRARY_PATH TGCOMPAT_EXEC_MATCH_INTERPRETER \
+    TGCOMPAT_EXEC_LD_PRELOAD
 export PATH=$custom_proot_dir:$PREFIX/bin:/system/bin
 export PROOT_L2S_EXDEV_PREFIX=$runtime_depot/var/tmp-
 

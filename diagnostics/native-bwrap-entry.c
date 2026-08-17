@@ -34,6 +34,7 @@ main (int argc, char **argv)
     "TGCOMPAT_LD_SO",
     "TGCOMPAT_LIBRARY_PATH",
     "TGCOMPAT_EXEC_MATCH_INTERPRETER",
+    "TGCOMPAT_EXEC_LD_PRELOAD",
     NULL,
   };
   const char *prefix = getenv ("PREFIX");

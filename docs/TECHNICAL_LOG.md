@@ -4955,3 +4955,25 @@ The required `deja "Steam compatmanager unsupported version 0 compatibility
 tool AppError_51 Steam Linux Runtime 4 Arm64 toolmanifest"` search returned no
 indexed solution; the manifest schema reuses the validated official ARM64
 Runtime 4 metadata already installed on the tablet.
+
+With version 2 present, Steam resolved both ARM64 command prefixes, emitted an
+`AppID 203160 adding PID` record, and marked the launch action completed. PID
+28258 then exited 127 before the native Runtime wrapper ran. Its inherited
+loader diagnostics identified the boundary precisely: Steam had replaced
+`LD_PRELOAD` with x86 game-overlay objects and concatenated the previous native
+shim tail without a separator. The wrapped ARM64 `/bin/sh` consequently tried
+to load the x86 overlay, required its unavailable `libGL.so.1`, and aborted
+before `_v2-entry-point` could sanitize the environment.
+
+The generic exec helper now supports an opt-in `TGCOMPAT_EXEC_LD_PRELOAD`
+override. When set, only a matching wrapped Linux ELF child receives that exact
+preload value; when absent, existing behavior is unchanged. Native Steam sets
+the override to its validated four-shim list, allowing the intermediate ARM64
+shell and launch wrapper to start. The native Runtime entry point explicitly
+removes the new control variable together with the loader/preload state before
+the Bionic/PRoot crossing. Regression coverage verifies replacement versus
+preservation and the bridge sanitization. The required `deja "native Steam game
+SteamLaunch tracked process exit 127 external storage executable path native
+Runtime wrapper Termux"` search returned no indexed solution; this extends the
+existing content-addressed glibc exec boundary rather than adding a second
+launcher-specific ELF parser.

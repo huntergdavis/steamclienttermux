@@ -29,6 +29,7 @@ def main() -> None:
     assert 'PATH="$PREFIX/glibc/bin:$compat_bin:$PATH"' not in source
     assert 'STEAM_ARM64_LINUX_ROOT="$linux_root"' in source
     assert 'TGCOMPAT_PROC_SELF_EXE="$client/steam"' in source
+    assert 'TGCOMPAT_EXEC_LD_PRELOAD="$preload"' in source
     assert 'robust_shim=${TGCOMPAT_ROBUST_SHIM:-' in source
     assert "grep -aFq 'TGCOMPAT_ROBUST_LIST'" in source
     assert 'TGCOMPAT_ROBUST_LIST=1' in source
@@ -36,6 +37,7 @@ def main() -> None:
     assert 'LD_LIBRARY_PATH="$library_path"' not in source
     assert 'TGCOMPAT_LIBRARY_PATH="$library_path"' in source
     assert "grep -aFq 'TGCOMPAT_PROC_SELF_EXE'" in source
+    assert "grep -aFq 'TGCOMPAT_EXEC_LD_PRELOAD'" in source
     print("native Steam launch-environment tests: PASS")
 
 

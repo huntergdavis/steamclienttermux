@@ -694,6 +694,12 @@ declared local `install_path`; pointing that path at a wrapper-only directory
 otherwise registers the App ID but leaves its protocol version at zero, causing
 `AppError_51` before the game boundary.
 
+Steam replaces `LD_PRELOAD` when it builds a game command, adding its x86
+overlay objects. Native ARM64 `/bin/sh` must start before the game can reach the
+Bionic bridge, so the glibc exec boundary restores the launcher's exact native
+shim list for wrapped ARM64 children. The native bridge then removes all loader
+and preload state before entering PRoot, as it did previously.
+
 Runtime 4 no longer rebuilds its mutable sysroot for every game. The installer
 strictly applies Valve's `usr-mtree.txt.gz`, verifies every declared size and
 SHA-256, materializes PRoot pseudo-hardlinks, recreates Valve's merged-`/usr`

@@ -63,6 +63,8 @@ done
     fail "glibc exec shim is missing: $exec_shim"
 grep -aFq 'TGCOMPAT_PROC_SELF_EXE' "$exec_shim" ||
     fail "glibc exec shim cannot preserve /proc/self/exe: $exec_shim"
+grep -aFq 'TGCOMPAT_EXEC_LD_PRELOAD' "$exec_shim" ||
+    fail "glibc exec shim cannot restore child preload state: $exec_shim"
 [[ -x $robust_shim && ! -L $robust_shim ]] ||
     fail "glibc robust-list shim is missing: $robust_shim"
 grep -aFq 'TGCOMPAT_ROBUST_LIST' "$robust_shim" ||
@@ -421,6 +423,7 @@ set +e
     PRESSURE_VESSEL_BWRAP="$native_bwrap" \
     STEAM_ARM64_PROC_NET="$proc_net_shadow" \
     LD_PRELOAD="$preload" \
+    TGCOMPAT_EXEC_LD_PRELOAD="$preload" \
     TGCOMPAT_SOCKET="$socket_path" \
     TGCOMPAT_LD_SO="$loader" \
     TGCOMPAT_LIBRARY_PATH="$library_path" \
