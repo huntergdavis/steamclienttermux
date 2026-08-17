@@ -281,10 +281,16 @@ def apply_uniform_affinity(pid, mask, runner=subprocess.run):
 def ensure_uniform_affinity(pid, process_dir, mask, runner=subprocess.run):
     try:
         verify_uniform_mask(process_dir, mask)
-        return False
+        return True
     except RuntimeError:
         apply_uniform_affinity(pid, mask, runner)
-        verify_uniform_mask(process_dir, mask)
+        try:
+            verify_uniform_mask(process_dir, mask)
+        except RuntimeError:
+            # Auxiliary Wine and Steam helper threads can rewrite their masks
+            # in the same interval as the main FEX process. Keep the guard
+            # alive and retry this unstable sample on the next poll.
+            return False
         return True
 
 
@@ -360,10 +366,13 @@ def watch_for_ready_game(arguments, runner=subprocess.run):
                 continue
             try:
                 if live_process_is_top_app(helper_dir):
-                    ensure_uniform_affinity(
+                    helpers_ready = ensure_uniform_affinity(
                         helper_pid, helper_dir, STEAM_HELPER_CPUS, runner
-                    )
+                    ) and helpers_ready
+                else:
+                    helpers_ready = False
             except (RuntimeError, subprocess.CalledProcessError):
+                helpers_ready = False
                 if helper_dir.exists():
                     raise
 
@@ -406,10 +415,13 @@ def watch_for_ready_game(arguments, runner=subprocess.run):
                 continue
             try:
                 if live_process_is_top_app(auxiliary_dir):
-                    ensure_uniform_affinity(
+                    auxiliary_ready = ensure_uniform_affinity(
                         auxiliary_pid, auxiliary_dir, AUXILIARY_CPUS, runner
-                    )
+                    ) and auxiliary_ready
+                else:
+                    auxiliary_ready = False
             except (RuntimeError, subprocess.CalledProcessError):
+                auxiliary_ready = False
                 if auxiliary_dir.exists():
                     raise
 

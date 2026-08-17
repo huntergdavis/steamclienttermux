@@ -154,6 +154,21 @@ def main():
         assert module.find_auxiliary_processes(proc_root, Path("/base")) == [
             (30000, auxiliary, "wineserver")
         ]
+        auxiliary_status = auxiliary / "task/30000/status"
+        auxiliary_status.write_text(
+            "Name:\twineserver\nState:\tS (sleeping)\n"
+            "Cpus_allowed_list:\t1-6\n"
+        )
+        assert not module.ensure_uniform_affinity(
+            30000, auxiliary, "1-7", runner=retry_runner
+        )
+        auxiliary_status.write_text(
+            "Name:\twineserver\nState:\tS (sleeping)\n"
+            "Cpus_allowed_list:\t1-7\n"
+        )
+        assert module.ensure_uniform_affinity(
+            30000, auxiliary, "1-7", runner=retry_runner
+        )
         helper = add_process(
             proc_root,
             30001,
