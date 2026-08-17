@@ -5083,3 +5083,112 @@ files. The required `deja "Proton lsteamclient HOME /root .steam/sdkarm64
 steamclient.so native Steam PRoot"` lookup matched only this active session;
 the implementation reuses the native launcher's existing protected HOME and
 SDK-link contract.
+
+## 2026-08-16: preserve the game directory across the native boundary
+
+Restoring the protected HOME removed the `lsteamclient` assertion and allowed
+the real App ID 203160 executable to initialize. Its first visible result was
+not a generic Proton failure: Tomb Raider reported `Failed to open
+BIGFILE.000`. The process command line pointed at the removable game, but the
+guest began in `/root`; only the executable path had been translated from the
+physical SD-card path into the layered PRoot view.
+
+The native bridge now translates an eligible physical removable-library
+working directory to the protected guest target, supplies it through
+`proot-distro --work-dir`, and sets `PWD` at the first guest `/usr/bin/env`.
+It does not accept an arbitrary host directory. After deployment, Tomb
+Raider's own log identified the current directory as its guest `Z:` game
+path and mounted `TITLE.000`, `PATCH.000`, `PATCH2.000`, and `PATCH3.000`.
+This proves that the earlier dialog was a working-directory defect and that
+the fix crossed the real data-file boundary. The required
+`deja "Tomb Raider Failed to open BIGFILE.000 Proton wrong working directory
+PRoot"` lookup returned no indexed solution; the implementation reuses the
+repository's validated removable-library path translation and nested binds.
+
+## 2026-08-16: make Turnip visible to Winevulkan inside Runtime 4
+
+The next deterministic exit came from DXVK:
+
+```text
+err: DxvkInstance::createInstance: Failed to create Vulkan instance
+```
+
+An exact `vulkaninfo` probe through the same PRoot and Pressure Vessel route
+showed that Runtime 4 had selected
+`/overrides/share/vulkan/icd.d/freedreno-private.json`, but that generated
+manifest did not exist. Plain PRoot could read the protected original ICD and
+enumerated `Turnip Adreno (TM) 730`, isolating the failure to the nested
+container namespace rather than KGSL, Turnip, or the Android X server.
+
+Pointing both `VK_DRIVER_FILES` and legacy `VK_ICD_FILENAMES` at the original
+host path was still incomplete. Native `vulkaninfo` succeeded, but the loader
+called through Winevulkan's WOW64 path logged that it could not open the same
+absolute JSON file. The route wrapper therefore opens and validates the exact
+private ICD while still on the host side, clears close-on-exec, and adds a
+last-wins Pressure Vessel argument set:
+
+```text
+--ro-bind-fd <validated-fd> /overrides/share/vulkan/icd.d/freedreno-private.json
+--setenv VK_DRIVER_FILES /overrides/share/vulkan/icd.d/freedreno-private.json
+--setenv VK_ICD_FILENAMES /overrides/share/vulkan/icd.d/freedreno-private.json
+```
+
+This is the same narrow inherited-descriptor topology already proven for the
+controlled `/proc/net` view. It neither exposes the containing directory nor
+patches Valve's runtime. Host regressions verify source ownership and mode,
+the exact destination, placement before the payload terminator, both Vulkan
+variable names, and the no-handoff route. The required focused recall queries
+for the missing Pressure Vessel ICD and Winevulkan `loader_get_json` failure
+returned no indexed solution; the reused part is the repository's established
+validated-FD bind design.
+
+After commit `ec20b79`, the exact nested probe read the manifest at the
+`/overrides` target with SHA-256
+`56f78152dd2eaef920d5fe3b68656c7afbb2aa08aff32e766a17decf193c61d8` and
+created a Vulkan 1.4 instance. It reported the Adreno 730 through Turnip Mesa
+26.2.0-devel. More importantly, the subsequent Proton log showed Winevulkan
+loading `libvulkan_freedreno.so`, DXVK selecting the same device, and
+`vkCreateDevice` succeeding. The former Vulkan-instance failure is closed.
+
+## 2026-08-16: first game from the no-PRoot Steam client
+
+The already-authenticated native Steam PID 21075 accepted App ID 203160 without
+opening or focusing its CEF window. The request was forwarded at 06:49:35 UTC.
+Elapsed-process reconstruction sampled while the complete tree was still live
+placed the protected PRoot bridge at 06:49:50, the Pressure Vessel route at
+06:49:51, `pv-adverb` at 06:49:57, Proton at 06:49:59, Wine and wineserver at
+06:50:00, and the real `TombRaider.exe` PID 26220 at 06:50:14. The game log
+recorded `CreateSwapChain() = 0` at 06:50:49.310 and
+`SetFullscreenState() = 0` immediately afterward. Thus the first warm native
+Steam observation reached the target process 39 seconds after forwarding and
+the fullscreen swapchain in about 74.3 seconds.
+
+This is not yet the controlled A/B number. The Runtime 4 route had just been
+exercised by `vulkaninfo`, `PROTON_LOG` and `VK_LOADER_DEBUG=all` were active,
+and the native endpoint is the game's own swapchain record rather than the
+old watcher's first X observation. The structured timing record retains those
+caveats. For scale only, 74.3 seconds is 5.48 times shorter than the earlier
+407.236-second PRoot runtime-request-to-observed-window result.
+
+The live game supplied stronger success evidence than a launcher status:
+
+- X exposed one visible 2800x1752 window titled `Tomb Raider` with class
+  `steam_app_203160`.
+- The game log selected DirectX 11 on `Turnip Adreno (TM) 730`, mounted every
+  base and DLC pack, initialized `Speakers (PulseAudio Output)`, and completed
+  its Epic/online configuration requests.
+- PID 26220 remained runnable with 52 threads and about 677 MiB RSS. Roughly
+  1.85 GiB RAM plus 5.3 GiB swap remained available, so this was not an OOM.
+- The exact-window ImageMagick capture reached its 12-second safety timeout.
+  The helper was gone afterward while X11, the game PID, and the same visible
+  window remained healthy. No screenshot is claimed for this run.
+
+The diagnostic native session was started through Android's external-command
+service without weakening its steady-state policy. `am startservice` returns
+before the service consumes its intent, so restoring `allow-external-apps`
+immediately can race and reject a valid request. The guarded launch instead
+held the temporary uncommented property only until the exact
+`start-steam.sh --appid 203160` process appeared in `/top-app`, then restored
+the original commented file. The saved Steam and Rockstar authentication
+trees were never touched. The required recall query for this asynchronous
+RunCommandService property race returned no indexed solution.

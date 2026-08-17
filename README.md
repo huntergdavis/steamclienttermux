@@ -59,7 +59,15 @@ Mesa Turnip, official Proton 11 ARM64, and its bundled FEX/DXVK stack.
   held the complete workload in `/top-app`, verified the game/Wine CPUs 1-7,
   RakNet CPU 1, and nine Steam helpers on CPU 0 before exiting its guard, and
   produced a captured native-Low result of **19.0/36.0/25.7 FPS**. That is
-  15.8% above the original three-run native-Low mean.
+  15.8% above the original three-run native-Low mean. The authenticated
+  no-PRoot Steam client now launches this same Windows game successfully too:
+  the real executable created a DX11 swapchain, entered panel-native
+  fullscreen, initialized PulseAudio, and remained live through official
+  Proton/FEX and Turnip. In the first diagnostic run, a warm native Steam
+  request reached `TombRaider.exe` in about 39 seconds and its fullscreen
+  swapchain in about 74 seconds. Vulkan loader tracing was enabled and the
+  Runtime 4 cache had just been exercised, so this is launch-path evidence,
+  not the final controlled latency or FPS result.
   See the [benchmark report](docs/TOMB_RAIDER_BENCHMARK.md) and the ranked
   [optimization plan](docs/TOMB_RAIDER_OPTIMIZATION_PLAN.md).
 - Burnout remains experimental; its detailed EA, FEX, and DXVK investigation is
@@ -80,13 +88,17 @@ Mesa Turnip, official Proton 11 ARM64, and its bundled FEX/DXVK stack.
   SysV-semaphore control/wakeup test and upstream glibc 2.44 `test-sysvsem` on
   the tablet. Its exact SHA-256 is
   `52f5ce13b66fc3307f48285d32b72951472493e91b96fc3e08c0c42772d999f3`.
-  The non-launching native Steam/CEF and generic game-boundary preflights pass
-  against that content-addressed candidate. A native-only preload shim maps
+  The native Steam/CEF and generic game-boundary preflights pass against that
+  content-addressed candidate. The real client now starts without PRoot,
+  retains the existing authenticated account, renders CEF, discovers the
+  split microSD library, and forwards AppID launches. Only the game boundary
+  enters the existing PRoot/Pressure Vessel environment required by official
+  Proton. A native-only preload shim maps
   exact `/tmp` paths into Termux's real temp directory, including pathname
   Unix sockets, so Steam's hard-coded Breakpad directory can be created
   without broad path rewriting. Its host and on-tablet regressions pass; the
-  installed tablet glibc, active all-PRoot launcher, and saved Steam login
-  remain untouched.
+  all-PRoot fallback and saved Steam/Rockstar login remain available and were
+  not replaced or cleared.
 
 ### Current benchmark target: Tomb Raider (2013)
 

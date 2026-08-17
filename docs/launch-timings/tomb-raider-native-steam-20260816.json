@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "status": "complete",
+  "measurement_kind": "diagnostic_reconstruction",
+  "appid": 203160,
+  "game": "Tomb Raider (2013)",
+  "stack": "native glibc Steam; PRoot plus Runtime 4 at game boundary",
+  "state": {
+    "steam_session": "warm",
+    "runtime_cache": "warm_after_vulkan_probe",
+    "proton_log": true,
+    "vulkan_loader_debug": "all"
+  },
+  "request_started_at": "2026-08-17T06:49:19+00:00",
+  "request_forwarded_at": "2026-08-17T06:49:35+00:00",
+  "events": {
+    "proot_bridge": {
+      "observed_at": "2026-08-17T06:49:50+00:00",
+      "seconds_after_forward": 15.0,
+      "pid": 25660
+    },
+    "pressure_vessel_route": {
+      "observed_at": "2026-08-17T06:49:51+00:00",
+      "seconds_after_forward": 16.0,
+      "pid": 25676
+    },
+    "pv_adverb": {
+      "observed_at": "2026-08-17T06:49:57+00:00",
+      "seconds_after_forward": 22.0,
+      "pid": 26044
+    },
+    "proton": {
+      "observed_at": "2026-08-17T06:49:59+00:00",
+      "seconds_after_forward": 24.0,
+      "pid": 26099
+    },
+    "wine": {
+      "observed_at": "2026-08-17T06:50:00+00:00",
+      "seconds_after_forward": 25.0,
+      "pid": 26106
+    },
+    "wineserver": {
+      "observed_at": "2026-08-17T06:50:00+00:00",
+      "seconds_after_forward": 25.0,
+      "pid": 26109
+    },
+    "target_process": {
+      "observed_at": "2026-08-17T06:50:14+00:00",
+      "seconds_after_forward": 39.0,
+      "pid": 26220,
+      "process_name": "TombRaider.exe"
+    },
+    "swapchain": {
+      "observed_at": "2026-08-17T06:50:49.310+00:00",
+      "seconds_after_forward": 74.31,
+      "source": "Tomb Raider.log CreateSwapChain() = 0"
+    }
+  },
+  "seconds_request_to_swapchain": 90.31,
+  "precision": {
+    "wrapper_log_seconds": 1.0,
+    "reconstructed_process_seconds": 1.0,
+    "game_log_seconds": 0.001
+  },
+  "notes": [
+    "Process timestamps were reconstructed from procps elapsed seconds while all listed processes remained live.",
+    "The game log clock was interpreted as UTC because it matched the live process timeline and the tablet was seven hours behind UTC.",
+    "The endpoint is the successful game swapchain record, not the first external observation of the X window.",
+    "This diagnostic run had full Proton and Vulkan loader logging enabled and followed a nested vulkaninfo cache warm-up.",
+    "Do not treat this single observation as the final native-versus-PRoot A/B result."
+  ]
+}
