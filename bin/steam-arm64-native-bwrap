@@ -22,6 +22,7 @@ mesa_lib=$base/mesa-kgsl/usr/lib/aarch64-linux-gnu
 bridge_mode=${STEAM_ARM64_NATIVE_BRIDGE_MODE:-bwrap}
 runtime_direct=${STEAM_ARM64_RUNTIME_DIRECT:-1}
 direct_run=$base/config/steamlinuxruntime4-run-direct
+guest_env=/usr/bin/env
 
 fail() {
     printf 'steam-arm64-native-bwrap: %s\n' "$*" >&2
@@ -158,4 +159,8 @@ unset TGCOMPAT_LD_SO TGCOMPAT_LIBRARY_PATH TGCOMPAT_EXEC_MATCH_INTERPRETER \
 export PATH=$custom_proot_dir:$PREFIX/bin:/system/bin
 export PROOT_L2S_EXDEV_PREFIX=$runtime_depot/var/tmp-
 
-exec "$proot_distro" "${pd_args[@]}" -- "$bridge_command" "$@"
+# proot-distro applies its root login defaults after processing --env, which
+# resets HOME to /root.  Set HOME again in the first guest-side executable so
+# Proton's lsteamclient can resolve ~/.steam/sdkarm64/steamclient.so.
+exec "$proot_distro" "${pd_args[@]}" -- \
+    "$guest_env" "HOME=$native_home" "$bridge_command" "$@"

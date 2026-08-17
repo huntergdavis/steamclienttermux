@@ -150,12 +150,24 @@ def main() -> None:
         assert "--env" in bwrap
         assert "GAME_OPTION_FIXTURE=preserved value" in bwrap
         assert route in bwrap
+        guest_boundary = bwrap.index("--", bwrap.index("--shared-tmp"))
+        assert bwrap[guest_boundary + 1 : guest_boundary + 4] == [
+            "/usr/bin/env",
+            f"HOME={base / 'native-home'}",
+            route,
+        ]
         assert bwrap[-1] == "--fixture-argument"
 
         runtime = run_bridge(prefix, base, "runtime")
         assert f"PRESSURE_VESSEL_BWRAP={route}" in runtime
         assert f"HOME={base / 'native-home'}" in runtime
         assert runtime_entry in runtime
+        guest_boundary = runtime.index("--", runtime.index("--shared-tmp"))
+        assert runtime[guest_boundary + 1 : guest_boundary + 4] == [
+            "/usr/bin/env",
+            f"HOME={base / 'native-home'}",
+            runtime_entry,
+        ]
         assert runtime[-1] == "--fixture-argument"
 
         selected_proot = base / "src" / "native-profile" / "src"
