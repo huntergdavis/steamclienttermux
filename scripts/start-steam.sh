@@ -562,6 +562,12 @@ if [[ "${#steam_pids[@]}" -eq 1 ]]; then
             fail "Steam PID ${steam_pids[0]} exited before remembered login completed"
         fail "remembered Steam login did not complete in ${window_timeout}s"
     fi
+    if [[ -z "$requested_appid" && "$background_mode" == 1 ]]; then
+        apply_steam_session_affinity "${x11_pids[0]}" "${steam_pids[0]}"
+        printf 'start-steam: existing Steam PID %s ready in background; X11 PID %s CPUs 0-3, Steam CPUs 0-3, CEF CPU 0, PulseAudio sink, no Steam window focus, no KDE\n' \
+            "${steam_pids[0]}" "${x11_pids[0]}"
+        exit 0
+    fi
     if [[ -n "$requested_appid" && "$background_mode" == 1 ]]; then
         if ! wait_for_app_launch "${steam_pids[0]}" "$requested_appid" \
                 "$gameprocess_log_offset"; then
@@ -634,6 +640,12 @@ if ! wait_for_remembered_login "${steam_pids[0]}" "$login_log_offset"; then
     steam_pid_is_current "${steam_pids[0]}" ||
         fail "Steam PID ${steam_pids[0]} exited before remembered login completed; inspect $steam_log"
     fail "remembered Steam login did not complete in ${window_timeout}s; inspect $steam_log"
+fi
+if [[ -z "$requested_appid" && "$background_mode" == 1 ]]; then
+    apply_steam_session_affinity "${x11_pids[0]}" "${steam_pids[0]}"
+    printf 'start-steam: Steam ready in background; X11 PID %s CPUs 0-3, Steam PID %s CPUs 0-3, CEF CPU 0, PulseAudio sink, FEX %s, no Steam window focus, no KDE\n' \
+        "${x11_pids[0]}" "${steam_pids[0]}" "$profile"
+    exit 0
 fi
 if [[ -n "$requested_appid" && "$background_mode" == 1 ]]; then
     if ! wait_for_app_launch "${steam_pids[0]}" "$requested_appid" \

@@ -81,6 +81,7 @@ def main():
         retry_start = root / "retry-start-steam-native.sh"
         retry_start.write_text(
             "#!/bin/sh\n"
+            'if [ "$#" -eq 0 ]; then printf "prime\\n" >> "$CAPTURE"; exit 0; fi\n'
             'count=$(cat "$COUNT" 2>/dev/null || printf 0)\n'
             'count=$((count + 1))\n'
             'printf "%s\\n" "$count" > "$COUNT"\n'
@@ -124,6 +125,7 @@ def main():
         assert retry.returncode == 0, retry.stderr
         assert retry_count.read_text().strip() == "2"
         assert retry_capture.read_text().splitlines() == [
+            "prime",
             "attempt=1",
             "attempt=2",
         ]
