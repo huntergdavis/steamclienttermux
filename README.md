@@ -250,16 +250,17 @@ the 407.236-second all-PRoot observation. The
 [supervised cold timing record](docs/launch-timings/tomb-raider-native-supervised-cold-20260817.json)
 preserves the exact stage observations.
 
-That startup result must not be confused with a finished FPS result. Two
-panel-native Low warm-ups under native Steam reported 23.6 and 24.2 FPS, a
-preliminary 23.9 FPS mean versus the earlier all-PRoot-host three-pass mean of
-22.2 FPS. The apparent 7.7% difference is not yet controlled: the first warm-up
-ended at 73.9 C with CPU and GPU policy throttled, and no three-pass recorded
-series has completed. XRandR also exposed a 119.92 Hz Termux:X11 surface around
-the game's 60 Hz target. The runner now cools fully between passes and selects
-only newly named game-authored artifacts; the next A/B is the unchanged
-119.92 Hz control versus Samsung Standard 60 Hz. See the
-[benchmark log](docs/TOMB_RAIDER_BENCHMARK.md#preliminary-native-glibc-control-2026-08-17).
+The first controlled native-glibc FPS series is also complete. At panel-native
+2800x1752 Low, its three recorded passes reported 14.6/32.4/24.8,
+16.3/33.6/22.7, and 16.4/31.7/22.7 FPS: a **15.77/32.57/23.40 FPS** mean.
+That is 5.4% above the earlier all-PRoot-host 22.2 FPS mean, alongside the
+6.99x launch improvement. Each recorded pass began at full CPU/GPU policy, but
+each ended with the GPU thermally capped at 492 MHz/level six. XRandR exposed a
+119.92 Hz Termux:X11 surface around the game's 60 Hz target, so the next A/B is
+the completed 119.92 Hz control versus Samsung Standard 60 Hz. The
+[raw series](docs/benchmark-series/tombraider-native-glibc-safe-119hz-20260817.json)
+and [benchmark log](docs/TOMB_RAIDER_BENCHMARK.md#completed-native-glibc-11992-hz-control-2026-08-17)
+preserve the evidence.
 
 ![Kingsway running from the microSD through Proton ARM64 and FEX](docs/evidence/kingsway-running.png)
 

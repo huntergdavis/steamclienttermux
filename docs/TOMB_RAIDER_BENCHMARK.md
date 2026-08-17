@@ -669,3 +669,43 @@ refresh rate remaining proot benchmark"` query returned no indexed prior
 session. This section reuses the repository's existing exact game-result,
 thermal-rejection, affinity, and Runtime-to-window measurement contracts and
 the two preserved 2026-08-17 warm-up artifacts.
+
+## Completed native-glibc 119.92 Hz control (2026-08-17)
+
+Series `20260817T161307Z-safe` completed one warm-up and three automatically
+cooled recorded passes. The X surface remained 2800x1752 at 119.92 Hz; the game
+remained exclusive fullscreen, V-Sync off, Low/off, and used the `safe` FEX
+profile. Native Steam primed in 17.699 seconds.
+
+| Pass | Minimum | Maximum | Average | Cooldown before pass |
+| --- | ---: | ---: | ---: | ---: |
+| warm-up | 14.0 | 33.9 | 23.4 | 0.0 s |
+| recorded 1 | 14.6 | 32.4 | 24.8 | 70.603 s |
+| recorded 2 | 16.3 | 33.6 | 22.7 | 80.619 s |
+| recorded 3 | 16.4 | 31.7 | 22.7 | 110.820 s |
+| recorded mean | **15.767** | **32.567** | **23.400** | n/a |
+
+The controlled 23.4 FPS average is 1.2 FPS, or 5.4%, above the earlier 22.2
+FPS all-PRoot-host three-pass mean. This is a modest throughput improvement,
+not the order-of-magnitude change seen in startup. The stronger established
+glibc result remains launch latency: 58.256 seconds versus 407.236 seconds,
+85.7% shorter or 6.99x as fast.
+
+All three recorded passes began with every CPU policy at its hardware maximum,
+the GPU policy at 818 MHz, and GPU thermal power level zero. Their starting
+maximum sensor temperatures were 37.0, 37.9, and 40.7 C. Every pass ended with
+the GPU capped at 492 MHz and thermal level six; maximum sensors reached 65.7,
+62.2, and 79.0 C. This is not an OOM signature: after Run 3, available RAM was
+3,160,796 KiB and free zram was 5,527,284 KiB. The runner's thermal gate made
+the starting conditions comparable, but the timed workload itself still
+drives severe policy reduction.
+
+The unchanged 119.92 Hz series is now the native-glibc control. The next single
+variable is Samsung **Motion smoothness: Standard (60 Hz)** followed by an X11
+restart and verification that XRandR reports approximately 60 Hz. The same
+`safe` series must then run with no other configuration change. Only after that
+display/thermal A/B should the bundled Proton and `fast` FEX profiles be tested.
+
+The complete machine-readable series, including each source result, affinity
+log, clock, memory, thermal sensor, elapsed time, and aggregate, is retained as
+[`tombraider-native-glibc-safe-119hz-20260817.json`](benchmark-series/tombraider-native-glibc-safe-119hz-20260817.json).

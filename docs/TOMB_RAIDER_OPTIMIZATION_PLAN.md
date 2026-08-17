@@ -25,18 +25,23 @@ panel-native Low passes averaged 13.85/29.0/20.0 FPS, versus the ordinary
 native-Low mean of 11.37/28.8/22.2. The Performance average is 9.9% lower.
 Return Game optimisation to **Standard** for the next tests.
 
+Native glibc Steam is now the established host. It reduced the comparable
+Runtime-to-window interval from 407.236 to 58.256 seconds, or 6.99x, and the
+completed 119.92 Hz `safe` series averaged 23.4 FPS versus the older 22.2 FPS
+all-PRoot-host mean. The Steam/CEF host is no longer under PRoot; one explicit
+outer PRoot remains at the Runtime/Proton game boundary.
+
 ## Primary path: remove avoidable launch work, then remove PRoot
 
 Keep 2800x1752 fullscreen, Low, motion blur off, V-Sync off, the shared-UID X11
 build, game CPUs 1-7, `Raknet-RecvFrom` on CPU 1, Steam helpers on CPU 0, and
 X11 on CPUs 0-3. Change only the item named by each test.
 
-1. Use `~/start-tombraider.sh` for a cold direct launch. It starts Steam with
-   `-silent -applaunch 203160`, passes `-nolauncher` to Tomb Raider, waits for
-   an AppID-specific launch acknowledgement, and never surfaces or focuses the
-   Steam library. Measure cold launch time and Steam/CEF resident memory
-   against the existing visible-UI PRoot timing before attempting to stop any
-   client process.
+1. Retain `~/start-tombraider-native.sh` as the launch path. It primes the
+   remembered-login native Steam host in the background, forwards AppID 203160,
+   passes `-nolauncher`, proves a stable exact window and affinity state, and
+   supervises the game for the Android foreground lifetime. Its 58.256-second
+   Runtime-to-window result is the fixed launch baseline.
 2. Select Samsung **Standard**, set **Motion smoothness** to
    **Standard (60 Hz)**, and verify the live X refresh rate. Android documents
    that a display rate above the game's target adds power use without benefit;
@@ -49,14 +54,14 @@ X11 on CPUs 0-3. Change only the item named by each test.
    cgroups, affinity, and active FEX profile. Reject or explicitly label a run
    whose CPU or GPU policy is already throttled. Do not profile, capture, or
    switch Android windows during the timed scene.
-4. Re-establish the cooled `safe` control with one warm-up and three recorded
-   passes. This distinguishes a real optimization from temperature and run
-   variance.
-5. Treat the separate `termux-glibc-compat` project as the primary engineering
-   track. Complete its versioned same-UID semaphore broker, integrate the
-   client at the Termux glibc SysV boundary, and first launch the native ARM64
-   Steam client without PRoot. The current PRoot launch is the matched fallback
-   and timing baseline, not the intended final architecture.
+4. The cooled 119.92 Hz `safe` control is complete at 23.4 FPS. Repeat the exact
+   one-warm-up/three-recorded series at verified Samsung Standard 60 Hz. This is
+   the first optimization A/B.
+5. Continue `termux-glibc-compat` at the remaining game boundary. The versioned
+   glibc, same-UID semaphore broker, authentication, native Steam, and CEF host
+   are complete. Replace the explicit outer Runtime/Proton PRoot with a
+   preconstructed/bindless layout; Android's denied user and mount namespaces
+   mean additional libc shims alone cannot make Bubblewrap own that boundary.
 6. Only while the glibc work proceeds, run bounded `proton` and `fast` FEX A/B
    passes. `proton` previously averaged 11.4% above `safe` at 720p. `fast`
    follows the same-chip TSO-off direction but remains opt-in because FEX warns

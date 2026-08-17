@@ -5533,3 +5533,28 @@ The required focused `deja` query returned no indexed prior-session result.
 This conclusion reuses the established game-authored-result, thermally matched
 series, exact process identity, and schema-v2 Runtime timing methods rather
 than inferring success from UI state.
+
+## 2026-08-17: complete the native-glibc 119.92 Hz control
+
+The corrected runner completed series `20260817T161307Z-safe` without manual
+game launches or result selection. Native Steam primed in 17.699 seconds. The
+2800x1752/119.92 Hz X surface, exclusive V-Sync-off Low profile, `safe` FEX
+environment, affinity guard, and foreground Android lifetime remained fixed.
+
+The warm-up was 14.0/33.9/23.4 FPS. Recorded passes were
+14.6/32.4/24.8, 16.3/33.6/22.7, and 16.4/31.7/22.7 FPS. Their aggregate is
+15.767 minimum, 32.567 maximum, and **23.400 average FPS**. Relative to the
+older three-pass all-PRoot-host 22.2 FPS mean, native glibc is 1.2 FPS or 5.4%
+higher under this control. This modest throughput gain is reported separately
+from the established 6.99x Runtime-to-window improvement.
+
+Cooldowns before recorded passes were 70.603, 80.619, and 110.820 seconds.
+Each pass began with full 1.7856/2.496/2.9952 GHz CPU policy, 818 MHz GPU policy,
+and GPU thermal level zero. Each ended with the GPU at 492 MHz/level six;
+maximum sensors after the three recorded passes were 65.7, 62.2, and 79.0 C.
+Run 3 still retained 3,160,796 KiB available RAM and 5,527,284 KiB free zram,
+so the policy collapse is thermal rather than OOM.
+
+The exact tablet `series.json` is committed unchanged at
+`docs/benchmark-series/tombraider-native-glibc-safe-119hz-20260817.json`. This
+119.92 Hz series is the fixed control for the next Samsung Standard 60 Hz A/B.
