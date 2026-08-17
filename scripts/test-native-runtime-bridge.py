@@ -39,6 +39,7 @@ def prepare(root: Path) -> tuple[Path, Path]:
 
     stamped_proot(base / "src" / "proot-production" / "src" / "proot")
     executable(base / "compat-bin" / "steam-arm64-bwrap-route")
+    executable(base / "compat-bin" / "capture-pressure-vessel-plan.py")
     executable(runtime / "_v2-entry-point")
     executable(
         runtime
@@ -150,6 +151,25 @@ def run_preflight(prefix: Path, base: Path, proot_dir: Path) -> list[str]:
     return result.stdout.splitlines()
 
 
+def run_capture_preflight(prefix: Path, base: Path, output: Path) -> subprocess.CompletedProcess[str]:
+    environment = os.environ.copy()
+    environment.update(
+        {
+            "PREFIX": str(prefix),
+            "STEAM_ARM64_BASE": str(base),
+            "STEAM_ARM64_NATIVE_BWRAP_CHECK": "1",
+            "STEAM_ARM64_BWRAP_CAPTURE_PLAN": str(output),
+        }
+    )
+    return subprocess.run(
+        ["bash", str(SCRIPT)],
+        env=environment,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+
 def run_rejected_preflight(prefix: Path, base: Path, proot_dir: Path) -> subprocess.CompletedProcess[str]:
     environment = os.environ.copy()
     environment.update(
@@ -235,6 +255,24 @@ def main() -> None:
         preflight = run_preflight(prefix, base, selected_proot)
         assert f"proot={selected_proot / 'proot'}" in preflight
         assert "native game boundary preflight: PASS" in preflight
+
+        capture_output = base / "logs" / "runtime-plans" / "fixture.json"
+        captured = run_capture_preflight(prefix, base, capture_output)
+        assert captured.returncode == 0, captured.stderr
+        assert f"real_bwrap={base / 'compat-bin/capture-pressure-vessel-plan.py'}" in captured.stdout
+        assert f"capture_plan={capture_output}" in captured.stdout
+
+        outside_capture = run_capture_preflight(
+            prefix, base, base.parent / "outside.json"
+        )
+        assert outside_capture.returncode == 125
+        assert "new safe JSON path" in outside_capture.stderr
+
+        capture_output.parent.mkdir(parents=True)
+        capture_output.write_text("existing\n", encoding="utf-8")
+        existing_capture = run_capture_preflight(prefix, base, capture_output)
+        assert existing_capture.returncode == 125
+        assert "new safe JSON path" in existing_capture.stderr
 
         bridge_source = SCRIPT.read_text(encoding="utf-8")
         assert "TGCOMPAT_EXEC_LD_PRELOAD" in bridge_source

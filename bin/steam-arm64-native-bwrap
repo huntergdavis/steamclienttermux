@@ -11,6 +11,8 @@ runtime_depot=$client_root/steamapps/common/SteamLinuxRuntime_4-arm64
 compat_bin=$base/compat-bin
 route=$compat_bin/steam-arm64-bwrap-route
 real_bwrap=$runtime_shadow/pressure-vessel/libexec/steam-runtime-tools-0/srt-bwrap
+capture_tool=$compat_bin/capture-pressure-vessel-plan.py
+capture_plan=${STEAM_ARM64_BWRAP_CAPTURE_PLAN:-}
 proc_net=$base/config/proc-net
 hosts=$base/config/hosts-ipv4
 custom_proot_dir=${STEAM_ARM64_PROOT_DIR:-$base/src/proot-production/src}
@@ -57,6 +59,17 @@ sdk_target=$(readlink -- "$sdk_link") ||
 [[ -x $route && ! -L $route ]] || fail "bwrap route is unavailable: $route"
 [[ -x $real_bwrap && ! -L $real_bwrap ]] ||
     fail "real ARM64 srt-bwrap is unavailable: $real_bwrap"
+if [[ -n $capture_plan ]]; then
+    capture_name=${capture_plan#"$base/logs/runtime-plans/"}
+    [[ $capture_plan == "$base/logs/runtime-plans/"* &&
+            $capture_name != */* &&
+            $capture_name =~ ^[A-Za-z0-9][A-Za-z0-9._-]*\.json$ &&
+            ! -e $capture_plan && ! -L $capture_plan ]] ||
+        fail 'capture plan must be a new safe JSON path under the runtime plan directory'
+    [[ -x $capture_tool && ! -L $capture_tool ]] ||
+        fail "Pressure Vessel capture tool is unavailable: $capture_tool"
+    real_bwrap=$capture_tool
+fi
 [[ -f $runtime_shadow/.steamclienttermux-runtime-shadow &&
         -x $runtime_shadow/_v2-entry-point &&
         -d $runtime_depot && ! -L $runtime_shadow && ! -L $runtime_depot ]] ||
@@ -91,9 +104,9 @@ case $bridge_mode in
 esac
 
 if [[ ${STEAM_ARM64_NATIVE_BWRAP_CHECK:-0} == 1 ]]; then
-    printf 'mode=%s\nruntime_direct=%s\nproot=%s\nroute=%s\nreal_bwrap=%s\nruntime_shadow=%s\n' \
+    printf 'mode=%s\nruntime_direct=%s\nproot=%s\nroute=%s\nreal_bwrap=%s\nruntime_shadow=%s\ncapture_plan=%s\n' \
         "$bridge_mode" "$runtime_direct" "$proot_binary" "$route" \
-        "$real_bwrap" "$runtime_shadow"
+        "$real_bwrap" "$runtime_shadow" "$capture_plan"
     printf '%s\n' 'native game boundary preflight: PASS'
     exit 0
 fi
