@@ -57,12 +57,8 @@ def command_arguments(entry):
 
 def is_exact_x11(entry, display):
     arguments = command_arguments(entry)
-    return (
-        len(arguments) >= 3
-        and Path(os.fsdecode(arguments[0])).name == "termux-x11"
-        and arguments[1] == b"com.termux.x11"
-        and arguments[2] == os.fsencode(display)
-    )
+    expected_title = os.fsencode(f"termux-x11 com.termux.x11 {display} -ac")
+    return arguments == [expected_title]
 
 
 def find_exact_x11(affinity, proc_root, display):

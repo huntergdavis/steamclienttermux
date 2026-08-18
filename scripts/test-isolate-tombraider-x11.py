@@ -57,7 +57,7 @@ def main():
             1,
             100,
             2,
-            [b"termux-x11", b"com.termux.x11", b":0", b"-ac"],
+            [b"termux-x11 com.termux.x11 :0 -ac"],
         )
         task_entry(x11, 10, "main", 100, 2)
         task_entry(x11, 11, "Thread-1", 110, 3)
