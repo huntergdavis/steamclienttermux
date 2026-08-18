@@ -631,6 +631,7 @@ def pv_smoke_invocation(
     command_mode: str = "runtime-true",
     diagnostics: bool = False,
 ) -> tuple[Path, list[str], dict[str, str]]:
+    final_path_prefix: Path | None = None
     runtime_root, loader, runtime_libraries = selected_runtime(base)
     bwrap_arguments = payload["bwrap_args"]
     payload_arguments = payload["payload_argv"]
@@ -693,6 +694,7 @@ def pv_smoke_invocation(
         "tombraider",
     ):
         proton, game = validated_tombraider_command(base, payload_arguments)
+        final_path_prefix = proton.parent
         if command_mode == "tombraider":
             runtime_python = runtime_root / "usr/bin/python3"
             validate_runtime_executable(
@@ -734,16 +736,25 @@ def pv_smoke_invocation(
     )
     if child_preload_profile == "full":
         child_preloads = entry_preloads
+        final_preloads = None
     elif child_preload_profile == "lean":
         child_preloads = [
             entry_preloads[0],
             entry_preloads[2],
             entry_preloads[3],
         ]
+        final_preloads = [entry_preloads[0], entry_preloads[3]]
+        if final_path_prefix is None:
+            fail("lean child preload requires a validated Proton path")
     else:
         fail("STEAM_ARM64_DIRECT_CHILD_PRELOAD must be full or lean")
     entry_preload = ":".join(str(path) for path in entry_preloads)
     child_preload = ":".join(str(path) for path in child_preloads)
+    final_preload = (
+        None
+        if final_preloads is None
+        else ":".join(str(path) for path in final_preloads)
+    )
     environment = request_environment(payload)
     if command_mode in (
         "proton-entry",
@@ -782,6 +793,13 @@ def pv_smoke_invocation(
             "VK_ICD_FILENAMES": str(base / "mesa-kgsl/icd.d/freedreno-private.json"),
         }
     )
+    if final_preload is not None and final_path_prefix is not None:
+        environment.update(
+            {
+                "TGCOMPAT_EXEC_FINAL_PATH_PREFIX": str(final_path_prefix) + "/",
+                "TGCOMPAT_EXEC_FINAL_LD_PRELOAD": final_preload,
+            }
+        )
     loader_arguments = [
         str(loader),
         "--inhibit-cache",
