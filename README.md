@@ -17,7 +17,7 @@ custom kernel, chroot, or system-wide library replacement.
 | --- | --- |
 | Steam | Authenticates, renders, downloads, and retains login state |
 | Graphics | Hardware Vulkan through private Mesa Turnip |
-| Experimental system-Vulkan bridge | Direct and glibc-triggered native Adreno command submission pass with zero mismatches; visible rendering remains unimplemented ([bridge repository](https://github.com/huntergdavis/bionic-vulkan-bridge)) |
+| Experimental system-Vulkan bridge | Native Adreno command submission and controlled Android surface queries pass; swapchain/visible rendering remain unimplemented ([bridge repository](https://github.com/huntergdavis/bionic-vulkan-bridge)) |
 | Windows games | Official Proton 11 ARM64 + FEX + DXVK |
 | Audio/input | PulseAudio and Termux:X11 pointer/keyboard support |
 | Storage | Game payloads on microSD; lock-sensitive Steam metadata on internal F2FS |
@@ -46,9 +46,12 @@ through a Bionic service with field-for-field parity against a direct Adreno
 730 probe. It also creates a native device and command pool, submits a buffer
 fill, synchronizes it, and verifies all 1,024 words through both direct and
 bridged paths. This is real command execution, not yet a visible renderer or
-FPS gain; see the [E001-E003](docs/evidence/bionic-vulkan-bridge-e001-e003-20260818.json)
-and [E004-E005](docs/evidence/bionic-vulkan-bridge-e004-e005-20260818.json)
-evidence.
+FPS gain. A separately owned 64x64 `AImageReader`/`ANativeWindow` now also
+creates a real Android Vulkan surface and returns stable Adreno presentation
+capabilities without touching Termux:X11. See the
+[E001-E003](docs/evidence/bionic-vulkan-bridge-e001-e003-20260818.json),
+[E004-E005](docs/evidence/bionic-vulkan-bridge-e004-e005-20260818.json), and
+[E006](docs/evidence/bionic-vulkan-bridge-e006-20260818.json) evidence.
 
 ## Tomb Raider benchmark snapshot
 

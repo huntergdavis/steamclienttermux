@@ -6645,19 +6645,37 @@ bridged submit/wait took 3,440,573 ns and the immediate direct control took
 capability query, and self-test took 209,695,208 ns. These one-shot timings
 establish operation and rough scale, not steady-state performance.
 
+E006 proved the first Android WSI object without taking over the live
+Termux:X11 surface. At `b47d9b5`, a Bionic probe dynamically loaded the Media
+NDK, created a 64x64 RGBA8888 `AImageReader` with GPU-sampled-image consumer
+usage, obtained its separately owned `ANativeWindow`, enabled
+`VK_KHR_surface`/`VK_KHR_android_surface`, and created a Vulkan surface through
+the system loader. Queue family 0 supported presentation. The surface reported
+five formats, MAILBOX/FIFO plus both Android shared present modes, image counts
+6 through 64, and extents 1x1 through 4096x4096. IMMEDIATE mode was absent.
+
+The first run completed in 669,521,667 ns; three immediate lifecycle repeats
+returned identical capabilities in 290,248,333, 288,357,448, and 282,208,125
+ns. An initial broad `pgrep -f` cleanup assertion matched its own wrapper text,
+not a leaked child; the corrected anchored executable check passed. The probe
+did not launch, stop, or alter Steam, KDE, Termux:X11, or authentication state.
+
 This proves the native driver is reachable and that real device/object
 creation, command recording, submission, synchronization, and host-visible
 memory verification can be controlled across the glibc/Bionic boundary. It
 does not prove visible rendering or a speedup. The driver exposes Android
 surface/swapchain, AHardwareBuffer, and external-FD extensions but not
 `VK_EXT_headless_surface`. Termux:X11's current interface exports the X
-connection rather than its EGL-owned Android `Surface`, so the next gate is a
-separately controlled `ANativeWindow`, followed by swapchain presentation.
-Game-facing dispatch, DXVK exposure, and a rendered-frame test remain. Only
+connection rather than its EGL-owned Android `Surface`; E006 therefore used a
+separately controlled `ANativeWindow` and passed surface creation/query. The
+next gate is swapchain creation, rendering, image acquisition, and queue
+presentation on that controlled surface, followed by a dedicated visible
+`SurfaceView`. Game-facing dispatch and DXVK exposure remain. Only
 after those gates pass will the fixed native-resolution Tomb Raider benchmark
 be a valid graphics-path A/B. Exact machine-readable records are
 `docs/evidence/bionic-vulkan-bridge-e001-e003-20260818.json` and
-`docs/evidence/bionic-vulkan-bridge-e004-e005-20260818.json`.
+`docs/evidence/bionic-vulkan-bridge-e004-e005-20260818.json`, plus the E006 WSI
+record at `docs/evidence/bionic-vulkan-bridge-e006-20260818.json`.
 
 The required `deja` queries for a prior Bionic Vulkan bridge and a prior
 cross-libc implementation returned no indexed matches. A follow-up query for

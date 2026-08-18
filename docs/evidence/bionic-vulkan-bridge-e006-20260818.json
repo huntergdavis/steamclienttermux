@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "experiment_id": "bionic-vulkan-bridge-e006-20260818",
+  "recorded_at": "2026-08-18T10:33:59-07:00",
+  "device": {
+    "model": "SM-X808U",
+    "product": "Samsung Galaxy Tab S8+",
+    "soc": "Qualcomm Snapdragon 8 Gen 1",
+    "gpu": "Adreno (TM) 730",
+    "android_release": "16",
+    "android_sdk": 36
+  },
+  "repositories": {
+    "steamclienttermux_parent_before_record": "8c121813e338d99b87ef09f3f3aee04d05306702",
+    "bionic_vulkan_bridge_e006_pass": "b47d9b56c1aecf4dad579d86c248a6e8c2730fd9",
+    "bionic_vulkan_bridge_documented_head": "895243a976bb759e6161207f27831a4cf64c00eb"
+  },
+  "binary_identity": {
+    "path": "build/bvb-vulkan-surface-probe",
+    "interpreter": "/system/bin/linker64",
+    "needed": ["libdl.so", "libc.so"],
+    "sha256": "dfcb55c01d86974dd06a7dc14419de605047854d0b008bc270dc95907e453a63"
+  },
+  "system_libraries": {
+    "vulkan": {
+      "path": "/system/lib64/libvulkan.so",
+      "sha256": "ca031dfc7e10449b207b5fd54d44bfe37404d4a5ae3556a1eeebc3b35cd3d304"
+    },
+    "media_ndk": {
+      "path": "/system/lib64/libmediandk.so",
+      "sha256": "db3399e9c226060e71a6b0bf5c4e5450cd15a811770c363a61bc255c89dbeef4"
+    }
+  },
+  "surface_source": {
+    "owner": "AImageReader",
+    "width": 64,
+    "height": 64,
+    "format": "AIMAGE_FORMAT_RGBA_8888",
+    "usage": 256,
+    "usage_name": "AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE",
+    "max_images": 3,
+    "termux_x11_surface_touched": false
+  },
+  "canonical_result": {
+    "physical_device_count": 1,
+    "queue_family_count": 2,
+    "present_queue_family_index": 0,
+    "present_queue_count": 3,
+    "min_image_count": 6,
+    "max_image_count": 64,
+    "current_extent": {"width": 64, "height": 64},
+    "min_extent": {"width": 1, "height": 1},
+    "max_extent": {"width": 4096, "height": 4096},
+    "supported_transforms": 511,
+    "current_transform": 1,
+    "supported_composite_alpha": 8,
+    "supported_usage_flags": 159,
+    "formats": [
+      {"value": 37, "name": "VK_FORMAT_R8G8B8A8_UNORM", "color_space": "VK_COLOR_SPACE_SRGB_NONLINEAR_KHR"},
+      {"value": 43, "name": "VK_FORMAT_R8G8B8A8_SRGB", "color_space": "VK_COLOR_SPACE_SRGB_NONLINEAR_KHR"},
+      {"value": 4, "name": "VK_FORMAT_R5G6B5_UNORM_PACK16", "color_space": "VK_COLOR_SPACE_SRGB_NONLINEAR_KHR"},
+      {"value": 97, "name": "VK_FORMAT_R16G16B16A16_SFLOAT", "color_space": "VK_COLOR_SPACE_SRGB_NONLINEAR_KHR"},
+      {"value": 64, "name": "VK_FORMAT_A2B10G10R10_UNORM_PACK32", "color_space": "VK_COLOR_SPACE_SRGB_NONLINEAR_KHR"}
+    ],
+    "present_modes": [
+      {"value": 1, "name": "VK_PRESENT_MODE_MAILBOX_KHR"},
+      {"value": 2, "name": "VK_PRESENT_MODE_FIFO_KHR"},
+      {"value": 1000111000, "name": "VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR"},
+      {"value": 1000111001, "name": "VK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR"}
+    ],
+    "immediate_present_mode_present": false
+  },
+  "runs": [
+    {"kind": "first_hardware_run", "elapsed_ns": 669521667, "exit_code": 0, "capabilities_match_canonical": true},
+    {"kind": "lifecycle_repeat_1", "elapsed_ns": 290248333, "exit_code": 0, "capabilities_match_canonical": true},
+    {"kind": "lifecycle_repeat_2", "elapsed_ns": 288357448, "exit_code": 0, "capabilities_match_canonical": true},
+    {"kind": "lifecycle_repeat_3", "elapsed_ns": 282208125, "exit_code": 0, "capabilities_match_canonical": true}
+  ],
+  "cleanup": {
+    "first_check": "false positive: pgrep -f matched the wrapper command text",
+    "corrected_check": "PASS: anchored executable pattern found no lingering probe process"
+  },
+  "session_recall": {
+    "query": "Android Vulkan ANativeWindow Termux X11 surface bridge external memory Adreno headless command submission Bionic glibc",
+    "indexed_matches": 0,
+    "reused_sources": [
+      "termux-glibc-compat commit da200c72bb2fd4d3f6a4e7817d82eaf311f83780 for bridge framing and authentication",
+      "Termux:X11 commit 139f2197e6093d04d5df1400baa998bf1fb07b3c for current SurfaceView and Binder ownership"
+    ]
+  },
+  "claims": {
+    "proven": [
+      "A separately owned AImageReader exposes an ANativeWindow accepted by the Android Vulkan loader.",
+      "The Adreno 730 reports a presentation-capable queue and stable surface capabilities, formats, and present modes.",
+      "Four sequential create/query/destroy runs succeed without a lingering probe executable."
+    ],
+    "not_yet_proven": [
+      "swapchain creation",
+      "swapchain image acquisition or command rendering",
+      "queue presentation",
+      "visible SurfaceView output",
+      "game-facing Vulkan dispatch or DXVK integration",
+      "Tomb Raider performance improvement"
+    ]
+  }
+}

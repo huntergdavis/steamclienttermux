@@ -67,8 +67,11 @@ Android `Surface`; its in-process renderer already owns that `SurfaceView` as an
 EGL producer. An X connection is not an `ANativeWindow`, and the tablet lacks
 `VK_EXT_headless_surface`. The next isolated gate therefore uses a controlled
 Android native window before adding a dedicated visible `SurfaceView` host.
-Swapchain presentation, game-facing dispatch, DXVK integration, and any FPS
-improvement remain unproven.
+E006 passed that first gate with an independently owned 64x64
+`AImageReader`/`ANativeWindow`: the system loader created its Vulkan surface and
+reported stable queue, capability, format, and present-mode data across four
+runs. Swapchain creation and presentation, the visible host, game-facing
+dispatch, DXVK integration, and any FPS improvement remain unproven.
 
 Termux remains the Bionic control plane, while glibc remains necessary for the
 commercial Linux game stack. The experiment therefore narrows one boundary

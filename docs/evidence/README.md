@@ -106,6 +106,10 @@ These screenshots capture milestones and failures from the original tablet.
   Both paths filled and verified a 4 KiB host-visible buffer with zero
   mismatches. It inventories WSI/interoperability extensions and preserves the
   still-unproven visible-surface and game-integration boundary.
+- `bionic-vulkan-bridge-e006-20260818.json`: non-visual, machine-readable
+  evidence for a separately owned `AImageReader`/`ANativeWindow` Android Vulkan
+  surface. It records four stable surface-query passes, formats, presentation
+  modes, capabilities, binary/library hashes, and clean process teardown.
 - `tombraider-gaminghub-added-performance-unconfirmed-2026-08-15.png`: a
   panel-native Low pass after both shared-UID apps were added to Gaming Hub but
   before the separate Performance selector was confirmed, reporting
