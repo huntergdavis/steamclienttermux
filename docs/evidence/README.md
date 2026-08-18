@@ -124,6 +124,10 @@ These screenshots capture milestones and failures from the original tablet.
   immersive-sticky mode. It records the UI flags, focus-restoration callback,
   APK/native/signing identities, and the user's confirmation that no Android
   navigation icons remained visible.
+- `bionic-vulkan-bridge-e010-20260818.json`: machine-readable evidence for the
+  authenticated Activity-to-Bionic-service lifecycle handoff and glibc status
+  query. It records invalid-token rejection, all seven ordered callbacks, the
+  active 2800x1752 renderer state, ABI interpreters, and artifact hashes.
 - `tombraider-gaminghub-added-performance-unconfirmed-2026-08-15.png`: a
   panel-native Low pass after both shared-UID apps were added to Gaming Hub but
   before the separate Performance selector was confirmed, reporting

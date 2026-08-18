@@ -80,7 +80,13 @@ applied immersive-sticky flags on creation and after focus returns; the frame
 remained visible while the user confirmed that Android's navigation icons were
 fully hidden. The immersive visible host therefore works, while explicit
 bridge lifecycle handoff, shared-UID integration, game dispatch, DXVK
-integration, and performance remain future gates.
+integration, and performance remain future gates. E010 closes the first of
+those: a fresh 256-bit launch capability authenticates fixed-width Activity
+events to an opt-in `127.0.0.1` service ingress, while the existing
+owner-authenticated Unix socket exposes the derived state to glibc. The hardware
+gate reported the Activity created, started, resumed, focused, window-present,
+and renderer-ready at 2800x1752. Game dispatch, DXVK integration, and performance
+remain future gates.
 
 Termux remains the Bionic control plane, while glibc remains necessary for the
 commercial Linux game stack. The experiment therefore narrows one boundary

@@ -6761,3 +6761,36 @@ The required `deja` query—`Android NativeActivity immersive sticky hide
 navigation bar JNI setSystemUiVisibility onWindowFocusChanged`—returned no
 indexed prior match. E009 reused E008's proven NativeActivity window ownership
 and Vulkan renderer, adding only the Android View system-UI behavior.
+
+## 2026-08-18: E010 authenticates visible-host lifecycle into the bridge
+
+E010 closes the previously unproven lifecycle/status boundary. Because the
+standalone Activity and Termux service have different Android UIDs, the existing
+mode-0600 Unix socket remains owner-only. The service instead opens an opt-in
+ephemeral listener bound only to `127.0.0.1`; a fresh 256-bit capability from
+`/dev/urandom` authenticates fixed-width Activity records and explicit ACKs.
+The capability is never returned by the status query or retained in evidence.
+
+The hardware harness first sent a validly framed `CREATED` record with the wrong
+token. The service returned `-EACCES` and recorded one rejection. APK `0.1.2`
+then delivered seven authenticated events from Activity PID 6254: created,
+started, resumed, window created, renderer ready, focus lost, and focus gained.
+The glibc client queried protocol opcode 4 through the original Unix socket and
+received `state_flags=63`: created, started, resumed, window present, renderer
+ready, and focused were all true at exactly 2800x1752; destroyed was false.
+Service stderr was empty.
+
+The service used `/system/bin/linker64`; the client used Termux glibc's
+`ld-linux-aarch64.so.1`. Source pass `293fbee07b6710b45d39b74dde4dd1255452e557`
+and bridge record `09749beea5c0a165524b99284bfc8d869aa438b4` are pushed. APK,
+native library, Bionic service, glibc client, and result JSON SHA-256 values are
+`82cea5f637ac448ca438078ba1d6757953da16c8ffe37978dc422878f0ab0bb5`,
+`aed79197bfe5c7a118bfc1b2c1b2c8377bf8f95e6db9bbb96be7e6bab4132587`,
+`082dc59b257f27557525cdb612c5c84a95dff21a660a162883989e4b639da594`,
+`8cb4eabf2163b668cdf141fb2b0735414d96326246d59198fa38d4c27b30bac5`, and
+`cd95b40b7cb0a0baebfea34cc4859b942ba05c7cecbf97179e5a41211d5070ad`.
+
+The required lifecycle-handoff `deja` query returned no indexed implementation.
+E010 reused the bridge's E002-E005 fixed-width/authenticated protocol discipline
+and E008-E009 Activity renderer/lifecycle callbacks. It does not yet carry game
+Vulkan calls or input and makes no Tomb Raider FPS claim.

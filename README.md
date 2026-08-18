@@ -17,7 +17,7 @@ custom kernel, chroot, or system-wide library replacement.
 | --- | --- |
 | Steam | Authenticates, renders, downloads, and retains login state |
 | Graphics | Hardware Vulkan through private Mesa Turnip |
-| Experimental system-Vulkan bridge | Native commands, pixel-verified offscreen presentation, and a dedicated immersive visibly magenta Android Vulkan Activity pass; game integration remains unimplemented ([bridge repository](https://github.com/huntergdavis/bionic-vulkan-bridge)) |
+| Experimental system-Vulkan bridge | Native commands, pixel-verified offscreen presentation, an immersive visible Activity, and authenticated lifecycle/status handoff to glibc pass; game integration remains unimplemented ([bridge repository](https://github.com/huntergdavis/bionic-vulkan-bridge)) |
 | Windows games | Official Proton 11 ARM64 + FEX + DXVK |
 | Audio/input | PulseAudio and Termux:X11 pointer/keyboard support |
 | Storage | Game payloads on microSD; lock-sensitive Steam metadata on internal F2FS |
@@ -63,6 +63,11 @@ not yet bridged game output or an FPS gain. E009 then applied immersive-sticky
 system-UI control; the magenta frame remained visible while Android's navigation
 icons disappeared completely. See the
 [E009 record](docs/evidence/bionic-vulkan-bridge-e009-20260818.json).
+E010 then authenticated the real Activity's lifecycle into the Bionic service
+and exposed its 2800x1752 renderer-ready/focused state to a glibc query while
+rejecting a deliberately invalid token. See the
+[E010 record](docs/evidence/bionic-vulkan-bridge-e010-20260818.json). Vulkan
+game dispatch and any FPS gain remain unproven.
 
 ## Tomb Raider benchmark snapshot
 

@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "experiment_id": "bionic-vulkan-bridge-e010-20260818",
+  "recorded_at": "2026-08-18T13:52:56-07:00",
+  "device": {
+    "model": "SM-X808U",
+    "product": "Samsung Galaxy Tab S8+",
+    "soc": "Qualcomm Snapdragon 8 Gen 1",
+    "gpu": "Adreno (TM) 730",
+    "android_release": "16",
+    "android_sdk": 36,
+    "panel_width": 2800,
+    "panel_height": 1752
+  },
+  "repositories": {
+    "steamclienttermux_parent_before_record": "50c063676bcc7fcfd5d71ad7b63c9ebd21b3d650",
+    "bionic_vulkan_bridge_e010_pass": "293fbee07b6710b45d39b74dde4dd1255452e557",
+    "bionic_vulkan_bridge_documented_head": "09749beea5c0a165524b99284bfc8d869aa438b4"
+  },
+  "package": {
+    "application_id": "io.github.huntergdavis.bvb.visiblehost",
+    "version_code": 3,
+    "version_name": "0.1.2",
+    "min_sdk": 24,
+    "target_sdk": 36,
+    "activity": "android.app.NativeActivity",
+    "permission_added": "android.permission.INTERNET",
+    "permission_purpose": "loopback-only lifecycle ingress"
+  },
+  "transport": {
+    "control_plane": {
+      "family": "AF_UNIX",
+      "filesystem_mode": "0600",
+      "peer_authentication": "SO_PEERCRED same effective UID",
+      "changed_by_e010": false
+    },
+    "activity_ingress": {
+      "enabled_by_default": false,
+      "family": "AF_INET",
+      "bind_address": "127.0.0.1",
+      "observed_ephemeral_port": 33085,
+      "token_bits": 256,
+      "token_source": "/dev/urandom",
+      "token_printed_or_retained": false,
+      "record_size_bytes": 64,
+      "ack_size_bytes": 16,
+      "explicit_ack_required": true
+    },
+    "glibc_query_opcode": 4,
+    "protocol_version": 1
+  },
+  "security_control": {
+    "injected_event": "CREATED",
+    "injected_token": "all-zero invalid token; value not retained",
+    "ack_status": -13,
+    "ack_status_name": "EACCES",
+    "rejected_event_count": 1,
+    "result": "PASS"
+  },
+  "accepted_events": [
+    {"sequence": 1, "event_id": 1, "event": "CREATED"},
+    {"sequence": 2, "event_id": 2, "event": "STARTED"},
+    {"sequence": 3, "event_id": 3, "event": "RESUMED"},
+    {"sequence": 4, "event_id": 7, "event": "WINDOW_CREATED"},
+    {"sequence": 5, "event_id": 11, "event": "RENDERER_READY"},
+    {"sequence": 6, "event_id": 10, "event": "FOCUS_LOST"},
+    {"sequence": 7, "event_id": 9, "event": "FOCUS_GAINED"}
+  ],
+  "status_query": {
+    "result": "PASS",
+    "service_flags": 7,
+    "bionic_service": true,
+    "android_vulkan_loader": true,
+    "pointer_bits": 64,
+    "page_size": 4096,
+    "ingress_configured": true,
+    "authenticated_event_count": 7,
+    "rejected_event_count": 1,
+    "last_sequence": 7,
+    "last_event": 9,
+    "state_flags": 63,
+    "created": true,
+    "started": true,
+    "resumed": true,
+    "window_present": true,
+    "renderer_ready": true,
+    "focused": true,
+    "destroyed": false,
+    "width": 2800,
+    "height": 1752,
+    "activity_pid": 6254,
+    "last_event_monotonic_ns": 877341076340943,
+    "last_event_received_ns": 877341077255839,
+    "final_event_to_service_observed_ns": 914896
+  },
+  "binary_identity": {
+    "visible_host_apk_sha256": "82cea5f637ac448ca438078ba1d6757953da16c8ffe37978dc422878f0ab0bb5",
+    "visible_host_native_library_sha256": "aed79197bfe5c7a118bfc1b2c1b2c8377bf8f95e6db9bbb96be7e6bab4132587",
+    "bionic_service_sha256": "082dc59b257f27557525cdb612c5c84a95dff21a660a162883989e4b639da594",
+    "glibc_client_sha256": "8cb4eabf2163b668cdf141fb2b0735414d96326246d59198fa38d4c27b30bac5",
+    "status_json_sha256": "cd95b40b7cb0a0baebfea34cc4859b942ba05c7cecbf97179e5a41211d5070ad",
+    "service_stdout_sha256": "26a1d8857119437f99fd7b7c0268f17aa234ea82c1175163960fcc6aedce0a85",
+    "service_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "service_stderr_bytes": 0,
+    "signer_certificate_sha256": "5754d1170b6d007e72afed7de676312b9a1320d39c7b1405be9efa1ab2ef1e06",
+    "service_elf_interpreter": "/system/bin/linker64",
+    "client_elf_interpreter": "/data/data/com.termux/files/usr/glibc/lib/ld-linux-aarch64.so.1"
+  },
+  "session_recall": {
+    "query": "Bionic Vulkan bridge NativeActivity lifecycle status handoff Unix socket Android Activity service window focus protocol",
+    "indexed_matches": 0,
+    "reused_material": "E002-E005 fixed-width authenticated bridge protocol and E008-E009 NativeActivity lifecycle/rendering implementation"
+  },
+  "claims": {
+    "proven": [
+      "The real visible Activity can authenticate ordered lifecycle, window, renderer, and focus events to the Bionic service.",
+      "The glibc client can query the derived Activity state through the original owner-authenticated Unix control socket.",
+      "A well-formed event with the wrong launch capability is rejected with EACCES.",
+      "The active immersive Vulkan host was renderer-ready and focused at 2800x1752."
+    ],
+    "not_yet_proven": [
+      "game-facing Vulkan entry-point dispatch or handle ownership",
+      "shared-memory Vulkan command/data transport",
+      "DXVK integration",
+      "game input routing",
+      "Tomb Raider performance improvement"
+    ]
+  }
+}
