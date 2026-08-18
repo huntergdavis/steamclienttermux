@@ -367,6 +367,7 @@ def run_loader_child(
     trace_path: Path | None = None,
     trace_stacks: bool = True,
     working_directory: Path | None = None,
+    cpu_affinity: set[int] | None = None,
 ) -> tuple[int, int]:
     if working_directory is not None:
         try:
@@ -430,6 +431,10 @@ def run_loader_child(
             remap_descriptors(descriptors, target_numbers)
             if working_directory is not None:
                 os.chdir(working_directory)
+            if cpu_affinity is not None:
+                os.sched_setaffinity(0, cpu_affinity)
+                if os.sched_getaffinity(0) != cpu_affinity:
+                    os._exit(125)
             os.execve(executable, execution_arguments, execution_environment)
         except BaseException:
             os._exit(125)
@@ -1084,6 +1089,7 @@ def run_tombraider(
         working_directory=(
             base / "removable-library/steamapps/common/Tomb Raider"
         ),
+        cpu_affinity=set(range(8)),
     )
 
 
@@ -1109,6 +1115,7 @@ def run_tombraider_diagnostic(
         working_directory=(
             base / "removable-library/steamapps/common/Tomb Raider"
         ),
+        cpu_affinity=set(range(8)),
     )
 
 
