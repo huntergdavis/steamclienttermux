@@ -515,7 +515,7 @@ def watch_for_ready_game(arguments, runner=subprocess.run):
                     continue
                 discovery_mask = discovery_cpu_mask(environment)
                 print(
-                    f"Tomb Raider PID {pid}: holding startup topology on "
+                    f"Tomb Raider PID {pid}: observing inherited startup topology on "
                     f"CPUs {discovery_mask}",
                     flush=True,
                 )
@@ -527,11 +527,13 @@ def watch_for_ready_game(arguments, runner=subprocess.run):
                     continue
                 if discovery_mask is None:
                     raise RuntimeError("startup CPU topology mask is unavailable")
-                if not ensure_uniform_affinity(
-                    pid, process_dir, discovery_mask, runner
-                ):
-                    time.sleep(arguments.poll_seconds)
-                    continue
+                # The direct dispatcher applies this validated mask before
+                # exec, so Proton, Wine, FEX, and the game inherit it. Tomb
+                # Raider's CPU probe temporarily binds its own thread to each
+                # candidate CPU. Reapplying taskset here can overwrite those
+                # probe masks and produce an intermittent false 1/1/1 result.
+                # Observe without mutation until the fresh game log proves
+                # that topology discovery has completed.
             except (RuntimeError, subprocess.CalledProcessError):
                 if not process_dir.exists():
                     tracked_pid = None

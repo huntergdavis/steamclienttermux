@@ -381,7 +381,10 @@ def affinity_log_is_ready(text: str, backend: str) -> bool:
         return False
     if backend == "direct":
         return (
-            "holding startup topology on CPUs " in text
+            (
+                "observing inherited startup topology on CPUs " in text
+                or "holding startup topology on CPUs " in text
+            )
             and "startup topology ready; logical=" in text
         )
     return backend == "proot"

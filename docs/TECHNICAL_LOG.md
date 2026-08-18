@@ -5938,3 +5938,29 @@ A/B; no throughput improvement is claimed yet. The focused recall search found
 the prior CPU-1 isolation work but no earlier 2-7 or RakNet-priority benchmark,
 so this reuses the repository's verified process selector, top-app gate, and
 finite affinity evidence rather than inventing a new process matcher.
+
+## 2026-08-18: remove the remaining startup-topology poller race
+
+The first direct Fast attempt produced a valid 24.0/48.9/33.1 FPS warm-up.
+Its first nominal recorded pass wrote 22.0/48.4/32.7 FPS, but the controller
+correctly excluded it: the fresh affinity artifact contained
+`logical=1, cores=1, physical=1` and never reached the ready marker. Launcher
+and dispatcher statuses were zero, so this was an evidence failure rather than
+a game or direct-runtime crash.
+
+The direct dispatcher already calls `sched_setaffinity` before `exec` and
+exports the resulting multi-CPU Proton topology. The finite guard was then
+reapplying that mask every 250 ms while waiting for Tomb Raider's CPU log.
+Binary analysis had shown that the game discovers usable CPUs by temporarily
+binding its own thread to candidate processors. The poller's `taskset -a`
+could overwrite those temporary masks mid-probe, intermittently forcing the
+game's 1/1/1 fallback despite a correct inherited mask.
+
+Startup discovery is now observation-only: validate the exact game and
+`/top-app`, parse its consistent multi-CPU topology environment, and wait for
+a fresh usable game log without changing any thread mask. Only after that log
+appears does the guard apply the final CPUs 1-7/RakNet/helper profile. Synthetic
+`/proc` coverage asserts that no `taskset` or `renice` command occurs before
+the fresh topology line. Earlier `holding startup topology` artifacts remain
+accepted by the benchmark reader; corrected runs report `observing inherited
+startup topology`. The excluded 32.7 FPS pass is not included in aggregates.

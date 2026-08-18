@@ -317,6 +317,32 @@ def main():
         )
         assert module.watch_for_ready_game(arguments, runner=window_runner) == 0
 
+        # Direct startup affinity is inherited before exec. The finite guard
+        # must not race Tomb Raider's per-CPU SetThreadAffinityMask probe by
+        # issuing taskset or renice before it consumes the fresh topology log.
+        encoded_topology = (
+            b"\0".join(
+                key + b"=" + value for key, value in topology_environment.items()
+            )
+            + b"\0"
+        )
+        (process / "environ").write_bytes(encoded_topology)
+        cpu_log.write_bytes(
+            b"[MultiCore] CPU count: logical = 6, cores = 6, physical = 6\n"
+        )
+        module.tomb_raider_log = lambda _steam_base: cpu_log
+        module.log_size = lambda _path: 0
+        topology_calls = []
+
+        def topology_runner(command, **_kwargs):
+            topology_calls.append(command)
+            return SimpleNamespace(stdout="42\n", stderr="")
+
+        arguments.wait_for_cpu_log = True
+        assert module.watch_for_ready_game(arguments, runner=topology_runner) == 0
+        assert topology_calls
+        assert all(call[0] == "xdotool" for call in topology_calls)
+
         lock_path = temporary / "affinity.lock"
         first_lock = module.acquire_lock(lock_path)
         assert first_lock is not None
