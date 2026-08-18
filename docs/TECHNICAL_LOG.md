@@ -6273,3 +6273,74 @@ Its SHA-256 is
 Steam PID 22318, X11 PID 25663, PulseAudio PID 25865, authentication, the
 topology patch, and the disabled external-command property survived every
 accepted, excluded, and continuation pass.
+
+## 2026-08-18: reclaim closed Steam shared memory without touching the live stack
+
+The guarded `cleanup-steam-temp` dry run classified 180 exact-name, aged,
+closed Steam shared-memory files as eligible, totaling 4,037,625,924 bytes. It
+separately found ten open files totaling 3,881,648 bytes and did not unlink
+them. Apply mode repeated the inode and open-descriptor checks immediately
+before unlinking. Termux temporary storage fell from 4.1 GiB to 296 MiB and
+free internal storage rose from 14 to 18 GiB.
+
+Two ended diagnostic files were then validated as regular, single-link,
+non-symlink files under the exact Steam log directory, absent from `lsof`, and
+unreferenced by the repository. Removing the 95,957,354-byte process trace and
+15,215,106-byte diagnostic log reclaimed another 111,172,460 bytes. Their
+SHA-256 values before deletion were respectively
+`e2ce6f54c9ca9859cb5ee8d679092cba353f5ff879aa133881fdfe85f99296f7`
+and `2d420602a2cc282141382a15e70e677a0029d3e38d09d99fa03341ae4a8ad7b5`.
+In total the cleanup recovered 4,148,798,384 bytes. Steam PID 22318, X11 PID
+25663, PulseAudio PID 25865, every open shared-memory file, saves, caches, and
+authentication remained intact.
+
+## 2026-08-18: reject single-core X11 isolation
+
+The direct-path profile measured Termux:X11 at 47.8% CPU on CPUs 0-3 while the
+game used CPUs 1-7, making host/game overlap on CPUs 1-3 a credible contention
+target. Commit `5493e04` added an opt-in holder that records the exact X11
+process start identity and every thread's original affinity, waits for the
+exact game, continuously constrains current and new X11 threads, and restores
+every surviving identity on normal exit, error, timeout, or signal. The
+controller accepts a pass only from its exact three-line active/game-exited/
+restored log. All 50 Python tests and all 48 shell syntax checks passed.
+
+The first live smoke test refused X11 because Android exposes its process title
+as one NUL-delimited token, `termux-x11 com.termux.x11 :0 -ac`, rather than
+four argv tokens. Commit `21905d0` changed the matcher to require that exact
+observed token. The corrected guard identified PID 25663, start tick 88002253,
+and all 14 live threads with original masks 0-3.
+
+Series `20260818T122232Z-safe` started at 2800x1752, 59.97 Hz, Low, Safe, full
+startup topology, and a fixed 40 C ceiling. Its untreated warm-up scored
+17.8/45.1/31.8 FPS; untreated recorded pass 1 scored 5.4/49.0/29.6 FPS. For
+recorded pass 2 the holder moved the same 14 X11 thread identities to CPU 0.
+The game never advanced past the affinity guard's initial `detected game` and
+`observing inherited startup topology` records, wrote no benchmark result, and
+remained active until the holder's 300-second bound expired. The holder then
+restored the identical 14-thread set to CPUs 0-3 without SIGKILL. The exact
+game PID was subsequently validated through the repository's AppID 203160,
+compatdata, executable, and top-app selector and accepted SIGTERM; Steam, X11,
+PulseAudio, and authentication survived.
+
+The incomplete manifest is
+`docs/benchmark-series/tombraider-direct-glibc-safe-topology-fix-x11-cpu0-60hz-40c-incomplete-20260818.json`,
+SHA-256 `fad70e492674d5d89bc519be046a1f142126606124779309870a0510d1cc8403`.
+The exact holder log SHA-256 is
+`17075b42e52f43d3b5ffca94b0aa52f001873fe32af0ece6b94d30da49806a3b`.
+CPU-0 X11 isolation is rejected: it starves startup/render progress rather than
+freeing useful game capacity. A less aggressive CPUs 0-1 feasibility pass is
+the next host-placement test; production remains X11 CPUs 0-3.
+
+The guarded launcher also exposed a repeatable RunCommand detail. Termux caches
+`allow-external-apps`; the reload broadcast is asynchronous. A service probe
+sent immediately after `termux-reload-settings` was rejected, while the same
+exact `sleep 5` intent sent after five seconds completed with structured exit
+code zero. The real controller was launched only after that proof, entered
+both `/top-app` controllers, and the property returned byte-for-byte to SHA-256
+`89094537f49531dc9b380a0dec3a441b2fb92577e0a4f1db505790eb8b7025b0`.
+The official Termux RunCommand documentation and source confirm the mandatory
+property, result-directory extras, and cached policy check. Focused `deja`
+queries found no earlier X11-identity, CPU-0, or post-restore hang solution;
+this work reused the prior session's exact RunCommand gate and the repository's
+game selector and affinity restoration contracts.

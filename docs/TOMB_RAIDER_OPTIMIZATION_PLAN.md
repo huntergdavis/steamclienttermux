@@ -96,6 +96,12 @@ X11 on CPUs 0-3. Change only the item named by each test.
    held averages 30.600 FPS versus 30.433 control, only +0.55%, and the three
    pair directions are +0.7, -0.1, and -0.1 FPS. Keep it opt-in; do not adopt it
    as a performance default.
+9. Single-core X11 isolation is rejected. The exact holder moved all 14 X11
+   threads from CPUs 0-3 to CPU 0, but the next game never reached topology
+   readiness or wrote a benchmark result. After its 300-second deadline the
+   holder restored every thread identity to 0-3. Test CPUs 0-1 only as a
+   bounded feasibility pass; retain CPUs 0-3 in production unless that pass
+   reaches normal game exit and strict restore proof.
 
 The one warm-up plus three-pass rule applies to each profile. Compare the
 three-pass mean and median, not an isolated maximum or minimum.
@@ -104,10 +110,11 @@ The first direct-path live profile is now complete. Over 10 seconds the game
 used 313.0% CPU, including 99.0% in `Raknet-RecvFrom`; X11 used 47.8%, native
 wineserver 47.0%, the hottest CEF helper 28.6%, Steam core 11.7%, and
 PulseAudio 9.1%. GPU busy was 68% at 791 MHz with no thermal cap. No hot PRoot
-tracer remained. The next bounded action is a reversible feasibility-only
-native-CEF pause during an excluded pass. Only if Steam, the game, and saved
-authentication survive with helpers verifiably stopped should this become a
-full A/B.
+tracer remained. The first reversible native-CEF experiment completed and its
+paired average gain was only 0.55%. The next measured consumer was X11.
+Constraining its 14 threads to CPU 0 stalled the game before topology readiness
+and is rejected. The remaining bounded host-placement candidate is CPUs 0-1,
+with the same exact identity, timeout, and restore requirements.
 
 That feasibility gate passed: eight exact descendant CEF helpers remained
 stopped without respawn through normal game exit and were all resumed, while
@@ -125,7 +132,7 @@ as a default-performance change but remains available for explicit experiments.
 | Candidate | Why it is credible | Order / risk |
 |---|---|---|
 | Steam launch-only session | Steam/CEF consumed roughly one CPU core in the live profile. | The silent direct AppID path is established. PRoot-traced helpers remain unsafe to stop; the native-only guard safely completed every exact hold/resume cycle. Paired average gain was only 0.55%, so retain the silent path without enabling hold by default. |
-| Direct hot-tree placement | The old PRoot profile is obsolete after direct dispatch; current FEX, Wine, wineserver, X11, and Steam contention is not yet quantified. | Run one excluded live profile, rank actual CPU consumers and masks, then A/B only the highest credible contention source. |
+| Direct hot-tree placement | The direct profile measured X11 at 47.8% on CPUs 0-3 while the game used CPUs 1-7. | CPU-0 X11 isolation is rejected after a guarded startup stall. Test CPUs 0-1 once as bounded feasibility; retain 0-3 unless it exits and restores cleanly. |
 | Internal-storage A/B | The game is on Android FUSE over the removable exFAT/sdfat card. This may affect loading and minimum-FPS stalls. | Low priority for mean FPS. The 15.3 GB game would leave only about 3.7 GB of the currently free 19 GB internal space, so do not move it until space is freed. |
 | No-PRoot native glibc host | PRoot uses `ptrace` to intercept and rewrite guest syscalls; the old tracer alone used 60-65% CPU. | Completed for the hot game tree through the guarded direct dispatcher; retain the parked outer request only for Steam lifecycle compatibility. |
 | Bionic/system-Vulkan host | Current GameNative source uses a Bionic image and defaults its wrapper to `System`, while an external comparison showed a large system-driver lead. | Separate architecture project. Its Vulkan wrapper is an Android/NDK Bionic library depending on Android native-window and AdrenoTools libraries, not a drop-in glibc ICD. |
