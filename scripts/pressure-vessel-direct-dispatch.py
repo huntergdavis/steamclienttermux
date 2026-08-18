@@ -700,6 +700,7 @@ def direct_audio_environment(base: Path, runtime_root: Path) -> dict[str, str]:
 
 def direct_game_environment(base: Path, runtime_root: Path) -> dict[str, str]:
     environment = direct_audio_environment(base, runtime_root)
+    environment["PROTON_CPU_TOPOLOGY"] = "7:1,2,3,4,5,6,7"
     environment["TZ"] = "UTC0"
     return environment
 
@@ -1089,7 +1090,7 @@ def run_tombraider(
         working_directory=(
             base / "removable-library/steamapps/common/Tomb Raider"
         ),
-        cpu_affinity=set(range(8)),
+        cpu_affinity=set(range(1, 8)),
     )
 
 
@@ -1115,7 +1116,7 @@ def run_tombraider_diagnostic(
         working_directory=(
             base / "removable-library/steamapps/common/Tomb Raider"
         ),
-        cpu_affinity=set(range(8)),
+        cpu_affinity=set(range(1, 8)),
     )
 
 

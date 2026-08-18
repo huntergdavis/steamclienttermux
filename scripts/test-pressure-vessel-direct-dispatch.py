@@ -199,6 +199,7 @@ def main() -> None:
             fixture_base, audio_runtime
         ) == {
             **audio_environment,
+            "PROTON_CPU_TOPOLOGY": "7:1,2,3,4,5,6,7",
             "TZ": "UTC0",
         }
         assert direct_config.stat().st_mode & 0o777 == 0o600
@@ -317,13 +318,13 @@ def main() -> None:
     game_source = inspect.getsource(MODULE.run_tombraider)
     assert '"tombraider"' in game_source
     assert '"removable-library/steamapps/common/Tomb Raider"' in game_source
-    assert "cpu_affinity=set(range(8))" in game_source
+    assert "cpu_affinity=set(range(1, 8))" in game_source
     diagnostic_source = inspect.getsource(MODULE.run_tombraider_diagnostic)
     assert "tombraider-direct-process-" in diagnostic_source
     assert "trace_path" in diagnostic_source
     assert "False" in diagnostic_source
     assert '"tombraider", True' in diagnostic_source
-    assert "cpu_affinity=set(range(8))" in diagnostic_source
+    assert "cpu_affinity=set(range(1, 8))" in diagnostic_source
     with tempfile.TemporaryDirectory(prefix="removable-game.") as directory:
         game_fixture = Path(directory) / "TombRaider.exe"
         game_fixture.write_bytes(b"game")
