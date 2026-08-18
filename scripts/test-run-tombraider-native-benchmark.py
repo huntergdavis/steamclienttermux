@@ -48,6 +48,22 @@ def main():
     )
     assert fixed.profile == "proton"
     assert fixed.start_temperature_ceiling_c == 40.0
+    direct = module.build_parser().parse_args(["--backend", "direct"])
+    assert direct.backend == "direct"
+    assert direct.launcher is None
+    assert module.affinity_log_is_ready(
+        "Tomb Raider PID 1: holding startup topology on CPUs 1-7\n"
+        "Tomb Raider PID 1: startup topology ready; logical=7, cores=7, "
+        "physical=7; affinity guard attached\n"
+        "Tomb Raider performance state: ready; PID 1\n",
+        "direct",
+    )
+    assert not module.affinity_log_is_ready(
+        "Tomb Raider performance state: ready; PID 1\n", "direct"
+    )
+    assert module.affinity_log_is_ready(
+        "Tomb Raider performance state: ready; PID 1\n", "proot"
+    )
 
     def snapshot(cpu_policy, gpu_policy, gpu_level, temperature):
         return {

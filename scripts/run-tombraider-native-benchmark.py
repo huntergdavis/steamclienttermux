@@ -19,7 +19,8 @@ import time
 
 PANEL_GEOMETRY = "2800x1752"
 RESULT_GLOB = "benchmarkresults*.txt"
-GUARD_GLOB = "tomb-raider-affinity-*.log"
+PROOT_GUARD_GLOB = "tomb-raider-affinity-*.log"
+DIRECT_GUARD_GLOB = "tombraider-direct-affinity-*.log"
 METRIC_PATTERNS = {
     "minimum_fps": re.compile(
         r"(?im)^\s*(?:min(?:imum)?\s*fps|minfps)\s*[:=]?\s*([0-9]+(?:\.[0-9]+)?)"
@@ -375,6 +376,17 @@ def aggregate_results(runs) -> dict[str, dict[str, float]]:
     return result
 
 
+def affinity_log_is_ready(text: str, backend: str) -> bool:
+    if "Tomb Raider performance state: ready;" not in text:
+        return False
+    if backend == "direct":
+        return (
+            "holding startup topology on CPUs " in text
+            and "startup topology ready; logical=" in text
+        )
+    return backend == "proot"
+
+
 def mark_series_failed(series: dict, error: BaseException) -> None:
     series["status"] = "failed"
     series["failure"] = {
@@ -390,11 +402,12 @@ def build_parser() -> argparse.ArgumentParser:
         description="Run one warm-up and a controlled native-host Tomb Raider series"
     )
     parser.add_argument("--profile", choices=("safe", "proton", "fast"), default="safe")
+    parser.add_argument("--backend", choices=("proot", "direct"), default="proot")
     parser.add_argument("--warmups", type=int, default=1)
     parser.add_argument("--runs", type=int, default=3)
     parser.add_argument("--base", default=str(home / "steam-arm64"))
     parser.add_argument("--primer", default=str(home / "start-steam-native.sh"))
-    parser.add_argument("--launcher", default=str(home / "start-tombraider-native.sh"))
+    parser.add_argument("--launcher")
     parser.add_argument("--display", default=":0")
     parser.add_argument("--output-dir")
     parser.add_argument("--cooldown-timeout", type=int, default=1800)
@@ -441,7 +454,14 @@ def main() -> int:
 
     base = Path(arguments.base).resolve()
     primer = Path(arguments.primer).resolve()
-    launcher = Path(arguments.launcher).resolve()
+    launcher = Path(
+        arguments.launcher
+        or (
+            Path.home() / "start-tombraider-direct-benchmark"
+            if arguments.backend == "direct"
+            else Path.home() / "start-tombraider-native.sh"
+        )
+    ).resolve()
     game_directory = base / "removable-library/steamapps/common/Tomb Raider"
     guard_directory = base / "logs"
     profile_checker = base / "compat-bin/configure-tombraider-performance.py"
@@ -463,16 +483,25 @@ def main() -> int:
 
     try:
         require_top_app()
-        for path, label in (
-            (primer, "native Steam primer"),
-            (launcher, "native Tomb Raider launcher"),
+        required = [
+            (launcher, f"{arguments.backend} Tomb Raider launcher"),
             (profile_checker, "Tomb Raider profile checker"),
             (steam_executable, "native Steam executable"),
-        ):
+        ]
+        if arguments.backend == "proot":
+            required.insert(0, (primer, "native Steam primer"))
+        for path, label in required:
             require_regular(path, label, executable=True)
         if not game_directory.is_dir() or game_directory.is_symlink():
             raise RuntimeError(f"game directory is unavailable or unsafe: {game_directory}")
-        if find_exact_processes(proc_root, steam_executable):
+        existing_steam_pids = find_exact_processes(proc_root, steam_executable)
+        if arguments.backend == "direct":
+            if len(existing_steam_pids) != 1:
+                raise RuntimeError(
+                    "direct benchmark requires exactly one existing native Steam "
+                    f"process, found {existing_steam_pids}"
+                )
+        elif existing_steam_pids:
             raise RuntimeError(
                 "native Steam is already active; stop it before a profile-controlled series"
             )
@@ -490,13 +519,18 @@ def main() -> int:
             "series_id": series_id,
             "game": "Tomb Raider (2013)",
             "appid": 203160,
-            "stack": "native glibc Steam host; Runtime 4/PRoot/Proton game boundary",
+            "stack": (
+                "native glibc Steam host; direct Runtime 4/Proton game execution"
+                if arguments.backend == "direct"
+                else "native glibc Steam host; Runtime 4/PRoot/Proton game boundary"
+            ),
             "target": {
                 "resolution": PANEL_GEOMETRY,
                 "graphics": "Low",
                 "vsync": "off",
                 "motion_blur": "off",
                 "fex_profile": arguments.profile,
+                "backend": arguments.backend,
                 "warmups": arguments.warmups,
                 "recorded_runs": arguments.runs,
                 "cooldown_timeout_seconds": arguments.cooldown_timeout,
@@ -522,11 +556,15 @@ def main() -> int:
             environment,
             profile_log,
         )
-        prime_log = output_directory / "steam-prime.log"
-        series["steam_prime_seconds"] = round(
-            run_logged([primer], environment, prime_log), 3
-        )
-        steam_pids = find_exact_processes(proc_root, steam_executable)
+        if arguments.backend == "direct":
+            steam_pids = existing_steam_pids
+            series["steam_reused"] = True
+        else:
+            prime_log = output_directory / "steam-prime.log"
+            series["steam_prime_seconds"] = round(
+                run_logged([primer], environment, prime_log), 3
+            )
+            steam_pids = find_exact_processes(proc_root, steam_executable)
         if len(steam_pids) != 1:
             raise RuntimeError(
                 f"expected one native Steam process after priming, found {steam_pids}"
@@ -609,9 +647,19 @@ def main() -> int:
                         maximum_temperature_millidegrees(before)
                     )
             result_before = file_state(game_directory.glob(RESULT_GLOB))
-            guard_before = file_state(guard_directory.glob(GUARD_GLOB))
+            guard_glob = (
+                DIRECT_GUARD_GLOB
+                if arguments.backend == "direct"
+                else PROOT_GUARD_GLOB
+            )
+            guard_before = file_state(guard_directory.glob(guard_glob))
             launch_log = output_directory / f"{label}-launch.log"
-            elapsed = run_logged([launcher, "-benchmark"], environment, launch_log)
+            launch_command = (
+                [launcher]
+                if arguments.backend == "direct"
+                else [launcher, "-benchmark"]
+            )
+            elapsed = run_logged(launch_command, environment, launch_log)
 
             result_files = new_regular_files(game_directory, RESULT_GLOB, result_before)
             if len(result_files) != 1:
@@ -619,11 +667,13 @@ def main() -> int:
                     f"{label} produced {len(result_files)} benchmark result files: "
                     + ", ".join(str(path) for path in result_files)
                 )
-            guard_files = new_regular_files(guard_directory, GUARD_GLOB, guard_before)
+            guard_files = new_regular_files(guard_directory, guard_glob, guard_before)
             ready_guards = [
                 path
                 for path in guard_files
-                if "Tomb Raider performance state: ready;" in (read_text(path) or "")
+                if affinity_log_is_ready(
+                    read_text(path) or "", arguments.backend
+                )
             ]
             if len(ready_guards) != 1:
                 raise RuntimeError(
