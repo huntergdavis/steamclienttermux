@@ -201,6 +201,8 @@ install_one "$repo_root/scripts/configure-gtaiv-service-timeout.py" \
     "$base/compat-bin/configure-gtaiv-service-timeout.py" 700
 install_one "$repo_root/scripts/configure-tombraider-performance.py" \
     "$base/compat-bin/configure-tombraider-performance.py" 700
+install_one "$repo_root/scripts/configure-tombraider-cpu-topology.py" \
+    "$base/compat-bin/configure-tombraider-cpu-topology.py" 700
 install_one "$repo_root/scripts/configure-termux-x11-resolution.sh" \
     "$base/compat-bin/configure-termux-x11-resolution" 700
 install_one "$repo_root/scripts/profile-live-game.py" \

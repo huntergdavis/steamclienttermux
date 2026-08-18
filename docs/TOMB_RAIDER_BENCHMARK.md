@@ -877,3 +877,29 @@ This closes the former primary PRoot-removal experiment with a repeatable
 throughput win. The next controlled variable is the direct per-game FEX
 profile: retain the same authenticated Steam process and compare TSO-off
 `fast` against this new direct `safe` baseline under the same 40 C gate.
+
+## Guarded CPU-topology fix
+
+The installed 32-bit game has a launch-time bug: if Windows reports different
+process and system affinity masks, its CPU helper leaves all counts at one.
+Android can change those masks while Wine/FEX starts, so launcher timing alone
+is not reliable. This repository ships a reversible five-byte patcher, not the
+copyrighted executable:
+
+```bash
+~/steam-arm64/compat-bin/configure-tombraider-cpu-topology.py --check
+~/steam-arm64/compat-bin/configure-tombraider-cpu-topology.py --enable
+```
+
+It accepts only the known installed executable with SHA-256
+`f36b8dd2bd74d48c14bf910ad9bd4ac9f4024433523ffc7e46d5c85c3dd618f5`,
+creates a complete verified backup under `~/steam-arm64/backups/`, and refuses
+to run while that exact game path is active. Restore the original bytes with:
+
+```bash
+~/steam-arm64/compat-bin/configure-tombraider-cpu-topology.py --disable
+```
+
+Steam file verification can also restore the vendor executable. The patch
+changes only the helper's local enumeration mask; the post-discovery game
+CPUs 1-7, RakNet CPU 1, and Steam-helper CPU 0 policy remains separate.

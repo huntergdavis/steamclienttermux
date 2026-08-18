@@ -6016,3 +6016,47 @@ reused the earlier session's guarded RunCommandService property restoration and
 exact `/top-app` validation; focused `deja` searches found no indexed solution
 for either fixed five-versus-seven startup topology or this repeated-launch
 failure.
+
+## 2026-08-18: replace probabilistic CPU discovery with a guarded game fix
+
+Temporary CPU 0 improved the launch probability but did not make it reliable.
+Two-launch validation series `20260818T084504Z-fast` completed both passes: its
+`0-4,6` warm-up logged `5/5/5` and scored 21.9/47.0/30.7 FPS; its `0-6`
+recorded pass logged `7/7/7` and scored 23.0/47.5/30.6 FPS. The immediately
+following full series `20260818T085215Z-fast` then inherited all CPUs 0-7 and
+still logged `1/1/1`. Its warm-up was excluded and the series failed with no
+aggregate. This proves that launcher affinity and exported topology can improve
+odds but cannot close the post-exec Android/Wine race.
+
+The installed PE32 executable remains exactly 19,198,000 bytes with source
+SHA-256 `f36b8dd2bd74d48c14bf910ad9bd4ac9f4024433523ffc7e46d5c85c3dd618f5`.
+Direct `llvm-objdump` inspection of its `.text` section confirmed the helper at
+VA `0x587860`. After `GetProcessAffinityMask`, the relevant instructions are:
+
+```text
+0x5878ac  mov -0x30(%ebp),%eax       # process mask
+0x5878af  cmp -0x18(%ebp),%eax       # system mask
+0x5878b2  je  0x5878bb               # enumerate only when equal
+0x5878b4  mov $0x8,%al               # otherwise return initialized 1/1/1
+```
+
+The guarded fix changes raw offset `0x186caf` from `3b45e87407` to
+`8945e8eb07`: copy the process mask into the helper's local enumeration-mask
+slot and continue unconditionally. Enumeration therefore uses only CPUs the
+process can actually run on and no longer fails merely because Wine's system
+mask differs. The resulting full-file SHA-256 is
+`4f311ecb46d6eb8f781d0c6a5e2fac6ee6a6224d19f23a79e7173b8f260807ad`.
+
+`configure-tombraider-cpu-topology.py` implements enable, disable, and check
+actions. It accepts only those two complete-file hashes plus their exact byte
+signatures, refuses symlinks and hard links, refuses a live game path, writes a
+complete verified backup, revalidates inode and bytes after backup, atomically
+replaces the file, fsyncs it and its directory, and verifies the final hash.
+No game binary is stored in the repository. Fixture coverage exercises enable,
+idempotent enable, disable, full backup verification, mode preservation,
+symlink refusal, and unknown-build refusal; all 48 project tests pass.
+
+The recalled prior session supplied the mapped helper and equality-gate
+analysis; the installed executable's current disassembly and bytes were
+independently reverified before implementation. No FPS or reliability claim is
+made for the binary fix until a fresh controlled series completes.
