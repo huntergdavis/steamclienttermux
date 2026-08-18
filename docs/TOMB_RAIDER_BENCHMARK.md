@@ -1076,3 +1076,28 @@ three CPU0-1 passes in one cooled session.
 The exact schema-v1 artifact is
 [`tombraider-direct-glibc-safe-topology-fix-x11-cpu01-pair-60hz-40c-20260818.json`](benchmark-series/tombraider-direct-glibc-safe-topology-fix-x11-cpu01-pair-60hz-40c-20260818.json),
 SHA-256 `0ca22f2ee6436eaa6a6a0492425253ca1e326153c0f7819828c589ca65281d2f`.
+
+## Incomplete X11 CPU0-1 alternating replication (2026-08-18)
+
+The first six-pass replication attempt completed its untreated warm-up at
+17.1/46.0/31.6 FPS, then failed closed after untreated recorded pass 1. The
+game wrote a complete 21.7/46.3/31.4 FPS result and the direct affinity guard
+proved 6/6/6 startup topology plus the ready performance state. During
+shutdown, however, PulseAudio asserted in `mainloop_io_free()` and the direct
+dispatcher returned 1. The controller therefore excluded the score under its
+then-current zero-exit rule; no CPU0-1 condition ran in this attempt.
+
+The raw result, ready guard, and dispatcher log have SHA-256 values
+`ccfe1db6a116c85f07ada379f5fee855a6ae07767daa17743000e46d98e3b69a`,
+`156d5fa9bd8b3756d2adef15b764ff318c2bbaae45d968aa78a4789873f59be4`,
+and `f3370e9dd560aa4bad0bfb25a2a1f033b50d6d680d29a0997b530827d38895be`,
+respectively. The excluded manifest is
+[`tombraider-direct-glibc-safe-topology-fix-x11-cpu01-alternating-60hz-40c-incomplete-20260818.json`](benchmark-series/tombraider-direct-glibc-safe-topology-fix-x11-cpu01-alternating-60hz-40c-incomplete-20260818.json),
+SHA-256 `8b46da7e398081d799b6910ca3df14af010a6b1c19a4d4e3e324a27ca0e6979f`.
+
+The controller now carries direct-launch status through CEF/X11 holder
+restoration and independently validates the new benchmark result and ready
+affinity log first. Status 1 is accepted only when protected dispatcher paths,
+the exact Pulse assertion, final `DISPATCH_STATUS=1 TRACER_PID=0`, and zero
+live Tomb Raider processes all match; every other nonzero exit remains fatal.
+Each accepted anomaly records its server-log path and SHA-256 in the run.

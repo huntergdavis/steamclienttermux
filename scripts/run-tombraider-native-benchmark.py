@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -43,6 +44,14 @@ X11_ISOLATION_LOG_PATTERN = re.compile(
     r"Termux X11 experimental isolation: game exited\n"
     r"Termux X11 experimental isolation: restored; "
     r"tids=([1-9][0-9]*(?:,[1-9][0-9]*)*)\n?"
+)
+DIRECT_DISPATCH_COMPLETION_PATTERN = re.compile(
+    r"Tomb Raider direct dispatch completed: mode=tombraider-benchmark "
+    r"child_preload=lean launcher=0 server=1 server_log=(\S+) launcher_log=(\S+)"
+)
+PULSE_MAINLOOP_ABORT = (
+    "Assertion '!e->dead' failed at ../src/pulse/mainloop.c:207, "
+    "function mainloop_io_free(). Aborting."
 )
 
 
@@ -109,6 +118,22 @@ def find_exact_processes(proc_root: Path, executable: Path) -> list[int]:
     return sorted(matches)
 
 
+def find_tomb_raider_processes(proc_root: Path) -> list[int]:
+    matches = []
+    for process in proc_root.iterdir():
+        if not process.name.isdecimal():
+            continue
+        tokens = process_tokens(process / "cmdline")
+        if not tokens:
+            continue
+        executable = tokens[0].replace(b"\\", b"/").lower()
+        if executable == b"tombraider.exe" or executable.endswith(
+            b"/tombraider.exe"
+        ):
+            matches.append(int(process.name))
+    return sorted(matches)
+
+
 def environment_for_pid(proc_root: Path, pid: int) -> dict[str, str]:
     data = (proc_root / str(pid) / "environ").read_bytes()
     result = {}
@@ -138,6 +163,78 @@ def file_state(paths) -> dict[str, tuple[int, int, int]]:
 def new_regular_files(directory: Path, pattern: str, before) -> list[Path]:
     current = file_state(directory.glob(pattern))
     return sorted(Path(path) for path in current if path not in before)
+
+
+def validate_post_result_pulse_abort(
+    launch_log: Path,
+    return_code: int,
+    base: Path,
+    proc_root: Path,
+) -> dict[str, str | int]:
+    if return_code != 1:
+        raise RuntimeError(
+            f"direct benchmark returned {return_code}, not the exact post-result "
+            "PulseAudio abort status 1"
+        )
+    require_regular(launch_log, "direct benchmark launch log")
+    completion_lines = [
+        line
+        for line in launch_log.read_text().splitlines()
+        if line.startswith("Tomb Raider direct dispatch completed:")
+    ]
+    if len(completion_lines) != 1:
+        raise RuntimeError(
+            "nonzero direct benchmark has no unique dispatch completion record"
+        )
+    match = DIRECT_DISPATCH_COMPLETION_PATTERN.fullmatch(completion_lines[0])
+    if match is None:
+        raise RuntimeError(
+            "nonzero direct benchmark does not match the protected Pulse abort route"
+        )
+
+    logs = (base / "logs").resolve()
+    server_log = Path(match.group(1))
+    launcher_log = Path(match.group(2))
+    for path, label, name_pattern in (
+        (
+            server_log,
+            "direct dispatcher server log",
+            r"tombraider-direct-tombraider-benchmark-lean-\d{8}T\d{6}Z\.log",
+        ),
+        (
+            launcher_log,
+            "direct dispatcher launcher log",
+            r"tombraider-direct-launcher-tombraider-benchmark-lean-\d{8}T\d{6}Z\.log",
+        ),
+    ):
+        require_regular(path, label)
+        if path.parent.resolve() != logs or re.fullmatch(name_pattern, path.name) is None:
+            raise RuntimeError(f"{label} is outside the protected log path: {path}")
+
+    server_raw = server_log.read_bytes()
+    server_text = server_raw.decode("utf-8", errors="replace")
+    if server_text.count(PULSE_MAINLOOP_ABORT) != 1:
+        raise RuntimeError(
+            "nonzero direct benchmark lacks the exact PulseAudio shutdown assertion"
+        )
+    dispatch_lines = [
+        line for line in server_text.splitlines() if line.startswith("DISPATCH_STATUS=")
+    ]
+    if dispatch_lines != ["DISPATCH_STATUS=1 TRACER_PID=0"]:
+        raise RuntimeError(
+            f"nonzero direct benchmark has unexpected dispatch status: {dispatch_lines}"
+        )
+    live_games = find_tomb_raider_processes(proc_root)
+    if live_games:
+        raise RuntimeError(
+            f"post-result PulseAudio abort left Tomb Raider active: {live_games}"
+        )
+    return {
+        "reason": "post-result-pulseaudio-mainloop-abort",
+        "return_code": return_code,
+        "server_log": str(server_log),
+        "server_log_sha256": hashlib.sha256(server_raw).hexdigest(),
+    }
 
 
 def decode_result(data: bytes) -> str:
@@ -413,7 +510,14 @@ def wait_for_benchmark_ready(
         sleeper(min(poll_seconds, max(0, timeout_seconds - elapsed)))
 
 
-def run_logged(command, environment, output: Path) -> float:
+def command_failure(command, output: Path, return_code: int) -> RuntimeError:
+    return RuntimeError(
+        f"command exited {return_code}; inspect {output}: "
+        + " ".join(str(value) for value in command)
+    )
+
+
+def run_logged_outcome(command, environment, output: Path) -> tuple[float, int]:
     started = time.monotonic()
     completed = subprocess.run(
         [str(value) for value in command],
@@ -425,11 +529,13 @@ def run_logged(command, environment, output: Path) -> float:
     )
     elapsed = time.monotonic() - started
     output.write_text(completed.stdout)
-    if completed.returncode != 0:
-        raise RuntimeError(
-            f"command exited {completed.returncode}; inspect {output}: "
-            + " ".join(str(value) for value in command)
-        )
+    return elapsed, completed.returncode
+
+
+def run_logged(command, environment, output: Path) -> float:
+    elapsed, return_code = run_logged_outcome(command, environment, output)
+    if return_code != 0:
+        raise command_failure(command, output, return_code)
     return elapsed
 
 
@@ -439,9 +545,11 @@ def run_logged_with_cef_holder(
     output: Path,
     holder_command,
     holder_output: Path,
-) -> tuple[float, list[int]]:
+    allow_launch_failure: bool = False,
+) -> tuple[float, list[int], int]:
     launch_error = None
     elapsed = None
+    launch_return_code = None
     with holder_output.open("w") as holder_log:
         holder = subprocess.Popen(
             [str(value) for value in holder_command],
@@ -451,7 +559,11 @@ def run_logged_with_cef_holder(
             text=True,
         )
         try:
-            elapsed = run_logged(command, environment, output)
+            elapsed, launch_return_code = run_logged_outcome(
+                command, environment, output
+            )
+            if launch_return_code != 0 and not allow_launch_failure:
+                launch_error = command_failure(command, output, launch_return_code)
         except BaseException as error:
             launch_error = error
         try:
@@ -477,7 +589,9 @@ def run_logged_with_cef_holder(
             )
     if elapsed is None:
         raise RuntimeError("game launch elapsed time is unavailable")
-    return elapsed, parse_cef_hold_log(holder_output.read_text())
+    if launch_return_code is None:
+        raise RuntimeError("game launch return code is unavailable")
+    return elapsed, parse_cef_hold_log(holder_output.read_text()), launch_return_code
 
 
 def run_logged_with_x11_isolator(
@@ -486,9 +600,11 @@ def run_logged_with_x11_isolator(
     output: Path,
     isolator_command,
     isolator_output: Path,
-) -> tuple[float, dict[str, int | list[int]]]:
+    allow_launch_failure: bool = False,
+) -> tuple[float, dict[str, int | list[int]], int]:
     launch_error = None
     elapsed = None
+    launch_return_code = None
     with isolator_output.open("w") as isolator_log:
         isolator = subprocess.Popen(
             [str(value) for value in isolator_command],
@@ -498,7 +614,11 @@ def run_logged_with_x11_isolator(
             text=True,
         )
         try:
-            elapsed = run_logged(command, environment, output)
+            elapsed, launch_return_code = run_logged_outcome(
+                command, environment, output
+            )
+            if launch_return_code != 0 and not allow_launch_failure:
+                launch_error = command_failure(command, output, launch_return_code)
         except BaseException as error:
             launch_error = error
         try:
@@ -525,7 +645,13 @@ def run_logged_with_x11_isolator(
             )
     if elapsed is None:
         raise RuntimeError("game launch elapsed time is unavailable")
-    return elapsed, parse_x11_isolation_log(isolator_output.read_text())
+    if launch_return_code is None:
+        raise RuntimeError("game launch return code is unavailable")
+    return (
+        elapsed,
+        parse_x11_isolation_log(isolator_output.read_text()),
+        launch_return_code,
+    )
 
 
 def python_tool_command(tool: Path, *arguments: str) -> list[Path | str]:
@@ -1012,9 +1138,10 @@ def main() -> int:
                 kind == "recorded"
                 and number in arguments.x11_isolation_recorded_passes
             )
+            launch_return_code = 0
             if use_cef_hold:
                 cef_hold_log = output_directory / f"{label}-steam-cef-hold.log"
-                elapsed, cef_hold_pids = run_logged_with_cef_holder(
+                elapsed, cef_hold_pids, launch_return_code = run_logged_with_cef_holder(
                     launch_command,
                     environment,
                     launch_log,
@@ -1029,10 +1156,15 @@ def main() -> int:
                         "300",
                     ),
                     cef_hold_log,
+                    allow_launch_failure=arguments.backend == "direct",
                 )
             elif use_x11_isolation:
                 x11_isolation_log = output_directory / f"{label}-x11-isolation.log"
-                elapsed, x11_isolation_evidence = run_logged_with_x11_isolator(
+                (
+                    elapsed,
+                    x11_isolation_evidence,
+                    launch_return_code,
+                ) = run_logged_with_x11_isolator(
                     launch_command,
                     environment,
                     launch_log,
@@ -1051,9 +1183,15 @@ def main() -> int:
                         "300",
                     ),
                     x11_isolation_log,
+                    allow_launch_failure=arguments.backend == "direct",
                 )
             else:
-                elapsed = run_logged(launch_command, environment, launch_log)
+                if arguments.backend == "direct":
+                    elapsed, launch_return_code = run_logged_outcome(
+                        launch_command, environment, launch_log
+                    )
+                else:
+                    elapsed = run_logged(launch_command, environment, launch_log)
 
             result_files = new_regular_files(game_directory, RESULT_GLOB, result_before)
             if len(result_files) != 1:
@@ -1077,6 +1215,15 @@ def main() -> int:
 
             raw = result_files[0].read_bytes()
             metrics = parse_benchmark_result(raw)
+            accepted_post_result_exit = None
+            if launch_return_code != 0:
+                if arguments.backend != "direct":
+                    raise command_failure(
+                        launch_command, launch_log, launch_return_code
+                    )
+                accepted_post_result_exit = validate_post_result_pulse_abort(
+                    launch_log, launch_return_code, base, proc_root
+                )
             raw_copy = output_directory / f"{label}-benchmark.txt"
             raw_copy.write_bytes(raw)
             guard_copy = output_directory / f"{label}-affinity.log"
@@ -1087,6 +1234,8 @@ def main() -> int:
                 "number": number,
                 "metrics": metrics,
                 "elapsed_seconds": round(elapsed, 3),
+                "launch_return_code": launch_return_code,
+                "accepted_post_result_exit": accepted_post_result_exit,
                 "cooldown_seconds": cooldown_seconds,
                 "source_result": str(result_files[0]),
                 "source_affinity_log": str(ready_guards[0]),

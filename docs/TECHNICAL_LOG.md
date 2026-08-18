@@ -6371,3 +6371,37 @@ the enabled topology executable SHA-256
 and the disabled property SHA-256
 `89094537f49531dc9b380a0dec3a441b2fb92577e0a4f1db505790eb8b7025b0`
 all survived unchanged.
+
+## 2026-08-18: validate the result before classifying a Pulse shutdown abort
+
+The first three-pair CPU0-1 replication, series `20260818T131110Z-safe`,
+accepted an untreated 17.1/46.0/31.6 FPS warm-up. Untreated recorded pass 1
+then wrote a complete 21.7/46.3/31.4 FPS result and a 332-byte direct-affinity
+log proving 6/6/6 topology and the ready performance state. Afterward,
+PulseAudio aborted on `mainloop_io_free()` with the exact `!e->dead`
+assertion; the dispatcher ended with `DISPATCH_STATUS=1 TRACER_PID=0` and the
+benchmark controller correctly excluded the pass under its zero-exit rule.
+No X11-isolated pass ran.
+
+The controller now separates process outcome from evidence acceptance. It
+carries a direct launch return code through successful CEF or X11 holder
+restoration, then still requires exactly one new regular game-authored result,
+one new ready affinity proof, and valid metrics. Only status 1 can proceed to
+a second validator, which requires the exact benchmark/lean dispatcher record,
+regular non-symlink logs below the protected Steam log directory, the single
+observed Pulse assertion, exactly `DISPATCH_STATUS=1 TRACER_PID=0`, and no
+live Tomb Raider process. The run records the anomaly reason, status, server
+log path, and SHA-256. Missing results, incomplete guards, other assertions,
+other statuses, live games, holder failures, and all PRoot nonzero exits remain
+fatal. Unit tests cover each accepted and rejected branch, including the X11
+holder path; the complete project suite passes.
+
+The failed manifest is
+`docs/benchmark-series/tombraider-direct-glibc-safe-topology-fix-x11-cpu01-alternating-60hz-40c-incomplete-20260818.json`,
+SHA-256 `8b46da7e398081d799b6910ca3df14af010a6b1c19a4d4e3e324a27ca0e6979f`.
+The excluded raw result, ready guard, and dispatcher log SHA-256 values are
+`ccfe1db6a116c85f07ada379f5fee855a6ae07767daa17743000e46d98e3b69a`,
+`156d5fa9bd8b3756d2adef15b764ff318c2bbaae45d968aa78a4789873f59be4`,
+and `f3370e9dd560aa4bad0bfb25a2a1f033b50d6d680d29a0997b530827d38895be`.
+Steam, X11, PulseAudio, authentication, the restored X11 mask, and the
+disabled external-command property survived unchanged.

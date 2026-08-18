@@ -316,7 +316,7 @@ def main():
 
         launch_output = root / "launch.log"
         holder_output = root / "holder.log"
-        elapsed, held_pids = module.run_logged_with_cef_holder(
+        elapsed, held_pids, launch_return_code = module.run_logged_with_cef_holder(
             [sys.executable, "-c", "print('game completed')"],
             os.environ,
             launch_output,
@@ -331,7 +331,116 @@ def main():
         )
         assert elapsed >= 0
         assert held_pids == [20, 21]
+        assert launch_return_code == 0
         assert launch_output.read_text() == "game completed\n"
+
+        nonzero_output = root / "nonzero-launch.log"
+        elapsed, launch_return_code = module.run_logged_outcome(
+            [sys.executable, "-c", "raise SystemExit(1)"],
+            os.environ,
+            nonzero_output,
+        )
+        assert elapsed >= 0
+        assert launch_return_code == 1
+
+        accepted_output = root / "accepted-holder.log"
+        elapsed, held_pids, launch_return_code = module.run_logged_with_cef_holder(
+            [sys.executable, "-c", "raise SystemExit(1)"],
+            os.environ,
+            root / "accepted-nonzero-launch.log",
+            [
+                sys.executable,
+                "-c",
+                "print('Steam CEF experimental hold: active; 20,21'); "
+                "print('Steam CEF experimental hold: game exited'); "
+                "print('Steam CEF experimental hold: resumed 20,21')",
+            ],
+            accepted_output,
+            allow_launch_failure=True,
+        )
+        assert elapsed >= 0
+        assert held_pids == [20, 21]
+        assert launch_return_code == 1
+
+        isolated_output = root / "accepted-isolator.log"
+        elapsed, isolation_evidence, launch_return_code = (
+            module.run_logged_with_x11_isolator(
+                [sys.executable, "-c", "raise SystemExit(1)"],
+                os.environ,
+                root / "accepted-isolator-nonzero-launch.log",
+                [
+                    sys.executable,
+                    "-c",
+                    "print('Termux X11 experimental isolation: active; "
+                    "pid=10; cpus=0,1; tids=10,11'); "
+                    "print('Termux X11 experimental isolation: game exited'); "
+                    "print('Termux X11 experimental isolation: restored; "
+                    "tids=10,11')",
+                ],
+                isolated_output,
+                allow_launch_failure=True,
+            )
+        )
+        assert elapsed >= 0
+        assert isolation_evidence == {
+            "pid": 10,
+            "cpus": [0, 1],
+            "active_tids": [10, 11],
+            "restored_tids": [10, 11],
+        }
+        assert launch_return_code == 1
+
+        direct_base = root / "direct-base"
+        direct_logs = direct_base / "logs"
+        direct_logs.mkdir(parents=True)
+        server_log = direct_logs / "tombraider-direct-tombraider-benchmark-lean-20260818T010203Z.log"
+        launcher_log = direct_logs / "tombraider-direct-launcher-tombraider-benchmark-lean-20260818T010203Z.log"
+        server_log.write_text(
+            "READY=/protected/dispatch.sock\n"
+            + module.PULSE_MAINLOOP_ABORT
+            + "\nDISPATCH_STATUS=1 TRACER_PID=0\n"
+        )
+        launcher_log.write_text("launcher completed\n")
+        direct_launch = root / "direct-launch.log"
+        direct_launch.write_text(
+            "Tomb Raider direct dispatch completed: mode=tombraider-benchmark "
+            "child_preload=lean launcher=0 server=1 "
+            f"server_log={server_log} launcher_log={launcher_log}\n"
+        )
+        evidence = module.validate_post_result_pulse_abort(
+            direct_launch, 1, direct_base, proc
+        )
+        assert evidence["reason"] == "post-result-pulseaudio-mainloop-abort"
+        assert evidence["return_code"] == 1
+        assert evidence["server_log"] == str(server_log)
+        assert len(evidence["server_log_sha256"]) == 64
+
+        server_log.write_text("DISPATCH_STATUS=1 TRACER_PID=0\n")
+        try:
+            module.validate_post_result_pulse_abort(direct_launch, 1, direct_base, proc)
+        except RuntimeError as error:
+            assert "lacks the exact PulseAudio" in str(error)
+        else:
+            raise AssertionError("missing PulseAudio assertion was accepted")
+        server_log.write_text(
+            module.PULSE_MAINLOOP_ABORT + "\nDISPATCH_STATUS=1 TRACER_PID=0\n"
+        )
+        (proc / "12").mkdir()
+        (proc / "12/cmdline").write_bytes(b"Z:\\\\games\\\\TombRaider.exe\0")
+        try:
+            module.validate_post_result_pulse_abort(direct_launch, 1, direct_base, proc)
+        except RuntimeError as error:
+            assert "left Tomb Raider active" in str(error)
+        else:
+            raise AssertionError("live Tomb Raider process was accepted")
+        (proc / "12/cmdline").unlink()
+        (proc / "12").rmdir()
+        try:
+            module.validate_post_result_pulse_abort(direct_launch, 2, direct_base, proc)
+        except RuntimeError as error:
+            assert "status 1" in str(error)
+        else:
+            raise AssertionError("unexpected direct return code was accepted")
 
         rejected_output = root / "rejected-holder.log"
         try:
