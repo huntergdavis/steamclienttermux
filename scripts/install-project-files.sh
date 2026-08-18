@@ -180,6 +180,8 @@ install_one "$repo_root/scripts/test-tomb-raider-direct-safe-full-topology-cef-h
     "$HOME/test-tomb-raider-direct-safe-full-topology-cef-hold-pair-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/test-tomb-raider-direct-safe-full-topology-x11-isolation-alternating-40c-ceiling.sh" \
     "$HOME/test-tomb-raider-direct-safe-full-topology-x11-isolation-alternating-40c-ceiling.sh" 700
+install_one "$repo_root/scripts/test-tomb-raider-direct-safe-full-topology-x11-cpu01-pair-40c-ceiling.sh" \
+    "$HOME/test-tomb-raider-direct-safe-full-topology-x11-cpu01-pair-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/start-gtaiv-native.sh" \
     "$HOME/start-gtaiv-native.sh" 700
 install_one "$repo_root/scripts/stop-steam.sh" "$HOME/stop-steam.sh" 700

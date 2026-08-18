@@ -15,6 +15,22 @@ class StopRequested(RuntimeError):
     pass
 
 
+def parse_cpu_set(value):
+    try:
+        cpus = tuple(int(item) for item in value.split(","))
+    except ValueError as error:
+        raise argparse.ArgumentTypeError(
+            "CPU set must contain comma-separated CPU numbers"
+        ) from error
+    if not cpus or any(cpu < 0 or cpu > 7 for cpu in cpus):
+        raise argparse.ArgumentTypeError("CPU numbers must be from 0 through 7")
+    if tuple(sorted(set(cpus))) != cpus:
+        raise argparse.ArgumentTypeError(
+            "CPU set must be sorted and contain no duplicates"
+        )
+    return cpus
+
+
 def load_affinity_tool(path):
     spec = importlib.util.spec_from_file_location("tombraider_affinity", path)
     module = importlib.util.module_from_spec(spec)
@@ -86,7 +102,8 @@ def thread_entries(process_entry):
     return sorted(entries, key=lambda entry: int(entry.name))
 
 
-def capture_and_isolate_threads(process_entry, records, cpu, get_affinity, set_affinity):
+def capture_and_isolate_threads(process_entry, records, cpus, get_affinity, set_affinity):
+    target = set(cpus)
     current = []
     for entry in thread_entries(process_entry):
         tid = int(entry.name)
@@ -101,9 +118,12 @@ def capture_and_isolate_threads(process_entry, records, cpu, get_affinity, set_a
             }
             if not records[tid]["affinity"]:
                 raise RuntimeError(f"X11 thread {tid} has an empty original affinity")
-        set_affinity(tid, {cpu})
-        if set(get_affinity(tid)) != {cpu}:
-            raise RuntimeError(f"X11 thread {tid} did not converge to CPU {cpu}")
+        set_affinity(tid, target)
+        if set(get_affinity(tid)) != target:
+            raise RuntimeError(
+                f"X11 thread {tid} did not converge to CPUs "
+                + ",".join(str(cpu) for cpu in cpus)
+            )
         current.append(tid)
     return current
 
@@ -163,7 +183,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--steam-base", default=str(Path.home() / "steam-arm64"))
     parser.add_argument("--display", default=":0")
-    parser.add_argument("--cpu", type=int, default=0)
+    cpu_group = parser.add_mutually_exclusive_group()
+    cpu_group.add_argument("--cpu", type=int)
+    cpu_group.add_argument("--cpus", type=parse_cpu_set, default=(0,))
     parser.add_argument("--wait-seconds", type=float, default=600)
     parser.add_argument("--delay-seconds", type=float, default=25)
     parser.add_argument("--isolation-timeout-seconds", type=float, default=300)
@@ -171,7 +193,7 @@ def main():
     arguments = parser.parse_args()
     if not arguments.acknowledge_experimental:
         parser.error("--acknowledge-experimental is required")
-    if not 0 <= arguments.cpu <= 7:
+    if arguments.cpu is not None and not 0 <= arguments.cpu <= 7:
         parser.error("--cpu must be from 0 through 7")
     if not 0 <= arguments.delay_seconds <= 60:
         parser.error("--delay-seconds must be from 0 through 60")
@@ -181,6 +203,9 @@ def main():
         parser.error("--isolation-timeout-seconds must be from 1 through 900")
 
     steam_base = Path(arguments.steam_base).resolve()
+    isolation_cpus = (
+        (arguments.cpu,) if arguments.cpu is not None else arguments.cpus
+    )
     proc_root = Path("/proc")
     affinity = load_affinity_tool(Path(__file__).with_name("set-tombraider-affinity.py"))
     records = {}
@@ -212,13 +237,14 @@ def main():
         tids = capture_and_isolate_threads(
             x11_entry,
             records,
-            arguments.cpu,
+            isolation_cpus,
             os.sched_getaffinity,
             os.sched_setaffinity,
         )
         print(
             f"Termux X11 experimental isolation: active; pid={current_pid}; "
-            f"cpu={arguments.cpu}; tids=" + ",".join(str(tid) for tid in tids),
+            "cpus=" + ",".join(str(cpu) for cpu in isolation_cpus) + "; tids="
+            + ",".join(str(tid) for tid in tids),
             flush=True,
         )
         deadline = time.monotonic() + arguments.isolation_timeout_seconds
@@ -236,7 +262,7 @@ def main():
             capture_and_isolate_threads(
                 x11_entry,
                 records,
-                arguments.cpu,
+                isolation_cpus,
                 os.sched_getaffinity,
                 os.sched_setaffinity,
             )

@@ -46,6 +46,14 @@ def main():
         "42 (name with spaces) S 7 " + "0 " * 17 + "900 " + "0 " * 16 + "3 " + "0 " * 10
     )
     assert parsed == {"state": "S", "ppid": 7, "start_ticks": 900, "processor": 3}
+    assert tool.parse_cpu_set("0,1") == (0, 1)
+    for invalid in ("", "-1", "8", "1,0", "0,0", "zero"):
+        try:
+            tool.parse_cpu_set(invalid)
+        except tool.argparse.ArgumentTypeError:
+            pass
+        else:
+            raise AssertionError("invalid X11 CPU set was accepted")
 
     with tempfile.TemporaryDirectory(prefix="isolate-x11.") as directory:
         proc = Path(directory) / "proc"
@@ -75,22 +83,26 @@ def main():
 
         records = {}
         assert tool.capture_and_isolate_threads(
-            x11, records, 0, get_affinity, set_affinity
+            x11, records, (0, 1), get_affinity, set_affinity
         ) == [10, 11]
-        assert masks == {10: {0}, 11: {0}}
+        assert masks == {10: {0, 1}, 11: {0, 1}}
         assert records == {
             10: {"start_ticks": 100, "affinity": frozenset({0, 1, 2, 3})},
             11: {"start_ticks": 110, "affinity": frozenset({0, 1, 2, 3})},
         }
         task_entry(x11, 12, "new-thread", 120, 0)
-        masks[12] = {0}
+        masks[12] = {0, 1}
         assert tool.capture_and_isolate_threads(
-            x11, records, 0, get_affinity, set_affinity
+            x11, records, (0, 1), get_affinity, set_affinity
         ) == [10, 11, 12]
         assert tool.restore_threads(
             x11, 100, records, get_affinity, set_affinity
         ) == [10, 11, 12]
-        assert masks == {10: {0, 1, 2, 3}, 11: {0, 1, 2, 3}, 12: {0}}
+        assert masks == {
+            10: {0, 1, 2, 3},
+            11: {0, 1, 2, 3},
+            12: {0, 1},
+        }
 
         (x11 / "stat").write_text(
             (x11 / "stat").read_text().replace(" 100 ", " 101 ", 1)

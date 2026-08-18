@@ -39,7 +39,7 @@ CEF_HOLD_LOG_PATTERN = re.compile(
 )
 X11_ISOLATION_LOG_PATTERN = re.compile(
     r"Termux X11 experimental isolation: active; pid=([1-9][0-9]*); "
-    r"cpu=([0-7]); tids=([1-9][0-9]*(?:,[1-9][0-9]*)*)\n"
+    r"cpus=([0-7](?:,[0-7])*); tids=([1-9][0-9]*(?:,[1-9][0-9]*)*)\n"
     r"Termux X11 experimental isolation: game exited\n"
     r"Termux X11 experimental isolation: restored; "
     r"tids=([1-9][0-9]*(?:,[1-9][0-9]*)*)\n?"
@@ -185,14 +185,16 @@ def parse_x11_isolation_log(output: str) -> dict[str, int | list[int]]:
     if match is None:
         raise RuntimeError("Termux X11 isolation log is incomplete or contains errors")
     pid = int(match.group(1))
-    cpu = int(match.group(2))
+    cpus = [int(value) for value in match.group(2).split(",")]
     active = [int(value) for value in match.group(3).split(",")]
     restored = [int(value) for value in match.group(4).split(",")]
+    if cpus != sorted(set(cpus)):
+        raise RuntimeError("Termux X11 isolation CPU set is not sorted and unique")
     if active != sorted(set(active)) or restored != sorted(set(restored)):
         raise RuntimeError("Termux X11 isolation TID sets are not sorted and unique")
     if not set(active).issubset(restored):
         raise RuntimeError("Termux X11 isolation did not restore every active TID")
-    return {"pid": pid, "cpu": cpu, "active_tids": active, "restored_tids": restored}
+    return {"pid": pid, "cpus": cpus, "active_tids": active, "restored_tids": restored}
 
 
 def parse_recorded_passes(value: str) -> tuple[int, ...]:
@@ -211,6 +213,22 @@ def parse_recorded_passes(value: str) -> tuple[int, ...]:
             "recorded pass list must be sorted and contain no duplicates"
         )
     return passes
+
+
+def parse_cpu_set(value: str) -> tuple[int, ...]:
+    try:
+        cpus = tuple(int(item) for item in value.split(","))
+    except ValueError as error:
+        raise argparse.ArgumentTypeError(
+            "CPU set must contain comma-separated CPU numbers"
+        ) from error
+    if not cpus or any(cpu < 0 or cpu > 7 for cpu in cpus):
+        raise argparse.ArgumentTypeError("CPU numbers must be from 0 through 7")
+    if tuple(sorted(set(cpus))) != cpus:
+        raise argparse.ArgumentTypeError(
+            "CPU set must be sorted and contain no duplicates"
+        )
+    return cpus
 
 
 def parse_xrandr_geometry(output: str) -> str | None:
@@ -573,7 +591,7 @@ def aggregate_x11_isolation_conditions(runs) -> dict[str, dict[str, dict[str, fl
         raise RuntimeError("paired X11 isolation comparison requires both conditions")
     return {
         "control": aggregate_results(control),
-        "x11_cpu0_isolation": aggregate_results(isolated),
+        "x11_isolation": aggregate_results(isolated),
     }
 
 
@@ -624,14 +642,21 @@ def build_parser() -> argparse.ArgumentParser:
     x11_group.add_argument(
         "--isolate-x11",
         action="store_true",
-        help="experimentally isolate verified Termux:X11 threads to CPU 0 each pass",
+        help="experimentally isolate verified Termux:X11 threads each pass",
     )
     x11_group.add_argument(
         "--x11-isolation-recorded-passes",
         type=parse_recorded_passes,
         default=(),
         metavar="N[,N...]",
-        help="recorded pass numbers that receive experimental X11 CPU-0 isolation",
+        help="recorded pass numbers that receive experimental X11 CPU isolation",
+    )
+    parser.add_argument(
+        "--x11-isolation-cpus",
+        type=parse_cpu_set,
+        default=(0,),
+        metavar="CPU[,CPU...]",
+        help="validated CPU set used by the opt-in X11 isolation experiment",
     )
     parser.add_argument(
         "--raknet-nice",
@@ -833,6 +858,7 @@ def main() -> int:
                 "x11_isolation_recorded_passes": list(
                     arguments.x11_isolation_recorded_passes
                 ),
+                "x11_isolation_cpus": list(arguments.x11_isolation_cpus),
                 "startup_topology": arguments.startup_topology,
                 "backend": arguments.backend,
                 "warmups": arguments.warmups,
@@ -1015,8 +1041,8 @@ def main() -> int:
                         "--acknowledge-experimental",
                         "--display",
                         arguments.display,
-                        "--cpu",
-                        "0",
+                        "--cpus",
+                        ",".join(str(cpu) for cpu in arguments.x11_isolation_cpus),
                         "--wait-seconds",
                         "300",
                         "--delay-seconds",

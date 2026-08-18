@@ -72,24 +72,27 @@ def main():
         else:
             raise AssertionError("invalid Steam CEF hold log was accepted")
     assert module.parse_x11_isolation_log(
-        "Termux X11 experimental isolation: active; pid=10; cpu=0; tids=10,11\n"
+        "Termux X11 experimental isolation: active; pid=10; cpus=0,1; tids=10,11\n"
         "Termux X11 experimental isolation: game exited\n"
         "Termux X11 experimental isolation: restored; tids=10,11,12\n"
     ) == {
         "pid": 10,
-        "cpu": 0,
+        "cpus": [0, 1],
         "active_tids": [10, 11],
         "restored_tids": [10, 11, 12],
     }
     for invalid_x11_log in (
-        "Termux X11 experimental isolation: active; pid=10; cpu=0; tids=10,11\n",
-        "Termux X11 experimental isolation: active; pid=10; cpu=0; tids=11,10\n"
+        "Termux X11 experimental isolation: active; pid=10; cpus=0,1; tids=10,11\n",
+        "Termux X11 experimental isolation: active; pid=10; cpus=1,0; tids=10,11\n"
         "Termux X11 experimental isolation: game exited\n"
         "Termux X11 experimental isolation: restored; tids=10,11\n",
-        "Termux X11 experimental isolation: active; pid=10; cpu=0; tids=10,11\n"
+        "Termux X11 experimental isolation: active; pid=10; cpus=0; tids=11,10\n"
+        "Termux X11 experimental isolation: game exited\n"
+        "Termux X11 experimental isolation: restored; tids=10,11\n",
+        "Termux X11 experimental isolation: active; pid=10; cpus=0; tids=10,11\n"
         "Termux X11 experimental isolation: game exited\n"
         "Termux X11 experimental isolation: restored; tids=10\n",
-        "Termux X11 experimental isolation: active; pid=10; cpu=0; tids=10,11\n"
+        "Termux X11 experimental isolation: active; pid=10; cpus=0; tids=10,11\n"
         "Termux X11 experimental isolation: game exited\n"
         "Termux X11 experimental isolation: restored; tids=10,11\n"
         "unexpected noise\n",
@@ -108,6 +111,14 @@ def main():
             pass
         else:
             raise AssertionError("invalid recorded pass list was accepted")
+    assert module.parse_cpu_set("0,1") == (0, 1)
+    for invalid_cpus in ("", "-1", "8", "1,0", "0,0", "zero"):
+        try:
+            module.parse_cpu_set(invalid_cpus)
+        except module.argparse.ArgumentTypeError:
+            pass
+        else:
+            raise AssertionError("invalid benchmark X11 CPU set was accepted")
 
     xrandr = (
         "Screen 0: minimum 320 x 200, current 2800 x 1752, maximum 8192 x 8192\n"
@@ -135,6 +146,7 @@ def main():
     assert direct.steam_cef_hold_recorded_passes == ()
     assert not direct.isolate_x11
     assert direct.x11_isolation_recorded_passes == ()
+    assert direct.x11_isolation_cpus == (0,)
     direct_cef_hold = module.build_parser().parse_args(
         ["--backend", "direct", "--hold-steam-cef"]
     )
@@ -144,9 +156,17 @@ def main():
     )
     assert direct_cef_pairs.steam_cef_hold_recorded_passes == (2, 4, 6)
     direct_x11_pairs = module.build_parser().parse_args(
-        ["--backend", "direct", "--x11-isolation-recorded-passes", "2,4,6"]
+        [
+            "--backend",
+            "direct",
+            "--x11-isolation-recorded-passes",
+            "2,4,6",
+            "--x11-isolation-cpus",
+            "0,1",
+        ]
     )
     assert direct_x11_pairs.x11_isolation_recorded_passes == (2, 4, 6)
+    assert direct_x11_pairs.x11_isolation_cpus == (0, 1)
     direct_priority = module.build_parser().parse_args(
         ["--backend", "direct", "--raknet-nice", "19"]
     )
@@ -202,7 +222,7 @@ def main():
             "maximum_fps": {"mean": 30.0, "median": 30.0, "values": [30.0]},
             "average_fps": {"mean": 20.0, "median": 20.0, "values": [20.0]},
         },
-        "x11_cpu0_isolation": {
+        "x11_isolation": {
             "minimum_fps": {"mean": 12.0, "median": 12.0, "values": [12.0]},
             "maximum_fps": {"mean": 32.0, "median": 32.0, "values": [32.0]},
             "average_fps": {"mean": 22.0, "median": 22.0, "values": [22.0]},
