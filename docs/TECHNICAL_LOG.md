@@ -6185,3 +6185,51 @@ full-policy start. Steam, X11, PulseAudio, saved authentication, the topology
 fix, and the disabled external-command property survived. The immediately
 preceding untouched excluded pass also averaged 31.9 FPS, so feasibility does
 not establish a gain. A full controller-recorded A/B is required.
+
+## 2026-08-18: guarded native CEF hold shows a small candidate gain
+
+Commit `f32df52` integrated the native-only holder into the benchmark
+controller as the explicit `--hold-steam-cef` option. A pass is rejected unless
+the holder exits successfully and its log contains exactly active, normal game
+exit, and resumed records with the same sorted PID set. The controller starts
+the holder before the game, waits for its cleanup after the launcher returns,
+and never uses `SIGKILL`; graceful cleanup is what guarantees `SIGCONT`.
+Static parser tests, a subprocess lifecycle test, the holder identity tests,
+the wrapper broker test, and all 48 Python project tests passed.
+
+Series `20260818T105022Z-safe` completed one warm-up and three recorded passes
+at 2800x1752, 59.97 Hz, Low, Safe, full startup topology, and the fixed 40 C
+start ceiling. All four passes actually started at 37.0 C with full CPU/GPU
+policy and thermal power level zero.
+
+| Pass | Minimum | Maximum | Average |
+| --- | ---: | ---: | ---: |
+| warm-up | 22.8 | 47.1 | 32.1 |
+| recorded 1 | 23.1 | 45.3 | 31.5 |
+| recorded 2 | 16.8 | 45.5 | 31.3 |
+| recorded 3 | 21.2 | 48.9 | 30.9 |
+| recorded mean | **20.367** | **46.567** | **31.233** |
+
+Every holder log names the same exact eight native Steam descendants
+(`22353,22369,22370,22548,22550,22601,22714,23283`), proves normal game exit,
+and proves the identical set resumed. The crashpad orphan was excluded. Steam
+PID 22318, X11 PID 25663, PulseAudio PID 25865, saved authentication, the
+enabled topology patch, and `termux.properties` SHA-256
+`89094537f49531dc9b380a0dec3a441b2fb92577e0a4f1db505790eb8b7025b0`
+all survived.
+
+Against the matched patched Safe baseline at 21.000/46.133/30.400 FPS, CEF
+hold changes the means by -3.01% minimum, +0.94% maximum, and +2.74% average.
+The average improvement is consistent across the three recorded pairs
+(+0.9, +1.1, and +0.5 FPS), but remains small relative to observed session
+variance; an immediately preceding excluded untreated pass also scored 31.9
+FPS. The holder stays opt-in pending an alternating untreated/held replication.
+
+The exact manifest is
+`docs/benchmark-series/tombraider-direct-glibc-safe-topology-fix-cef-hold-60hz-40c-20260818.json`,
+SHA-256 `dcc06789340dc746cd3453d14fd39a72aede66fc77eea9ac63cb835a5b43feab`.
+The launch reused the exact foreground RunCommandService gate recovered with
+`deja` from the prior session: `--user 0`, background execution, a service
+readiness probe, controller `/top-app` validation, then byte-for-byte property
+restoration. That recovered command avoided repeating the failed session-action
+variant.

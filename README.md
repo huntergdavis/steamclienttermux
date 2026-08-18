@@ -51,22 +51,23 @@ minimum/maximum/average FPS.
 | `safe` | 2800×1752 | 59.97 Hz | 25.3 / 24.9 / 25.3 | 16.200 / 34.500 / **25.167** | 37.0 °C observed | [JSON](docs/benchmark-series/tombraider-native-glibc-safe-60hz-20260817.json) |
 | `safe` (direct game) | 2800×1752 | 59.97 Hz | 31.1 / 30.3 / 30.3 | 18.900 / 47.733 / **30.567** | Fixed 40 °C ceiling; all starts 37.0 °C | [JSON](docs/benchmark-series/tombraider-direct-glibc-safe-60hz-40c-20260818.json) |
 | `safe` (direct game, topology fix) | 2800×1752 | 59.97 Hz | 30.6 / 30.2 / 30.4 | 21.000 / 46.133 / **30.400** | Fixed 40 °C ceiling; starts 37.0–37.9 °C | [JSON](docs/benchmark-series/tombraider-direct-glibc-safe-topology-fix-60hz-40c-20260818.json) |
+| `safe` (direct game, topology fix, CEF hold) | 2800×1752 | 59.97 Hz | 31.5 / 31.3 / 30.9 | 20.367 / 46.567 / **31.233** | Fixed 40 °C ceiling; all starts 37.0 °C; experimental | [JSON](docs/benchmark-series/tombraider-direct-glibc-safe-topology-fix-cef-hold-60hz-40c-20260818.json) |
 | `fast` (direct game, topology fix) | 2800×1752 | 59.97 Hz | 30.2 / 30.3 / 30.9 | 21.367 / 46.167 / **30.467** | Fixed 40 °C ceiling; all starts 37.0 °C | [JSON](docs/benchmark-series/tombraider-direct-glibc-fast-topology-fix-60hz-40c-20260818.json) |
 | bundled Proton | 2800×1752 | 59.97 Hz | 23.2 / 23.1 / 22.6 | 14.200 / 31.233 / **22.967** | 45.1–47.9 °C; unmatched | [JSON](docs/benchmark-series/tombraider-native-glibc-proton-60hz-unmatched-20260817.json) |
 | bundled Proton | 2800×1752 | 59.97 Hz | 22.8 / 22.7 / 25.2 | 12.500 / 32.967 / **23.567** | Fixed 40 °C ceiling; starts 37.0–37.6 °C | [JSON](docs/benchmark-series/tombraider-native-glibc-proton-60hz-40c-20260817.json) |
 | `fast` | 2800×1752 | 59.97 Hz | 25.5 / 23.0 / 22.9 | 16.367 / 32.300 / **23.800** | Fixed 40 °C ceiling; all starts 37.0 °C | [JSON](docs/benchmark-series/tombraider-native-glibc-fast-60hz-40c-20260817.json) |
 
-The original direct-game `safe` series remains the observed average-FPS leader
-at **30.567 FPS**, 21.5% above the same 59.97 Hz profile with the
-Runtime/Proton PRoot boundary. In the matched patched-topology comparison,
-`fast` scores 30.467 FPS and `safe` 30.400 FPS: a 0.22% average difference,
-with only 1.72% minimum and 0.07% maximum differences. That is below the
-per-pass spread, so `safe` remains the production profile.
+The direct game path is 20.8% faster than the matched 59.97 Hz profile with
+the Runtime/Proton PRoot boundary. In the patched-topology comparison, `fast`
+scores 30.467 FPS and `safe` 30.400 FPS, only 0.22% apart, so `safe` remains
+the production profile. The opt-in native CEF hold raises the matched average
+to 31.233 FPS, a small 2.74% candidate gain, while reducing minimum-FPS mean
+3.01%. It is not the default until an alternating replication separates the
+effect from normal run-to-run variance.
 The direct dispatcher leaves Steam's generated outer request waiting for
 lifecycle compatibility but executes the hot Proton/FEX/game tree outside the
 PRoot tracer. The unmatched Proton row is retained for audit, not used to
-select a profile. The next bounded experiment is scheduler-priority isolation
-with this patched `safe` baseline.
+select a profile.
 
 Read the [full Tomb Raider report](docs/TOMB_RAIDER_BENCHMARK.md) for every
 historical pass, exclusions, thermal state, affinity evidence, and methodology.

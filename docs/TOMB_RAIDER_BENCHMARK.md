@@ -982,3 +982,35 @@ The failed schema-v1 manifest is retained explicitly as incomplete:
 SHA-256 `33b62b03509cb7641933eb1085092f03888a00abdc7d2640a3bb380e92e5f91b`.
 The excluded game-authored result had SHA-256
 `f9a25e2ccd7263ba7c3eb2dc96e96201aa0bdedf01b6db77e686e8dcfcca4a9b`.
+
+## Experimental native CEF-hold series (2026-08-18)
+
+Series `20260818T105022Z-safe` changed only one timed-scene variable: after the
+exact game identity appeared and stabilized for 25 seconds, a guarded helper
+held eight exact native Steam CEF descendants until normal game exit. Every
+pass proved that the helper set remained unchanged and stopped, then resumed
+the identical start-tick-verified PIDs. Steam's intentionally reparented
+crashpad handler was not signaled.
+
+| Pass | Start | Minimum | Maximum | Average | Cooldown | Elapsed |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| warm-up | 37.0 C | 22.8 | 47.1 | 32.1 | 30.293 s | 119.834 s |
+| recorded 1 | 37.0 C | 23.1 | 45.3 | 31.5 | 141.210 s | 120.138 s |
+| recorded 2 | 37.0 C | 16.8 | 45.5 | 31.3 | 120.996 s | 119.206 s |
+| recorded 3 | 37.0 C | 21.2 | 48.9 | 30.9 | 121.025 s | 119.132 s |
+| recorded mean | n/a | **20.367** | **46.567** | **31.233** | n/a | n/a |
+
+Against the matched patched Safe baseline at 21.000/46.133/30.400 FPS, the
+candidate changes minimum, maximum, and average means by -3.01%, +0.94%, and
++2.74%, respectively. Each recorded average improved by 0.5-1.1 FPS, but one
+completed series is not enough to distinguish that small gain from variance;
+an immediately preceding excluded untreated pass also reached 31.9 FPS. The
+holder therefore remains an explicit experiment rather than the production
+default. The next decision-quality test is an alternating untreated/held
+replication from the same cooled session.
+
+The complete schema-v1 artifact is
+[`tombraider-direct-glibc-safe-topology-fix-cef-hold-60hz-40c-20260818.json`](benchmark-series/tombraider-direct-glibc-safe-topology-fix-cef-hold-60hz-40c-20260818.json),
+SHA-256 `dcc06789340dc746cd3453d14fd39a72aede66fc77eea9ac63cb835a5b43feab`.
+Steam PID 22318, X11 PID 25663, PulseAudio PID 25865, saved authentication, the
+enabled topology fix, and the disabled external-command property all survived.
