@@ -53,6 +53,18 @@ PULSE_MAINLOOP_ABORT = (
     "Assertion '!e->dead' failed at ../src/pulse/mainloop.c:207, "
     "function mainloop_io_free(). Aborting."
 )
+SERIES_PHASES = frozenset(
+    {
+        "initializing",
+        "preflight",
+        "cooldown",
+        "launching_or_running",
+        "validating_result",
+        "result_accepted",
+        "complete",
+        "failed",
+    }
+)
 
 
 def read_text(path: Path) -> str | None:
@@ -668,6 +680,27 @@ def atomic_json(path: Path, data) -> None:
     os.replace(temporary, path)
 
 
+def set_series_phase(
+    series: dict, phase: str, active_pass: dict | None = None
+) -> None:
+    if phase not in SERIES_PHASES:
+        raise ValueError(f"unknown benchmark series phase: {phase}")
+    updated_at = dt.datetime.now(dt.timezone.utc).isoformat()
+    series["phase"] = phase
+    series["phase_updated_at"] = updated_at
+    if active_pass is None:
+        series["active_pass"] = None
+        return
+    current = {
+        key: value
+        for key, value in active_pass.items()
+        if key not in ("phase", "updated_at")
+    }
+    current["phase"] = phase
+    current["updated_at"] = updated_at
+    series["active_pass"] = current
+
+
 def aggregate_results(runs) -> dict[str, dict[str, float]]:
     recorded = [run["metrics"] for run in runs if run["kind"] == "recorded"]
     if not recorded:
@@ -768,6 +801,7 @@ def affinity_log_is_ready(
 
 def mark_series_failed(series: dict, error: BaseException) -> None:
     series["status"] = "failed"
+    set_series_phase(series, "failed", series.get("active_pass"))
     series["failure"] = {
         "type": type(error).__name__,
         "message": str(error),
@@ -1072,6 +1106,7 @@ def main() -> int:
             "started_at": dt.datetime.now(dt.timezone.utc).isoformat(),
             "runs": [],
         }
+        set_series_phase(series, "initializing")
         atomic_json(output_directory / "series.json", series)
 
         profile_log = output_directory / "profile-check.log"
@@ -1156,6 +1191,35 @@ def main() -> int:
             kind = "warmup" if index < arguments.warmups else "recorded"
             number = index + 1 if kind == "warmup" else index - arguments.warmups + 1
             label = f"{kind}-{number}"
+            use_cef_hold = arguments.hold_steam_cef or (
+                kind == "recorded"
+                and number in arguments.steam_cef_hold_recorded_passes
+            )
+            use_x11_isolation = arguments.isolate_x11 or (
+                kind == "recorded"
+                and number in arguments.x11_isolation_recorded_passes
+            )
+            use_raknet_exclusive = (
+                kind == "recorded"
+                and number in arguments.raknet_exclusive_recorded_passes
+            )
+            expected_game_cpus = "2-7" if use_raknet_exclusive else "1-7"
+            active_pass = {
+                "kind": kind,
+                "number": number,
+                "label": label,
+                "game_cpus": expected_game_cpus,
+                "steam_cef_hold": use_cef_hold,
+                "x11_isolation": use_x11_isolation,
+                "raknet_exclusive": use_raknet_exclusive,
+            }
+            series["status"] = "running"
+            set_series_phase(
+                series,
+                "preflight" if temperature_ceiling is None else "cooldown",
+                active_pass,
+            )
+            atomic_json(output_directory / "series.json", series)
             if temperature_ceiling is None:
                 before = system_snapshot(proc_root, cpu_root, kgsl_root, thermal_root)
                 require_unthrottled(before)
@@ -1201,22 +1265,11 @@ def main() -> int:
             )
             cef_hold_pids = None
             x11_isolation_evidence = None
-            use_cef_hold = arguments.hold_steam_cef or (
-                kind == "recorded"
-                and number in arguments.steam_cef_hold_recorded_passes
-            )
-            use_x11_isolation = arguments.isolate_x11 or (
-                kind == "recorded"
-                and number in arguments.x11_isolation_recorded_passes
-            )
-            use_raknet_exclusive = (
-                kind == "recorded"
-                and number in arguments.raknet_exclusive_recorded_passes
-            )
-            expected_game_cpus = "2-7" if use_raknet_exclusive else "1-7"
             pass_environment = environment.copy()
             pass_environment["TOMB_RAIDER_GAME_CPUS"] = expected_game_cpus
             launch_return_code = 0
+            set_series_phase(series, "launching_or_running", active_pass)
+            atomic_json(output_directory / "series.json", series)
             if use_cef_hold:
                 cef_hold_log = output_directory / f"{label}-steam-cef-hold.log"
                 elapsed, cef_hold_pids, launch_return_code = run_logged_with_cef_holder(
@@ -1272,6 +1325,9 @@ def main() -> int:
                     elapsed = run_logged(
                         launch_command, pass_environment, launch_log
                     )
+
+            set_series_phase(series, "validating_result", active_pass)
+            atomic_json(output_directory / "series.json", series)
 
             result_files = new_regular_files(game_directory, RESULT_GLOB, result_before)
             if len(result_files) != 1:
@@ -1332,6 +1388,7 @@ def main() -> int:
             }
             series["runs"].append(run)
             series["status"] = "running"
+            set_series_phase(series, "result_accepted", active_pass)
             atomic_json(output_directory / "series.json", series)
             print(
                 f"{label}: min={metrics['minimum_fps']} "
@@ -1354,6 +1411,7 @@ def main() -> int:
             )
         series["status"] = "complete"
         series["finished_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
+        set_series_phase(series, "complete")
         atomic_json(output_directory / "series.json", series)
         average = series["aggregate"]["average_fps"]
         print(

@@ -532,9 +532,36 @@ def main():
     paired = module.aggregate_cef_hold_conditions(paired_runs)
     assert paired["control"]["average_fps"]["values"] == [20.0, 24.0, 22.0]
     assert paired["steam_cef_hold"]["average_fps"]["values"] == [22.0, 20.0, 24.0]
-    failed = {"status": "initializing", "runs": []}
+    series = {"status": "initializing", "runs": []}
+    active_pass = {
+        "kind": "recorded",
+        "number": 2,
+        "label": "recorded-2",
+        "game_cpus": "1-7",
+    }
+    module.set_series_phase(series, "cooldown", active_pass)
+    assert series["phase"] == "cooldown"
+    assert series["phase_updated_at"].endswith("+00:00")
+    assert series["active_pass"] == {
+        **active_pass,
+        "phase": "cooldown",
+        "updated_at": series["phase_updated_at"],
+    }
+    module.set_series_phase(series, "launching_or_running", series["active_pass"])
+    assert series["active_pass"]["phase"] == "launching_or_running"
+    try:
+        module.set_series_phase(series, "guessed_boundary", active_pass)
+    except ValueError as error:
+        assert "unknown benchmark series phase" in str(error)
+    else:
+        raise AssertionError("unknown benchmark phase was accepted")
+    failed = {**series, "status": "running"}
     module.mark_series_failed(failed, RuntimeError("controlled failure"))
     assert failed["status"] == "failed"
+    assert failed["phase"] == "failed"
+    assert failed["active_pass"]["kind"] == "recorded"
+    assert failed["active_pass"]["number"] == 2
+    assert failed["active_pass"]["phase"] == "failed"
     assert failed["failure"] == {
         "type": "RuntimeError",
         "message": "controlled failure",

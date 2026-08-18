@@ -6515,6 +6515,7 @@ the enabled topology fix, and the disabled external-command property survived.
 Live monitoring exposed a controller observability gap: process disappearance
 alone does not prove a pass boundary because the next launch may begin before
 the next polling sample. The accepted-run count in `series.json` is
-authoritative for completed passes. The controller will additionally persist
-its own cooldown, launch/run, validation, and completion phases so monitoring
-does not infer those states from process samples.
+authoritative for completed passes. The controller now additionally persists
+its own preflight/cooldown, launch/run, result-validation, acceptance, and
+terminal phases, including the active pass metadata, so monitoring does not
+infer those states from process samples.
