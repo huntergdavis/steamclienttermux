@@ -84,6 +84,14 @@ def descends_from(pid, ancestor, proc_root):
     return False
 
 
+def is_crashpad_handler(entry):
+    arguments = command_arguments(entry)
+    return (
+        b"--type=crashpad-handler" in arguments
+        and b"--monitor-self-annotation=ptype=crashpad-handler" in arguments
+    )
+
+
 def validated_helpers(affinity, steam_base, steam_pid, proc_root):
     helpers = affinity.find_steam_helpers(steam_base, proc_root)
     if not helpers:
@@ -92,8 +100,12 @@ def validated_helpers(affinity, steam_base, steam_pid, proc_root):
     for pid, entry in helpers:
         affinity.validate_top_app(entry)
         if not descends_from(pid, steam_pid, proc_root):
+            if is_crashpad_handler(entry):
+                continue
             raise RuntimeError(f"Steam helper {pid} is not a descendant of {steam_pid}")
         records[pid] = process_record(entry)
+    if not records:
+        raise RuntimeError("no descendant native Steam CEF helpers found")
     return records
 
 

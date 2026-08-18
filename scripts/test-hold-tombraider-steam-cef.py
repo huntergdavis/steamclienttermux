@@ -67,6 +67,21 @@ def main():
             210,
             [str(loader).encode(), b"--argv0", str(helper).encode(), str(helper).encode()],
         )
+        proc_entry(
+            proc,
+            22,
+            "steamwebhelper",
+            1,
+            220,
+            [
+                str(loader).encode(),
+                b"--argv0",
+                str(helper).encode(),
+                str(helper).encode(),
+                b"--monitor-self-annotation=ptype=crashpad-handler",
+                b"--type=crashpad-handler",
+            ],
+        )
         steam_pid, _entry = tool.find_exact_steam(affinity, base, proc)
         assert steam_pid == 10
         records = tool.validated_helpers(affinity, base, steam_pid, proc)
@@ -74,6 +89,7 @@ def main():
             20: 200,
             21: 210,
         }
+        assert tool.is_crashpad_handler(proc / "22")
         assert tool.same_identities(records, records)
         changed = {pid: dict(row) for pid, row in records.items()}
         changed[21]["start_ticks"] = 211
