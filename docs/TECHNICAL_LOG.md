@@ -5964,3 +5964,28 @@ appears does the guard apply the final CPUs 1-7/RakNet/helper profile. Synthetic
 the fresh topology line. Earlier `holding startup topology` artifacts remain
 accepted by the benchmark reader; corrected runs report `observing inherited
 startup topology`. The excluded 32.7 FPS pass is not included in aggregates.
+
+## 2026-08-18: stage an exact seven-CPU startup-topology candidate
+
+Live ancestry from the corrected Fast warm-up showed the direct dispatcher
+requesting CPUs 1-7 before exec, but launch-time `sched_getaffinity` exposed
+only 1-5. Proton therefore correctly copied `PROTON_CPU_TOPOLOGY=5:1,2,3,4,5`
+to Wine. After the X11 task settled in `/top-app`, the same direct lineage
+expanded to CPUs 1-7. This timing explains why the game consistently discovers
+five CPUs even though the finite guard later gives it all seven.
+
+The direct dispatcher now supports an opt-in
+`STEAM_ARM64_DIRECT_STARTUP_TOPOLOGY=full` mode. Before executing Proton it
+reapplies CPUs 1-7 and waits at most 15 seconds for `sched_getaffinity` to
+equal that exact set. It then derives Proton's topology from the verified
+result. Failure to obtain all seven CPUs returns 125 before Proton; it never
+silently runs the candidate with a partial mask. The benchmark controller
+exposes `--startup-topology {available,full}`, clears inherited values, records
+the choice in series JSON, and permits `full` only on the direct backend.
+Default `available` behavior is unchanged for the current Safe/Fast A/B.
+
+The test suite exercises the real fork/affinity/exec path with an exact
+available mask and validates both accepted modes and invalid environment input.
+No FPS gain is claimed yet. Once the current Fast baseline is complete, the
+winning FEX profile can be repeated with only startup topology changed to
+`full`.

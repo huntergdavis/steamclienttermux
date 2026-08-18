@@ -91,12 +91,32 @@ def main() -> None:
             [],
             cpu_affinity={selected_cpu},
             match_proton_cpu_topology=True,
+            require_exact_cpu_affinity=True,
         )
         assert status == 0
         assert tracer == 0
         assert result.read_text(encoding="utf-8") == (
             f"1:{selected_cpu};{selected_cpu}"
         )
+
+    topology_environment = "STEAM_ARM64_DIRECT_STARTUP_TOPOLOGY"
+    original_topology = os.environ.pop(topology_environment, None)
+    try:
+        assert not MODULE.require_full_startup_topology()
+        os.environ[topology_environment] = "full"
+        assert MODULE.require_full_startup_topology()
+        os.environ[topology_environment] = "invalid"
+        try:
+            MODULE.require_full_startup_topology()
+        except MODULE.DispatchError as error:
+            assert "must be available or full" in str(error)
+        else:
+            raise AssertionError("invalid startup topology was accepted")
+    finally:
+        if original_topology is None:
+            os.environ.pop(topology_environment, None)
+        else:
+            os.environ[topology_environment] = original_topology
 
     plan = json.loads(PLAN.read_text(encoding="utf-8"))
     assert plan["kind"] == "pressure-vessel-bwrap-plan"
@@ -364,10 +384,12 @@ def main() -> None:
     assert '"removable-library/steamapps/common/Tomb Raider"' in game_source
     assert "cpu_affinity=set(range(1, 8))" in game_source
     assert "match_proton_cpu_topology=True" in game_source
+    assert "require_exact_cpu_affinity=require_full_startup_topology()" in game_source
     benchmark_source = inspect.getsource(MODULE.run_tombraider_benchmark)
     assert '"tombraider-benchmark"' in benchmark_source
     assert "cpu_affinity=set(range(1, 8))" in benchmark_source
     assert "match_proton_cpu_topology=True" in benchmark_source
+    assert "require_exact_cpu_affinity=require_full_startup_topology()" in benchmark_source
     diagnostic_source = inspect.getsource(MODULE.run_tombraider_diagnostic)
     assert "tombraider-direct-process-" in diagnostic_source
     assert "trace_path" in diagnostic_source
@@ -375,6 +397,7 @@ def main() -> None:
     assert '"tombraider", True' in diagnostic_source
     assert "cpu_affinity=set(range(1, 8))" in diagnostic_source
     assert "match_proton_cpu_topology=True" in diagnostic_source
+    assert "require_exact_cpu_affinity=require_full_startup_topology()" in diagnostic_source
     with tempfile.TemporaryDirectory(prefix="removable-game.") as directory:
         game_fixture = Path(directory) / "TombRaider.exe"
         game_fixture.write_bytes(b"game")

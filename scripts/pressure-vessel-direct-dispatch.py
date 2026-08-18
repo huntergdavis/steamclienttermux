@@ -14,6 +14,7 @@ import socket
 import stat
 import struct
 import sys
+import time
 from typing import NoReturn
 
 
@@ -369,6 +370,7 @@ def run_loader_child(
     working_directory: Path | None = None,
     cpu_affinity: set[int] | None = None,
     match_proton_cpu_topology: bool = False,
+    require_exact_cpu_affinity: bool = False,
 ) -> tuple[int, int]:
     if working_directory is not None:
         try:
@@ -433,10 +435,19 @@ def run_loader_child(
             if working_directory is not None:
                 os.chdir(working_directory)
             if cpu_affinity is not None:
-                os.sched_setaffinity(0, cpu_affinity)
-                actual_affinity = os.sched_getaffinity(0)
-                if not actual_affinity or not actual_affinity.issubset(cpu_affinity):
-                    os._exit(125)
+                affinity_deadline = time.monotonic() + 15.0
+                while True:
+                    os.sched_setaffinity(0, cpu_affinity)
+                    actual_affinity = os.sched_getaffinity(0)
+                    if not actual_affinity or not actual_affinity.issubset(
+                        cpu_affinity
+                    ):
+                        os._exit(125)
+                    if not require_exact_cpu_affinity or actual_affinity == cpu_affinity:
+                        break
+                    if time.monotonic() >= affinity_deadline:
+                        os._exit(125)
+                    time.sleep(0.05)
                 if match_proton_cpu_topology:
                     execution_environment["PROTON_CPU_TOPOLOGY"] = (
                         f"{len(actual_affinity)}:"
@@ -459,6 +470,15 @@ def run_loader_child(
     if os.WIFSIGNALED(wait_status):
         return 128 + os.WTERMSIG(wait_status), observed_tracer
     return 125, observed_tracer
+
+
+def require_full_startup_topology() -> bool:
+    mode = os.environ.get("STEAM_ARM64_DIRECT_STARTUP_TOPOLOGY", "available")
+    if mode not in ("available", "full"):
+        fail(
+            "STEAM_ARM64_DIRECT_STARTUP_TOPOLOGY must be available or full"
+        )
+    return mode == "full"
 
 
 def runtime_true_from_plan(base: Path, payload: dict[str, object]) -> tuple[Path, Path, str]:
@@ -1170,6 +1190,7 @@ def run_tombraider(
         ),
         cpu_affinity=set(range(1, 8)),
         match_proton_cpu_topology=True,
+        require_exact_cpu_affinity=require_full_startup_topology(),
     )
 
 
@@ -1192,6 +1213,7 @@ def run_tombraider_benchmark(
         ),
         cpu_affinity=set(range(1, 8)),
         match_proton_cpu_topology=True,
+        require_exact_cpu_affinity=require_full_startup_topology(),
     )
 
 
@@ -1219,6 +1241,7 @@ def run_tombraider_diagnostic(
         ),
         cpu_affinity=set(range(1, 8)),
         match_proton_cpu_topology=True,
+        require_exact_cpu_affinity=require_full_startup_topology(),
     )
 
 

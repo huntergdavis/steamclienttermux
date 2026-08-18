@@ -52,10 +52,15 @@ def main():
     assert direct.backend == "direct"
     assert direct.launcher is None
     assert direct.raknet_nice is None
+    assert direct.startup_topology == "available"
     direct_priority = module.build_parser().parse_args(
         ["--backend", "direct", "--raknet-nice", "19"]
     )
     assert direct_priority.raknet_nice == 19
+    direct_full = module.build_parser().parse_args(
+        ["--backend", "direct", "--startup-topology", "full"]
+    )
+    assert direct_full.startup_topology == "full"
     assert module.affinity_log_is_ready(
         "Tomb Raider PID 1: observing inherited startup topology on CPUs 1-7\n"
         "Tomb Raider PID 1: startup topology ready; logical=7, cores=7, "

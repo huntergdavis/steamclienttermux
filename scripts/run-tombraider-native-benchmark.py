@@ -411,6 +411,12 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         help="opt-in nice value for the isolated RakNet receive thread",
     )
+    parser.add_argument(
+        "--startup-topology",
+        choices=("available", "full"),
+        default="available",
+        help="direct child affinity required before Proton exec",
+    )
     parser.add_argument("--warmups", type=int, default=1)
     parser.add_argument("--runs", type=int, default=3)
     parser.add_argument("--base", default=str(home / "steam-arm64"))
@@ -464,6 +470,9 @@ def main() -> int:
         return 2
     if arguments.raknet_nice is not None and arguments.backend != "direct":
         print("RakNet nice experiments require the direct backend", file=sys.stderr)
+        return 2
+    if arguments.startup_topology != "available" and arguments.backend != "direct":
+        print("full startup topology requires the direct backend", file=sys.stderr)
         return 2
 
     base = Path(arguments.base).resolve()
@@ -528,6 +537,11 @@ def main() -> int:
             "STEAM_ARM64_FEX_PROFILE": arguments.profile,
         }
         environment.pop("TOMB_RAIDER_RAKNET_NICE", None)
+        environment.pop("STEAM_ARM64_DIRECT_STARTUP_TOPOLOGY", None)
+        if arguments.backend == "direct":
+            environment["STEAM_ARM64_DIRECT_STARTUP_TOPOLOGY"] = (
+                arguments.startup_topology
+            )
         if arguments.raknet_nice is not None:
             environment["TOMB_RAIDER_RAKNET_NICE"] = str(arguments.raknet_nice)
         series = {
@@ -548,6 +562,7 @@ def main() -> int:
                 "motion_blur": "off",
                 "fex_profile": arguments.profile,
                 "raknet_nice": arguments.raknet_nice,
+                "startup_topology": arguments.startup_topology,
                 "backend": arguments.backend,
                 "warmups": arguments.warmups,
                 "recorded_runs": arguments.runs,
