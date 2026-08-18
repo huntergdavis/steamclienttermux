@@ -329,6 +329,7 @@ def selected_runtime(base: Path) -> tuple[Path, Path, str]:
         for path in (
             glibc_root / "lib",
             runtime_root / "usr/lib/aarch64-linux-gnu",
+            runtime_root / "usr/lib/aarch64-linux-gnu/pulseaudio",
             runtime_root / "usr/lib",
         )
     )

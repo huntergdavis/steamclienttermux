@@ -42,6 +42,8 @@ def main() -> None:
     loader_source = inspect.getsource(MODULE.run_loader_child)
     assert '"-k"' in loader_source
     assert "os.chdir(working_directory)" in loader_source
+    runtime_source = inspect.getsource(MODULE.selected_runtime)
+    assert '"usr/lib/aarch64-linux-gnu/pulseaudio"' in runtime_source
 
     with tempfile.TemporaryDirectory(prefix="loader-child-cwd.") as directory:
         root = Path(directory)
