@@ -365,7 +365,15 @@ def run_loader_child(
     target_numbers: list[int],
     trace_path: Path | None = None,
     trace_stacks: bool = True,
+    working_directory: Path | None = None,
 ) -> tuple[int, int]:
+    if working_directory is not None:
+        try:
+            working_metadata = working_directory.lstat()
+        except FileNotFoundError:
+            fail(f"working directory is unavailable: {working_directory}")
+        if not stat.S_ISDIR(working_metadata.st_mode) or working_directory.is_symlink():
+            fail(f"working directory is unsafe: {working_directory}")
     executable = loader
     execution_arguments = arguments
     execution_environment = environment
@@ -419,6 +427,8 @@ def run_loader_child(
                 os._exit(125)
             os.close(ready_read)
             remap_descriptors(descriptors, target_numbers)
+            if working_directory is not None:
+                os.chdir(working_directory)
             os.execve(executable, execution_arguments, execution_environment)
         except BaseException:
             os._exit(125)
@@ -901,7 +911,14 @@ def run_tombraider(
         base, payload, "tombraider"
     )
     return run_loader_child(
-        loader, arguments, environment, descriptors, payload["fd_numbers"]
+        loader,
+        arguments,
+        environment,
+        descriptors,
+        payload["fd_numbers"],
+        working_directory=(
+            base / "removable-library/steamapps/common/Tomb Raider"
+        ),
     )
 
 
@@ -924,6 +941,9 @@ def run_tombraider_diagnostic(
         payload["fd_numbers"],
         trace_path,
         False,
+        working_directory=(
+            base / "removable-library/steamapps/common/Tomb Raider"
+        ),
     )
 
 

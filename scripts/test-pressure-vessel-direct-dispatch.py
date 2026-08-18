@@ -41,6 +41,31 @@ def main() -> None:
     assert 'diagnostics == "1"' in arm64_source
     loader_source = inspect.getsource(MODULE.run_loader_child)
     assert '"-k"' in loader_source
+    assert "os.chdir(working_directory)" in loader_source
+
+    with tempfile.TemporaryDirectory(prefix="loader-child-cwd.") as directory:
+        root = Path(directory)
+        working_directory = root / "game"
+        working_directory.mkdir()
+        result = root / "cwd.txt"
+        status, tracer = MODULE.run_loader_child(
+            Path(os.sys.executable),
+            [
+                os.sys.executable,
+                "-c",
+                (
+                    "import os, pathlib; "
+                    f"pathlib.Path({str(result)!r}).write_text(os.getcwd())"
+                ),
+            ],
+            os.environ.copy(),
+            [],
+            [],
+            working_directory=working_directory,
+        )
+        assert status == 0
+        assert tracer == 0
+        assert result.read_text(encoding="utf-8") == str(working_directory)
 
     plan = json.loads(PLAN.read_text(encoding="utf-8"))
     assert plan["kind"] == "pressure-vessel-bwrap-plan"
@@ -156,6 +181,7 @@ def main() -> None:
     assert 'command_mode == "tombraider"' in invocation_source
     game_source = inspect.getsource(MODULE.run_tombraider)
     assert '"tombraider"' in game_source
+    assert '"removable-library/steamapps/common/Tomb Raider"' in game_source
     diagnostic_source = inspect.getsource(MODULE.run_tombraider_diagnostic)
     assert "tombraider-direct-process-" in diagnostic_source
     assert "trace_path" in diagnostic_source
