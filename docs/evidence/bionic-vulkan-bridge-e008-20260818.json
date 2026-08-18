@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "experiment_id": "bionic-vulkan-bridge-e008-20260818",
+  "recorded_at": "2026-08-18T11:40:21-07:00",
+  "device": {
+    "model": "SM-X808U",
+    "product": "Samsung Galaxy Tab S8+",
+    "soc": "Qualcomm Snapdragon 8 Gen 1",
+    "gpu": "Adreno (TM) 730",
+    "android_release": "16",
+    "android_sdk": 36
+  },
+  "repositories": {
+    "steamclienttermux_parent_before_record": "44dac3a46b7dac1e289f8f9b11e489bfcd16bbe9",
+    "bionic_vulkan_bridge_e008_pass": "e1ba5a7d05b4116f104e88b9b035792281225f88",
+    "bionic_vulkan_bridge_documented_head": "2b67c480e5345c2e57b4c3839ab9209a38fde124"
+  },
+  "package": {
+    "application_id": "io.github.huntergdavis.bvb.visiblehost",
+    "version_code": 1,
+    "version_name": "0.1.0",
+    "min_sdk": 24,
+    "target_sdk": 36,
+    "compile_sdk": 36,
+    "activity": "android.app.NativeActivity",
+    "native_library_name": "bvb-visible-host",
+    "debuggable": true,
+    "installed_path_observed": "/data/app/.../io.github.huntergdavis.bvb.visiblehost-.../base.apk"
+  },
+  "artifact_identity": {
+    "apk_path": "out/visible-host/bvb-visible-host-debug.apk",
+    "apk_sha256": "f9159df9419418ea6eebd62963e27ac2273f7be3bf4acdbc6fc8a5ff66aeb298",
+    "native_library_path": "lib/arm64-v8a/libbvb-visible-host.so",
+    "native_library_sha256": "8f8396492e304fe671b033cd1f3ca9b7ded8f179ed506376dba4bcfbbc7b4b75",
+    "native_soname": "libbvb-visible-host.so",
+    "exported_entry_point": "ANativeActivity_onCreate",
+    "native_needed": [
+      "libandroid.so",
+      "liblog.so",
+      "libvulkan.so",
+      "libdl.so",
+      "libc.so"
+    ],
+    "signing_schemes_verified": ["v2", "v3"],
+    "signer_dn": "CN=BVB Android Debug, O=huntergdavis, C=US",
+    "signer_certificate_sha256": "5754d1170b6d007e72afed7de676312b9a1320d39c7b1405be9efa1ab2ef1e06"
+  },
+  "build_environment": {
+    "architecture": "aarch64",
+    "compiler_target": "aarch64-unknown-linux-android24",
+    "packaging_tools_installed": ["aapt", "zipalign", "apksigner", "OpenJDK 21"],
+    "download_bytes_approximate": 121000000,
+    "installed_bytes_approximate": 275000000,
+    "gradle_required": false,
+    "java_application_code_required": false,
+    "generated_artifacts_committed": false
+  },
+  "render_path": [
+    "NativeActivity receives its dedicated ANativeWindow",
+    "Bionic library creates VK_KHR_android_surface surface",
+    "Adreno device and presentation queue are selected",
+    "FIFO swapchain and semaphores are created",
+    "acquired image transitions to transfer destination",
+    "vkCmdClearColorImage records opaque magenta",
+    "image transitions to presentation layout",
+    "queue submit and vkQueuePresentKHR complete",
+    "renderer remains alive until Android destroys the window"
+  ],
+  "visual_acceptance": {
+    "observer": "user on the physical tablet",
+    "result": "PASS",
+    "reported_display": "all magenta screen full screen",
+    "android_navigation_icons_visible_at_bottom": true,
+    "termux_x11_surface_used": false
+  },
+  "diagnostic_correction": {
+    "initial_inference": "missing pidof result was interpreted as an immediate process exit",
+    "correction": "cross-UID process visibility made pidof non-authoritative; packaged ELF and entry point were valid, no matching crash was observed, and direct visual output proved the Activity was running"
+  },
+  "session_recall": {
+    "queries": [
+      "Termux shared UID Android SurfaceView native Vulkan visible activity JNI ANativeWindow dedicated host APK",
+      "Android NativeActivity process exits immediately ANativeActivity_onCreate library not found compressed APK native crash"
+    ],
+    "indexed_matches": 0,
+    "reused_material": "E006-E007 Android surface ownership, swapchain, synchronization, and presentation path"
+  },
+  "claims": {
+    "proven": [
+      "A standalone Android NativeActivity can own a display ANativeWindow and visibly present the Adreno Vulkan frame.",
+      "The source-only Termux build can reproducibly compile, package, align, sign, and verify the APK.",
+      "Visible presentation does not require taking over Termux:X11's EGL-owned surface."
+    ],
+    "not_yet_proven": [
+      "immersive navigation-bar hiding",
+      "visible-window lifecycle or status handoff through the Bionic bridge",
+      "shared-UID integration with Termux or Termux:X11",
+      "game-facing Vulkan entry-point dispatch or DXVK integration",
+      "Tomb Raider performance improvement"
+    ]
+  }
+}

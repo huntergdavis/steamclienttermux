@@ -6696,6 +6696,35 @@ be a valid graphics-path A/B. Exact machine-readable records are
 record at `docs/evidence/bionic-vulkan-bridge-e006-20260818.json` and E007 frame
 record at `docs/evidence/bionic-vulkan-bridge-e007-20260818.json`.
 
+E008 moved that result onto a dedicated visible Android window. The bridge
+repository added a no-Java `android.app.NativeActivity` whose Bionic shared
+library receives Android's `ANativeWindow`, creates the surface/device/FIFO
+swapchain, clears opaque magenta, presents, and keeps its renderer alive until
+the window-destroy callback. A reproducible Termux script compiles under
+`-Werror`, packages with `aapt`, aligns, debug-signs, and verifies the APK.
+
+The minimal packaging prerequisite installed `aapt`, `apksigner`, OpenJDK 21,
+and dependencies: 121 MB downloaded and 275 MB installed. No Gradle, Android
+Studio, Java application source, D8, or second JDK was required. The APK targets
+API 36 and installed as `io.github.huntergdavis.bvb.visiblehost`; its native
+library targets API 24 and needs only Android system libraries.
+
+After installation and launch, the user directly reported a solid magenta
+screen filling the display, with Android navigation icons still visible along
+the bottom. E008 therefore passes visible Vulkan presentation. The navigation
+bar is an immersive-mode follow-up rather than a rendering failure. An early
+`pidof` check was initially interpreted as an immediate exit, but cross-UID
+process visibility made that inference invalid; the direct visual result is
+authoritative. Termux:X11's existing surface and Steam login state were not
+modified.
+
+The installed APK, native library, and signer certificate SHA-256 values are
+`f9159df9419418ea6eebd62963e27ac2273f7be3bf4acdbc6fc8a5ff66aeb298`,
+`8f8396492e304fe671b033cd1f3ca9b7ded8f179ed506376dba4bcfbbc7b4b75`,
+and `5754d1170b6d007e72afed7de676312b9a1320d39c7b1405be9efa1ab2ef1e06`.
+The raw record is
+`docs/evidence/bionic-vulkan-bridge-e008-20260818.json`.
+
 The required `deja` queries for a prior Bionic Vulkan bridge and a prior
 cross-libc implementation returned no indexed matches. A follow-up query for
 an Android/Termux:X11 surface bridge also returned no indexed matches. The

@@ -75,7 +75,11 @@ image, synchronized and presented it, acquired the consumer `AImage`, and
 verified all 4,096 opaque-magenta RGBA pixels. The full offscreen
 producer/BufferQueue/consumer loop now passes. The dedicated visible host,
 glibc bridge exposure, game-facing dispatch, DXVK integration, and any FPS
-improvement remain unproven.
+improvement remain unproven. E008 then packaged a standalone Bionic
+`NativeActivity` whose dedicated Android window visibly displayed the same
+opaque-magenta Vulkan frame. The bottom navigation bar remained visible. The
+visible host therefore works, while explicit bridge lifecycle handoff,
+shared-UID integration, game dispatch, and performance remain future gates.
 
 Termux remains the Bionic control plane, while glibc remains necessary for the
 commercial Linux game stack. The experiment therefore narrows one boundary

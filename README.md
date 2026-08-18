@@ -17,7 +17,7 @@ custom kernel, chroot, or system-wide library replacement.
 | --- | --- |
 | Steam | Authenticates, renders, downloads, and retains login state |
 | Graphics | Hardware Vulkan through private Mesa Turnip |
-| Experimental system-Vulkan bridge | Native commands plus a controlled swapchain/present/readback loop pass with zero pixel mismatches; visible display remains unimplemented ([bridge repository](https://github.com/huntergdavis/bionic-vulkan-bridge)) |
+| Experimental system-Vulkan bridge | Native commands, pixel-verified offscreen presentation, and a dedicated visibly magenta Android Vulkan Activity pass; game integration remains unimplemented ([bridge repository](https://github.com/huntergdavis/bionic-vulkan-bridge)) |
 | Windows games | Official Proton 11 ARM64 + FEX + DXVK |
 | Audio/input | PulseAudio and Termux:X11 pointer/keyboard support |
 | Storage | Game payloads on microSD; lock-sensitive Steam metadata on internal F2FS |
@@ -55,7 +55,11 @@ capabilities without touching Termux:X11. See the
 then created a six-image swapchain, presented an opaque-magenta frame, acquired
 it from the Media NDK consumer, and verified all 4,096 RGBA pixels. See the
 [E007 record](docs/evidence/bionic-vulkan-bridge-e007-20260818.json). This is a
-real offscreen rendered/presented frame, not yet visible output or an FPS gain.
+real offscreen rendered/presented frame. E008 packages a standalone
+`NativeActivity`; the installed app visibly displayed the magenta Vulkan frame
+fullscreen, with Android navigation icons still visible at the bottom. See the
+[E008 record](docs/evidence/bionic-vulkan-bridge-e008-20260818.json). This is
+not yet bridged game output or an FPS gain.
 
 ## Tomb Raider benchmark snapshot
 

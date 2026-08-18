@@ -114,6 +114,11 @@ These screenshots capture milestones and failures from the original tablet.
   evidence for a six-image swapchain, semaphore-synchronized magenta clear,
   queue presentation, Media NDK consumer acquisition, and verification of all
   4,096 RGBA pixels across four runs.
+- `bionic-vulkan-bridge-e008-20260818.json`: artifact and visual-confirmation
+  evidence for the standalone Android NativeActivity visibly presenting the
+  opaque-magenta Vulkan frame. It records APK/native/signing identities,
+  packaging prerequisites, installed package identity, and the still-visible
+  Android navigation bar.
 - `tombraider-gaminghub-added-performance-unconfirmed-2026-08-15.png`: a
   panel-native Low pass after both shared-UID apps were added to Gaming Hub but
   before the separate Performance selector was confirmed, reporting
