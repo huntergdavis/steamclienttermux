@@ -65,6 +65,7 @@ def main() -> None:
         )
         elapsed = time.monotonic() - start
         assert matched.returncode == 0, matched.stderr
+        assert "TOMB_RAIDER_DEBUG_ARG2_PID=" in matched.stderr
         assert "TOMB_RAIDER_DEBUG_WAIT_PID=" in matched.stderr
         assert "SECONDS=1" in matched.stderr
         assert 0.8 <= elapsed < 5.0, elapsed
@@ -79,6 +80,7 @@ def main() -> None:
         )
         elapsed = time.monotonic() - start
         assert control.returncode == 0, control.stderr
+        assert "TOMB_RAIDER_DEBUG_ARG2_PID=" in control.stderr
         assert "TOMB_RAIDER_DEBUG_WAIT_PID=" not in control.stderr
         assert elapsed < 0.8, elapsed
 
