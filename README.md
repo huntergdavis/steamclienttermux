@@ -62,8 +62,10 @@ the Runtime/Proton PRoot boundary. In the patched-topology comparison, `fast`
 scores 30.467 FPS and `safe` 30.400 FPS, only 0.22% apart, so `safe` remains
 the production profile. The opt-in native CEF hold raises the matched average
 to 31.233 FPS, a small 2.74% candidate gain, while reducing minimum-FPS mean
-3.01%. It is not the default until an alternating replication separates the
-effect from normal run-to-run variance.
+3.01%. A follow-up three-pair replication reduces the average delta to only
++0.55% (30.600 held versus 30.433 control), with per-pair changes of +0.7,
+-0.1, and -0.1 FPS. CEF hold therefore remains experimental rather than the
+default; see the [paired composite](docs/benchmark-series/tombraider-direct-glibc-safe-topology-fix-cef-hold-paired-composite-60hz-40c-20260818.json).
 The direct dispatcher leaves Steam's generated outer request waiting for
 lifecycle compatibility but executes the hot Proton/FEX/game tree outside the
 PRoot tracer. The unmatched Proton row is retained for audit, not used to

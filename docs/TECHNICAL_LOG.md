@@ -6233,3 +6233,43 @@ The launch reused the exact foreground RunCommandService gate recovered with
 readiness probe, controller `/top-app` validation, then byte-for-byte property
 restoration. That recovered command avoided repeating the failed session-action
 variant.
+
+## 2026-08-18: paired replication rejects CEF hold as a default
+
+Commit `b310118` added a controller-recorded pass list and separate control/
+held aggregates; commit `499e7a3` added the bounded two-pass continuation
+wrapper. The first alternating series `20260818T111427Z-safe` accepted two
+control/held pairs, then failed closed on untreated recorded pass 5. The pass
+wrote 18.8/39.7/28.5 FPS and a valid 6/6/6 topology line, but the affinity log
+ended before its final performance-ready proof. That raw result, SHA-256
+`e6823ccda0bb8003945d46e994c600c1a5b8a990d2ae18c247a4b1ece7de7854`,
+is excluded. The exact failed manifest SHA-256 is
+`949b6432fb12bc40f11b1134ca9428816e016213096ea7bb2467f8fba4272897`.
+
+Continuation series `20260818T114122Z-safe` completed the third valid pair.
+Across the six accepted passes, controls scored averages 30.2, 30.5, and 30.6
+FPS; held passes scored 30.9, 30.4, and 30.5 FPS. Condition means are:
+
+| Condition | Minimum | Maximum | Average |
+| --- | ---: | ---: | ---: |
+| untreated control | 17.200 | 45.533 | 30.433 |
+| native CEF hold | 19.967 | 46.167 | 30.600 |
+| held minus control | +16.09% | +1.39% | **+0.55%** |
+
+All accepted starts were 37.0-39.6 C with full CPU/GPU ceilings and GPU
+thermal level zero. Every held log proved the same eight native descendants
+active, normal game exit, and the identical identities resumed. Per-pair
+average changes were +0.7, -0.1, and -0.1 FPS. Minimum changes also reversed
+direction on pair 3. The paired result therefore supersedes the initial
+all-held +2.74% candidate for the decision: CEF hold is safe under this exact
+guard but has no decision-sized average-FPS gain and remains off by default.
+
+The exact complete continuation manifest SHA-256 is
+`9cc1ee724d493a12952ddc06e4c5cf84530394170a6ad9b46ea0881eb4e9e5a2`.
+The composite artifact is
+`docs/benchmark-series/tombraider-direct-glibc-safe-topology-fix-cef-hold-paired-composite-60hz-40c-20260818.json`.
+Its SHA-256 is
+`c0cf0c6fe88354160ab87e11b0af8e0f2a8d54e1640b8d55433b0235ebaf4a6e`.
+Steam PID 22318, X11 PID 25663, PulseAudio PID 25865, authentication, the
+topology patch, and the disabled external-command property survived every
+accepted, excluded, and continuation pass.

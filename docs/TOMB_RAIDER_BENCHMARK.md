@@ -1014,3 +1014,39 @@ The complete schema-v1 artifact is
 SHA-256 `dcc06789340dc746cd3453d14fd39a72aede66fc77eea9ac63cb835a5b43feab`.
 Steam PID 22318, X11 PID 25663, PulseAudio PID 25865, saved authentication, the
 enabled topology fix, and the disabled external-command property all survived.
+
+## Paired native CEF-hold replication (2026-08-18)
+
+The decision-quality follow-up alternated untreated controls with guarded CEF
+holds in the same authenticated, cooled session. The initial six-run series
+completed two pairs, then failed closed on a third untreated pass: that pass
+produced 18.8/39.7/28.5 FPS and valid 6/6/6 startup topology, but its affinity
+guard never emitted the final performance-ready proof. The result is excluded.
+A two-pass continuation supplied one replacement control/held pair.
+
+| Pair | Control min/max/avg | Held min/max/avg | Held minus control average |
+| --- | ---: | ---: | ---: |
+| 1 | 14.4 / 42.6 / 30.2 | 22.9 / 46.3 / 30.9 | +0.7 |
+| 2 | 15.2 / 47.1 / 30.5 | 21.6 / 46.8 / 30.4 | -0.1 |
+| 3 | 22.0 / 46.9 / 30.6 | 15.4 / 45.4 / 30.5 | -0.1 |
+| mean | **17.200 / 45.533 / 30.433** | **19.967 / 46.167 / 30.600** | **+0.167** |
+
+All six accepted passes started at 37.0-39.6 C with CPU/GPU policy at hardware
+maximum and GPU thermal level zero. Every held pass proved the same eight
+helper identities active and resumed. Held-minus-control changes are +16.09%
+minimum mean, +1.39% maximum mean, and only +0.55% average mean. Minimums are
+not directionally consistent: held improves the first two pairs but regresses
+the third. The paired evidence therefore does not reproduce the all-held
+series' +2.74% average signal. CEF hold remains explicit and experimental.
+
+The composite decision artifact is
+[`tombraider-direct-glibc-safe-topology-fix-cef-hold-paired-composite-60hz-40c-20260818.json`](benchmark-series/tombraider-direct-glibc-safe-topology-fix-cef-hold-paired-composite-60hz-40c-20260818.json).
+Its SHA-256 is
+`c0cf0c6fe88354160ab87e11b0af8e0f2a8d54e1640b8d55433b0235ebaf4a6e`.
+Its exact source manifests are retained as
+[`alternating incomplete`](benchmark-series/tombraider-direct-glibc-safe-topology-fix-cef-hold-alternating-60hz-40c-incomplete-20260818.json),
+SHA-256 `949b6432fb12bc40f11b1134ca9428816e016213096ea7bb2467f8fba4272897`,
+and [`pair continuation`](benchmark-series/tombraider-direct-glibc-safe-topology-fix-cef-hold-pair-continuation-60hz-40c-20260818.json),
+SHA-256 `9cc1ee724d493a12952ddc06e4c5cf84530394170a6ad9b46ea0881eb4e9e5a2`.
+The excluded raw result SHA-256 is
+`e6823ccda0bb8003945d46e994c600c1a5b8a990d2ae18c247a4b1ece7de7854`.

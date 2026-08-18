@@ -1,0 +1,131 @@
+{
+  "conditions": {
+    "control": {
+      "average_fps": {
+        "mean": 30.433,
+        "median": 30.5,
+        "values": [
+          30.2,
+          30.5,
+          30.6
+        ]
+      },
+      "maximum_fps": {
+        "mean": 45.533,
+        "median": 46.9,
+        "values": [
+          42.6,
+          47.1,
+          46.9
+        ]
+      },
+      "minimum_fps": {
+        "mean": 17.2,
+        "median": 15.2,
+        "values": [
+          14.4,
+          15.2,
+          22.0
+        ]
+      }
+    },
+    "steam_cef_hold": {
+      "average_fps": {
+        "mean": 30.6,
+        "median": 30.5,
+        "values": [
+          30.9,
+          30.4,
+          30.5
+        ]
+      },
+      "maximum_fps": {
+        "mean": 46.167,
+        "median": 46.3,
+        "values": [
+          46.3,
+          46.8,
+          45.4
+        ]
+      },
+      "minimum_fps": {
+        "mean": 19.967,
+        "median": 21.6,
+        "values": [
+          22.9,
+          21.6,
+          15.4
+        ]
+      }
+    }
+  },
+  "decision": "Keep native Steam CEF hold explicit and experimental; the paired average-FPS gain is noise-sized and the per-pair direction is inconsistent.",
+  "deltas_steam_cef_hold_minus_control": {
+    "calculation_basis": "Unrounded condition means calculated from the source pass values",
+    "average_fps": {
+      "absolute": 0.167,
+      "percent": 0.548
+    },
+    "maximum_fps": {
+      "absolute": 0.633,
+      "percent": 1.391
+    },
+    "minimum_fps": {
+      "absolute": 2.767,
+      "percent": 16.085
+    }
+  },
+  "excluded_pass": {
+    "metrics": {
+      "average_fps": 28.5,
+      "maximum_fps": 39.7,
+      "minimum_fps": 18.8
+    },
+    "reason": "The affinity guard observed valid 6/6/6 startup topology but did not emit its final performance-ready proof before game exit.",
+    "result_sha256": "e6823ccda0bb8003945d46e994c600c1a5b8a990d2ae18c247a4b1ece7de7854"
+  },
+  "experiment": "Alternating untreated and native Steam CEF-held Tomb Raider benchmark passes",
+  "method": {
+    "accepted_recorded_passes": 6,
+    "fex_profile": "safe",
+    "graphics": "Low",
+    "held_helpers": [
+      22353,
+      22369,
+      22370,
+      22548,
+      22550,
+      22601,
+      22714,
+      23283
+    ],
+    "motion_blur": "off",
+    "paired_average_fps_deltas": [
+      0.7,
+      -0.1,
+      -0.1
+    ],
+    "resolution": "2800x1752",
+    "start_temperature_millidegrees_c_range": [
+      37000,
+      39600
+    ],
+    "startup_topology": "full",
+    "vsync": "off",
+    "x11_refresh_hz": 59.97
+  },
+  "schema_version": 1,
+  "source_manifests": [
+    {
+      "path": "tombraider-direct-glibc-safe-topology-fix-cef-hold-alternating-60hz-40c-incomplete-20260818.json",
+      "sha256": "949b6432fb12bc40f11b1134ca9428816e016213096ea7bb2467f8fba4272897",
+      "status": "failed after four accepted recorded passes"
+    },
+    {
+      "path": "tombraider-direct-glibc-safe-topology-fix-cef-hold-pair-continuation-60hz-40c-20260818.json",
+      "sha256": "9cc1ee724d493a12952ddc06e4c5cf84530394170a6ad9b46ea0881eb4e9e5a2",
+      "status": "complete with one control and one held recorded pass"
+    }
+  ],
+  "status": "complete_with_one_excluded_pass"
+}

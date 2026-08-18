@@ -92,8 +92,10 @@ X11 on CPUs 0-3. Change only the item named by each test.
 8. The native CEF hold completed one warm-up and three guarded recorded passes.
    Its 31.233 FPS average mean is 2.74% above the matched 30.400 baseline, but
    minimum mean fell 3.01% and the preceding untreated excluded pass also
-   reached 31.9 FPS. Keep it opt-in. The next decision-quality test alternates
-   untreated and held passes from one cooled session before any default change.
+   reached 31.9 FPS. The follow-up alternating replication is now complete:
+   held averages 30.600 FPS versus 30.433 control, only +0.55%, and the three
+   pair directions are +0.7, -0.1, and -0.1 FPS. Keep it opt-in; do not adopt it
+   as a performance default.
 
 The one warm-up plus three-pass rule applies to each profile. Compare the
 three-pass mean and median, not an isolated maximum or minimum.
@@ -114,13 +116,15 @@ an immediately preceding untouched excluded pass also averaged 31.9 FPS. The
 candidate advanced to a full controlled series. Its recorded mean was 31.233
 FPS versus the matched 30.400 baseline, a small 2.74% improvement, while
 minimum mean regressed 3.01%. This is promising but not yet a production gain;
-replicate with alternating untreated/held passes.
+the required alternating replication reduced the average delta to +0.55% and
+did not reproduce a consistent per-pair improvement. The candidate is closed
+as a default-performance change but remains available for explicit experiments.
 
 ## Second-wave tests
 
 | Candidate | Why it is credible | Order / risk |
 |---|---|---|
-| Steam launch-only session | Steam/CEF consumed roughly one CPU core in the live profile. | The silent direct AppID path is established. PRoot-traced helpers remain unsafe to stop; the native-only guard completed four exact hold/resume cycles without respawn. Its +2.74% average candidate needs alternating replication before adoption. |
+| Steam launch-only session | Steam/CEF consumed roughly one CPU core in the live profile. | The silent direct AppID path is established. PRoot-traced helpers remain unsafe to stop; the native-only guard safely completed every exact hold/resume cycle. Paired average gain was only 0.55%, so retain the silent path without enabling hold by default. |
 | Direct hot-tree placement | The old PRoot profile is obsolete after direct dispatch; current FEX, Wine, wineserver, X11, and Steam contention is not yet quantified. | Run one excluded live profile, rank actual CPU consumers and masks, then A/B only the highest credible contention source. |
 | Internal-storage A/B | The game is on Android FUSE over the removable exFAT/sdfat card. This may affect loading and minimum-FPS stalls. | Low priority for mean FPS. The 15.3 GB game would leave only about 3.7 GB of the currently free 19 GB internal space, so do not move it until space is freed. |
 | No-PRoot native glibc host | PRoot uses `ptrace` to intercept and rewrite guest syscalls; the old tracer alone used 60-65% CPU. | Completed for the hot game tree through the guarded direct dispatcher; retain the parked outer request only for Steam lifecycle compatibility. |
