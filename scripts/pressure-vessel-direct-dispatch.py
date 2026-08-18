@@ -603,17 +603,6 @@ def proton_smoke_environment(
     fail(f"unsupported Proton smoke mode: {command_mode}")
 
 
-def fex_startup_sleep_environment(command_mode: str) -> dict[str, str]:
-    value = os.environ.get("STEAM_ARM64_DIRECT_FEX_STARTUP_SLEEP")
-    if value is None:
-        return {}
-    if command_mode != "tombraider":
-        fail("FEX startup sleep is restricted to Tomb Raider diagnostics")
-    if not value.isdecimal() or not 1 <= int(value) <= 60:
-        fail("STEAM_ARM64_DIRECT_FEX_STARTUP_SLEEP must be 1 through 60")
-    return {"FEX_STARTUPSLEEP": str(int(value))}
-
-
 def run_final_smoke(
     base: Path,
     payload: dict[str, object],
@@ -748,23 +737,27 @@ def pv_smoke_invocation(
     if child_preload_profile == "full":
         child_preloads = entry_preloads
         final_preloads = None
-    elif child_preload_profile in ("lean", "lean-tmp-only"):
+    elif child_preload_profile in ("lean", "lean-tmp-only", "lean-debug-wait"):
         child_preloads = [
             entry_preloads[0],
             entry_preloads[2],
             entry_preloads[3],
         ]
-        final_preloads = (
-            [entry_preloads[0], entry_preloads[3]]
-            if child_preload_profile == "lean"
-            else [entry_preloads[0]]
-        )
+        if child_preload_profile == "lean-tmp-only":
+            final_preloads = [entry_preloads[0]]
+        else:
+            final_preloads = [entry_preloads[0], entry_preloads[3]]
+        if child_preload_profile == "lean-debug-wait":
+            debug_wait = base / "compat-bin/steam-arm64-debug-wait.so"
+            if not debug_wait.is_file() or debug_wait.is_symlink():
+                fail("Tomb Raider debug-wait preload is unavailable")
+            final_preloads.append(debug_wait)
         if final_path_prefix is None:
             fail("lean child preload requires a validated Proton path")
     else:
         fail(
             "STEAM_ARM64_DIRECT_CHILD_PRELOAD must be full, lean, "
-            "or lean-tmp-only"
+            "lean-tmp-only, or lean-debug-wait"
         )
     entry_preload = ":".join(str(path) for path in entry_preloads)
     child_preload = ":".join(str(path) for path in child_preloads)
@@ -781,7 +774,6 @@ def pv_smoke_invocation(
         "tombraider",
     ):
         environment.update(proton_smoke_environment(command_mode, diagnostics))
-        environment.update(fex_startup_sleep_environment(command_mode))
     prefix = os.environ.get("PREFIX", "")
     if not prefix.startswith("/"):
         fail("Termux PREFIX is unavailable to the direct dispatcher")

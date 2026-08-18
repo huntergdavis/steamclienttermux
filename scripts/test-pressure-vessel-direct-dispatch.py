@@ -7,7 +7,6 @@ import os
 from pathlib import Path
 import socket
 import tempfile
-from unittest import mock
 
 
 SCRIPT = Path(__file__).with_name("pressure-vessel-direct-dispatch.py")
@@ -130,31 +129,6 @@ def main() -> None:
         assert MODULE.proton_smoke_environment("proton-arm64-cmd", True) == {
             "WINEDEBUG": wine_debug
         }
-        with mock.patch.dict(
-            os.environ,
-            {"STEAM_ARM64_DIRECT_FEX_STARTUP_SLEEP": "30"},
-            clear=False,
-        ):
-            assert MODULE.fex_startup_sleep_environment("tombraider") == {
-                "FEX_STARTUPSLEEP": "30"
-            }
-            try:
-                MODULE.fex_startup_sleep_environment("proton-arm64-cmd")
-            except MODULE.DispatchError:
-                pass
-            else:
-                raise AssertionError("FEX startup sleep escaped Tomb Raider mode")
-        with mock.patch.dict(
-            os.environ,
-            {"STEAM_ARM64_DIRECT_FEX_STARTUP_SLEEP": "61"},
-            clear=False,
-        ):
-            try:
-                MODULE.fex_startup_sleep_environment("tombraider")
-            except MODULE.DispatchError:
-                pass
-            else:
-                raise AssertionError("invalid FEX startup sleep was accepted")
     assert MODULE.request_environment(
         {
             "environment": [
@@ -166,15 +140,17 @@ def main() -> None:
     ) == {"STEAM_COMPAT_APP_ID": "203160"}
     invocation_source = inspect.getsource(MODULE.pv_smoke_invocation)
     assert "libtgcompat-robust.so" in invocation_source
-    assert 'child_preload_profile == "lean"' in invocation_source
+    assert '("lean", "lean-tmp-only", "lean-debug-wait")' in invocation_source
     assert '"lean-tmp-only"' in invocation_source
+    assert '"lean-debug-wait"' in invocation_source
+    assert "steam-arm64-debug-wait.so" in invocation_source
     assert "entry_preloads[2]" in invocation_source
     assert "TGCOMPAT_EXEC_LD_PRELOAD" in invocation_source
     assert "TGCOMPAT_EXEC_FINAL_PATH_PREFIX" in invocation_source
     assert "TGCOMPAT_EXEC_FINAL_LD_PRELOAD" in invocation_source
     assert "TGCOMPAT_EXEC_FINAL_PROC_SELF_EXE" in invocation_source
     assert "[entry_preloads[0], entry_preloads[3]]" in invocation_source
-    assert "else [entry_preloads[0]]" in invocation_source
+    assert 'child_preload_profile == "lean-tmp-only"' in invocation_source
     assert '"TGCOMPAT_USERFAULTFD_ENOSYS": "1"' in invocation_source
     assert 'command_mode == "tombraider"' in invocation_source
     game_source = inspect.getsource(MODULE.run_tombraider)

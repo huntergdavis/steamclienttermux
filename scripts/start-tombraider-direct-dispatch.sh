@@ -28,8 +28,8 @@ fail() {
 [[ $diagnostics == 0 || $diagnostics == 1 ]] ||
     fail 'TOMB_RAIDER_DIRECT_DIAGNOSTICS must be 0 or 1'
 [[ $child_preload == full || $child_preload == lean ||
-    $child_preload == lean-tmp-only ]] ||
-    fail 'TOMB_RAIDER_DIRECT_CHILD_PRELOAD must be full, lean, or lean-tmp-only'
+    $child_preload == lean-tmp-only || $child_preload == lean-debug-wait ]] ||
+    fail 'TOMB_RAIDER_DIRECT_CHILD_PRELOAD must be full, lean, lean-tmp-only, or lean-debug-wait'
 [[ -d $base/run && ! -L $base/run && -d $base/logs && ! -L $base/logs ]] ||
     fail "Steam run or log directory is unavailable below $base"
 [[ -x $python && (! -L $python || $python == "$default_python") ]] ||

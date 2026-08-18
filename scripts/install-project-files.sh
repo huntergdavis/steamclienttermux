@@ -44,6 +44,7 @@ install_one() {
 wrapper_stage="$(mktemp "${TMPDIR:-$PREFIX/tmp}/steam-arm64-bwrap-route.XXXXXX")"
 native_entry_stage="$(mktemp "${TMPDIR:-$PREFIX/tmp}/steam-arm64-native-entry.XXXXXX")"
 tmp_shim_stage="$(mktemp "${TMPDIR:-$PREFIX/tmp}/steam-arm64-native-tmp.XXXXXX")"
+debug_wait_shim_stage="$(mktemp "${TMPDIR:-$PREFIX/tmp}/steam-arm64-debug-wait.XXXXXX")"
 native_lsof_stage="$(mktemp "${TMPDIR:-$PREFIX/tmp}/steam-arm64-native-lsof.XXXXXX")"
 cleanup_wrapper_stage() {
     if [[ -n "$wrapper_stage" ]] && [[ -f "$wrapper_stage" ]] &&
@@ -57,6 +58,10 @@ cleanup_wrapper_stage() {
     if [[ -n "$tmp_shim_stage" ]] && [[ -f "$tmp_shim_stage" ]] &&
             [[ ! -L "$tmp_shim_stage" ]]; then
         unlink -- "$tmp_shim_stage"
+    fi
+    if [[ -n "$debug_wait_shim_stage" ]] && [[ -f "$debug_wait_shim_stage" ]] &&
+            [[ ! -L "$debug_wait_shim_stage" ]]; then
+        unlink -- "$debug_wait_shim_stage"
     fi
     if [[ -n "$native_lsof_stage" ]] && [[ -f "$native_lsof_stage" ]] &&
             [[ ! -L "$native_lsof_stage" ]]; then
@@ -82,6 +87,13 @@ env -u LD_PRELOAD -u LD_LIBRARY_PATH -u GLIBC_LD_LIBRARY_PATH \
     "$repo_root/diagnostics/native-tmp-shim.c" \
     -Wl,-O2,--as-needed,--gc-sections,-z,relro,-z,now -ldl \
     -o "$tmp_shim_stage"
+env -u LD_PRELOAD -u LD_LIBRARY_PATH -u GLIBC_LD_LIBRARY_PATH \
+    grun -s gcc -std=c11 -O3 -DNDEBUG -flto -fPIC -shared -fno-plt \
+    -fno-semantic-interposition -ffunction-sections -fdata-sections \
+    -Wall -Wextra -Werror -Wpedantic -Wformat=2 -Wshadow \
+    "$repo_root/diagnostics/native-tombraider-debug-wait.c" \
+    -Wl,-O2,--as-needed,--gc-sections,-z,relro,-z,now \
+    -o "$debug_wait_shim_stage"
 env -u LD_PRELOAD -u LD_LIBRARY_PATH -u GLIBC_LD_LIBRARY_PATH \
     grun -s gcc -std=c11 -O3 -DNDEBUG -flto -fno-plt \
     -ffunction-sections -fdata-sections \
@@ -109,6 +121,8 @@ install_one "$repo_root/config/steam-arm64-runtime-toolmanifest.vdf" \
     "$base/runtime/SteamLinuxRuntime_4-arm64-native/toolmanifest.vdf" 600
 install_one "$tmp_shim_stage" \
     "$base/compat-bin/steam-arm64-native-tmp.so" 700
+install_one "$debug_wait_shim_stage" \
+    "$base/compat-bin/steam-arm64-debug-wait.so" 700
 install_one "$native_lsof_stage" \
     "$base/compat-bin/steam-arm64-native-lsof" 700
 install_one "$repo_root/scripts/start-steam.sh" "$HOME/start-steam.sh" 700
