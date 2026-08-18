@@ -6101,3 +6101,25 @@ topology passes into future comparisons.
 Focused tests reject disabled and malformed status output, and the full project
 suite passes. The check does not modify the game, Steam, X11, PulseAudio, or
 saved authentication state.
+
+## 2026-08-18: patched Safe and Fast are effectively tied
+
+Matched series `20260818T093126Z-safe` completed four more consecutive patched
+launches. The warm-up scored 21.3/46.3/32.1 FPS; recorded passes scored
+23.2/44.7/30.6, 20.8/48.6/30.2, and 19.0/45.1/30.4. Recorded means are
+21.000/46.133/30.400 FPS. Starts were 37.0, 37.0, 37.0, and 37.9 C, all below
+the fixed 40 C ceiling with full CPU/GPU policy and GPU thermal level zero.
+
+The game reported usable topology on every launch (`7/7/7`, `6/6/6`, `5/5/5`,
+and `6/6/6`), and every post-discovery guard verified CPUs 1-7/RakNet CPU 1/
+Steam-helper CPU 0. Across the matched patched series, Safe trails Fast by
+0.367 FPS minimum mean, 0.034 FPS maximum mean, and 0.067 FPS average mean.
+Those are 1.72%, 0.07%, and 0.22%, respectively, and are smaller than normal
+pass spread. Safe remains production because disabling TSO yields no meaningful
+gain.
+
+The raw artifact is
+`docs/benchmark-series/tombraider-direct-glibc-safe-topology-fix-60hz-40c-20260818.json`,
+SHA-256 `3837e5f3fc9eda9fff75964f51cc806440c187ab66bde993946a268accd9c661`.
+Steam PID 22318, X11 PID 25663, PulseAudio PID 25865, saved authentication, the
+enabled patch, and the disabled external-command property all survived.

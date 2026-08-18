@@ -930,3 +930,33 @@ the next control is a patched-topology `safe` repeat.
 The complete schema-v1 artifact is
 [`tombraider-direct-glibc-fast-topology-fix-60hz-40c-20260818.json`](benchmark-series/tombraider-direct-glibc-fast-topology-fix-60hz-40c-20260818.json),
 SHA-256 `3abf061dab28b8f06242cab6aa17f05df891d3ed9c5e27c19b33aed05739d768`.
+
+## Completed patched-topology direct `safe` series (2026-08-18)
+
+Series `20260818T093126Z-safe` repeated the patched direct protocol with the
+production FEX profile. XRandR was 2800x1752 at 59.97 Hz. Every pass began
+below the fixed 40 C ceiling with full CPU/GPU policy and GPU thermal level
+zero. The manifest records the required patched executable SHA-256
+`4f311ecb46d6eb8f781d0c6a5e2fac6ee6a6224d19f23a79e7173b8f260807ad`.
+
+| Pass | Start | Minimum | Maximum | Average | Elapsed |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| warm-up | 37.0 C | 21.3 | 46.3 | 32.1 | 120.090 s |
+| recorded 1 | 37.0 C | 23.2 | 44.7 | 30.6 | 120.620 s |
+| recorded 2 | 37.0 C | 20.8 | 48.6 | 30.2 | 118.924 s |
+| recorded 3 | 37.9 C | 19.0 | 45.1 | 30.4 | 119.960 s |
+| recorded mean | n/a | **21.000** | **46.133** | **30.400** | n/a |
+
+All four launches returned usable topology counts (`7/7/7`, `6/6/6`,
+`5/5/5`, and `6/6/6`) and then verified game CPUs 1-7, RakNet CPU 1, and
+Steam helpers CPU 0. This extends the patch reliability result to eight
+consecutive controlled launches across the matched Fast and Safe series.
+
+Against patched `fast`, `safe` differs by -1.72% minimum mean, -0.07% maximum
+mean, and -0.22% average mean. The absolute average difference is 0.067 FPS,
+while individual averages span 0.7 FPS across the two series. Disabling TSO
+therefore provides no meaningful throughput gain; `safe` remains the default.
+
+The complete schema-v1 artifact is
+[`tombraider-direct-glibc-safe-topology-fix-60hz-40c-20260818.json`](benchmark-series/tombraider-direct-glibc-safe-topology-fix-60hz-40c-20260818.json),
+SHA-256 `3837e5f3fc9eda9fff75964f51cc806440c187ab66bde993946a268accd9c661`.
