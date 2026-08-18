@@ -24,6 +24,7 @@ CPU_COUNT_PATTERN = re.compile(
     rb"\[MultiCore\] CPU count: logical = ([0-9]+), cores = ([0-9]+), "
     rb"physical = ([0-9]+)"
 )
+CPU_TOPOLOGY_PATTERN = re.compile(rb"([0-9]+):([0-9]+(?:,[0-9]+)*)")
 
 
 def parse_environment(data):
@@ -115,6 +116,46 @@ def read_process_environment(entry):
         return parse_environment((entry / "environ").read_bytes())
     except (FileNotFoundError, PermissionError, ProcessLookupError):
         return None
+
+
+def format_cpu_mask(cpu_ids):
+    ranges = []
+    start = previous = None
+    for cpu in sorted(cpu_ids):
+        if start is None:
+            start = previous = cpu
+        elif cpu == previous + 1:
+            previous = cpu
+        else:
+            ranges.append(str(start) if start == previous else f"{start}-{previous}")
+            start = previous = cpu
+    if start is not None:
+        ranges.append(str(start) if start == previous else f"{start}-{previous}")
+    return ",".join(ranges)
+
+
+def discovery_cpu_mask(environment):
+    values = {
+        environment.get(key)
+        for key in (b"WINE_CPU_TOPOLOGY", b"PROTON_CPU_TOPOLOGY")
+        if environment.get(key) is not None
+    }
+    if len(values) != 1:
+        raise RuntimeError("game has missing or inconsistent CPU topology variables")
+    value = values.pop()
+    match = CPU_TOPOLOGY_PATTERN.fullmatch(value)
+    if match is None:
+        raise RuntimeError(f"game has malformed CPU topology: {value!r}")
+    count = int(match.group(1))
+    cpu_ids = [int(item) for item in match.group(2).split(b",")]
+    if (
+        count != len(cpu_ids)
+        or count < 2
+        or len(set(cpu_ids)) != count
+        or any(cpu not in range(1, 8) for cpu in cpu_ids)
+    ):
+        raise RuntimeError(f"game has unsafe CPU topology: {value!r}")
+    return format_cpu_mask(cpu_ids)
 
 
 def find_auxiliary_processes(
@@ -394,27 +435,11 @@ def watch_for_ready_game(arguments, runner=subprocess.run):
     tracked_pid = None
     wait_for_cpu_log = getattr(arguments, "wait_for_cpu_log", False)
     topology_ready = not wait_for_cpu_log
+    discovery_mask = None
     cpu_log = tomb_raider_log(steam_base)
     cpu_log_offset = log_size(cpu_log) if wait_for_cpu_log else 0
 
     while time.monotonic() < deadline:
-        helper_matches = find_steam_helpers(steam_base, proc_root)
-        helpers_ready = bool(helper_matches)
-        for helper_pid, helper_dir in helper_matches:
-            if not helper_dir.exists():
-                continue
-            try:
-                if live_process_is_top_app(helper_dir):
-                    helpers_ready = ensure_uniform_affinity(
-                        helper_pid, helper_dir, STEAM_HELPER_CPUS, runner
-                    ) and helpers_ready
-                else:
-                    helpers_ready = False
-            except (RuntimeError, subprocess.CalledProcessError):
-                helpers_ready = False
-                if helper_dir.exists():
-                    raise
-
         matches = find_game_processes(proc_root, steam_base)
         if len(matches) > 1:
             raise RuntimeError(
@@ -423,6 +448,7 @@ def watch_for_ready_game(arguments, runner=subprocess.run):
             )
         if not matches:
             tracked_pid = None
+            discovery_mask = None
             stable_since = None
             time.sleep(arguments.poll_seconds)
             continue
@@ -431,8 +457,38 @@ def watch_for_ready_game(arguments, runner=subprocess.run):
         if tracked_pid != pid:
             print(f"Tomb Raider PID {pid}: affinity guard detected game", flush=True)
             tracked_pid = pid
+            discovery_mask = None
+            if wait_for_cpu_log:
+                environment = read_process_environment(process_dir)
+                if environment is None:
+                    time.sleep(arguments.poll_seconds)
+                    continue
+                discovery_mask = discovery_cpu_mask(environment)
+                print(
+                    f"Tomb Raider PID {pid}: holding startup topology on "
+                    f"CPUs {discovery_mask}",
+                    flush=True,
+                )
             stable_since = None
         if not topology_ready:
+            try:
+                if not live_process_is_top_app(process_dir):
+                    time.sleep(arguments.poll_seconds)
+                    continue
+                if discovery_mask is None:
+                    raise RuntimeError("startup CPU topology mask is unavailable")
+                if not ensure_uniform_affinity(
+                    pid, process_dir, discovery_mask, runner
+                ):
+                    time.sleep(arguments.poll_seconds)
+                    continue
+            except (RuntimeError, subprocess.CalledProcessError):
+                if not process_dir.exists():
+                    tracked_pid = None
+                    discovery_mask = None
+                    stable_since = None
+                    continue
+                raise
             counts, cpu_log_offset = fresh_cpu_count(cpu_log, cpu_log_offset)
             if counts is None:
                 time.sleep(arguments.poll_seconds)
@@ -462,6 +518,23 @@ def watch_for_ready_game(arguments, runner=subprocess.run):
                 stable_since = None
                 continue
             raise
+
+        helper_matches = find_steam_helpers(steam_base, proc_root)
+        helpers_ready = bool(helper_matches)
+        for helper_pid, helper_dir in helper_matches:
+            if not helper_dir.exists():
+                continue
+            try:
+                if live_process_is_top_app(helper_dir):
+                    helpers_ready = ensure_uniform_affinity(
+                        helper_pid, helper_dir, STEAM_HELPER_CPUS, runner
+                    ) and helpers_ready
+                else:
+                    helpers_ready = False
+            except (RuntimeError, subprocess.CalledProcessError):
+                helpers_ready = False
+                if helper_dir.exists():
+                    raise
 
         auxiliary_matches = find_auxiliary_processes(proc_root, steam_base)
         auxiliary_ready = any(

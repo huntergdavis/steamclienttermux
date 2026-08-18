@@ -86,6 +86,7 @@ if [[ $mode == tombraider || $mode == tombraider-benchmark ||
     affinity_log=$base/logs/tombraider-direct-affinity-$stamp.log
     "$python" "$affinity" --watch --raknet-cpu1 --steam-base "$base" \
         --wait-for-cpu-log \
+        --poll-seconds 0.25 \
         --lock-file "$base/runtime/tomb-raider-affinity.lock" \
         >"$affinity_log" 2>&1 &
     affinity_pid=$!

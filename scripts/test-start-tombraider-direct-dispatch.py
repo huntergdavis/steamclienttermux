@@ -107,6 +107,7 @@ def main() -> None:
         assert "launcher_log=" in state
         assert affinity_result.read_text().splitlines() == [
             f"--watch --raknet-cpu1 --steam-base {base} --wait-for-cpu-log "
+            "--poll-seconds 0.25 "
             f"--lock-file {base}/runtime/tomb-raider-affinity.lock"
         ]
 
