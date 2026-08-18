@@ -32,6 +32,11 @@ METRIC_PATTERNS = {
         r"(?im)^\s*(?:(?:avg|average)\s*fps|avgfps|average)\s*[:=]?\s*([0-9]+(?:\.[0-9]+)?)"
     ),
 }
+CEF_HOLD_LOG_PATTERN = re.compile(
+    r"Steam CEF experimental hold: active; ([1-9][0-9]*(?:,[1-9][0-9]*)*)\n"
+    r"Steam CEF experimental hold: game exited\n"
+    r"Steam CEF experimental hold: resumed ([1-9][0-9]*(?:,[1-9][0-9]*)*)\n?"
+)
 
 
 def read_text(path: Path) -> str | None:
@@ -153,6 +158,19 @@ def parse_topology_fix_status(output: str) -> str:
     if match is None:
         raise RuntimeError("Tomb Raider CPU-topology fix is not enabled")
     return match.group(1)
+
+
+def parse_cef_hold_log(output: str) -> list[int]:
+    match = CEF_HOLD_LOG_PATTERN.fullmatch(output)
+    if match is None:
+        raise RuntimeError("Steam CEF hold log is incomplete or contains errors")
+    active = [int(value) for value in match.group(1).split(",")]
+    resumed = [int(value) for value in match.group(2).split(",")]
+    if active != sorted(set(active)):
+        raise RuntimeError("Steam CEF hold active PID set is not sorted and unique")
+    if resumed != active:
+        raise RuntimeError("Steam CEF hold did not resume the exact active PID set")
+    return active
 
 
 def parse_xrandr_geometry(output: str) -> str | None:
@@ -357,6 +375,53 @@ def run_logged(command, environment, output: Path) -> float:
     return elapsed
 
 
+def run_logged_with_cef_holder(
+    command,
+    environment,
+    output: Path,
+    holder_command,
+    holder_output: Path,
+) -> tuple[float, list[int]]:
+    launch_error = None
+    elapsed = None
+    with holder_output.open("w") as holder_log:
+        holder = subprocess.Popen(
+            [str(value) for value in holder_command],
+            env=environment,
+            stdout=holder_log,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+        try:
+            elapsed = run_logged(command, environment, output)
+        except BaseException as error:
+            launch_error = error
+        try:
+            holder_return_code = holder.wait(timeout=15)
+        except subprocess.TimeoutExpired as error:
+            holder.terminate()
+            try:
+                holder_return_code = holder.wait(timeout=15)
+            except subprocess.TimeoutExpired as stop_error:
+                raise RuntimeError(
+                    "Steam CEF holder did not stop after graceful termination; "
+                    "it will retain its own bounded hold timeout"
+                ) from stop_error
+            if launch_error is None:
+                launch_error = RuntimeError(
+                    "Steam CEF holder outlived the game launch command"
+                )
+        if launch_error is not None:
+            raise launch_error
+        if holder_return_code != 0:
+            raise RuntimeError(
+                f"Steam CEF holder exited {holder_return_code}; inspect {holder_output}"
+            )
+    if elapsed is None:
+        raise RuntimeError("game launch elapsed time is unavailable")
+    return elapsed, parse_cef_hold_log(holder_output.read_text())
+
+
 def python_tool_command(tool: Path, *arguments: str) -> list[Path | str]:
     return [Path(sys.executable), tool, *arguments]
 
@@ -416,6 +481,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--profile", choices=("safe", "proton", "fast"), default="safe")
     parser.add_argument("--backend", choices=("proot", "direct"), default="proot")
+    parser.add_argument(
+        "--hold-steam-cef",
+        action="store_true",
+        help="experimentally suspend verified native Steam CEF descendants during each pass",
+    )
     parser.add_argument(
         "--raknet-nice",
         type=int,
@@ -481,6 +551,9 @@ def main() -> int:
     if arguments.raknet_nice is not None and arguments.backend != "direct":
         print("RakNet nice experiments require the direct backend", file=sys.stderr)
         return 2
+    if arguments.hold_steam_cef and arguments.backend != "direct":
+        print("Steam CEF hold experiments require the direct backend", file=sys.stderr)
+        return 2
     if arguments.startup_topology != "available" and arguments.backend != "direct":
         print("full startup topology requires the direct backend", file=sys.stderr)
         return 2
@@ -499,6 +572,7 @@ def main() -> int:
     guard_directory = base / "logs"
     profile_checker = base / "compat-bin/configure-tombraider-performance.py"
     topology_checker = base / "compat-bin/configure-tombraider-cpu-topology.py"
+    cef_holder = base / "compat-bin/hold-tombraider-steam-cef.py"
     steam_executable = base / "client/steamrtarm64/steam"
     proc_root = Path("/proc")
     cpu_root = Path("/sys/devices/system/cpu")
@@ -526,6 +600,8 @@ def main() -> int:
             required.insert(0, (primer, "native Steam primer"))
         else:
             required.append((topology_checker, "Tomb Raider CPU-topology checker"))
+            if arguments.hold_steam_cef:
+                required.append((cef_holder, "native Steam CEF holder"))
         for path, label in required:
             require_regular(path, label, executable=True)
         if not game_directory.is_dir() or game_directory.is_symlink():
@@ -575,6 +651,7 @@ def main() -> int:
                 "motion_blur": "off",
                 "fex_profile": arguments.profile,
                 "raknet_nice": arguments.raknet_nice,
+                "steam_cef_hold": arguments.hold_steam_cef,
                 "startup_topology": arguments.startup_topology,
                 "backend": arguments.backend,
                 "warmups": arguments.warmups,
@@ -718,7 +795,27 @@ def main() -> int:
                 if arguments.backend == "direct"
                 else [launcher, "-benchmark"]
             )
-            elapsed = run_logged(launch_command, environment, launch_log)
+            cef_hold_pids = None
+            if arguments.hold_steam_cef:
+                cef_hold_log = output_directory / f"{label}-steam-cef-hold.log"
+                elapsed, cef_hold_pids = run_logged_with_cef_holder(
+                    launch_command,
+                    environment,
+                    launch_log,
+                    python_tool_command(
+                        cef_holder,
+                        "--acknowledge-experimental",
+                        "--wait-seconds",
+                        "300",
+                        "--delay-seconds",
+                        "25",
+                        "--hold-timeout-seconds",
+                        "300",
+                    ),
+                    cef_hold_log,
+                )
+            else:
+                elapsed = run_logged(launch_command, environment, launch_log)
 
             result_files = new_regular_files(game_directory, RESULT_GLOB, result_before)
             if len(result_files) != 1:
@@ -755,6 +852,7 @@ def main() -> int:
                 "cooldown_seconds": cooldown_seconds,
                 "source_result": str(result_files[0]),
                 "source_affinity_log": str(ready_guards[0]),
+                "steam_cef_hold_pids": cef_hold_pids,
                 "before": before,
                 "after": after,
             }

@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
 import importlib.util
+import os
 from pathlib import Path
+import sys
 import tempfile
 
 
@@ -45,6 +47,30 @@ def main():
             assert "not enabled" in str(error)
         else:
             raise AssertionError("invalid topology-fix status was accepted")
+    assert module.parse_cef_hold_log(
+        "Steam CEF experimental hold: active; 20,21,30\n"
+        "Steam CEF experimental hold: game exited\n"
+        "Steam CEF experimental hold: resumed 20,21,30\n"
+    ) == [20, 21, 30]
+    for invalid_cef_log in (
+        "Steam CEF experimental hold: active; 20,21\n",
+        "Steam CEF experimental hold: active; 20,21\n"
+        "Steam CEF experimental hold: game exited\n"
+        "Steam CEF experimental hold: resumed 20\n",
+        "Steam CEF experimental hold: active; 21,20\n"
+        "Steam CEF experimental hold: game exited\n"
+        "Steam CEF experimental hold: resumed 21,20\n",
+        "Steam CEF experimental hold: active; 20,21\n"
+        "Steam CEF experimental hold: game exited\n"
+        "Steam CEF experimental hold: resumed 20,21\n"
+        "hold-tombraider-steam-cef: unexpected error\n",
+    ):
+        try:
+            module.parse_cef_hold_log(invalid_cef_log)
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError("invalid Steam CEF hold log was accepted")
 
     xrandr = (
         "Screen 0: minimum 320 x 200, current 2800 x 1752, maximum 8192 x 8192\n"
@@ -68,6 +94,11 @@ def main():
     assert direct.launcher is None
     assert direct.raknet_nice is None
     assert direct.startup_topology == "available"
+    assert not direct.hold_steam_cef
+    direct_cef_hold = module.build_parser().parse_args(
+        ["--backend", "direct", "--hold-steam-cef"]
+    )
+    assert direct_cef_hold.hold_steam_cef
     direct_priority = module.build_parser().parse_args(
         ["--backend", "direct", "--raknet-nice", "19"]
     )
@@ -181,6 +212,39 @@ def main():
         # scans. Only a previously absent timestamped result is a new pass.
         old.write_text("old rewritten")
         assert module.new_regular_files(results, module.RESULT_GLOB, before) == [new]
+
+        launch_output = root / "launch.log"
+        holder_output = root / "holder.log"
+        elapsed, held_pids = module.run_logged_with_cef_holder(
+            [sys.executable, "-c", "print('game completed')"],
+            os.environ,
+            launch_output,
+            [
+                sys.executable,
+                "-c",
+                "print('Steam CEF experimental hold: active; 20,21'); "
+                "print('Steam CEF experimental hold: game exited'); "
+                "print('Steam CEF experimental hold: resumed 20,21')",
+            ],
+            holder_output,
+        )
+        assert elapsed >= 0
+        assert held_pids == [20, 21]
+        assert launch_output.read_text() == "game completed\n"
+
+        rejected_output = root / "rejected-holder.log"
+        try:
+            module.run_logged_with_cef_holder(
+                [sys.executable, "-c", "pass"],
+                os.environ,
+                root / "rejected-launch.log",
+                [sys.executable, "-c", "raise SystemExit(2)"],
+                rejected_output,
+            )
+        except RuntimeError as error:
+            assert "holder exited 2" in str(error)
+        else:
+            raise AssertionError("nonzero Steam CEF holder was accepted")
 
     runs = [
         {
