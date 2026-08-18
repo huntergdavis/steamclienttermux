@@ -95,6 +95,12 @@ These screenshots capture milestones and failures from the original tablet.
   records process/thread CPU deltas, masks, memory, clocks, GPU busy, and
   thermal state without command lines or account data. Its FPS result is not
   part of any controlled aggregate.
+- `bionic-vulkan-bridge-e001-e003-20260818.json`: non-visual, machine-readable
+  evidence for the first three bridge gates: direct Android system-loader
+  enumeration, a verified glibc-to-Bionic protocol handshake, and exact
+  capability parity through the bridge. It records binary interpreters,
+  repository commits, hashes, timings, and the boundary of what is not yet
+  proven.
 - `tombraider-gaminghub-added-performance-unconfirmed-2026-08-15.png`: a
   panel-native Low pass after both shared-UID apps were added to Gaming Hub but
   before the separate Performance selector was confirmed, reporting

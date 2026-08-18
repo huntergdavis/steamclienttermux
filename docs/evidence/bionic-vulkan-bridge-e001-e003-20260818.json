@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "experiment_id": "bionic-vulkan-bridge-e001-e003-20260818",
+  "recorded_at": "2026-08-18T09:24:50-07:00",
+  "device": {
+    "model": "SM-X808U",
+    "product": "Samsung Galaxy Tab S8+",
+    "soc": "Qualcomm Snapdragon 8 Gen 1",
+    "gpu": "Adreno (TM) 730",
+    "android_release": "16",
+    "android_sdk": 36,
+    "kernel": "5.10.236-android12-9-32140295-abX808USQSAEZF1",
+    "hardware_vulkan_property": "adreno"
+  },
+  "repositories": {
+    "steamclienttermux_parent": "16a729bde16a9ca922736b4c2a7d3a161d94e19f",
+    "termux_glibc_compat": "da200c72bb2fd4d3f6a4e7817d82eaf311f83780",
+    "bionic_vulkan_bridge_hardware_run": "7a59622fefab86f7a1991925e9771954e3ec9e8f",
+    "bionic_vulkan_bridge_documented_head": "03a39602a004cfe6beaaaf31d097aacd1465d98c"
+  },
+  "android_vulkan": {
+    "loader": {
+      "path": "/system/lib64/libvulkan.so",
+      "sha256": "ca031dfc7e10449b207b5fd54d44bfe37404d4a5ae3556a1eeebc3b35cd3d304"
+    },
+    "hal": {
+      "path": "/vendor/lib64/hw/vulkan.adreno.so",
+      "sha256": "12781cd1ef0b4bc5fceacd83722d39594005b5e259d44e976b98e41324b55051"
+    }
+  },
+  "binary_identity": {
+    "service_interpreter": "/system/bin/linker64",
+    "service_libc": "libc.so",
+    "client_interpreter": "/data/data/com.termux/files/usr/glibc/lib/ld-linux-aarch64.so.1",
+    "client_libc": "libc.so.6",
+    "client_compiler_target": "aarch64-linux-gnu",
+    "client_compiler": "gcc-glibc 14.2.1-1",
+    "e003_client_sha256": "c7ae241e994212cd16b5cad31e62f5d30f3736cc92f2269ea1b042f269893ec7"
+  },
+  "canonical_capabilities": {
+    "loader_api_version": 4210688,
+    "loader_api_version_text": "1.4.0",
+    "instance_extension_count": 14,
+    "physical_device_count": 1,
+    "physical_devices": [
+      {
+        "index": 0,
+        "name": "Adreno (TM) 730",
+        "api_version": 4198528,
+        "api_version_text": "1.1.128",
+        "driver_version": 2150002786,
+        "vendor_id": 20803,
+        "vendor_id_hex": "0x5143",
+        "device_id": 117637121,
+        "device_type": 1,
+        "queue_family_count": 2,
+        "memory_heap_count": 2,
+        "device_local_bytes": 7914782720
+      }
+    ]
+  },
+  "gates": {
+    "e001_direct_bionic_probe": {
+      "commit": "561e50e22fe1ce828e0225c3ed52a1cb79b79421",
+      "exit_code": 0,
+      "stderr_empty": true,
+      "elapsed_ns": 345112708,
+      "result": "PASS"
+    },
+    "e002_cross_libc_handshake": {
+      "commit": "8ec07eef26bad65a3d3307a92b4c23753e0ae72f",
+      "protocol_version": 1,
+      "service_flags": 3,
+      "bionic_service": true,
+      "android_vulkan_loader_visible": true,
+      "pointer_bits": 64,
+      "page_size": 4096,
+      "initial_elapsed_ns_including_grun_startup": 66330052,
+      "published_reproducer_elapsed_ns_including_grun_startup": 59101302,
+      "client_exit_code": 0,
+      "service_exit_code": 0,
+      "result": "PASS"
+    },
+    "e003_bridged_capability_parity": {
+      "commit": "7a59622fefab86f7a1991925e9771954e3ec9e8f",
+      "elapsed_ns_including_glibc_startup_handshake_and_vulkan_query": 311055990,
+      "direct_control_in_same_script": true,
+      "comparison": "field-for-field",
+      "capability_parity": true,
+      "result": "PASS"
+    }
+  },
+  "session_recall": {
+    "queries": [
+      "Bionic Vulkan bridge glibc Android system driver GameNative AdrenoTools Termux X11",
+      "termux-glibc-compat native glibc root compiler Unix socket Bionic glibc bridge aarch64"
+    ],
+    "indexed_matches": 0,
+    "reused_repository_evidence": "termux-glibc-compat fixed-width little-endian framing, exact I/O loops, owner-only Unix socket, and peer-UID authentication"
+  },
+  "claims": {
+    "proven": [
+      "A Termux-built Bionic process can directly enumerate the Android system Vulkan loader and Adreno HAL.",
+      "A native AArch64 glibc client can negotiate with a Bionic service without PRoot.",
+      "The direct and bridged capability documents match field-for-field."
+    ],
+    "not_yet_proven": [
+      "Android native-window or Vulkan surface creation",
+      "Vulkan object and handle lifetime across the boundary",
+      "shared GPU memory and synchronization",
+      "game-facing Vulkan entry-point coverage or DXVK integration",
+      "rendered output",
+      "Tomb Raider performance improvement"
+    ]
+  }
+}

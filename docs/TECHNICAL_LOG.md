@@ -6591,3 +6591,53 @@ Steam PID 22318, X11 PID 25663, PulseAudio PID 25865, and authentication
 survived. The exact reverse-control manifest is
 `docs/benchmark-series/tombraider-direct-glibc-safe-topology-fix-reverse-control-60hz-40c-20260818.json`,
 SHA-256 `40052514627a9eda68ef0fe93c8364d12073c7cb211b3a2abe47e65d45bf3103`.
+
+## 2026-08-18: Bionic Vulkan bridge passes direct, cross-libc, and parity gates
+
+The graphics-architecture investigation moved into its own public reusable
+project, `huntergdavis/bionic-vulkan-bridge`. The production Tomb Raider path
+was not changed. The new repository starts with bounded A/B gates rather than
+claiming that Android's system driver can already replace the game-facing
+Turnip path.
+
+E001 built commit `561e50e` with Termux Clang 21.1.8 as a Bionic AArch64
+executable and opened the absolute `/system/lib64/libvulkan.so`, avoiding
+Termux's distinct Vulkan loader. It exited zero with empty standard error in
+345,112,708 ns and enumerated one `Adreno (TM) 730`: loader API 1.4.0, device
+API 1.1.128, 14 instance extensions, two queue families, two memory heaps, and
+7,914,782,720 device-local/shared bytes. The Android loader and Adreno HAL
+SHA-256 values were
+`ca031dfc7e10449b207b5fd54d44bfe37404d4a5ae3556a1eeebc3b35cd3d304`
+and `12781cd1ef0b4bc5fceacd83722d39594005b5e259d44e976b98e41324b55051`.
+
+E002 used a Bionic service whose ELF interpreter was `/system/bin/linker64`
+and a separately compiled `aarch64-linux-gnu` client whose interpreter was
+Termux glibc's `ld-linux-aarch64.so.1` and whose dependency was `libc.so.6`.
+The client negotiated fixed-width little-endian protocol v1 over a mode-0600
+owner-authenticated Unix socket. Both processes exited zero; the service flags
+confirmed Bionic execution and Android-loader visibility. The published
+reproducer completed in 59,101,302 ns, including `grun` client startup. No
+PRoot process participates in this boundary.
+
+E003 refactored the direct query into one shared collector and invoked it from
+the Bionic service. The glibc client requested capabilities, decoded the
+bounded binary response, and compared every field with a fresh direct Bionic
+control in the same script. Commit `7a59622` reported
+`capability_parity=PASS`; the combined glibc startup, handshake, capability
+exchange, and Vulkan query took 311,055,990 ns. The bridged and direct device
+documents were identical.
+
+This proves the native driver is reachable and Vulkan control data can cross a
+real glibc/Bionic process boundary. It does not prove rendering or a speedup.
+Android surface/native-window integration, Vulkan handle ownership, shared GPU
+memory, synchronization, hot-path batching, generated entry-point dispatch,
+DXVK exposure, and a rendered-frame test remain. Only after those gates pass
+will the fixed native-resolution Tomb Raider benchmark be a valid graphics-path
+A/B. The exact machine-readable record is
+`docs/evidence/bionic-vulkan-bridge-e001-e003-20260818.json`.
+
+The required `deja` queries for a prior Bionic Vulkan bridge and a prior
+cross-libc implementation returned no indexed matches. The wire-format and
+socket-hardening discipline were instead reused from
+`termux-glibc-compat` commit
+`da200c72bb2fd4d3f6a4e7817d82eaf311f83780` and cited in the bridge ADR.

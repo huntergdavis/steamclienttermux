@@ -17,6 +17,7 @@ custom kernel, chroot, or system-wide library replacement.
 | --- | --- |
 | Steam | Authenticates, renders, downloads, and retains login state |
 | Graphics | Hardware Vulkan through private Mesa Turnip |
+| Experimental system-Vulkan bridge | Direct Adreno probe, glibc/Bionic handshake, and capability parity pass; rendering not implemented | [Bridge repository](https://github.com/huntergdavis/bionic-vulkan-bridge) |
 | Windows games | Official Proton 11 ARM64 + FEX + DXVK |
 | Audio/input | PulseAudio and Termux:X11 pointer/keyboard support |
 | Storage | Game payloads on microSD; lock-sensitive Steam metadata on internal F2FS |
@@ -37,6 +38,13 @@ interval from **407.236 seconds to 58.256 seconds**: 85.7% shorter, or 6.99x as
 fast. The direct game dispatcher also removes the remaining hot PRoot boundary
 for its exact allow-listed commands. See the
 [launch artifacts](docs/launch-timings/) and [performance analysis](docs/PERFORMANCE.md).
+
+The separate
+[`bionic-vulkan-bridge`](https://github.com/huntergdavis/bionic-vulkan-bridge)
+project now proves that a glibc client can query Android's system Vulkan loader
+through a Bionic service with field-for-field parity against a direct Adreno
+730 probe. This is a control-plane milestone, not yet a renderer or FPS gain;
+see the [raw bridge evidence](docs/evidence/bionic-vulkan-bridge-e001-e003-20260818.json).
 
 ## Tomb Raider benchmark snapshot
 

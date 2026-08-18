@@ -38,5 +38,31 @@ A private D-Bus session prevents updater pipe inheritance from delaying launch.
 PulseAudio is bridged over loopback. Steam CEF uses software rendering because
 GPU compositing created stale/partial Termux:X11 surfaces; games retain Turnip.
 
+## Experimental Bionic/system-Vulkan path
+
+The production game path above is unchanged. A separate
+[`bionic-vulkan-bridge`](https://github.com/huntergdavis/bionic-vulkan-bridge)
+project now tests a second graphics boundary without discarding the working
+Steam/Proton/FEX stack:
+
+```text
+glibc game-side client
+  -> versioned, owner-authenticated Unix socket
+  -> Bionic bridge service
+  -> /system/lib64/libvulkan.so
+  -> /vendor/lib64/hw/vulkan.adreno.so
+```
+
+On the Tab S8+, a Termux-built Bionic probe enumerated the Adreno 730 directly;
+an independently glibc-linked AArch64 client then negotiated protocol v1 and
+received the same capability fields through the service. Neither leg uses
+PRoot. This proves that the process/ABI boundary and Vulkan control plane are
+viable. Vulkan objects, shared graphics memory, synchronization, surfaces,
+command submission, DXVK integration, and rendering remain future work.
+
+Termux remains the Bionic control plane, while glibc remains necessary for the
+commercial Linux game stack. The experiment therefore narrows one boundary
+instead of proposing an unmeasured replacement for the full Linux stack.
+
 The `lsof` shim only answers Steam's loopback-WebSocket ownership query, which
 Android's restricted `/proc/net` cannot answer, and delegates all other calls.
