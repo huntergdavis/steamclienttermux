@@ -82,6 +82,7 @@ def main() -> None:
                 (
                     "import os, pathlib; "
                     f"pathlib.Path({str(result)!r}).write_text("
+                    "os.environ['PROTON_CPU_TOPOLOGY'] + ';' + "
                     "','.join(str(cpu) for cpu in sorted(os.sched_getaffinity(0))))"
                 ),
             ],
@@ -89,10 +90,13 @@ def main() -> None:
             [],
             [],
             cpu_affinity={selected_cpu},
+            match_proton_cpu_topology=True,
         )
         assert status == 0
         assert tracer == 0
-        assert result.read_text(encoding="utf-8") == str(selected_cpu)
+        assert result.read_text(encoding="utf-8") == (
+            f"1:{selected_cpu};{selected_cpu}"
+        )
 
     plan = json.loads(PLAN.read_text(encoding="utf-8"))
     assert plan["kind"] == "pressure-vessel-bwrap-plan"
@@ -199,7 +203,6 @@ def main() -> None:
             fixture_base, audio_runtime
         ) == {
             **audio_environment,
-            "PROTON_CPU_TOPOLOGY": "7:1,2,3,4,5,6,7",
             "TZ": "UTC0",
         }
         assert direct_config.stat().st_mode & 0o777 == 0o600
@@ -319,12 +322,14 @@ def main() -> None:
     assert '"tombraider"' in game_source
     assert '"removable-library/steamapps/common/Tomb Raider"' in game_source
     assert "cpu_affinity=set(range(1, 8))" in game_source
+    assert "match_proton_cpu_topology=True" in game_source
     diagnostic_source = inspect.getsource(MODULE.run_tombraider_diagnostic)
     assert "tombraider-direct-process-" in diagnostic_source
     assert "trace_path" in diagnostic_source
     assert "False" in diagnostic_source
     assert '"tombraider", True' in diagnostic_source
     assert "cpu_affinity=set(range(1, 8))" in diagnostic_source
+    assert "match_proton_cpu_topology=True" in diagnostic_source
     with tempfile.TemporaryDirectory(prefix="removable-game.") as directory:
         game_fixture = Path(directory) / "TombRaider.exe"
         game_fixture.write_bytes(b"game")

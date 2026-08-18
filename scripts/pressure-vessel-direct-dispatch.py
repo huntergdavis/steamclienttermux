@@ -368,6 +368,7 @@ def run_loader_child(
     trace_stacks: bool = True,
     working_directory: Path | None = None,
     cpu_affinity: set[int] | None = None,
+    match_proton_cpu_topology: bool = False,
 ) -> tuple[int, int]:
     if working_directory is not None:
         try:
@@ -433,7 +434,15 @@ def run_loader_child(
                 os.chdir(working_directory)
             if cpu_affinity is not None:
                 os.sched_setaffinity(0, cpu_affinity)
-                if os.sched_getaffinity(0) != cpu_affinity:
+                actual_affinity = os.sched_getaffinity(0)
+                if not actual_affinity or not actual_affinity.issubset(cpu_affinity):
+                    os._exit(125)
+                if match_proton_cpu_topology:
+                    execution_environment["PROTON_CPU_TOPOLOGY"] = (
+                        f"{len(actual_affinity)}:"
+                        + ",".join(str(cpu) for cpu in sorted(actual_affinity))
+                    )
+                elif actual_affinity != cpu_affinity:
                     os._exit(125)
             os.execve(executable, execution_arguments, execution_environment)
         except BaseException:
@@ -700,7 +709,6 @@ def direct_audio_environment(base: Path, runtime_root: Path) -> dict[str, str]:
 
 def direct_game_environment(base: Path, runtime_root: Path) -> dict[str, str]:
     environment = direct_audio_environment(base, runtime_root)
-    environment["PROTON_CPU_TOPOLOGY"] = "7:1,2,3,4,5,6,7"
     environment["TZ"] = "UTC0"
     return environment
 
@@ -1091,6 +1099,7 @@ def run_tombraider(
             base / "removable-library/steamapps/common/Tomb Raider"
         ),
         cpu_affinity=set(range(1, 8)),
+        match_proton_cpu_topology=True,
     )
 
 
@@ -1117,6 +1126,7 @@ def run_tombraider_diagnostic(
             base / "removable-library/steamapps/common/Tomb Raider"
         ),
         cpu_affinity=set(range(1, 8)),
+        match_proton_cpu_topology=True,
     )
 
 
