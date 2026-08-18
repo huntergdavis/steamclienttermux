@@ -5917,3 +5917,24 @@ The three post-pass memory snapshots retained at least 3,095,928 KiB available
 RAM and 5,393,948 KiB free zram. Steam, X11, PulseAudio, and authentication
 remained alive. This replaces the single 27.6 FPS observation as the
 authoritative direct Safe result.
+
+## 2026-08-18: stage a fail-closed RakNet priority experiment
+
+The existing live profile measured `Raknet-RecvFrom` runnable at essentially
+100% of one core. The established affinity profile pins that thread to CPU 1,
+but it retains the same scheduler priority as useful game work that can also
+run on CPU 1. The benchmark controller and direct affinity guard now accept an
+opt-in `--raknet-nice 0..19` control. The direct launcher passes the value only
+through `TOMB_RAIDER_RAKNET_NICE`; baseline launches explicitly clear inherited
+values, and PRoot-backed series reject the option.
+
+The guard applies `renice` only after it has identified exactly one verified
+App ID 203160 `Raknet-RecvFrom` thread. It then reads field 19 from that exact
+thread's `/proc/PID/task/TID/stat` and refuses to declare the performance state
+ready unless the requested nice value is present. Series JSON records the
+value, including `null` for the unchanged baseline. The first bounded candidate
+will use nice 19 with whichever direct FEX profile wins the current Safe/Fast
+A/B; no throughput improvement is claimed yet. The focused recall search found
+the prior CPU-1 isolation work but no earlier 2-7 or RakNet-priority benchmark,
+so this reuses the repository's verified process selector, top-app gate, and
+finite affinity evidence rather than inventing a new process matcher.

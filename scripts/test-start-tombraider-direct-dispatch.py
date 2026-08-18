@@ -136,6 +136,35 @@ def main() -> None:
         assert "child_preload=lean" in benchmark_state
 
         (base / "run/native-runtime-dispatch/dispatch.sock").unlink()
+        priority_environment = {
+            **benchmark_environment,
+            "TOMB_RAIDER_RAKNET_NICE": "19",
+        }
+        priority = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env=priority_environment,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        assert priority.returncode == 1, priority.stderr
+        assert affinity_result.read_text().splitlines() == [
+            f"--watch --raknet-cpu1 --steam-base {base} --raknet-nice 19 "
+            "--wait-for-cpu-log --poll-seconds 0.25 "
+            f"--lock-file {base}/runtime/tomb-raider-affinity.lock"
+        ]
+
+        invalid_priority = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env={**environment, "TOMB_RAIDER_RAKNET_NICE": "20"},
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        assert invalid_priority.returncode != 0
+        assert "must be an integer from 0 through 19" in invalid_priority.stderr
+
+        (base / "run/native-runtime-dispatch/dispatch.sock").unlink()
         diagnostic_environment = {
             **environment,
             "TOMB_RAIDER_DIRECT_MODE": "tombraider-diagnostic",

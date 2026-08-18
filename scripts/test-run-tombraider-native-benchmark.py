@@ -51,6 +51,11 @@ def main():
     direct = module.build_parser().parse_args(["--backend", "direct"])
     assert direct.backend == "direct"
     assert direct.launcher is None
+    assert direct.raknet_nice is None
+    direct_priority = module.build_parser().parse_args(
+        ["--backend", "direct", "--raknet-nice", "19"]
+    )
+    assert direct_priority.raknet_nice == 19
     assert module.affinity_log_is_ready(
         "Tomb Raider PID 1: holding startup topology on CPUs 1-7\n"
         "Tomb Raider PID 1: startup topology ready; logical=7, cores=7, "

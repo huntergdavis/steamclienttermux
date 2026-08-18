@@ -403,6 +403,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--profile", choices=("safe", "proton", "fast"), default="safe")
     parser.add_argument("--backend", choices=("proot", "direct"), default="proot")
+    parser.add_argument(
+        "--raknet-nice",
+        type=int,
+        help="opt-in nice value for the isolated RakNet receive thread",
+    )
     parser.add_argument("--warmups", type=int, default=1)
     parser.add_argument("--runs", type=int, default=3)
     parser.add_argument("--base", default=str(home / "steam-arm64"))
@@ -450,6 +455,12 @@ def main() -> int:
             "start temperature ceiling must be between 20C and 80C",
             file=sys.stderr,
         )
+        return 2
+    if arguments.raknet_nice is not None and not 0 <= arguments.raknet_nice <= 19:
+        print("RakNet nice value must be between 0 and 19", file=sys.stderr)
+        return 2
+    if arguments.raknet_nice is not None and arguments.backend != "direct":
+        print("RakNet nice experiments require the direct backend", file=sys.stderr)
         return 2
 
     base = Path(arguments.base).resolve()
@@ -513,6 +524,9 @@ def main() -> int:
             "STEAM_BACKGROUND": "1",
             "STEAM_ARM64_FEX_PROFILE": arguments.profile,
         }
+        environment.pop("TOMB_RAIDER_RAKNET_NICE", None)
+        if arguments.raknet_nice is not None:
+            environment["TOMB_RAIDER_RAKNET_NICE"] = str(arguments.raknet_nice)
         series = {
             "schema_version": 1,
             "status": "initializing",
@@ -530,6 +544,7 @@ def main() -> int:
                 "vsync": "off",
                 "motion_blur": "off",
                 "fex_profile": arguments.profile,
+                "raknet_nice": arguments.raknet_nice,
                 "backend": arguments.backend,
                 "warmups": arguments.warmups,
                 "recorded_runs": arguments.runs,

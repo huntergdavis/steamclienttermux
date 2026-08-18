@@ -239,6 +239,22 @@ def read_threads(process_dir):
     return threads
 
 
+def read_thread_nice(process_dir, tid):
+    stat_path = process_dir / "task" / str(tid) / "stat"
+    try:
+        contents = stat_path.read_text()
+    except (FileNotFoundError, PermissionError, ProcessLookupError) as error:
+        raise RuntimeError(f"unable to read thread priority from {stat_path}") from error
+    closing = contents.rfind(")")
+    fields = contents[closing + 2 :].split() if closing >= 0 else []
+    if len(fields) <= 16:
+        raise RuntimeError(f"malformed thread stat file: {stat_path}")
+    try:
+        return int(fields[16])
+    except ValueError as error:
+        raise RuntimeError(f"malformed thread nice value in {stat_path}") from error
+
+
 def read_cpu_layout(sys_cpu_root=Path("/sys/devices/system/cpu")):
     layout = {}
     for cpu in sys_cpu_root.glob("cpu[0-9]*"):
@@ -304,7 +320,9 @@ def verify_uniform_mask(process_dir, mask):
         raise RuntimeError(f"threads retain masks other than {mask}: {wrong}")
 
 
-def apply_affinity(pid, process_dir, isolate_raknet, runner=subprocess.run):
+def apply_affinity(
+    pid, process_dir, isolate_raknet, raknet_nice=None, runner=subprocess.run
+):
     results = [run_taskset(["taskset", "-apc", TARGET_CPUS, str(pid)], runner)]
     if isolate_raknet:
         threads = read_threads(process_dir)
@@ -316,6 +334,13 @@ def apply_affinity(pid, process_dir, isolate_raknet, runner=subprocess.run):
         results.append(
             run_taskset(["taskset", "-pc", RAKNET_CPU, str(raknet[0])], runner)
         )
+        if raknet_nice is not None:
+            results.append(
+                run_taskset(
+                    ["renice", "-n", str(raknet_nice), "-p", str(raknet[0])],
+                    runner,
+                )
+            )
     return results
 
 
@@ -339,7 +364,20 @@ def ensure_uniform_affinity(pid, process_dir, mask, runner=subprocess.run):
         return True
 
 
-def converge_game_affinity(pid, process_dir, isolate_raknet, runner=subprocess.run):
+def ensure_thread_nice(process_dir, tid, target, runner=subprocess.run):
+    if read_thread_nice(process_dir, tid) == target:
+        return True
+    run_taskset(["renice", "-n", str(target), "-p", str(tid)], runner)
+    return read_thread_nice(process_dir, tid) == target
+
+
+def converge_game_affinity(
+    pid,
+    process_dir,
+    isolate_raknet,
+    raknet_nice=None,
+    runner=subprocess.run,
+):
     threads = read_threads(process_dir)
     raknet_count = sum(comm == RAKNET_COMM for comm, _mask in threads.values())
     if raknet_count > 1:
@@ -350,7 +388,13 @@ def converge_game_affinity(pid, process_dir, isolate_raknet, runner=subprocess.r
     try:
         verify_threads(threads, ready_for_isolation)
     except RuntimeError:
-        apply_affinity(pid, process_dir, ready_for_isolation, runner)
+        apply_affinity(
+            pid,
+            process_dir,
+            ready_for_isolation,
+            raknet_nice if ready_for_isolation else None,
+            runner,
+        )
         threads = read_threads(process_dir)
         try:
             verify_threads(threads, ready_for_isolation)
@@ -360,6 +404,12 @@ def converge_game_affinity(pid, process_dir, isolate_raknet, runner=subprocess.r
             # mismatch means the state is not stable yet; the watch loop will
             # reapply it on its next poll. Execution or identity failures still
             # propagate from apply_affinity and the process selectors.
+            return False
+    if ready_for_isolation and raknet_nice is not None:
+        raknet_tid = next(
+            tid for tid, (comm, _mask) in threads.items() if comm == RAKNET_COMM
+        )
+        if not ensure_thread_nice(process_dir, raknet_tid, raknet_nice, runner):
             return False
     return not isolate_raknet or ready_for_isolation
 
@@ -510,7 +560,11 @@ def watch_for_ready_game(arguments, runner=subprocess.run):
             if not live_process_is_top_app(process_dir):
                 continue
             game_ready = converge_game_affinity(
-                pid, process_dir, arguments.raknet_cpu1, runner
+                pid,
+                process_dir,
+                arguments.raknet_cpu1,
+                arguments.raknet_nice,
+                runner,
             )
         except (RuntimeError, subprocess.CalledProcessError):
             if not process_dir.exists():
@@ -566,6 +620,11 @@ def watch_for_ready_game(arguments, runner=subprocess.run):
                     f"Tomb Raider performance state: ready; PID {pid}, "
                     f"{len(threads)} threads, CPUs 1-7"
                     + (", RakNet CPU 1" if arguments.raknet_cpu1 else "")
+                    + (
+                        f", RakNet nice {arguments.raknet_nice}"
+                        if arguments.raknet_nice is not None
+                        else ""
+                    )
                     + ", Steam helpers CPU 0",
                     flush=True,
                 )
@@ -588,6 +647,11 @@ def build_parser():
         "--raknet-cpu1",
         action="store_true",
         help="add the separately measured busy-loop isolation",
+    )
+    parser.add_argument(
+        "--raknet-nice",
+        type=int,
+        help="lower only the isolated RakNet receive thread to this nice value",
     )
     parser.add_argument("--proc-root", default="/proc", help=argparse.SUPPRESS)
     parser.add_argument(
@@ -621,6 +685,11 @@ def main():
             raise RuntimeError("--stable-seconds must be between 1 and 120")
         if not 0.25 <= arguments.poll_seconds <= 10:
             raise RuntimeError("--poll-seconds must be between 0.25 and 10")
+        if arguments.raknet_nice is not None:
+            if not arguments.raknet_cpu1:
+                raise RuntimeError("--raknet-nice requires --raknet-cpu1")
+            if not 0 <= arguments.raknet_nice <= 19:
+                raise RuntimeError("--raknet-nice must be between 0 and 19")
         layout = read_cpu_layout(Path(arguments.sys_cpu_root))
         validate_tab_s8_plus_layout(layout)
         if arguments.watch:
@@ -666,7 +735,7 @@ def main():
             )
             return 0
         for result in apply_affinity(
-            pid, process_dir, arguments.raknet_cpu1
+            pid, process_dir, arguments.raknet_cpu1, arguments.raknet_nice
         ):
             if result.stdout:
                 print(result.stdout, end="")
@@ -674,7 +743,15 @@ def main():
                 print(result.stderr, end="", file=sys.stderr)
         after = read_threads(process_dir)
         verify_threads(after, arguments.raknet_cpu1)
+        if arguments.raknet_nice is not None:
+            raknet_tid = next(
+                tid for tid, (comm, _mask) in after.items() if comm == RAKNET_COMM
+            )
+            if read_thread_nice(process_dir, raknet_tid) != arguments.raknet_nice:
+                raise RuntimeError("RakNet thread did not retain requested nice value")
         suffix = "; RakNet on CPU 1" if arguments.raknet_cpu1 else ""
+        if arguments.raknet_nice is not None:
+            suffix += f", nice {arguments.raknet_nice}"
         print(f"Tomb Raider: all {len(after)} threads use CPUs 1-7{suffix}")
     except (OSError, RuntimeError, subprocess.CalledProcessError) as error:
         print(f"set-tombraider-affinity: {error}", file=sys.stderr)

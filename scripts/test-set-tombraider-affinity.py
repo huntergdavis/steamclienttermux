@@ -38,6 +38,9 @@ def add_process(
         task = process / "task" / str(tid)
         task.mkdir(parents=True)
         (task / "comm").write_text(thread_comm + "\n")
+        (task / "stat").write_text(
+            f"{tid} ({thread_comm}) S " + " ".join(["0"] * 16) + "\n"
+        )
         (task / "status").write_text(
             f"Name:\t{thread_comm}\nState:\tS (sleeping)\nCpus_allowed_list:\t{mask}\n"
         )
@@ -143,6 +146,21 @@ def main():
             ["taskset", "-apc", "1-7", "27038"],
             ["taskset", "-pc", "1", "28142"],
         ]
+        calls.clear()
+        module.apply_affinity(27038, process, True, 19, runner=runner)
+        assert [call[0] for call in calls] == [
+            ["taskset", "-apc", "1-7", "27038"],
+            ["taskset", "-pc", "1", "28142"],
+            ["renice", "-n", "19", "-p", "28142"],
+        ]
+        raknet_stat = process / "task/28142/stat"
+        assert module.read_thread_nice(process, 28142) == 0
+        assert not module.ensure_thread_nice(process, 28142, 19, runner=runner)
+        raknet_stat.write_text(
+            "28142 (Raknet-RecvFrom) S " + " ".join(["0"] * 15 + ["19"]) + "\n"
+        )
+        assert module.read_thread_nice(process, 28142) == 19
+        assert module.ensure_thread_nice(process, 28142, 19, runner=runner)
 
         # A game/FEX mask rewrite racing taskset is an unstable sample, not a
         # fatal guard error. A later poll can converge it normally.
@@ -292,6 +310,7 @@ def main():
             stable_seconds=0.0,
             poll_seconds=0.0,
             raknet_cpu1=True,
+            raknet_nice=None,
             display=":0",
             window_regex="^Tomb Raider$",
             wait_for_cpu_log=False,

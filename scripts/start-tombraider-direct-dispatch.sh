@@ -13,6 +13,7 @@ affinity=${TOMB_RAIDER_DIRECT_AFFINITY:-$base/compat-bin/set-tombraider-affinity
 mode=${TOMB_RAIDER_DIRECT_MODE:-tombraider}
 diagnostics=${TOMB_RAIDER_DIRECT_DIAGNOSTICS:-0}
 child_preload=${TOMB_RAIDER_DIRECT_CHILD_PRELOAD:-full}
+raknet_nice=${TOMB_RAIDER_RAKNET_NICE:-}
 socket=$base/run/native-runtime-dispatch/dispatch.sock
 state=$base/run/tombraider-direct-dispatch.state
 
@@ -30,6 +31,10 @@ fail() {
 [[ $child_preload == full || $child_preload == lean ||
     $child_preload == lean-tmp-only || $child_preload == lean-debug-wait ]] ||
     fail 'TOMB_RAIDER_DIRECT_CHILD_PRELOAD must be full, lean, lean-tmp-only, or lean-debug-wait'
+if [[ -n $raknet_nice ]]; then
+    [[ $raknet_nice =~ ^[0-9]+$ ]] && (( raknet_nice <= 19 )) ||
+        fail 'TOMB_RAIDER_RAKNET_NICE must be an integer from 0 through 19'
+fi
 [[ -d $base/run && ! -L $base/run && -d $base/logs && ! -L $base/logs ]] ||
     fail "Steam run or log directory is unavailable below $base"
 [[ -x $python && (! -L $python || $python == "$default_python") ]] ||
@@ -84,7 +89,11 @@ done
 if [[ $mode == tombraider || $mode == tombraider-benchmark ||
     $mode == tombraider-diagnostic ]]; then
     affinity_log=$base/logs/tombraider-direct-affinity-$stamp.log
-    "$python" "$affinity" --watch --raknet-cpu1 --steam-base "$base" \
+    affinity_arguments=(--watch --raknet-cpu1 --steam-base "$base")
+    if [[ -n $raknet_nice ]]; then
+        affinity_arguments+=(--raknet-nice "$raknet_nice")
+    fi
+    "$python" "$affinity" "${affinity_arguments[@]}" \
         --wait-for-cpu-log \
         --poll-seconds 0.25 \
         --lock-file "$base/runtime/tomb-raider-affinity.lock" \
