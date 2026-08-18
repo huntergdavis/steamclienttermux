@@ -6168,3 +6168,20 @@ not added to any aggregate. The raw profile is
 This supersedes the old PRoot-era consumer ranking. Safe already contains the
 measured FEX block/cache controls, so the next feasibility test targets native
 Steam CEF's background CPU/thermal cost without changing accepted results.
+
+## 2026-08-18: native CEF hold passes feasibility
+
+The first fail-closed attempt sent no signal because exact helper PID 22367 was
+not descended from Steam. Direct inspection identified it as Steam's zero-CPU
+crashpad handler, intentionally reparented to PID 1. The guard now excludes
+only an exact helper carrying both `--type=crashpad-handler` and its crashpad
+monitor annotation; an ordinary orphan remains a tested refusal.
+
+The corrected excluded pass held eight exact native CEF descendants in
+uppercase `T` state after the game appeared, continuously verified their
+start-tick identities and absence of respawns, and resumed every same identity
+after normal game exit. The game reported 24.0/47.7/31.9 FPS from a 37.0 C
+full-policy start. Steam, X11, PulseAudio, saved authentication, the topology
+fix, and the disabled external-command property survived. The immediately
+preceding untouched excluded pass also averaged 31.9 FPS, so feasibility does
+not establish a gain. A full controller-recorded A/B is required.

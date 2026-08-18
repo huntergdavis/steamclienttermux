@@ -102,6 +102,12 @@ native-CEF pause during an excluded pass. Only if Steam, the game, and saved
 authentication survive with helpers verifiably stopped should this become a
 full A/B.
 
+That feasibility gate passed: eight exact descendant CEF helpers remained
+stopped without respawn through normal game exit and were all resumed, while
+Steam and authentication survived. The excluded pass averaged 31.9 FPS, but
+an immediately preceding untouched excluded pass also averaged 31.9 FPS. The
+candidate advances only to a full controlled A/B; no gain is claimed yet.
+
 ## Second-wave tests
 
 | Candidate | Why it is credible | Order / risk |
