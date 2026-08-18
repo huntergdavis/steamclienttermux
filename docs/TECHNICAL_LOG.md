@@ -6123,3 +6123,25 @@ The raw artifact is
 SHA-256 `3837e5f3fc9eda9fff75964f51cc806440c187ab66bde993946a268accd9c661`.
 Steam PID 22318, X11 PID 25663, PulseAudio PID 25865, saved authentication, the
 enabled patch, and the disabled external-command property all survived.
+
+## 2026-08-18: reject unreliable RakNet nice-19 candidate
+
+Series `20260818T095210Z-safe` changed only RakNet priority to nice 19. The
+warm-up scored 18.4/47.0/30.8 FPS. Two verified recorded passes scored
+23.0/45.0/30.7 and 20.3/45.9/30.4 FPS; their average-FPS mean is 30.55 versus
+the matched baseline's 30.40, an incomplete 0.15 FPS difference.
+
+The third launch wrote a raw 19.6/38.5/28.4 FPS result, but the affinity guard
+never observed a RakNet thread on which nice 19 could be verified. It stopped
+after valid 6/6/6 topology, the controller rejected the pass, and the series
+correctly has no aggregate. The raw result is excluded. Nice 19 is not adopted:
+its provisional delta is noise-sized and the intervention was not reliable on
+all launches.
+
+The incomplete manifest is
+`docs/benchmark-series/tombraider-direct-glibc-safe-topology-fix-raknet-nice19-60hz-40c-incomplete-20260818.json`,
+SHA-256 `33b62b03509cb7641933eb1085092f03888a00abdc7d2640a3bb380e92e5f91b`.
+The excluded result's SHA-256 is
+`f9a25e2ccd7263ba7c3eb2dc96e96201aa0bdedf01b6db77e686e8dcfcca4a9b`.
+Steam, X11, PulseAudio, authentication, the enabled topology fix, and the
+disabled external-command property remained intact.

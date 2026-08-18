@@ -960,3 +960,25 @@ therefore provides no meaningful throughput gain; `safe` remains the default.
 The complete schema-v1 artifact is
 [`tombraider-direct-glibc-safe-topology-fix-60hz-40c-20260818.json`](benchmark-series/tombraider-direct-glibc-safe-topology-fix-60hz-40c-20260818.json),
 SHA-256 `3837e5f3fc9eda9fff75964f51cc806440c187ab66bde993946a268accd9c661`.
+
+## Incomplete RakNet nice-19 experiment (2026-08-18)
+
+Series `20260818T095210Z-safe` changed only the RakNet receive thread from
+normal priority to nice 19. The guard verified the intervention on the warm-up
+and first two recorded passes. Their results were 18.4/47.0/30.8,
+23.0/45.0/30.7, and 20.3/45.9/30.4 FPS, respectively. The two valid recorded
+averages mean 30.55 FPS versus the 30.40 FPS baseline, too small and incomplete
+to claim a gain.
+
+The third recorded launch produced a raw 19.6/38.5/28.4 FPS result, but its
+guard saw valid 6/6/6 startup topology and never observed a RakNet thread on
+which it could verify nice 19. The controller therefore excluded the pass and
+withheld an aggregate. This is correct experimental behavior: a score cannot
+measure an intervention that was not proven active. The candidate is rejected
+as unreliable and remains off in production.
+
+The failed schema-v1 manifest is retained explicitly as incomplete:
+[`tombraider-direct-glibc-safe-topology-fix-raknet-nice19-60hz-40c-incomplete-20260818.json`](benchmark-series/tombraider-direct-glibc-safe-topology-fix-raknet-nice19-60hz-40c-incomplete-20260818.json),
+SHA-256 `33b62b03509cb7641933eb1085092f03888a00abdc7d2640a3bb380e92e5f91b`.
+The excluded game-authored result had SHA-256
+`f9a25e2ccd7263ba7c3eb2dc96e96201aa0bdedf01b6db77e686e8dcfcca4a9b`.

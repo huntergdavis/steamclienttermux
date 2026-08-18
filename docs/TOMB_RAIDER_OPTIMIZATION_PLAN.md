@@ -28,15 +28,16 @@ Return Game optimisation to **Standard** for the next tests.
 Native glibc Steam is now the established host. It reduced the comparable
 Runtime-to-window interval from 407.236 to 58.256 seconds, or 6.99x, and the
 completed 119.92 Hz `safe` series averaged 23.4 FPS versus the older 22.2 FPS
-all-PRoot-host mean. The Steam/CEF host is no longer under PRoot; one explicit
-outer PRoot remains at the Runtime/Proton game boundary.
+all-PRoot-host mean. The direct dispatcher now also executes the hot
+Runtime/Proton/FEX/game tree outside PRoot; its matched patched `safe` baseline
+averages 30.400 FPS at native resolution and 59.97 Hz.
 
 Samsung Standard 60 Hz is also established. With XRandR verified at 59.97 Hz,
 the otherwise identical `safe` series averaged 25.167 FPS: 7.6% above the
 119.92 Hz control. Retain Standard 60 Hz for subsequent profiles. It improved
 throughput but did not prevent every pass from ending at GPU thermal level six.
 
-## Primary path: remove avoidable launch work, then remove PRoot
+## Primary path: profile the direct hot path
 
 Keep 2800x1752 fullscreen, Low, motion blur off, V-Sync off, the shared-UID X11
 build, game CPUs 1-7, `Raknet-RecvFrom` on CPU 1, Steam helpers on CPU 0, and
@@ -61,11 +62,10 @@ X11 on CPUs 0-3. Change only the item named by each test.
    switch Android windows during the timed scene.
 4. The cooled display A/B is complete: 23.4 FPS at 119.92 Hz versus 25.167 FPS
    at verified 59.97 Hz. Retain Samsung Standard 60 Hz as the new baseline.
-5. Continue `termux-glibc-compat` at the remaining game boundary. The versioned
-   glibc, same-UID semaphore broker, authentication, native Steam, and CEF host
-   are complete. Replace the explicit outer Runtime/Proton PRoot with a
-   preconstructed/bindless layout; Android's denied user and mount namespaces
-   mean additional libc shims alone cannot make Bubblewrap own that boundary.
+5. The direct dispatcher completes the former game-boundary PRoot task. Steam's
+   generated outer request remains parked for lifecycle compatibility, while
+   Runtime Python, Proton, Wine, FEX, and the game run directly. Matched `safe`
+   improves average mean from 25.167 to 30.400 FPS, or 20.8%.
 6. The bounded `proton` and `fast` FEX A/B passes at verified 59.97 Hz are
    complete.
    `proton` previously averaged 11.4% above `safe` at 720p. `fast`
@@ -80,8 +80,15 @@ X11 on CPUs 0-3. Change only the item named by each test.
    The fixed-40 C Proton repeat averaged 23.567 FPS and the matched `fast`
    series averaged 23.800 FPS versus `safe` at 25.167 FPS. Proton was 6.4%
    slower than `safe`; `fast` was 5.4% slower and only 1.0% above Proton. All
-   `fast` recorded passes began at 37.0 C. Retain `safe`; this profile phase is
-   complete, and the remaining game-boundary PRoot is again the primary path.
+   `fast` recorded passes began at 37.0 C. In the later matched patched direct
+   comparison, `safe` and `fast` differ by only 0.22% average mean. Retain
+   `safe`; this profile phase is complete.
+
+7. RakNet nice 19 is rejected. Two verified passes differed from baseline by
+   only +0.15 FPS average, and a third pass could not prove that a RakNet thread
+   existed to receive the priority change. The next action is one explicitly
+   non-comparable live profile of the current direct path, followed by a new
+   one-variable A/B aimed at the measured top CPU consumer.
 
 The one warm-up plus three-pass rule applies to each profile. Compare the
 three-pass mean and median, not an isolated maximum or minimum.
@@ -91,9 +98,9 @@ three-pass mean and median, not an isolated maximum or minimum.
 | Candidate | Why it is credible | Order / risk |
 |---|---|---|
 | Steam launch-only session | Steam/CEF consumed roughly one CPU core in the live profile. | Implemented as the silent direct AppID path. Compare launch time and memory before considering any explicit CEF suspension; do not kill or `SIGSTOP` helpers during a timed pass because Steam respawns them and traced stopped tasks did not behave normally. |
-| PRoot/wineserver placement | PRoot plus wineserver consumed close to one core and could contend with game threads. | Profile their actual running CPUs, then A/B one guarded mask at a time. Pinning the tracer to a slower core may also increase syscall latency. |
+| Direct hot-tree placement | The old PRoot profile is obsolete after direct dispatch; current FEX, Wine, wineserver, X11, and Steam contention is not yet quantified. | Run one excluded live profile, rank actual CPU consumers and masks, then A/B only the highest credible contention source. |
 | Internal-storage A/B | The game is on Android FUSE over the removable exFAT/sdfat card. This may affect loading and minimum-FPS stalls. | Low priority for mean FPS. The 15.3 GB game would leave only about 3.7 GB of the currently free 19 GB internal space, so do not move it until space is freed. |
-| No-PRoot native glibc host | PRoot uses `ptrace` to intercept and rewrite guest syscalls; the live tracer alone used 60-65% CPU and the first timed PRoot game launch needed about 6m47s from runtime request to window. | Primary engineering path. Extend Termux glibc with the measured SysV semaphore behavior, launch native ARM64 Steam first, then isolate the later Pressure Vessel boundary. |
+| No-PRoot native glibc host | PRoot uses `ptrace` to intercept and rewrite guest syscalls; the old tracer alone used 60-65% CPU. | Completed for the hot game tree through the guarded direct dispatcher; retain the parked outer request only for Steam lifecycle compatibility. |
 | Bionic/system-Vulkan host | Current GameNative source uses a Bionic image and defaults its wrapper to `System`, while an external comparison showed a large system-driver lead. | Separate architecture project. Its Vulkan wrapper is an Android/NDK Bionic library depending on Android native-window and AdrenoTools libraries, not a drop-in glibc ICD. |
 
 ## Changes not worth leading with
