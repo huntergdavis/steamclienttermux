@@ -5889,3 +5889,31 @@ process, verifies the Safe FEX profile and native display, requires direct
 startup-topology evidence, waits below 40 C before every pass, and records the
 same atomic JSON schema. A warm-up plus three recorded passes was started for
 the repeatability decision.
+
+## 2026-08-18: direct Safe series confirms a 21.5% throughput gain
+
+Series `20260818T072343Z-safe` completed one warm-up and three recorded passes
+through the no-PRoot game path. The warm-up reported 15.2/44.6/31.3 FPS. All
+three recorded passes started at 37.0 C with full CPU/GPU policy and GPU
+thermal level zero, then reported:
+
+| Pass | Minimum | Maximum | Average |
+| --- | ---: | ---: | ---: |
+| recorded 1 | 21.8 | 48.1 | 31.1 |
+| recorded 2 | 12.3 | 46.7 | 30.3 |
+| recorded 3 | 22.6 | 48.4 | 30.3 |
+| mean | **18.900** | **47.733** | **30.567** |
+
+The 30.567 FPS average mean is 21.5% above the matched 25.167 FPS Safe/60 Hz
+series with the Runtime/Proton PRoot game boundary. Average median improves
+19.8%, from 25.3 to 30.3. Every direct affinity artifact contained the startup
+topology hold, a fresh multi-CPU result, and the final 1-7/RakNet/helper ready
+state. Launcher and dispatcher statuses were zero for all four passes.
+
+The complete committed artifact is
+`docs/benchmark-series/tombraider-direct-glibc-safe-60hz-40c-20260818.json`,
+SHA-256 `0a12a244143202144b7cf75cf8e1c48a983b981e2a6f5d284629011748754ac8`.
+The three post-pass memory snapshots retained at least 3,095,928 KiB available
+RAM and 5,393,948 KiB free zram. Steam, X11, PulseAudio, and authentication
+remained alive. This replaces the single 27.6 FPS observation as the
+authoritative direct Safe result.

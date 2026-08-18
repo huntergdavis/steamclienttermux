@@ -832,3 +832,48 @@ The complete artifact is
 The bounded FEX profile phase is complete. The next primary optimization is
 removing or reducing the remaining game-boundary PRoot cost, with profiling
 used only outside timed benchmark scenes.
+
+## Completed direct-game `safe` series (2026-08-18)
+
+The remaining hot game boundary is now bypassed by the narrowly validated
+direct dispatcher. Steam still creates its normal Runtime/Proton request and
+waits for lifecycle completion, but the outer PRoot process remains paused
+while the patched-glibc dispatcher runs Runtime Python, Proton, Wine, FEX, and
+`TombRaider.exe` directly with `TracerPid: 0`. The exact benchmark command is
+allow-listed as `TombRaider.exe -nolauncher -benchmark`.
+
+Series `20260818T072343Z-safe` reused the authenticated Safe-profile Steam
+process and completed one warm-up plus three recorded passes. XRandR was
+2800x1752 at 59.97 Hz. Every recorded pass began at 37.0 C with all CPU policy
+limits at hardware maximum, GPU policy 818 MHz, and GPU thermal level zero.
+The controller required a fresh usable CPU-topology line and the complete
+post-discovery affinity ready state for every pass.
+
+| Pass | Start | Minimum | Maximum | Average | Cooldown | Elapsed |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| warm-up | 37.9 C | 15.2 | 44.6 | 31.3 | 80.619 s | 122.486 s |
+| recorded 1 | 37.0 C | 21.8 | 48.1 | 31.1 | 110.939 s | 115.715 s |
+| recorded 2 | 37.0 C | 12.3 | 46.7 | 30.3 | 90.829 s | 118.803 s |
+| recorded 3 | 37.0 C | 22.6 | 48.4 | 30.3 | 120.935 s | 120.361 s |
+| recorded mean | n/a | **18.900** | **47.733** | **30.567** | n/a | n/a |
+
+Against the matched PRoot-bound Safe series at 16.200/34.500/25.167 FPS,
+direct execution improves minimum mean by 16.7%, maximum mean by 38.4%, and
+average mean by **21.5%**. Average-FPS median improves from 25.3 to 30.3, or
+19.8%. The recorded averages span only 0.8 FPS despite each pass ending near
+70.4-71.5 C. Recorded pass 2's 12.3 FPS minimum is retained; its 30.3 average
+and the repeated 30.3 third pass prevent an isolated minimum from driving the
+profile decision.
+
+Available RAM after the recorded passes was 3,432,732, 3,095,928, and
+3,121,784 KiB; free zram remained above 5,393,948 KiB. The gain is therefore
+not an OOM artifact. Steam, X11, PulseAudio, and saved authentication survived
+every game exit. The exact schema-v1 artifact, including per-pass clocks,
+thermal sensors, memory, result paths, and affinity logs, is
+[`tombraider-direct-glibc-safe-60hz-40c-20260818.json`](benchmark-series/tombraider-direct-glibc-safe-60hz-40c-20260818.json),
+SHA-256 `0a12a244143202144b7cf75cf8e1c48a983b981e2a6f5d284629011748754ac8`.
+
+This closes the former primary PRoot-removal experiment with a repeatable
+throughput win. The next controlled variable is the direct per-game FEX
+profile: retain the same authenticated Steam process and compare TSO-off
+`fast` against this new direct `safe` baseline under the same 40 C gate.

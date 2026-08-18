@@ -49,16 +49,18 @@ minimum/maximum/average FPS.
 | --- | ---: | ---: | --- | ---: | --- | --- |
 | `safe` | 2800×1752 | 119.92 Hz | 24.8 / 22.7 / 22.7 | 15.767 / 32.567 / **23.400** | 37.0–40.7 °C observed | [JSON](docs/benchmark-series/tombraider-native-glibc-safe-119hz-20260817.json) |
 | `safe` | 2800×1752 | 59.97 Hz | 25.3 / 24.9 / 25.3 | 16.200 / 34.500 / **25.167** | 37.0 °C observed | [JSON](docs/benchmark-series/tombraider-native-glibc-safe-60hz-20260817.json) |
+| `safe` (direct game) | 2800×1752 | 59.97 Hz | 31.1 / 30.3 / 30.3 | 18.900 / 47.733 / **30.567** | Fixed 40 °C ceiling; all starts 37.0 °C | [JSON](docs/benchmark-series/tombraider-direct-glibc-safe-60hz-40c-20260818.json) |
 | bundled Proton | 2800×1752 | 59.97 Hz | 23.2 / 23.1 / 22.6 | 14.200 / 31.233 / **22.967** | 45.1–47.9 °C; unmatched | [JSON](docs/benchmark-series/tombraider-native-glibc-proton-60hz-unmatched-20260817.json) |
 | bundled Proton | 2800×1752 | 59.97 Hz | 22.8 / 22.7 / 25.2 | 12.500 / 32.967 / **23.567** | Fixed 40 °C ceiling; starts 37.0–37.6 °C | [JSON](docs/benchmark-series/tombraider-native-glibc-proton-60hz-40c-20260817.json) |
 | `fast` | 2800×1752 | 59.97 Hz | 25.5 / 23.0 / 22.9 | 16.367 / 32.300 / **23.800** | Fixed 40 °C ceiling; all starts 37.0 °C | [JSON](docs/benchmark-series/tombraider-native-glibc-fast-60hz-40c-20260817.json) |
 
-The 59.97 Hz `safe` series is the current leader at **25.167 average FPS**. It
-is 7.6% faster than the same profile at 119.92 Hz and 6.8% faster than bundled
-Proton under the matched comparison. The unmatched Proton row is retained for
-audit, not used to select a profile. The matched `fast` profile averaged 23.800
-FPS: 5.4% below `safe` and only 1.0% above bundled Proton, so `safe` remains the
-production profile.
+The direct-game `safe` series is the current leader at **30.567 average FPS**,
+21.5% above the same 59.97 Hz profile with the Runtime/Proton PRoot boundary.
+The direct dispatcher leaves Steam's generated outer request waiting for
+lifecycle compatibility but executes the hot Proton/FEX/game tree outside the
+PRoot tracer. The unmatched Proton row is retained for audit, not used to
+select a profile. A matched direct `fast` A/B is the next bounded experiment;
+`safe` remains the production profile.
 
 Read the [full Tomb Raider report](docs/TOMB_RAIDER_BENCHMARK.md) for every
 historical pass, exclusions, thermal state, affinity evidence, and methodology.
