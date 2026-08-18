@@ -6405,3 +6405,31 @@ The excluded raw result, ready guard, and dispatcher log SHA-256 values are
 and `f3370e9dd560aa4bad0bfb25a2a1f033b50d6d680d29a0997b530827d38895be`.
 Steam, X11, PulseAudio, authentication, the restored X11 mask, and the
 disabled external-command property survived unchanged.
+
+## 2026-08-18: reject X11 CPU0-1 after guarded replication
+
+The retry series `20260818T133044Z-safe` verified the new shutdown classifier
+without using it: its 19.3/46.4/32.5 FPS warm-up and 21.8/45.4/32.3 FPS
+untreated control both returned zero. On recorded pass 2, the exact holder
+moved the same 14 X11 identities to CPUs 0-1, observed normal game exit, and
+restored all identities to CPUs 0-3. The dispatcher also returned zero.
+
+The controller nevertheless failed closed because the direct affinity log
+stopped after its 7/7/7 startup-topology proof and never emitted the required
+performance-ready state. The excluded raw result was 21.2/41.6/28.3 FPS,
+4.0 FPS or 12.38% below its control average. The earlier valid pair had shown
+only +0.1 FPS. Deferring isolation until the ready record would not preserve
+the A/B: across five accepted passes, results were created only 33.8-46.0
+seconds after the ready-log write, placing a delayed transition inside the
+timed scene. CPU0-1 joins CPU0-only as rejected; production X11 remains on
+CPUs 0-3.
+
+The incomplete retry manifest is
+`docs/benchmark-series/tombraider-direct-glibc-safe-topology-fix-x11-cpu01-replication-60hz-40c-incomplete-20260818.json`,
+SHA-256 `3ef5314278f3699f5f6a0ee8b98ae6c7e5d9845f6c440a7478b535c83c2aa858`.
+The excluded result, incomplete guard, and normal server log SHA-256 values
+are `853ff507b67a7691a24d16169351e4d37a31661b1d507be74d93048625f42dac`,
+`c7b6628a94f82c62a3cd12b3cb62085cf54f1fcb9dbbd38de3328e23c73f299c`,
+and `9e9d9f657f7c77d335643a3517d9b410992a698af76ba29fa49b71463d0ed8dc`.
+Steam PID 22318, X11 PID 25663, PulseAudio PID 25865, authentication, the
+disabled property SHA, and the restored X11 mask all remained intact.

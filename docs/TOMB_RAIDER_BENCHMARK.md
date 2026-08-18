@@ -1101,3 +1101,29 @@ affinity log first. Status 1 is accepted only when protected dispatcher paths,
 the exact Pulse assertion, final `DISPATCH_STATUS=1 TRACER_PID=0`, and zero
 live Tomb Raider processes all match; every other nonzero exit remains fatal.
 Each accepted anomaly records its server-log path and SHA-256 in the run.
+
+## CPU0-1 replication rejects the candidate (2026-08-18)
+
+A clean retry with the post-result shutdown classifier completed a
+19.3/46.4/32.5 FPS warm-up and an untreated 21.8/45.4/32.3 FPS control. The
+first CPU0-1 pass then wrote 21.2/41.6/28.3 FPS, a 4.0 FPS (-12.38%) average
+regression. Its holder still proved all 14 X11 identities active on CPUs 0-1,
+normal game exit, and exact restoration to CPUs 0-3. The game also exited
+normally with dispatcher status zero.
+
+The isolated pass is excluded rather than counted: its direct affinity guard
+proved 7/7/7 startup topology but never reached the required performance-ready
+state. Waiting for that ready state before isolation is not a clean repair;
+accepted passes create their result only 33.8-46.0 seconds after the ready-log
+write, so moving X11 then would change the timed scene mid-pass. Across valid
+evidence, CPU0-1 changed average by only +0.1 FPS in the first pair and then
+caused an invalid -4.0 FPS raw pass. CPU0-only already starved the game
+entirely. Host X11 affinity therefore remains CPUs 0-3 in production.
+
+The exact incomplete retry manifest is
+[`tombraider-direct-glibc-safe-topology-fix-x11-cpu01-replication-60hz-40c-incomplete-20260818.json`](benchmark-series/tombraider-direct-glibc-safe-topology-fix-x11-cpu01-replication-60hz-40c-incomplete-20260818.json),
+SHA-256 `3ef5314278f3699f5f6a0ee8b98ae6c7e5d9845f6c440a7478b535c83c2aa858`.
+The excluded result, incomplete guard, and normal server log SHA-256 values
+are `853ff507b67a7691a24d16169351e4d37a31661b1d507be74d93048625f42dac`,
+`c7b6628a94f82c62a3cd12b3cb62085cf54f1fcb9dbbd38de3328e23c73f299c`,
+and `9e9d9f657f7c77d335643a3517d9b410992a698af76ba29fa49b71463d0ed8dc`.
