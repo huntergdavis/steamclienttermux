@@ -20,6 +20,10 @@ RAKNET_CPU = "1"
 STEAM_HELPER_CPUS = "0"
 AUXILIARY_CPUS = TARGET_CPUS
 AUXILIARY_COMMS = {"wineserver", "explorer.exe"}
+CPU_COUNT_PATTERN = re.compile(
+    rb"\[MultiCore\] CPU count: logical = ([0-9]+), cores = ([0-9]+), "
+    rb"physical = ([0-9]+)"
+)
 
 
 def parse_environment(data):
@@ -351,12 +355,47 @@ def acquire_lock(path):
     return handle
 
 
+def tomb_raider_log(steam_base):
+    return (
+        steam_base
+        / "removable-library-compatdata/203160/pfx/drive_c/users/steamuser"
+        / "Documents/Tomb Raider/Tomb Raider.log"
+    )
+
+
+def log_size(path):
+    try:
+        return path.stat().st_size
+    except FileNotFoundError:
+        return 0
+
+
+def fresh_cpu_count(path, offset):
+    try:
+        size = path.stat().st_size
+        if size < offset:
+            offset = 0
+        with path.open("rb") as handle:
+            handle.seek(offset)
+            fresh = handle.read()
+    except FileNotFoundError:
+        return None, offset
+    match = CPU_COUNT_PATTERN.search(fresh)
+    if match is None:
+        return None, offset
+    return tuple(int(value) for value in match.groups()), offset + match.end()
+
+
 def watch_for_ready_game(arguments, runner=subprocess.run):
     proc_root = Path(arguments.proc_root)
     steam_base = Path(arguments.steam_base)
     deadline = time.monotonic() + arguments.wait_seconds
     stable_since = None
     tracked_pid = None
+    wait_for_cpu_log = getattr(arguments, "wait_for_cpu_log", False)
+    topology_ready = not wait_for_cpu_log
+    cpu_log = tomb_raider_log(steam_base)
+    cpu_log_offset = log_size(cpu_log) if wait_for_cpu_log else 0
 
     while time.monotonic() < deadline:
         helper_matches = find_steam_helpers(steam_base, proc_root)
@@ -390,9 +429,27 @@ def watch_for_ready_game(arguments, runner=subprocess.run):
 
         pid, process_dir = matches[0]
         if tracked_pid != pid:
-            print(f"Tomb Raider PID {pid}: affinity guard attached", flush=True)
+            print(f"Tomb Raider PID {pid}: affinity guard detected game", flush=True)
             tracked_pid = pid
             stable_since = None
+        if not topology_ready:
+            counts, cpu_log_offset = fresh_cpu_count(cpu_log, cpu_log_offset)
+            if counts is None:
+                time.sleep(arguments.poll_seconds)
+                continue
+            logical, cores, physical = counts
+            if min(counts) <= 1:
+                raise RuntimeError(
+                    "Tomb Raider initialized with unusable CPU topology: "
+                    f"logical={logical}, cores={cores}, physical={physical}"
+                )
+            topology_ready = True
+            print(
+                f"Tomb Raider PID {pid}: startup topology ready; "
+                f"logical={logical}, cores={cores}, physical={physical}; "
+                "affinity guard attached",
+                flush=True,
+            )
         try:
             if not live_process_is_top_app(process_dir):
                 continue
@@ -468,6 +525,11 @@ def build_parser():
     )
     parser.add_argument("--display", default=":0")
     parser.add_argument("--window-regex", default="^Tomb Raider$")
+    parser.add_argument(
+        "--wait-for-cpu-log",
+        action="store_true",
+        help="delay affinity until this launch reports a usable CPU topology",
+    )
     parser.add_argument("--wait-seconds", type=float, default=7200.0)
     parser.add_argument("--stable-seconds", type=float, default=30.0)
     parser.add_argument("--poll-seconds", type=float, default=1.0)

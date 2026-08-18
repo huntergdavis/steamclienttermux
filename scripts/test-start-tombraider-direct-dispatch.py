@@ -106,8 +106,8 @@ def main() -> None:
         assert "server_status=0" in state
         assert "launcher_log=" in state
         assert affinity_result.read_text().splitlines() == [
-            f"--watch --raknet-cpu1 --steam-base {base} "
-            f"--lock-file {base}/run/tombraider-direct-affinity.lock"
+            f"--watch --raknet-cpu1 --steam-base {base} --wait-for-cpu-log "
+            f"--lock-file {base}/runtime/tomb-raider-affinity.lock"
         ]
 
         (base / "run/native-runtime-dispatch/dispatch.sock").unlink()

@@ -399,6 +399,7 @@ start_tomb_raider_affinity_guard() {
     nohup python3 "$affinity_helper" \
         --watch \
         --raknet-cpu1 \
+        --wait-for-cpu-log \
         --steam-base "$base" \
         --display "$display" \
         --lock-file "$affinity_lock" \

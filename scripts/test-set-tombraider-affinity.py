@@ -239,6 +239,27 @@ def main():
         window_runner = lambda *_args, **_kwargs: SimpleNamespace(stdout="42\n")
         assert module.matching_window(":0", "^Tomb Raider$", window_runner)
 
+        cpu_log = temporary / "Tomb Raider.log"
+        cpu_log.write_bytes(
+            b"old [MultiCore] CPU count: logical = 1, cores = 1, physical = 1\n"
+        )
+        cpu_log_offset = module.log_size(cpu_log)
+        assert module.fresh_cpu_count(cpu_log, cpu_log_offset) == (
+            None,
+            cpu_log_offset,
+        )
+        with cpu_log.open("ab") as handle:
+            handle.write(b"new [MultiCore] CPU count: logical = 7, cores = ")
+        assert module.fresh_cpu_count(cpu_log, cpu_log_offset) == (
+            None,
+            cpu_log_offset,
+        )
+        with cpu_log.open("ab") as handle:
+            handle.write(b"7, physical = 7\n")
+        counts, advanced_offset = module.fresh_cpu_count(cpu_log, cpu_log_offset)
+        assert counts == (7, 7, 7)
+        assert advanced_offset > cpu_log_offset
+
         arguments = SimpleNamespace(
             proc_root=str(proc_root),
             steam_base="/base",
@@ -248,6 +269,7 @@ def main():
             raknet_cpu1=True,
             display=":0",
             window_regex="^Tomb Raider$",
+            wait_for_cpu_log=False,
         )
         assert module.watch_for_ready_game(arguments, runner=window_runner) == 0
 
