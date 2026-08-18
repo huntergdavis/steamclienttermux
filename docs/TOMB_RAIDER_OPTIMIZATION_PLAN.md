@@ -93,6 +93,15 @@ X11 on CPUs 0-3. Change only the item named by each test.
 The one warm-up plus three-pass rule applies to each profile. Compare the
 three-pass mean and median, not an isolated maximum or minimum.
 
+The first direct-path live profile is now complete. Over 10 seconds the game
+used 313.0% CPU, including 99.0% in `Raknet-RecvFrom`; X11 used 47.8%, native
+wineserver 47.0%, the hottest CEF helper 28.6%, Steam core 11.7%, and
+PulseAudio 9.1%. GPU busy was 68% at 791 MHz with no thermal cap. No hot PRoot
+tracer remained. The next bounded action is a reversible feasibility-only
+native-CEF pause during an excluded pass. Only if Steam, the game, and saved
+authentication survive with helpers verifiably stopped should this become a
+full A/B.
+
 ## Second-wave tests
 
 | Candidate | Why it is credible | Order / risk |

@@ -1,0 +1,419 @@
+{
+  "cpu": [
+    {
+      "capacity": "261",
+      "cpu": 0,
+      "current_khz": "1267200",
+      "hardware_max_khz": "1785600",
+      "policy_max_khz": "1267200"
+    },
+    {
+      "capacity": "261",
+      "cpu": 1,
+      "current_khz": "1267200",
+      "hardware_max_khz": "1785600",
+      "policy_max_khz": "1267200"
+    },
+    {
+      "capacity": "261",
+      "cpu": 2,
+      "current_khz": "1267200",
+      "hardware_max_khz": "1785600",
+      "policy_max_khz": "1267200"
+    },
+    {
+      "capacity": "261",
+      "cpu": 3,
+      "current_khz": "1267200",
+      "hardware_max_khz": "1785600",
+      "policy_max_khz": "1267200"
+    },
+    {
+      "capacity": "805",
+      "cpu": 4,
+      "current_khz": "883200",
+      "hardware_max_khz": "2496000",
+      "policy_max_khz": "883200"
+    },
+    {
+      "capacity": "805",
+      "cpu": 5,
+      "current_khz": "883200",
+      "hardware_max_khz": "2496000",
+      "policy_max_khz": "883200"
+    },
+    {
+      "capacity": "805",
+      "cpu": 6,
+      "current_khz": "883200",
+      "hardware_max_khz": "2496000",
+      "policy_max_khz": "883200"
+    },
+    {
+      "capacity": "1024",
+      "cpu": 7,
+      "current_khz": "806400",
+      "hardware_max_khz": "2995200",
+      "policy_max_khz": "1056000"
+    }
+  ],
+  "gpu": {
+    "busy_percent": "68 %",
+    "current_hz": "791000000",
+    "hardware_max_hz": "818000000 791000000 734000000 640000000 599000000 545000000 492000000 421000000 350000000 317000000 285000000 220000000 124800000",
+    "policy_max_hz": "818000000",
+    "thermal_pwrlevel": "0"
+  },
+  "memory": {
+    "MemAvailable_kib": 1633776,
+    "SwapFree_kib": 5093760,
+    "SwapTotal_kib": 8388604
+  },
+  "sample_seconds": 10.0,
+  "target": {
+    "allowed_cpus": "1-7",
+    "cpu_percent": 313.0,
+    "name": "TombRaider.exe",
+    "pid": 24484,
+    "rss": "679708 kB",
+    "threads": "48"
+  },
+  "thermal": [
+    {
+      "millidegrees_c": 86900,
+      "zone": "gpuss-0"
+    },
+    {
+      "millidegrees_c": 84800,
+      "zone": "cpu-1-7"
+    },
+    {
+      "millidegrees_c": 84800,
+      "zone": "gpuss-1"
+    },
+    {
+      "millidegrees_c": 84100,
+      "zone": "cpuss-1"
+    },
+    {
+      "millidegrees_c": 84100,
+      "zone": "cpuss-0"
+    },
+    {
+      "millidegrees_c": 83800,
+      "zone": "cpu-0-1"
+    },
+    {
+      "millidegrees_c": 83800,
+      "zone": "aoss-1"
+    },
+    {
+      "millidegrees_c": 83800,
+      "zone": "cpu-1-1"
+    }
+  ],
+  "top_processes": [
+    {
+      "cpu_percent": 313.0,
+      "name": "TombRaider.exe",
+      "pid": 24484,
+      "processor": 6
+    },
+    {
+      "cpu_percent": 47.8,
+      "name": "main",
+      "pid": 25663,
+      "processor": 2
+    },
+    {
+      "cpu_percent": 47.0,
+      "name": "wineserver",
+      "pid": 24325,
+      "processor": 7
+    },
+    {
+      "cpu_percent": 28.6,
+      "name": "steamwebhelper",
+      "pid": 23283,
+      "processor": 0
+    },
+    {
+      "cpu_percent": 19.9,
+      "name": "python3",
+      "pid": 21801,
+      "processor": 7
+    },
+    {
+      "cpu_percent": 11.7,
+      "name": "ld-linux-aarch6",
+      "pid": 22318,
+      "processor": 2
+    },
+    {
+      "cpu_percent": 9.1,
+      "name": "pulseaudio",
+      "pid": 25865,
+      "processor": 6
+    },
+    {
+      "cpu_percent": 8.1,
+      "name": "com.termux",
+      "pid": 17746,
+      "processor": 5
+    },
+    {
+      "cpu_percent": 5.7,
+      "name": "steamwebhelper",
+      "pid": 22548,
+      "processor": 0
+    },
+    {
+      "cpu_percent": 2.9,
+      "name": "steamwebhelper",
+      "pid": 22353,
+      "processor": 0
+    },
+    {
+      "cpu_percent": 0.5,
+      "name": "python3",
+      "pid": 24851,
+      "processor": 3
+    },
+    {
+      "cpu_percent": 0.3,
+      "name": "tgcompatd",
+      "pid": 13322,
+      "processor": 3
+    },
+    {
+      "cpu_percent": 0.3,
+      "name": "steamwebhelper",
+      "pid": 22714,
+      "processor": 0
+    },
+    {
+      "cpu_percent": 0.1,
+      "name": "runsvdir",
+      "pid": 16546,
+      "processor": 2
+    },
+    {
+      "cpu_percent": 0.0,
+      "name": "runsv",
+      "pid": 16549,
+      "processor": 1
+    },
+    {
+      "cpu_percent": 0.0,
+      "name": "runsv",
+      "pid": 16550,
+      "processor": 3
+    },
+    {
+      "cpu_percent": 0.0,
+      "name": "runsv",
+      "pid": 16551,
+      "processor": 2
+    },
+    {
+      "cpu_percent": 0.0,
+      "name": "runsv",
+      "pid": 16552,
+      "processor": 2
+    },
+    {
+      "cpu_percent": 0.0,
+      "name": "runsv",
+      "pid": 16553,
+      "processor": 2
+    },
+    {
+      "cpu_percent": 0.0,
+      "name": "runsv",
+      "pid": 16554,
+      "processor": 3
+    },
+    {
+      "cpu_percent": 0.0,
+      "name": "svlogd",
+      "pid": 16555,
+      "processor": 0
+    },
+    {
+      "cpu_percent": 0.0,
+      "name": "svlogd",
+      "pid": 16556,
+      "processor": 2
+    },
+    {
+      "cpu_percent": 0.0,
+      "name": "sshd",
+      "pid": 16557,
+      "processor": 1
+    },
+    {
+      "cpu_percent": 0.0,
+      "name": "svlogd",
+      "pid": 16558,
+      "processor": 1
+    },
+    {
+      "cpu_percent": 0.0,
+      "name": "svlogd",
+      "pid": 16559,
+      "processor": 1
+    }
+  ],
+  "top_target_threads": [
+    {
+      "cpu_percent": 99.0,
+      "name": "Raknet-RecvFrom",
+      "pid": 24761,
+      "processor": 1
+    },
+    {
+      "cpu_percent": 55.1,
+      "name": "TombRaider.exe",
+      "pid": 24484,
+      "processor": 7
+    },
+    {
+      "cpu_percent": 35.4,
+      "name": "TombRaider.exe",
+      "pid": 24742,
+      "processor": 4
+    },
+    {
+      "cpu_percent": 17.8,
+      "name": "cdcMulticore",
+      "pid": 24702,
+      "processor": 6
+    },
+    {
+      "cpu_percent": 17.7,
+      "name": "cdcMulticore",
+      "pid": 24701,
+      "processor": 5
+    },
+    {
+      "cpu_percent": 17.5,
+      "name": "cdcMulticore",
+      "pid": 24700,
+      "processor": 6
+    },
+    {
+      "cpu_percent": 15.2,
+      "name": "dxvk-cs",
+      "pid": 24709,
+      "processor": 4
+    },
+    {
+      "cpu_percent": 14.6,
+      "name": "TombRaider.exe",
+      "pid": 24712,
+      "processor": 4
+    },
+    {
+      "cpu_percent": 10.0,
+      "name": "TombRaider.exe",
+      "pid": 24703,
+      "processor": 7
+    },
+    {
+      "cpu_percent": 6.3,
+      "name": "TombRaider.exe",
+      "pid": 24744,
+      "processor": 5
+    },
+    {
+      "cpu_percent": 4.6,
+      "name": "dxvk-submit",
+      "pid": 24707,
+      "processor": 6
+    },
+    {
+      "cpu_percent": 4.4,
+      "name": "TombRaider.exe",
+      "pid": 24711,
+      "processor": 4
+    },
+    {
+      "cpu_percent": 3.3,
+      "name": "dxvk-queue",
+      "pid": 24708,
+      "processor": 5
+    },
+    {
+      "cpu_percent": 2.8,
+      "name": "audio_client_ma",
+      "pid": 24739,
+      "processor": 4
+    },
+    {
+      "cpu_percent": 2.2,
+      "name": "TombRaider.exe",
+      "pid": 24741,
+      "processor": 4
+    },
+    {
+      "cpu_percent": 1.2,
+      "name": "Raknet-UpdateNe",
+      "pid": 24762,
+      "processor": 6
+    },
+    {
+      "cpu_percent": 1.0,
+      "name": "FileSystem",
+      "pid": 24732,
+      "processor": 4
+    },
+    {
+      "cpu_percent": 0.9,
+      "name": "dxvk-shader-l",
+      "pid": 24714,
+      "processor": 7
+    },
+    {
+      "cpu_percent": 0.9,
+      "name": "dxvk-shader-l",
+      "pid": 24715,
+      "processor": 5
+    },
+    {
+      "cpu_percent": 0.8,
+      "name": "TombRaider.exe",
+      "pid": 24832,
+      "processor": 4
+    },
+    {
+      "cpu_percent": 0.7,
+      "name": "LibwebsocketsTh",
+      "pid": 24608,
+      "processor": 6
+    },
+    {
+      "cpu_percent": 0.6,
+      "name": "WSI swapchain q",
+      "pid": 24727,
+      "processor": 5
+    },
+    {
+      "cpu_percent": 0.5,
+      "name": "BFX multicore",
+      "pid": 24828,
+      "processor": 4
+    },
+    {
+      "cpu_percent": 0.4,
+      "name": "WSI swapchain e",
+      "pid": 24728,
+      "processor": 5
+    },
+    {
+      "cpu_percent": 0.3,
+      "name": "HttpManagerThre",
+      "pid": 24603,
+      "processor": 4
+    }
+  ]
+}

@@ -6145,3 +6145,26 @@ The excluded result's SHA-256 is
 `f9a25e2ccd7263ba7c3eb2dc96e96201aa0bdedf01b6db77e686e8dcfcca4a9b`.
 Steam, X11, PulseAudio, authentication, the enabled topology fix, and the
 disabled external-command property remained intact.
+
+## 2026-08-18: profile the direct hot path
+
+An explicitly excluded one-pass Safe run sampled the middle of the direct
+benchmark scene for 10.001 seconds. `TombRaider.exe` used 313.0% CPU and about
+680 MiB RSS. Its `Raknet-RecvFrom` thread alone used 99.0% on CPU 1; the main
+thread used 55.1%, three `cdcMulticore` workers used 17.5-17.8% each, and
+`dxvk-cs` used 15.2%. The complete game mask remained CPUs 1-7.
+
+Outside the game, Termux:X11 used 47.8%, native ARM64 wineserver 47.0%, the
+hottest native Steam CEF helper 28.6%, Steam core 11.7%, and PulseAudio 9.1%.
+There was no hot PRoot tracer. CEF was already confined to CPU 0, X11 to CPUs
+0-3, and wineserver to CPUs 1-7. GPU busy was 68% at 791 MHz with an 818 MHz
+policy ceiling and thermal power level zero. Available RAM was 1,633,776 KiB
+and free zram 5,093,760 KiB, so the sample was pressured but not OOM.
+
+The instrumented pass reported 19.8/45.7/30.9 FPS but is not comparable and is
+not added to any aggregate. The raw profile is
+`docs/evidence/tombraider-direct-live-profile-20260818.json`, SHA-256
+`bcde3b9579a581451a4f11332dff18a16bffbab7d963571d3ee45b44def7ac85`.
+This supersedes the old PRoot-era consumer ranking. Safe already contains the
+measured FEX block/cache controls, so the next feasibility test targets native
+Steam CEF's background CPU/thermal cost without changing accepted results.

@@ -90,6 +90,11 @@ These screenshots capture milestones and failures from the original tablet.
 - `tombraider-direct-cpu-topology-20260818.json`: the PE32 CPU-helper addresses,
   Windows API/CPUID control-probe results, Android affinity-race evidence, and
   first valid command-line benchmark from the direct no-PRoot game path.
+- `tombraider-direct-live-profile-20260818.json`: one explicitly excluded
+  10-second mid-scene `/proc` profile of the patched direct Safe path. It
+  records process/thread CPU deltas, masks, memory, clocks, GPU busy, and
+  thermal state without command lines or account data. Its FPS result is not
+  part of any controlled aggregate.
 - `tombraider-gaminghub-added-performance-unconfirmed-2026-08-15.png`: a
   panel-native Low pass after both shared-UID apps were added to Gaming Hub but
   before the separate Performance selector was confirmed, reporting
