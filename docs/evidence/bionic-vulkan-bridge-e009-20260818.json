@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "experiment_id": "bionic-vulkan-bridge-e009-20260818",
+  "recorded_at": "2026-08-18T11:53:07-07:00",
+  "device": {
+    "model": "SM-X808U",
+    "product": "Samsung Galaxy Tab S8+",
+    "soc": "Qualcomm Snapdragon 8 Gen 1",
+    "gpu": "Adreno (TM) 730",
+    "android_release": "16",
+    "android_sdk": 36
+  },
+  "repositories": {
+    "steamclienttermux_parent_before_record": "49d31d7c40a6a732ad55aa780d5879d4578a6e8e",
+    "bionic_vulkan_bridge_e009_source": "4b2b5a6cbd116cadfbe4595d8c610046decf3291",
+    "bionic_vulkan_bridge_documented_head": "32b28fd27b0ea5f4cf8d614f1977026f615b0f9c"
+  },
+  "package": {
+    "application_id": "io.github.huntergdavis.bvb.visiblehost",
+    "version_code": 2,
+    "version_name": "0.1.1",
+    "min_sdk": 24,
+    "target_sdk": 36,
+    "compile_sdk": 36,
+    "activity": "android.app.NativeActivity",
+    "native_library_name": "bvb-visible-host",
+    "debuggable": true,
+    "installed_path_observed": "/data/app/.../io.github.huntergdavis.bvb.visiblehost-.../base.apk"
+  },
+  "artifact_identity": {
+    "apk_path": "out/visible-host/bvb-visible-host-debug.apk",
+    "apk_sha256": "9da4ba1d459bc6470ed7a9c0729adfb03e77a79accb1739cd5393293aa0ebb57",
+    "native_library_path": "lib/arm64-v8a/libbvb-visible-host.so",
+    "native_library_sha256": "b4772396af9bda82a41247ab06b153bb2d37eb5f2ff9447951ff3a418b7f21e5",
+    "native_soname": "libbvb-visible-host.so",
+    "exported_entry_point": "ANativeActivity_onCreate",
+    "signing_schemes_verified": ["v2", "v3"],
+    "signer_dn": "CN=BVB Android Debug, O=huntergdavis, C=US",
+    "signer_certificate_sha256": "5754d1170b6d007e72afed7de676312b9a1320d39c7b1405be9efa1ab2ef1e06"
+  },
+  "immersive_mode": {
+    "api": "View.setSystemUiVisibility via JNI",
+    "callbacks": [
+      "ANativeActivity_onCreate",
+      "onWindowFocusChanged when focused"
+    ],
+    "flags": {
+      "SYSTEM_UI_FLAG_HIDE_NAVIGATION": 2,
+      "SYSTEM_UI_FLAG_FULLSCREEN": 4,
+      "SYSTEM_UI_FLAG_LAYOUT_STABLE": 256,
+      "SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION": 512,
+      "SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN": 1024,
+      "SYSTEM_UI_FLAG_IMMERSIVE_STICKY": 4096
+    },
+    "renderer_changed_from_e008": false
+  },
+  "visual_acceptance": {
+    "observer": "user on the physical tablet",
+    "result": "PASS",
+    "reported_display": "totally full screen no icons",
+    "opaque_magenta_vulkan_frame_remained_visible": true,
+    "android_navigation_icons_visible": false,
+    "termux_x11_surface_used": false
+  },
+  "session_recall": {
+    "query": "Android NativeActivity immersive sticky hide navigation bar JNI setSystemUiVisibility onWindowFocusChanged",
+    "indexed_matches": 0,
+    "reused_material": "E008 NativeActivity window ownership, Vulkan renderer, and lifecycle callbacks"
+  },
+  "claims": {
+    "proven": [
+      "The dedicated Android Vulkan host can present the same visible frame with Android navigation controls fully hidden.",
+      "Immersive system-UI state is applied at Activity creation and restored when focus returns.",
+      "The immersive change does not modify the E008 Vulkan rendering path."
+    ],
+    "not_yet_proven": [
+      "visible-window lifecycle or status handoff through the Bionic bridge",
+      "shared-UID integration with Termux or Termux:X11",
+      "game input routing",
+      "game-facing Vulkan entry-point dispatch or DXVK integration",
+      "Tomb Raider performance improvement"
+    ]
+  }
+}

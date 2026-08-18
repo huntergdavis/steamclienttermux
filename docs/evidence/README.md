@@ -119,6 +119,11 @@ These screenshots capture milestones and failures from the original tablet.
   opaque-magenta Vulkan frame. It records APK/native/signing identities,
   packaging prerequisites, installed package identity, and the still-visible
   Android navigation bar.
+- `bionic-vulkan-bridge-e009-20260818.json`: artifact and visual-confirmation
+  evidence for the same NativeActivity presenting the magenta Vulkan frame in
+  immersive-sticky mode. It records the UI flags, focus-restoration callback,
+  APK/native/signing identities, and the user's confirmation that no Android
+  navigation icons remained visible.
 - `tombraider-gaminghub-added-performance-unconfirmed-2026-08-15.png`: a
   panel-native Low pass after both shared-UID apps were added to Gaming Hub but
   before the separate Performance selector was confirmed, reporting

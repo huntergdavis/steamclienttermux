@@ -6731,3 +6731,33 @@ an Android/Termux:X11 surface bridge also returned no indexed matches. The
 wire-format and socket-hardening discipline were instead reused from
 `termux-glibc-compat` commit
 `da200c72bb2fd4d3f6a4e7817d82eaf311f83780` and cited in the bridge ADR.
+
+## 2026-08-18: E009 makes the visible Vulkan host immersive
+
+E009 changed only the Android system-UI policy around the already-passing E008
+renderer. The no-Java NativeActivity obtains its Window decor View through JNI
+and sets hide-navigation, fullscreen, stable-layout, layout-hide-navigation,
+layout-fullscreen, and immersive-sticky flags. It applies the flags during
+`ANativeActivity_onCreate` and again whenever `onWindowFocusChanged` reports
+regained focus. Vulkan window, device, swapchain, clear, and presentation code
+remain unchanged.
+
+After updating and launching package version `0.1.1` (version code 2), the user
+directly observed that the opaque-magenta frame remained and reported that it
+was "totally full screen no icons." This passes immersive visible presentation
+on the physical tablet. It does not prove bridge lifecycle handoff, game input,
+game-facing dispatch, DXVK integration, or a Tomb Raider FPS improvement.
+
+The APK, native library, and signer certificate SHA-256 values are
+`9da4ba1d459bc6470ed7a9c0729adfb03e77a79accb1739cd5393293aa0ebb57`,
+`b4772396af9bda82a41247ab06b153bb2d37eb5f2ff9447951ff3a418b7f21e5`, and
+`5754d1170b6d007e72afed7de676312b9a1320d39c7b1405be9efa1ab2ef1e06`.
+Source commit `4b2b5a6cbd116cadfbe4595d8c610046decf3291` implements the change; bridge
+documentation commit `32b28fd27b0ea5f4cf8d614f1977026f615b0f9c` records the passed gate. The
+machine-readable record is
+`docs/evidence/bionic-vulkan-bridge-e009-20260818.json`.
+
+The required `deja` query—`Android NativeActivity immersive sticky hide
+navigation bar JNI setSystemUiVisibility onWindowFocusChanged`—returned no
+indexed prior match. E009 reused E008's proven NativeActivity window ownership
+and Vulkan renderer, adding only the Android View system-UI behavior.

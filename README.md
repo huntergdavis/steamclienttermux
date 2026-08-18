@@ -17,7 +17,7 @@ custom kernel, chroot, or system-wide library replacement.
 | --- | --- |
 | Steam | Authenticates, renders, downloads, and retains login state |
 | Graphics | Hardware Vulkan through private Mesa Turnip |
-| Experimental system-Vulkan bridge | Native commands, pixel-verified offscreen presentation, and a dedicated visibly magenta Android Vulkan Activity pass; game integration remains unimplemented ([bridge repository](https://github.com/huntergdavis/bionic-vulkan-bridge)) |
+| Experimental system-Vulkan bridge | Native commands, pixel-verified offscreen presentation, and a dedicated immersive visibly magenta Android Vulkan Activity pass; game integration remains unimplemented ([bridge repository](https://github.com/huntergdavis/bionic-vulkan-bridge)) |
 | Windows games | Official Proton 11 ARM64 + FEX + DXVK |
 | Audio/input | PulseAudio and Termux:X11 pointer/keyboard support |
 | Storage | Game payloads on microSD; lock-sensitive Steam metadata on internal F2FS |
@@ -59,7 +59,10 @@ real offscreen rendered/presented frame. E008 packages a standalone
 `NativeActivity`; the installed app visibly displayed the magenta Vulkan frame
 fullscreen, with Android navigation icons still visible at the bottom. See the
 [E008 record](docs/evidence/bionic-vulkan-bridge-e008-20260818.json). This is
-not yet bridged game output or an FPS gain.
+not yet bridged game output or an FPS gain. E009 then applied immersive-sticky
+system-UI control; the magenta frame remained visible while Android's navigation
+icons disappeared completely. See the
+[E009 record](docs/evidence/bionic-vulkan-bridge-e009-20260818.json).
 
 ## Tomb Raider benchmark snapshot
 

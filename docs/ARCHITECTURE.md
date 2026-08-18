@@ -73,13 +73,14 @@ reported stable queue, capability, format, and present-mode data across four
 runs. E007 then created its six-image FIFO swapchain, acquired and cleared an
 image, synchronized and presented it, acquired the consumer `AImage`, and
 verified all 4,096 opaque-magenta RGBA pixels. The full offscreen
-producer/BufferQueue/consumer loop now passes. The dedicated visible host,
-glibc bridge exposure, game-facing dispatch, DXVK integration, and any FPS
-improvement remain unproven. E008 then packaged a standalone Bionic
+producer/BufferQueue/consumer loop now passes. E008 then packaged a standalone Bionic
 `NativeActivity` whose dedicated Android window visibly displayed the same
-opaque-magenta Vulkan frame. The bottom navigation bar remained visible. The
-visible host therefore works, while explicit bridge lifecycle handoff,
-shared-UID integration, game dispatch, and performance remain future gates.
+opaque-magenta Vulkan frame. The bottom navigation bar remained visible. E009
+applied immersive-sticky flags on creation and after focus returns; the frame
+remained visible while the user confirmed that Android's navigation icons were
+fully hidden. The immersive visible host therefore works, while explicit
+bridge lifecycle handoff, shared-UID integration, game dispatch, DXVK
+integration, and performance remain future gates.
 
 Termux remains the Bionic control plane, while glibc remains necessary for the
 commercial Linux game stack. The experiment therefore narrows one boundary
