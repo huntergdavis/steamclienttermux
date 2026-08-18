@@ -131,6 +131,24 @@ def main() -> None:
         assert "child_preload=lean" in diagnostic_state
 
         (base / "run/native-runtime-dispatch/dispatch.sock").unlink()
+        tmp_only_environment = {
+            **environment,
+            "TOMB_RAIDER_DIRECT_CHILD_PRELOAD": "lean-tmp-only",
+        }
+        tmp_only = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env=tmp_only_environment,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        assert tmp_only.returncode == 1, tmp_only.stderr
+        tmp_only_state = (
+            base / "run/tombraider-direct-dispatch.state"
+        ).read_text()
+        assert "child_preload=lean-tmp-only" in tmp_only_state
+
+        (base / "run/native-runtime-dispatch/dispatch.sock").unlink()
         executable(launcher, "#!/bin/bash\nexit 7\n")
         failed = subprocess.run(
             ["bash", str(SCRIPT)],

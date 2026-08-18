@@ -128,6 +128,8 @@ install_one "$repo_root/scripts/start-tombraider-direct-dispatch.sh" \
     "$HOME/start-tombraider-direct-dispatch" 700
 install_one "$repo_root/scripts/start-tombraider-direct-lean.sh" \
     "$HOME/start-tombraider-direct-lean" 700
+install_one "$repo_root/scripts/start-tombraider-direct-tmp-only.sh" \
+    "$HOME/start-tombraider-direct-tmp-only" 700
 install_one "$repo_root/scripts/start-tombraider-direct-diagnostic.sh" \
     "$HOME/start-tombraider-direct-diagnostic" 700
 install_one "$repo_root/scripts/run-tombraider-native-benchmark.py" \

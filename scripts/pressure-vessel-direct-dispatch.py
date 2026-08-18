@@ -737,17 +737,24 @@ def pv_smoke_invocation(
     if child_preload_profile == "full":
         child_preloads = entry_preloads
         final_preloads = None
-    elif child_preload_profile == "lean":
+    elif child_preload_profile in ("lean", "lean-tmp-only"):
         child_preloads = [
             entry_preloads[0],
             entry_preloads[2],
             entry_preloads[3],
         ]
-        final_preloads = [entry_preloads[0], entry_preloads[3]]
+        final_preloads = (
+            [entry_preloads[0], entry_preloads[3]]
+            if child_preload_profile == "lean"
+            else [entry_preloads[0]]
+        )
         if final_path_prefix is None:
             fail("lean child preload requires a validated Proton path")
     else:
-        fail("STEAM_ARM64_DIRECT_CHILD_PRELOAD must be full or lean")
+        fail(
+            "STEAM_ARM64_DIRECT_CHILD_PRELOAD must be full, lean, "
+            "or lean-tmp-only"
+        )
     entry_preload = ":".join(str(path) for path in entry_preloads)
     child_preload = ":".join(str(path) for path in child_preloads)
     final_preload = (
