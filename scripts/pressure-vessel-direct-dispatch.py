@@ -735,7 +735,11 @@ def pv_smoke_invocation(
     if child_preload_profile == "full":
         child_preloads = entry_preloads
     elif child_preload_profile == "lean":
-        child_preloads = [entry_preloads[0], entry_preloads[3]]
+        child_preloads = [
+            entry_preloads[0],
+            entry_preloads[2],
+            entry_preloads[3],
+        ]
     else:
         fail("STEAM_ARM64_DIRECT_CHILD_PRELOAD must be full or lean")
     entry_preload = ":".join(str(path) for path in entry_preloads)

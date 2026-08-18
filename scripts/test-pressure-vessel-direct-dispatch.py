@@ -141,6 +141,7 @@ def main() -> None:
     invocation_source = inspect.getsource(MODULE.pv_smoke_invocation)
     assert "libtgcompat-robust.so" in invocation_source
     assert 'child_preload_profile == "lean"' in invocation_source
+    assert "entry_preloads[2]" in invocation_source
     assert "TGCOMPAT_EXEC_LD_PRELOAD" in invocation_source
     assert '"TGCOMPAT_USERFAULTFD_ENOSYS": "1"' in invocation_source
     assert 'command_mode == "tombraider"' in invocation_source
