@@ -5985,15 +5985,34 @@ eligible for an aggregate.
 Live `/proc` evidence also showed that fixed CPU IDs are the wrong invariant.
 Different valid top-app starts received `1-5` or `1-4,6`, while the invalid
 start that motivated this experiment received only CPU 1. The useful invariant
-is therefore at least five schedulable CPUs from the requested 1-7 set. The
-corrected `full` mode waits up to 15 seconds for that cardinality, then derives
-`PROTON_CPU_TOPOLOGY` from the exact mask Android granted. A one-CPU start still
-fails closed with status 125 before Proton; a five-, six-, or seven-CPU start
-can proceed without claiming CPUs outside its cgroup.
+initially appeared to be at least five schedulable CPUs from the requested 1-7
+set. The corrected gate waited up to 15 seconds for that cardinality, then
+derived `PROTON_CPU_TOPOLOGY` from the exact mask Android granted. A one-CPU
+start still failed closed with status 125 before Proton.
+
+Series `20260818T083109Z-fast` supplied the necessary counterexample. Its valid
+warm-up inherited `1-4,6`, logged `5/5/5`, and scored 22.4/46.7/32.5 FPS. After
+a controlled cooldown, recorded run 1 inherited `1-5` but Tomb Raider still
+logged `1/1/1`; its raw 11.0/36.8/20.7 FPS result was excluded and the series
+failed with zero recorded runs. Five CPUs are therefore necessary but not
+sufficient. Both launcher and dispatcher returned zero, so this was the same
+game affinity-equality failure rather than a runtime crash.
+
+The next bounded candidate addresses Tomb Raider's exact
+process-mask-equals-system-mask test directly. Before Proton exec, the
+dispatcher now requests CPUs 0-7 and `full` requires at least six schedulable
+CPUs. On this Android top-app policy that normally yields a mask such as
+`0-4,6` or `0-5`, which Wine advertises unchanged. CPU 0 is temporary: only
+after the game writes a fresh usable topology line does the existing guard move
+the game to CPUs 1-7, isolate RakNet on CPU 1, and retain Steam helpers on CPU
+0. This avoids both the equality mismatch and the prior external-poller race.
+No gain is claimed until a controlled series completes.
 
 All 47 project tests pass. The dispatcher test exercises the real
 fork/affinity/exec path and verifies that the child sees the same mask encoded
-in `PROTON_CPU_TOPOLOGY`. This diagnosis reused the earlier session's guarded
-RunCommandService property restoration and exact `/top-app` validation; focused
-`deja` searches found no indexed solution for a fixed five-versus-seven startup
-topology.
+in `PROTON_CPU_TOPOLOGY`; the synthetic guard test verifies a six-CPU
+`0-4,6` discovery followed by the final CPU-0-free game policy. This diagnosis
+reused the earlier session's guarded RunCommandService property restoration and
+exact `/top-app` validation; focused `deja` searches found no indexed solution
+for either fixed five-versus-seven startup topology or this repeated-launch
+failure.

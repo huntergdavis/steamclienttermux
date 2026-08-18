@@ -1195,9 +1195,9 @@ def run_tombraider(
         working_directory=(
             base / "removable-library/steamapps/common/Tomb Raider"
         ),
-        cpu_affinity=set(range(1, 8)),
+        cpu_affinity=set(range(8)),
         match_proton_cpu_topology=True,
-        minimum_cpu_affinity_count=(5 if require_full_startup_topology() else 0),
+        minimum_cpu_affinity_count=(6 if require_full_startup_topology() else 0),
     )
 
 
@@ -1218,9 +1218,9 @@ def run_tombraider_benchmark(
         working_directory=(
             base / "removable-library/steamapps/common/Tomb Raider"
         ),
-        cpu_affinity=set(range(1, 8)),
+        cpu_affinity=set(range(8)),
         match_proton_cpu_topology=True,
-        minimum_cpu_affinity_count=(5 if require_full_startup_topology() else 0),
+        minimum_cpu_affinity_count=(6 if require_full_startup_topology() else 0),
     )
 
 
@@ -1246,9 +1246,9 @@ def run_tombraider_diagnostic(
         working_directory=(
             base / "removable-library/steamapps/common/Tomb Raider"
         ),
-        cpu_affinity=set(range(1, 8)),
+        cpu_affinity=set(range(8)),
         match_proton_cpu_topology=True,
-        minimum_cpu_affinity_count=(5 if require_full_startup_topology() else 0),
+        minimum_cpu_affinity_count=(6 if require_full_startup_topology() else 0),
     )
 
 

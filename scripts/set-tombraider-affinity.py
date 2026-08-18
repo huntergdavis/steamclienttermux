@@ -152,7 +152,7 @@ def discovery_cpu_mask(environment):
         count != len(cpu_ids)
         or count < 2
         or len(set(cpu_ids)) != count
-        or any(cpu not in range(1, 8) for cpu in cpu_ids)
+        or any(cpu not in range(8) for cpu in cpu_ids)
     ):
         raise RuntimeError(f"game has unsafe CPU topology: {value!r}")
     return format_cpu_mask(cpu_ids)

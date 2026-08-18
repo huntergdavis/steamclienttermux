@@ -75,8 +75,8 @@ def main():
         }
         topology_environment = {
             **native_environment,
-            b"PROTON_CPU_TOPOLOGY": b"6:1,2,3,4,6,7",
-            b"WINE_CPU_TOPOLOGY": b"6:1,2,3,4,6,7",
+            b"PROTON_CPU_TOPOLOGY": b"6:0,1,2,3,4,6",
+            b"WINE_CPU_TOPOLOGY": b"6:0,1,2,3,4,6",
         }
         decoy_environment = {
             **environment,
@@ -87,13 +87,13 @@ def main():
         assert module.validate_environment(environment, Path("/base"))
         assert module.validate_environment(native_environment, Path("/base"))
         assert not module.validate_environment(decoy_environment, Path("/base"))
-        assert module.discovery_cpu_mask(topology_environment) == "1-4,6-7"
+        assert module.discovery_cpu_mask(topology_environment) == "0-4,6"
         assert module.format_cpu_mask({1, 2, 3, 5, 7}) == "1-3,5,7"
         for invalid_topology in (
             {},
             {b"WINE_CPU_TOPOLOGY": b"1:1"},
             {b"WINE_CPU_TOPOLOGY": b"2:1,1"},
-            {b"WINE_CPU_TOPOLOGY": b"2:0,1"},
+            {b"WINE_CPU_TOPOLOGY": b"2:0,8"},
             {
                 b"PROTON_CPU_TOPOLOGY": b"2:1,2",
                 b"WINE_CPU_TOPOLOGY": b"2:1,3",
