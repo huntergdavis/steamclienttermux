@@ -695,6 +695,33 @@ def direct_game_environment(base: Path, runtime_root: Path) -> dict[str, str]:
     return environment
 
 
+def validated_proc_net_shadow(base: Path) -> Path:
+    shadow = private_directory(
+        base / "config/proc-net", "synthetic proc-net directory"
+    )
+    expected = {"route", "ipv6_route"}
+    try:
+        entries = {entry.name for entry in shadow.iterdir()}
+    except OSError as error:
+        fail(f"cannot scan synthetic proc-net directory: {error}")
+    if entries != expected:
+        fail("synthetic proc-net directory has unexpected entries")
+    for name in sorted(expected):
+        path = shadow / name
+        try:
+            metadata = path.lstat()
+        except FileNotFoundError:
+            fail(f"synthetic proc-net file is unavailable: {path}")
+        if (
+            not stat.S_ISREG(metadata.st_mode)
+            or path.is_symlink()
+            or metadata.st_uid != os.geteuid()
+            or metadata.st_mode & 0o022
+        ):
+            fail(f"synthetic proc-net file is unsafe: {path}")
+    return shadow
+
+
 def run_final_smoke(
     base: Path,
     payload: dict[str, object],
@@ -725,6 +752,7 @@ def pv_smoke_invocation(
 ) -> tuple[Path, list[str], dict[str, str]]:
     final_path_prefix: Path | None = None
     runtime_root, loader, runtime_libraries = selected_runtime(base)
+    proc_net_shadow = validated_proc_net_shadow(base)
     bwrap_arguments = payload["bwrap_args"]
     payload_arguments = payload["payload_argv"]
     assert isinstance(bwrap_arguments, list)
@@ -841,6 +869,7 @@ def pv_smoke_invocation(
         else:
             final_preloads = [
                 entry_preloads[0],
+                entry_preloads[1],
                 entry_preloads[3],
                 entry_preloads[4],
             ]
@@ -880,6 +909,7 @@ def pv_smoke_invocation(
         {
             "LD_PRELOAD": entry_preload,
             "TGCOMPAT_ANDROID_ROOT_O_PATH": "1",
+            "TGCOMPAT_PROC_NET": str(proc_net_shadow),
             "TGCOMPAT_PROC_SELF_EXE": str(pv_path),
             "TGCOMPAT_LD_SO": str(loader),
             "TGCOMPAT_LIBRARY_PATH": libraries,

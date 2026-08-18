@@ -187,6 +187,34 @@ def main() -> None:
             "    type pulse\n"
             "}\n"
         )
+        proc_net = fixture_base / "config/proc-net"
+        proc_net.mkdir(parents=True, mode=0o700)
+        (proc_net / "route").write_text("route\n", encoding="utf-8")
+        (proc_net / "ipv6_route").write_text("", encoding="utf-8")
+        (proc_net / "route").chmod(0o600)
+        (proc_net / "ipv6_route").chmod(0o600)
+        assert MODULE.validated_proc_net_shadow(fixture_base) == proc_net
+        unexpected = proc_net / "tcp"
+        unexpected.write_text("unsafe\n", encoding="utf-8")
+        try:
+            MODULE.validated_proc_net_shadow(fixture_base)
+        except MODULE.DispatchError:
+            pass
+        else:
+            raise AssertionError("proc-net validator accepted an extra file")
+        unexpected.unlink()
+        route = proc_net / "route"
+        route.unlink()
+        route.symlink_to(proc_net / "ipv6_route")
+        try:
+            MODULE.validated_proc_net_shadow(fixture_base)
+        except MODULE.DispatchError:
+            pass
+        else:
+            raise AssertionError("proc-net validator accepted a route symlink")
+        route.unlink()
+        route.write_text("route\n", encoding="utf-8")
+        route.chmod(0o600)
         wine_debug = "+timestamp,+pid,+tid,+process,+module,+loaddll,+seh"
         assert MODULE.proton_smoke_environment("proton-cmd", True) == {
             "WINEDEBUG": wine_debug
@@ -216,8 +244,10 @@ def main() -> None:
     assert "TGCOMPAT_EXEC_FINAL_LD_PRELOAD" in invocation_source
     assert "TGCOMPAT_EXEC_FINAL_PROC_SELF_EXE" in invocation_source
     assert "entry_preloads[4]" in invocation_source
+    assert "entry_preloads[1]" in invocation_source
     assert 'child_preload_profile == "lean-tmp-only"' in invocation_source
     assert '"TGCOMPAT_USERFAULTFD_ENOSYS": "1"' in invocation_source
+    assert '"TGCOMPAT_PROC_NET": str(proc_net_shadow)' in invocation_source
     assert 'command_mode == "tombraider"' in invocation_source
     game_source = inspect.getsource(MODULE.run_tombraider)
     assert '"tombraider"' in game_source
