@@ -170,6 +170,12 @@ def main() -> None:
             "ALSA_CONFIG_DIR": str(alsa_data),
             "ALSA_PLUGIN_DIR": str(plugin_directory),
         }
+        assert MODULE.direct_game_environment(
+            fixture_base, audio_runtime
+        ) == {
+            **audio_environment,
+            "TZ": "UTC0",
+        }
         assert direct_config.stat().st_mode & 0o777 == 0o600
         assert direct_config.read_text(encoding="utf-8") == (
             f"<{alsa_data / 'alsa.conf'}>\n"

@@ -689,6 +689,12 @@ def direct_audio_environment(base: Path, runtime_root: Path) -> dict[str, str]:
     }
 
 
+def direct_game_environment(base: Path, runtime_root: Path) -> dict[str, str]:
+    environment = direct_audio_environment(base, runtime_root)
+    environment["TZ"] = "UTC0"
+    return environment
+
+
 def run_final_smoke(
     base: Path,
     payload: dict[str, object],
@@ -866,7 +872,7 @@ def pv_smoke_invocation(
     ):
         environment.update(proton_smoke_environment(command_mode, diagnostics))
     if command_mode == "tombraider":
-        environment.update(direct_audio_environment(base, runtime_root))
+        environment.update(direct_game_environment(base, runtime_root))
     prefix = os.environ.get("PREFIX", "")
     if not prefix.startswith("/"):
         fail("Termux PREFIX is unavailable to the direct dispatcher")
