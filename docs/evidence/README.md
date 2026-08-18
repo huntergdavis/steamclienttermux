@@ -87,6 +87,9 @@ These screenshots capture milestones and failures from the original tablet.
   Tomb Raider process left PRoot. It shows the Square Enix Terms of Service
   prompt and proves that DirectX 11 initialization reached interactive UI; it
   does not claim that the user accepted those terms.
+- `tombraider-direct-cpu-topology-20260818.json`: the PE32 CPU-helper addresses,
+  Windows API/CPUID control-probe results, Android affinity-race evidence, and
+  first valid command-line benchmark from the direct no-PRoot game path.
 - `tombraider-gaminghub-added-performance-unconfirmed-2026-08-15.png`: a
   panel-native Low pass after both shared-UID apps were added to Gaming Hub but
   before the separate Performance selector was confirmed, reporting

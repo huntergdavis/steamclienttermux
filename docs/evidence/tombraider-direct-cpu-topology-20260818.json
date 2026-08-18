@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-08-18T07:19:26Z",
+  "device": "Samsung Galaxy Tab S8+",
+  "game": {
+    "appid": 203160,
+    "executable": "TombRaider.exe",
+    "pe_architecture": "i386",
+    "size_bytes": 19198000,
+    "sha256": "f36b8dd2bd74d48c14bf910ad9bd4ac9f4024433523ffc7e46d5c85c3dd618f5"
+  },
+  "reverse_engineering": {
+    "cpu_log_format_file_offset": "0x966868",
+    "cpu_log_format_va": "0xd68268",
+    "cpu_helper_call_site_va": "0x5883d0",
+    "cpu_helper_va": "0x587720",
+    "get_process_affinity_mask_call_va": "0x587860",
+    "affinity_compare_va": "0x5878a5",
+    "observed_behavior": "The caller initializes logical, core, and physical outputs to one. The Intel helper returns before replacing them when GetProcessAffinityMask reports unequal process and system masks."
+  },
+  "windows_i686_probe": {
+    "source": "diagnostics/windows-cpu-topology.c",
+    "environment_number_of_processors": 8,
+    "get_system_info_logical": 8,
+    "get_native_system_info_logical": 8,
+    "process_affinity_mask": "0x0f",
+    "system_affinity_mask": "0xff",
+    "legacy_topology_logical": 8,
+    "legacy_topology_core_threads": 8,
+    "cpuid_leaf_1_logical": 8,
+    "cpuid_leaf_4_cores": 8,
+    "conclusion": "The general Windows and CPUID topology APIs were healthy. Tomb Raider's process/system affinity equality gate caused the 1/1/1 fallback."
+  },
+  "android_race": {
+    "invalid_exported_topology": "6:1,2,3,4,5,6",
+    "invalid_game_linux_mask": "1-5",
+    "invalid_game_logical_cores_physical": [1, 1, 1],
+    "corrected_exported_topology": "6:1,2,3,4,6,7",
+    "discovery_hold_mask": "1-4,6-7",
+    "corrected_game_logical_cores_physical": [5, 5, 5],
+    "post_discovery_performance_mask": "1-7",
+    "post_discovery_raknet_mask": "1"
+  },
+  "first_valid_direct_benchmark": {
+    "result_file": "benchmarkresults 2026-08-18 07-18-54.txt",
+    "resolution": "2800x1752",
+    "refresh_hz": 60,
+    "graphics": "Low",
+    "fex_profile": "safe",
+    "minimum_fps": 18.7,
+    "maximum_fps": 46.5,
+    "average_fps": 27.6,
+    "launcher_status": 0,
+    "dispatcher_status": 0,
+    "steam_x11_audio_preserved": true
+  }
+}

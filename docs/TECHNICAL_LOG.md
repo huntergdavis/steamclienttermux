@@ -5808,3 +5808,84 @@ original property byte-for-byte. Every guarded retry restored SHA-256
 `89094537f49531dc9b380a0dec3a441b2fb92577e0a4f1db505790eb8b7025b0`.
 The full `scripts/check-project.sh` suite passed after each Steam-side change,
 and each commit was pushed to `origin/main` before tablet installation.
+
+## 2026-08-18: explain and eliminate Tomb Raider's false one-CPU startup
+
+The direct game reached interactive UI but repeatedly logged
+`logical = 1, cores = 1, physical = 1`. This was not inferred from Linux CPU
+count or fixed by adding more synthetic `/proc/stat` rows. A true PE32 MinGW
+probe, committed as `diagnostics/windows-cpu-topology.c`, ran through the exact
+Wine/FEX environment and reported eight processors through `NUMBER_OF_PROCESSORS`,
+`GetSystemInfo`, `GetNativeSystemInfo`, both logical-processor APIs, and CPUID.
+It also exposed the decisive inconsistency: `GetProcessAffinityMask` returned
+process mask `0x0f` and system mask `0xff`.
+
+Static analysis of the installed 19,198,000-byte PE32 executable (SHA-256
+`f36b8dd2bd74d48c14bf910ad9bd4ac9f4024433523ffc7e46d5c85c3dd618f5`)
+located the CPU log format at file offset `0x966868` / VA `0xd68268`, its call
+site at VA `0x5883d0`, and the helper at VA `0x587720`. The caller initializes
+all three outputs to one. The Intel path calls `GetProcessAffinityMask` at VA
+`0x587860`; the comparison around VA `0x5878a5` returns early when process and
+system masks differ, leaving the initialized `1/1/1` values. The probe can be
+rebuilt inside the tablet Debian PRoot with:
+
+```bash
+i686-w64-mingw32-gcc -std=c11 -O2 -Wall -Wextra \
+  diagnostics/windows-cpu-topology.c -o windows-cpu-topology-i686.exe
+x86_64-w64-mingw32-gcc -std=c11 -O2 -Wall -Wextra \
+  diagnostics/windows-cpu-topology.c -o windows-cpu-topology-x86_64.exe
+```
+
+The first correction delayed the 1-7 performance split until after the fresh
+CPU line. Android then exposed a second race: it could rewrite a new process's
+accepted affinity between Proton exporting `WINE_CPU_TOPOLOGY` and the game
+calling the helper. One invalid command-line benchmark exported
+`6:1,2,3,4,5,6`, reached Linux mask `1-5`, and fell back to `1/1/1` again.
+Commit `b960d2c` closes that interval. The guard now validates matching Wine
+and Proton topology variables, services the game before Steam helpers, and
+repeatedly holds every game thread on that exact topology mask at 250 ms
+intervals. Only a fresh multi-CPU log allows the normal 1-7/RakNet split.
+
+The corrected live run held `1-4,6-7`, logged a usable `5/5/5`, then converged
+45 threads to CPUs 1-7 with RakNet on CPU 1 and Steam helpers on CPU 0. Fixed
+CPU IDs are deliberately not assumed: the accepted Android top-app set changed
+across launches. The machine-readable executable, address, probe, and mask
+evidence is `docs/evidence/tombraider-direct-cpu-topology-20260818.json`.
+
+The required focused `deja` searches found no earlier solution for either the
+game's affinity equality gate or Android's post-export rewrite. This work
+reused the repository's exact AppID/compatdata selectors, top-app validation,
+affinity convergence, and the guarded RunCommandService property-race fix.
+
+## 2026-08-18: first native-resolution benchmark on the direct game path
+
+Commit `26c746d` added a separate `tombraider-benchmark` dispatcher mode that
+accepts only the exact final command
+`TombRaider.exe -nolauncher -benchmark`. It shares the direct audio, timezone,
+lean preload, dynamic topology, and delayed affinity path with normal play.
+The game's own benchmark documentation confirms that `-benchmark` starts the
+scene immediately, forces exclusive fullscreen with VSync off, writes one
+timestamped result, and exits.
+
+After the topology fix, a guarded `/top-app` run started below the established
+40 C ceiling. The authoritative game-written result reported:
+
+```text
+Min FPS: 18.7
+Max FPS: 46.5
+Average FPS: 27.6
+FullscreenWidth = 2800
+FullscreenHeight = 1752
+FullscreenRefreshRate = 60
+```
+
+The launcher and dispatcher both returned zero, the affinity log reached its
+30-second ready state, and Steam, X11, PulseAudio, and saved authentication
+survived the game exit. This single pass is 9.7% above the prior controlled
+Safe/60 Hz mean of 25.167 FPS, but it is not promoted to the summary benchmark
+table as a one-run conclusion. Commit `f84c450` extends the existing thermal
+controller with a `direct` backend: it reuses exactly one authenticated Steam
+process, verifies the Safe FEX profile and native display, requires direct
+startup-topology evidence, waits below 40 C before every pass, and records the
+same atomic JSON schema. A warm-up plus three recorded passes was started for
+the repeatability decision.
