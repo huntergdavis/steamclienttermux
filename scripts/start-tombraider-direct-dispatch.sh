@@ -10,6 +10,7 @@ python=${TOMB_RAIDER_DIRECT_PYTHON:-$default_python}
 launcher=${TOMB_RAIDER_DIRECT_LAUNCHER:-$HOME/start-steam-native.sh}
 prepare=${TOMB_RAIDER_DIRECT_PREPARE:-$base/compat-bin/prepare-proton-direct-wine.py}
 affinity=${TOMB_RAIDER_DIRECT_AFFINITY:-$base/compat-bin/set-tombraider-affinity.py}
+topology_checker=${TOMB_RAIDER_DIRECT_TOPOLOGY_CHECKER:-$base/compat-bin/configure-tombraider-cpu-topology.py}
 mode=${TOMB_RAIDER_DIRECT_MODE:-tombraider}
 diagnostics=${TOMB_RAIDER_DIRECT_DIAGNOSTICS:-0}
 child_preload=${TOMB_RAIDER_DIRECT_CHILD_PRELOAD:-full}
@@ -49,6 +50,12 @@ if [[ $mode == tombraider || $mode == tombraider-benchmark ||
     $mode == tombraider-diagnostic ]]; then
     [[ -f $affinity && ! -L $affinity ]] ||
         fail "Tomb Raider affinity guard is unavailable: $affinity"
+    [[ -f $topology_checker && ! -L $topology_checker ]] ||
+        fail "Tomb Raider CPU-topology checker is unavailable: $topology_checker"
+    topology_status=$("$python" "$topology_checker" --check) ||
+        fail 'Tomb Raider CPU-topology fix check failed'
+    [[ $topology_status =~ ^Tomb\ Raider\ CPU\ topology\ fix:\ enabled\;\ SHA-256\ [0-9a-f]{64}$ ]] ||
+        fail "Tomb Raider CPU-topology fix is not enabled: $topology_status"
 fi
 
 "$python" "$prepare" prepare --base "$base"

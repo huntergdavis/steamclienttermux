@@ -30,6 +30,21 @@ def main():
         assert "average_fps" in str(error)
     else:
         raise AssertionError("incomplete benchmark result was accepted")
+    patched_sha = "4" * 64
+    assert module.parse_topology_fix_status(
+        f"Tomb Raider CPU topology fix: enabled; SHA-256 {patched_sha}\n"
+    ) == patched_sha
+    for invalid_topology_status in (
+        f"Tomb Raider CPU topology fix: disabled; SHA-256 {'f' * 64}\n",
+        "Tomb Raider CPU topology fix: enabled\n",
+        f"noise\nTomb Raider CPU topology fix: enabled; SHA-256 {patched_sha}\n",
+    ):
+        try:
+            module.parse_topology_fix_status(invalid_topology_status)
+        except RuntimeError as error:
+            assert "not enabled" in str(error)
+        else:
+            raise AssertionError("invalid topology-fix status was accepted")
 
     xrandr = (
         "Screen 0: minimum 320 x 200, current 2800 x 1752, maximum 8192 x 8192\n"

@@ -145,6 +145,16 @@ def parse_benchmark_result(data: bytes) -> dict[str, float]:
     return result
 
 
+def parse_topology_fix_status(output: str) -> str:
+    match = re.fullmatch(
+        r"Tomb Raider CPU topology fix: enabled; SHA-256 ([0-9a-f]{64})\n?",
+        output,
+    )
+    if match is None:
+        raise RuntimeError("Tomb Raider CPU-topology fix is not enabled")
+    return match.group(1)
+
+
 def parse_xrandr_geometry(output: str) -> str | None:
     match = re.search(r"^Screen 0:.* current (\d+) x (\d+),", output, re.MULTILINE)
     return f"{match.group(1)}x{match.group(2)}" if match else None
@@ -488,6 +498,7 @@ def main() -> int:
     game_directory = base / "removable-library/steamapps/common/Tomb Raider"
     guard_directory = base / "logs"
     profile_checker = base / "compat-bin/configure-tombraider-performance.py"
+    topology_checker = base / "compat-bin/configure-tombraider-cpu-topology.py"
     steam_executable = base / "client/steamrtarm64/steam"
     proc_root = Path("/proc")
     cpu_root = Path("/sys/devices/system/cpu")
@@ -513,6 +524,8 @@ def main() -> int:
         ]
         if arguments.backend == "proot":
             required.insert(0, (primer, "native Steam primer"))
+        else:
+            required.append((topology_checker, "Tomb Raider CPU-topology checker"))
         for path, label in required:
             require_regular(path, label, executable=True)
         if not game_directory.is_dir() or game_directory.is_symlink():
@@ -590,6 +603,16 @@ def main() -> int:
             profile_log,
         )
         if arguments.backend == "direct":
+            topology_log = output_directory / "cpu-topology-fix-check.log"
+            run_logged(
+                python_tool_command(topology_checker, "--check"),
+                environment,
+                topology_log,
+            )
+            series["target"]["cpu_topology_fix_sha256"] = (
+                parse_topology_fix_status(topology_log.read_text())
+            )
+            atomic_json(output_directory / "series.json", series)
             steam_pids = existing_steam_pids
             series["steam_reused"] = True
         else:

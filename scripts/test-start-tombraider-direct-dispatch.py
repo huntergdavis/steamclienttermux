@@ -40,6 +40,7 @@ def main() -> None:
         result_file = root / "launcher-environment"
         prepare_result = root / "prepare-result"
         affinity_result = root / "affinity-result"
+        topology_result = root / "topology-result"
         prepare = root / "prepare"
         executable(
             prepare,
@@ -70,6 +71,15 @@ def main() -> None:
             "Path(os.environ['FIXTURE_AFFINITY_RESULT']).write_text(' '.join(sys.argv[1:]) + '\\n')\n"
             "time.sleep(30)\n",
         )
+        topology_checker = root / "topology-checker"
+        executable(
+            topology_checker,
+            "#!/usr/bin/env python3\n"
+            "from pathlib import Path\n"
+            "import os, sys\n"
+            "Path(os.environ['FIXTURE_TOPOLOGY_RESULT']).write_text(' '.join(sys.argv[1:]) + '\\n')\n"
+            "print('Tomb Raider CPU topology fix: enabled; SHA-256 ' + '4' * 64)\n",
+        )
         environment = {
             **os.environ,
             "STEAM_ARM64_BASE": str(base),
@@ -78,9 +88,11 @@ def main() -> None:
             "TOMB_RAIDER_DIRECT_LAUNCHER": str(launcher),
             "TOMB_RAIDER_DIRECT_PREPARE": str(prepare),
             "TOMB_RAIDER_DIRECT_AFFINITY": str(affinity),
+            "TOMB_RAIDER_DIRECT_TOPOLOGY_CHECKER": str(topology_checker),
             "FIXTURE_RESULT": str(result_file),
             "FIXTURE_AFFINITY_RESULT": str(affinity_result),
             "FIXTURE_PREPARE_RESULT": str(prepare_result),
+            "FIXTURE_TOPOLOGY_RESULT": str(topology_result),
             "FIXTURE_SOCKET": str(
                 base / "run/native-runtime-dispatch/dispatch.sock"
             ),
@@ -94,6 +106,7 @@ def main() -> None:
         )
         assert result.returncode == 1, result.stderr
         assert prepare_result.read_text().splitlines() == [f"prepare --base {base}"]
+        assert topology_result.read_text().splitlines() == ["--check"]
         assert result_file.read_text().splitlines() == [
             "1",
             "--appid 203160 -- -nolauncher",
@@ -219,6 +232,21 @@ def main() -> None:
         assert "status=complete" in failed_state
         assert "launcher_status=7" in failed_state
         assert "launcher_log=" in failed_state
+
+        executable(
+            topology_checker,
+            "#!/usr/bin/env python3\n"
+            "print('Tomb Raider CPU topology fix: disabled; SHA-256 ' + 'f' * 64)\n",
+        )
+        rejected_patch = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env=environment,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        assert rejected_patch.returncode == 1
+        assert "CPU-topology fix is not enabled" in rejected_patch.stderr
 
         python_link = root / "python3-link"
         python_link.symlink_to(Path(os.sys.executable).resolve())

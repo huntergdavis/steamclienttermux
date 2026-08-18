@@ -6087,3 +6087,17 @@ matched patched-topology repeat.
 The committed raw artifact is
 `docs/benchmark-series/tombraider-direct-glibc-fast-topology-fix-60hz-40c-20260818.json`,
 SHA-256 `3abf061dab28b8f06242cab6aa17f05df891d3ed9c5e27c19b33aed05739d768`.
+
+## 2026-08-18: make topology-fix provenance a launch invariant
+
+All real direct Tomb Raider modes now stop before starting the compatibility
+server unless the guarded configurator reports the exact enabled executable
+state. Smoke modes remain independent of a local game installation. The direct
+benchmark controller performs the same check and records the complete enabled
+SHA-256 in `target.cpu_topology_fix_sha256` inside `series.json`. This prevents
+an unpatched or replaced executable from silently reintroducing false `1/1/1`
+topology passes into future comparisons.
+
+Focused tests reject disabled and malformed status output, and the full project
+suite passes. The check does not modify the game, Steam, X11, PulseAudio, or
+saved authentication state.
