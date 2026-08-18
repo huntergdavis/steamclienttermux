@@ -41,6 +41,7 @@ def main() -> None:
     assert 'diagnostics == "1"' in arm64_source
     loader_source = inspect.getsource(MODULE.run_loader_child)
     assert '"-k"' in loader_source
+    assert '"trace=%process,%signal,%network"' in loader_source
     assert "os.chdir(working_directory)" in loader_source
     runtime_source = inspect.getsource(MODULE.selected_runtime)
     assert '"usr/lib/aarch64-linux-gnu/pulseaudio"' in runtime_source
@@ -215,11 +216,18 @@ def main() -> None:
         route.unlink()
         route.write_text("route\n", encoding="utf-8")
         route.chmod(0o600)
-        wine_debug = "+timestamp,+pid,+tid,+process,+module,+loaddll,+seh"
+        wine_debug = (
+            "+timestamp,+pid,+tid,+process,+module,+loaddll,+seh,"
+            "+winsock,+wininet,+winhttp,+iphlpapi,+nsi,"
+            "+secur32,+schannel"
+        )
         assert MODULE.proton_smoke_environment("proton-cmd", True) == {
             "WINEDEBUG": wine_debug
         }
         assert MODULE.proton_smoke_environment("proton-arm64-cmd", True) == {
+            "WINEDEBUG": wine_debug
+        }
+        assert MODULE.proton_smoke_environment("tombraider", True) == {
             "WINEDEBUG": wine_debug
         }
     assert MODULE.request_environment(
@@ -256,6 +264,7 @@ def main() -> None:
     assert "tombraider-direct-process-" in diagnostic_source
     assert "trace_path" in diagnostic_source
     assert "False" in diagnostic_source
+    assert '"tombraider", True' in diagnostic_source
     with tempfile.TemporaryDirectory(prefix="removable-game.") as directory:
         game_fixture = Path(directory) / "TombRaider.exe"
         game_fixture.write_bytes(b"game")

@@ -409,7 +409,7 @@ def run_loader_child(
             (
                 "trace=%file,%process,%memory"
                 if trace_stacks
-                else "trace=%process,%signal"
+                else "trace=%process,%signal,%network"
             ),
         ]
         if trace_stacks:
@@ -608,7 +608,11 @@ def proton_smoke_environment(
     if command_mode in ("proton-cmd", "proton-arm64-cmd", "tombraider"):
         if diagnostics:
             return {
-                "WINEDEBUG": "+timestamp,+pid,+tid,+process,+module,+loaddll,+seh"
+                "WINEDEBUG": (
+                    "+timestamp,+pid,+tid,+process,+module,+loaddll,+seh,"
+                    "+winsock,+wininet,+winhttp,+iphlpapi,+nsi,"
+                    "+secur32,+schannel"
+                )
             }
         return {"WINEDEBUG": "-all"}
     fail(f"unsupported Proton smoke mode: {command_mode}")
@@ -1042,7 +1046,7 @@ def run_tombraider_diagnostic(
     descriptors: list[int],
 ) -> tuple[int, int]:
     loader, arguments, environment = pv_smoke_invocation(
-        base, payload, "tombraider"
+        base, payload, "tombraider", True
     )
     logs = private_directory(base / "logs", "Steam log directory")
     trace_path = logs / f"tombraider-direct-process-{os.getpid()}.strace"
