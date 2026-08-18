@@ -571,7 +571,10 @@ def main() -> int:
             )
         steam_environment = environment_for_pid(proc_root, steam_pids[0])
         effective_profile = steam_environment.get("STEAM_ARM64_FEX_PROFILE")
-        if effective_profile != arguments.profile:
+        if arguments.backend == "direct":
+            series["steam_fex_profile"] = effective_profile
+            series["direct_game_fex_profile"] = arguments.profile
+        elif effective_profile != arguments.profile:
             raise RuntimeError(
                 f"native Steam inherited FEX profile {effective_profile!r}, "
                 f"expected {arguments.profile!r}"

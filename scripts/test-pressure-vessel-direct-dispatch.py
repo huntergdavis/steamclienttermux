@@ -220,6 +220,32 @@ def main() -> None:
             **audio_environment,
             "TZ": "UTC0",
         }
+        stale_fex = {
+            "FEX_MAXINST": "500",
+            "FEX_TSOENABLED": "1",
+            "FEX_HALFBARRIERTSOENABLED": "1",
+            "STEAM_FEX_TSOENABLED": "1",
+            "UNRELATED": "preserved",
+        }
+        MODULE.apply_direct_fex_profile(stale_fex, "fast")
+        assert stale_fex["STEAM_ARM64_FEX_PROFILE"] == "fast"
+        assert stale_fex["FEX_MAXINST"] == "5000"
+        assert stale_fex["FEX_TSOENABLED"] == "0"
+        assert stale_fex["FEX_HALFBARRIERTSOENABLED"] == "0"
+        assert stale_fex["STEAM_FEX_TSOENABLED"] == "0"
+        assert stale_fex["FEX_MULTIBLOCK"] == "1"
+        assert stale_fex["UNRELATED"] == "preserved"
+        MODULE.apply_direct_fex_profile(stale_fex, "proton")
+        assert stale_fex == {
+            "STEAM_ARM64_FEX_PROFILE": "proton",
+            "UNRELATED": "preserved",
+        }
+        try:
+            MODULE.apply_direct_fex_profile(stale_fex, "unsafe")
+        except MODULE.DispatchError:
+            pass
+        else:
+            raise AssertionError("unsupported direct FEX profile was accepted")
         assert direct_config.stat().st_mode & 0o777 == 0o600
         assert direct_config.read_text(encoding="utf-8") == (
             f"<{alsa_data / 'alsa.conf'}>\n"

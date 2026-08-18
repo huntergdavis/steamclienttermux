@@ -17,7 +17,8 @@ def main() -> None:
         launcher.write_text(
             "#!/bin/bash\n"
             "printf '%s\\n' \"${TOMB_RAIDER_DIRECT_MODE:-}\" "
-            "\"${TOMB_RAIDER_DIRECT_CHILD_PRELOAD:-}\" \"$*\" >\"$CAPTURE\"\n",
+            "\"${TOMB_RAIDER_DIRECT_CHILD_PRELOAD:-}\" "
+            "\"${STEAM_ARM64_DIRECT_FEX_PROFILE:-}\" \"$*\" >\"$CAPTURE\"\n",
             encoding="utf-8",
         )
         launcher.chmod(0o700)
@@ -25,6 +26,7 @@ def main() -> None:
             **os.environ,
             "TOMB_RAIDER_DIRECT_LAUNCHER_WRAPPER": str(launcher),
             "CAPTURE": str(capture),
+            "STEAM_ARM64_FEX_PROFILE": "fast",
         }
         result = subprocess.run(
             ["bash", str(SCRIPT), "fixture"],
@@ -37,6 +39,7 @@ def main() -> None:
         assert capture.read_text(encoding="utf-8").splitlines() == [
             "tombraider-benchmark",
             "lean",
+            "fast",
             "fixture",
         ]
 

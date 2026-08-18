@@ -721,6 +721,59 @@ def direct_game_environment(base: Path, runtime_root: Path) -> dict[str, str]:
     return environment
 
 
+DIRECT_FEX_KEYS = {
+    "FEX_MAXINST",
+    "FEX_PROFILESTATS",
+    "FEX_DISABLEL2CACHE",
+    "FEX_DYNAMICL1CACHE",
+    "FEX_X87REDUCEDPRECISION",
+    "FEX_MULTIBLOCK",
+    "FEX_VECTORTSOENABLED",
+    "FEX_MEMCPYSETTSOENABLED",
+    "FEX_SMALLTSCSCALE",
+    "FEX_SMC_CHECKS",
+    "FEX_VOLATILEMETADATA",
+    "FEX_MONOHACKS",
+    "FEX_HIDEHYPERVISORBIT",
+    "FEX_TSOENABLED",
+    "FEX_HALFBARRIERTSOENABLED",
+    "STEAM_FEX_MULTIBLOCK",
+    "STEAM_FEX_TSOENABLED",
+    "STEAM_ARM64_FEX_PROFILE",
+}
+
+
+def apply_direct_fex_profile(environment: dict[str, str], profile: str) -> None:
+    if profile not in ("proton", "safe", "fast"):
+        fail(f"unsupported direct FEX profile: {profile}")
+    for name in DIRECT_FEX_KEYS:
+        environment.pop(name, None)
+    environment["STEAM_ARM64_FEX_PROFILE"] = profile
+    if profile == "proton":
+        return
+    environment.update(
+        {
+            "FEX_MAXINST": "5000",
+            "FEX_PROFILESTATS": "0",
+            "FEX_DISABLEL2CACHE": "0",
+            "FEX_DYNAMICL1CACHE": "0",
+            "FEX_X87REDUCEDPRECISION": "1",
+            "FEX_MULTIBLOCK": "1",
+            "FEX_VECTORTSOENABLED": "0",
+            "FEX_MEMCPYSETTSOENABLED": "0",
+            "FEX_SMALLTSCSCALE": "1",
+            "FEX_SMC_CHECKS": "mtrack",
+            "FEX_VOLATILEMETADATA": "1",
+            "FEX_MONOHACKS": "1",
+            "FEX_HIDEHYPERVISORBIT": "0",
+            "FEX_TSOENABLED": "0" if profile == "fast" else "1",
+            "FEX_HALFBARRIERTSOENABLED": "0" if profile == "fast" else "1",
+            "STEAM_FEX_MULTIBLOCK": "1",
+            "STEAM_FEX_TSOENABLED": "0" if profile == "fast" else "1",
+        }
+    )
+
+
 def validated_proc_net_shadow(base: Path) -> Path:
     shadow = private_directory(
         base / "config/proc-net", "synthetic proc-net directory"
@@ -980,6 +1033,9 @@ def pv_smoke_invocation(
         environment.update(proton_smoke_environment(command_mode, diagnostics))
     if command_mode in ("tombraider", "tombraider-benchmark"):
         environment.update(direct_game_environment(base, runtime_root))
+        direct_fex_profile = os.environ.get("STEAM_ARM64_DIRECT_FEX_PROFILE")
+        if direct_fex_profile is not None:
+            apply_direct_fex_profile(environment, direct_fex_profile)
     prefix = os.environ.get("PREFIX", "")
     if not prefix.startswith("/"):
         fail("Termux PREFIX is unavailable to the direct dispatcher")
