@@ -1050,3 +1050,29 @@ and [`pair continuation`](benchmark-series/tombraider-direct-glibc-safe-topology
 SHA-256 `9cc1ee724d493a12952ddc06e4c5cf84530394170a6ad9b46ea0881eb4e9e5a2`.
 The excluded raw result SHA-256 is
 `e6823ccda0bb8003945d46e994c600c1a5b8a990d2ae18c247a4b1ece7de7854`.
+
+## Experimental X11 CPU0-1 pair (2026-08-18)
+
+A guarded feasibility pair tested whether moving all 14 exact Termux:X11
+threads from CPUs 0-3 to CPUs 0-1 reduces contention with the game on CPUs
+1-7. The panel remained at 2800x1752 and 59.97 Hz with Low graphics, Safe
+FEX, full startup topology, and a fixed 40 C start ceiling.
+
+| Pass | X11 CPUs | Minimum | Maximum | Average |
+| --- | ---: | ---: | ---: | ---: |
+| warm-up | 0-3 | 22.9 | 45.5 | 33.0 |
+| recorded control | 0-3 | 21.8 | 44.7 | 31.3 |
+| recorded isolated | 0-1 | 22.3 | 48.7 | 31.4 |
+| isolated minus control | n/a | +2.29% | +8.95% | **+0.32%** |
+
+The holder proved the same 14 thread identities active, normal game exit,
+and exact restoration to CPUs 0-3. Steam, X11, PulseAudio, saved
+authentication, the topology patch, and the disabled external-command
+property all survived. CPU0-1 is feasible, unlike rejected CPU0-only
+isolation, but the single-pair average gain is too small to enable by
+default. The next decision-quality series alternates three untreated and
+three CPU0-1 passes in one cooled session.
+
+The exact schema-v1 artifact is
+[`tombraider-direct-glibc-safe-topology-fix-x11-cpu01-pair-60hz-40c-20260818.json`](benchmark-series/tombraider-direct-glibc-safe-topology-fix-x11-cpu01-pair-60hz-40c-20260818.json),
+SHA-256 `0ca22f2ee6436eaa6a6a0492425253ca1e326153c0f7819828c589ca65281d2f`.

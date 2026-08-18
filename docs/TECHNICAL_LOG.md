@@ -6344,3 +6344,30 @@ property, result-directory extras, and cached policy check. Focused `deja`
 queries found no earlier X11-identity, CPU-0, or post-restore hang solution;
 this work reused the prior session's exact RunCommand gate and the repository's
 game selector and affinity restoration contracts.
+
+## 2026-08-18: CPU0-1 X11 isolation is safe but not yet faster
+
+Commit `249f15b` generalized the X11 holder and benchmark controller from a
+single CPU to a validated sorted CPU set. Series `20260818T125407Z-safe`
+then ran at 2800x1752, 59.97 Hz, Low, Safe, full startup topology, and the
+fixed 40 C ceiling. The untreated warm-up scored 22.9/45.5/33.0 FPS. The
+recorded control scored 21.8/44.7/31.3 FPS; the CPU0-1 pass scored
+22.3/48.7/31.4 FPS.
+
+The holder named the same 14 X11 start identities, constrained them all to
+CPUs 0-1, observed normal game exit, and restored every identity to CPUs
+0-3. The isolated pass changes minimum, maximum, and average by +2.29%,
++8.95%, and only +0.32%, respectively. CPU0-1 is therefore a viable test
+condition but not a production optimization from one pair. A new bounded
+six-pass wrapper alternates controls with CPU0-1 on recorded passes 2, 4,
+and 6 to test repeatability.
+
+The exact manifest is
+`docs/benchmark-series/tombraider-direct-glibc-safe-topology-fix-x11-cpu01-pair-60hz-40c-20260818.json`,
+SHA-256 `0ca22f2ee6436eaa6a6a0492425253ca1e326153c0f7819828c589ca65281d2f`.
+Steam PID 22318, X11 PID 25663, PulseAudio PID 25865, saved authentication,
+the enabled topology executable SHA-256
+`4f311ecb46d6eb8f781d0c6a5e2fac6ee6a6224d19f23a79e7173b8f260807ad`,
+and the disabled property SHA-256
+`89094537f49531dc9b380a0dec3a441b2fb92577e0a4f1db505790eb8b7025b0`
+all survived unchanged.
