@@ -611,10 +611,7 @@ def fex_startup_sleep_environment(command_mode: str) -> dict[str, str]:
         fail("FEX startup sleep is restricted to Tomb Raider diagnostics")
     if not value.isdecimal() or not 1 <= int(value) <= 60:
         fail("STEAM_ARM64_DIRECT_FEX_STARTUP_SLEEP must be 1 through 60")
-    return {
-        "FEX_STARTUPSLEEP": str(int(value)),
-        "FEX_STARTUPSLEEPPROCNAME": "TombRaider.exe",
-    }
+    return {"FEX_STARTUPSLEEP": str(int(value))}
 
 
 def run_final_smoke(

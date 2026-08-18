@@ -136,8 +136,7 @@ def main() -> None:
             clear=False,
         ):
             assert MODULE.fex_startup_sleep_environment("tombraider") == {
-                "FEX_STARTUPSLEEP": "30",
-                "FEX_STARTUPSLEEPPROCNAME": "TombRaider.exe",
+                "FEX_STARTUPSLEEP": "30"
             }
             try:
                 MODULE.fex_startup_sleep_environment("proton-arm64-cmd")

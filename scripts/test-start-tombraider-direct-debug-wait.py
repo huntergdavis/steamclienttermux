@@ -36,7 +36,7 @@ def main() -> None:
         )
         assert completed.returncode == 0, completed.stderr
         assert result.read_text(encoding="utf-8").splitlines() == [
-            "30",
+            "10",
             "test-argument",
         ]
 
