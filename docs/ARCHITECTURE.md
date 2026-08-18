@@ -70,8 +70,12 @@ Android native window before adding a dedicated visible `SurfaceView` host.
 E006 passed that first gate with an independently owned 64x64
 `AImageReader`/`ANativeWindow`: the system loader created its Vulkan surface and
 reported stable queue, capability, format, and present-mode data across four
-runs. Swapchain creation and presentation, the visible host, game-facing
-dispatch, DXVK integration, and any FPS improvement remain unproven.
+runs. E007 then created its six-image FIFO swapchain, acquired and cleared an
+image, synchronized and presented it, acquired the consumer `AImage`, and
+verified all 4,096 opaque-magenta RGBA pixels. The full offscreen
+producer/BufferQueue/consumer loop now passes. The dedicated visible host,
+glibc bridge exposure, game-facing dispatch, DXVK integration, and any FPS
+improvement remain unproven.
 
 Termux remains the Bionic control plane, while glibc remains necessary for the
 commercial Linux game stack. The experiment therefore narrows one boundary

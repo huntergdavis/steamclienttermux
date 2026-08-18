@@ -110,6 +110,10 @@ These screenshots capture milestones and failures from the original tablet.
   evidence for a separately owned `AImageReader`/`ANativeWindow` Android Vulkan
   surface. It records four stable surface-query passes, formats, presentation
   modes, capabilities, binary/library hashes, and clean process teardown.
+- `bionic-vulkan-bridge-e007-20260818.json`: non-visual, machine-readable
+  evidence for a six-image swapchain, semaphore-synchronized magenta clear,
+  queue presentation, Media NDK consumer acquisition, and verification of all
+  4,096 RGBA pixels across four runs.
 - `tombraider-gaminghub-added-performance-unconfirmed-2026-08-15.png`: a
   panel-native Low pass after both shared-UID apps were added to Gaming Hub but
   before the separate Performance selector was confirmed, reporting

@@ -17,7 +17,7 @@ custom kernel, chroot, or system-wide library replacement.
 | --- | --- |
 | Steam | Authenticates, renders, downloads, and retains login state |
 | Graphics | Hardware Vulkan through private Mesa Turnip |
-| Experimental system-Vulkan bridge | Native Adreno command submission and controlled Android surface queries pass; swapchain/visible rendering remain unimplemented ([bridge repository](https://github.com/huntergdavis/bionic-vulkan-bridge)) |
+| Experimental system-Vulkan bridge | Native commands plus a controlled swapchain/present/readback loop pass with zero pixel mismatches; visible display remains unimplemented ([bridge repository](https://github.com/huntergdavis/bionic-vulkan-bridge)) |
 | Windows games | Official Proton 11 ARM64 + FEX + DXVK |
 | Audio/input | PulseAudio and Termux:X11 pointer/keyboard support |
 | Storage | Game payloads on microSD; lock-sensitive Steam metadata on internal F2FS |
@@ -51,7 +51,11 @@ creates a real Android Vulkan surface and returns stable Adreno presentation
 capabilities without touching Termux:X11. See the
 [E001-E003](docs/evidence/bionic-vulkan-bridge-e001-e003-20260818.json),
 [E004-E005](docs/evidence/bionic-vulkan-bridge-e004-e005-20260818.json), and
-[E006](docs/evidence/bionic-vulkan-bridge-e006-20260818.json) evidence.
+[E006](docs/evidence/bionic-vulkan-bridge-e006-20260818.json) evidence. E007
+then created a six-image swapchain, presented an opaque-magenta frame, acquired
+it from the Media NDK consumer, and verified all 4,096 RGBA pixels. See the
+[E007 record](docs/evidence/bionic-vulkan-bridge-e007-20260818.json). This is a
+real offscreen rendered/presented frame, not yet visible output or an FPS gain.
 
 ## Tomb Raider benchmark snapshot
 

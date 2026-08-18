@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "experiment_id": "bionic-vulkan-bridge-e007-20260818",
+  "recorded_at": "2026-08-18T10:46:01-07:00",
+  "device": {
+    "model": "SM-X808U",
+    "product": "Samsung Galaxy Tab S8+",
+    "soc": "Qualcomm Snapdragon 8 Gen 1",
+    "gpu": "Adreno (TM) 730",
+    "android_release": "16",
+    "android_sdk": 36
+  },
+  "repositories": {
+    "steamclienttermux_parent_before_record": "a936fcd099c067277224ae7e574a898614537cc5",
+    "bionic_vulkan_bridge_e007_pass": "e4af028553450bcfdf7d8efc903cd410ca8ef83a",
+    "bionic_vulkan_bridge_documented_head": "f86e686511e3e93c9b86a6ab8b8da8e1dfcd6926"
+  },
+  "binary_identity": {
+    "path": "build/bvb-vulkan-present-selftest",
+    "interpreter": "/system/bin/linker64",
+    "needed": ["libdl.so", "libc.so"],
+    "sha256": "1a0eed2d72b053cbb913d2aa1c0473caaf1f8127bcb3df47b05d72da6722d35c"
+  },
+  "system_libraries": {
+    "vulkan": {
+      "path": "/system/lib64/libvulkan.so",
+      "sha256": "ca031dfc7e10449b207b5fd54d44bfe37404d4a5ae3556a1eeebc3b35cd3d304"
+    },
+    "media_ndk": {
+      "path": "/system/lib64/libmediandk.so",
+      "sha256": "db3399e9c226060e71a6b0bf5c4e5450cd15a811770c363a61bc255c89dbeef4"
+    }
+  },
+  "canonical_result": {
+    "queue_family_index": 0,
+    "surface_format": {"value": 37, "name": "VK_FORMAT_R8G8B8A8_UNORM"},
+    "color_space": {"value": 0, "name": "VK_COLOR_SPACE_SRGB_NONLINEAR_KHR"},
+    "present_mode": {"value": 2, "name": "VK_PRESENT_MODE_FIFO_KHR"},
+    "requested_image_count": 6,
+    "actual_image_count": 6,
+    "acquired_image_index": 0,
+    "width": 64,
+    "height": 64,
+    "plane_count": 1,
+    "pixel_stride": 4,
+    "row_stride": 256,
+    "data_length": 16384,
+    "expected_rgba_bytes": [255, 0, 255, 255],
+    "expected_rgba_word_little_endian": 4294902015,
+    "verified_pixels": 4096,
+    "mismatched_pixels": 0,
+    "acquire_poll_count": 1
+  },
+  "synchronization_and_layout": {
+    "acquire": "vkAcquireNextImageKHR signaling acquire semaphore",
+    "first_transition": "VK_IMAGE_LAYOUT_UNDEFINED to VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL",
+    "command": "vkCmdClearColorImage opaque magenta",
+    "second_transition": "VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR",
+    "submit": "queue waits on acquire semaphore and signals render semaphore",
+    "present": "vkQueuePresentKHR waits on render semaphore",
+    "consumer": "AImageReader_acquireNextImage and stride-aware CPU plane verification"
+  },
+  "runs": [
+    {"kind": "first_hardware_run", "submit_present_ns": 3988438, "total_elapsed_ns": 471708072, "mismatched_pixels": 0, "exit_code": 0},
+    {"kind": "lifecycle_repeat_1", "submit_present_ns": 3343698, "total_elapsed_ns": 310404166, "mismatched_pixels": 0, "exit_code": 0},
+    {"kind": "lifecycle_repeat_2", "submit_present_ns": 3955313, "total_elapsed_ns": 301790677, "mismatched_pixels": 0, "exit_code": 0},
+    {"kind": "lifecycle_repeat_3", "submit_present_ns": 3721719, "total_elapsed_ns": 303929270, "mismatched_pixels": 0, "exit_code": 0}
+  ],
+  "cleanup": {
+    "result": "PASS",
+    "check": "anchored executable pattern found no lingering self-test process"
+  },
+  "session_recall": {
+    "query": "Android Vulkan AImageReader ANativeWindow swapchain acquire present clear image Adreno Bionic glibc Termux X11",
+    "indexed_matches": 0,
+    "reused_material": "E006 controlled-surface ownership model and pinned Vulkan/Media NDK ABI contracts"
+  },
+  "claims": {
+    "proven": [
+      "The Android system Vulkan loader and Adreno driver can create a swapchain on the controlled AImageReader ANativeWindow.",
+      "Acquire, layout transitions, clear command, semaphore synchronization, submission, and queue presentation succeed.",
+      "The Media NDK consumer receives the presented frame and all 4096 RGBA pixels match the deterministic clear.",
+      "Four full create/present/readback/destroy cycles pass without a lingering executable."
+    ],
+    "not_yet_proven": [
+      "visible SurfaceView presentation on the tablet display",
+      "surface lifecycle transfer through the glibc/Bionic bridge",
+      "game-facing Vulkan entry-point dispatch or DXVK integration",
+      "Tomb Raider performance improvement"
+    ]
+  }
+}
