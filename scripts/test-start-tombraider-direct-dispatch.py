@@ -111,6 +111,30 @@ def main() -> None:
         ]
 
         (base / "run/native-runtime-dispatch/dispatch.sock").unlink()
+        benchmark_environment = {
+            **environment,
+            "TOMB_RAIDER_DIRECT_MODE": "tombraider-benchmark",
+            "TOMB_RAIDER_DIRECT_CHILD_PRELOAD": "lean",
+        }
+        benchmark = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env=benchmark_environment,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        assert benchmark.returncode == 1, benchmark.stderr
+        assert result_file.read_text().splitlines() == [
+            "1",
+            "--appid 203160 -- -nolauncher -benchmark",
+        ]
+        benchmark_state = (
+            base / "run/tombraider-direct-dispatch.state"
+        ).read_text()
+        assert "mode=tombraider-benchmark" in benchmark_state
+        assert "child_preload=lean" in benchmark_state
+
+        (base / "run/native-runtime-dispatch/dispatch.sock").unlink()
         diagnostic_environment = {
             **environment,
             "TOMB_RAIDER_DIRECT_MODE": "tombraider-diagnostic",

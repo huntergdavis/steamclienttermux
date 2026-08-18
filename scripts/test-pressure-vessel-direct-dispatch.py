@@ -127,6 +127,18 @@ def main() -> None:
         tablet_base
         / "removable-library/steamapps/common/Tomb Raider/TombRaider.exe"
     )
+    benchmark_payload = [*plan["payload_argv"], "-benchmark"]
+    assert MODULE.validated_tombraider_command(
+        tablet_base, benchmark_payload, benchmark=True
+    ) == (proton, game)
+    try:
+        MODULE.validated_tombraider_command(
+            tablet_base, benchmark_payload, benchmark=False
+        )
+    except MODULE.DispatchError:
+        pass
+    else:
+        raise AssertionError("normal mode accepted benchmark arguments")
     with tempfile.TemporaryDirectory(prefix="proton-cmd-smoke.") as directory:
         fixture_base = Path(directory)
         fixture_runtime = fixture_base / "runtime"
@@ -176,6 +188,9 @@ def main() -> None:
             "WINEDEBUG": "-all"
         }
         assert MODULE.proton_smoke_environment("tombraider") == {
+            "WINEDEBUG": "-all"
+        }
+        assert MODULE.proton_smoke_environment("tombraider-benchmark") == {
             "WINEDEBUG": "-all"
         }
         audio_runtime = fixture_base / "audio-runtime"
@@ -317,12 +332,16 @@ def main() -> None:
     assert '"TGCOMPAT_USERFAULTFD_ENOSYS": "1"' in invocation_source
     assert '"TGCOMPAT_PROC_NET": str(proc_net_shadow)' in invocation_source
     assert '"TGCOMPAT_PROC_STAT": str(proc_stat_shadow)' in invocation_source
-    assert 'command_mode == "tombraider"' in invocation_source
+    assert '("tombraider", "tombraider-benchmark")' in invocation_source
     game_source = inspect.getsource(MODULE.run_tombraider)
     assert '"tombraider"' in game_source
     assert '"removable-library/steamapps/common/Tomb Raider"' in game_source
     assert "cpu_affinity=set(range(1, 8))" in game_source
     assert "match_proton_cpu_topology=True" in game_source
+    benchmark_source = inspect.getsource(MODULE.run_tombraider_benchmark)
+    assert '"tombraider-benchmark"' in benchmark_source
+    assert "cpu_affinity=set(range(1, 8))" in benchmark_source
+    assert "match_proton_cpu_topology=True" in benchmark_source
     diagnostic_source = inspect.getsource(MODULE.run_tombraider_diagnostic)
     assert "tombraider-direct-process-" in diagnostic_source
     assert "trace_path" in diagnostic_source

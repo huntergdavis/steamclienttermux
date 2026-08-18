@@ -512,7 +512,7 @@ def request_environment(payload: dict[str, object]) -> dict[str, str]:
 
 
 def validated_tombraider_command(
-    base: Path, payload_arguments: list[str]
+    base: Path, payload_arguments: list[str], benchmark: bool = False
 ) -> tuple[Path, Path]:
     if "--" not in payload_arguments:
         fail("Tomb Raider payload has no command boundary")
@@ -526,7 +526,10 @@ def validated_tombraider_command(
         base
         / "removable-library/steamapps/common/Tomb Raider/TombRaider.exe"
     )
-    expected = [str(proton), "waitforexitandrun", str(game), "-nolauncher"]
+    game_arguments = ["-nolauncher"]
+    if benchmark:
+        game_arguments.append("-benchmark")
+    expected = [str(proton), "waitforexitandrun", str(game), *game_arguments]
     if command != expected:
         fail("direct Proton smoke received an unexpected game command")
     return proton, game
@@ -619,7 +622,12 @@ def proton_smoke_environment(
 ) -> dict[str, str]:
     if command_mode == "proton-entry":
         return {}
-    if command_mode in ("proton-cmd", "proton-arm64-cmd", "tombraider"):
+    if command_mode in (
+        "proton-cmd",
+        "proton-arm64-cmd",
+        "tombraider",
+        "tombraider-benchmark",
+    ):
         if diagnostics:
             return {
                 "WINEDEBUG": (
@@ -876,10 +884,14 @@ def pv_smoke_invocation(
         "proton-cmd",
         "proton-arm64-cmd",
         "tombraider",
+        "tombraider-benchmark",
     ):
-        proton, game = validated_tombraider_command(base, payload_arguments)
+        benchmark = command_mode == "tombraider-benchmark"
+        proton, game = validated_tombraider_command(
+            base, payload_arguments, benchmark=benchmark
+        )
         final_path_prefix = proton.parent
-        if command_mode == "tombraider":
+        if command_mode in ("tombraider", "tombraider-benchmark"):
             runtime_python = runtime_root / "usr/bin/python3"
             validate_runtime_executable(
                 runtime_python, runtime_root, "Runtime Python"
@@ -892,6 +904,7 @@ def pv_smoke_invocation(
                 "waitforexitandrun",
                 str(game),
                 "-nolauncher",
+                *(["-benchmark"] if benchmark else []),
             ]
             preserve_assignments = True
         else:
@@ -962,9 +975,10 @@ def pv_smoke_invocation(
         "proton-cmd",
         "proton-arm64-cmd",
         "tombraider",
+        "tombraider-benchmark",
     ):
         environment.update(proton_smoke_environment(command_mode, diagnostics))
-    if command_mode == "tombraider":
+    if command_mode in ("tombraider", "tombraider-benchmark"):
         environment.update(direct_game_environment(base, runtime_root))
     prefix = os.environ.get("PREFIX", "")
     if not prefix.startswith("/"):
@@ -1103,6 +1117,28 @@ def run_tombraider(
     )
 
 
+def run_tombraider_benchmark(
+    base: Path,
+    payload: dict[str, object],
+    descriptors: list[int],
+) -> tuple[int, int]:
+    loader, arguments, environment = pv_smoke_invocation(
+        base, payload, "tombraider-benchmark"
+    )
+    return run_loader_child(
+        loader,
+        arguments,
+        environment,
+        descriptors,
+        payload["fd_numbers"],
+        working_directory=(
+            base / "removable-library/steamapps/common/Tomb Raider"
+        ),
+        cpu_affinity=set(range(1, 8)),
+        match_proton_cpu_topology=True,
+    )
+
+
 def run_tombraider_diagnostic(
     base: Path,
     payload: dict[str, object],
@@ -1180,6 +1216,10 @@ def serve(base: Path, mode: str) -> int:
                     )
                 elif mode == "tombraider":
                     status, observed_tracer = run_tombraider(
+                        base, payload, descriptors
+                    )
+                elif mode == "tombraider-benchmark":
+                    status, observed_tracer = run_tombraider_benchmark(
                         base, payload, descriptors
                     )
                 elif mode == "tombraider-diagnostic":
@@ -1270,6 +1310,7 @@ def main() -> int:
                     "proton-cmd-smoke",
                     "proton-arm64-cmd-smoke",
                     "tombraider",
+                    "tombraider-benchmark",
                     "tombraider-diagnostic",
                 ),
                 default="final-smoke",

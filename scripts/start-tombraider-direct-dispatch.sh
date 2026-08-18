@@ -23,7 +23,7 @@ fail() {
 
 [[ $mode == proton-entry-smoke || $mode == proton-cmd-smoke ||
     $mode == proton-arm64-cmd-smoke || $mode == tombraider ||
-    $mode == tombraider-diagnostic ]] ||
+    $mode == tombraider-benchmark || $mode == tombraider-diagnostic ]] ||
     fail "unsupported direct-dispatch mode: $mode"
 [[ $diagnostics == 0 || $diagnostics == 1 ]] ||
     fail 'TOMB_RAIDER_DIRECT_DIAGNOSTICS must be 0 or 1'
@@ -40,7 +40,8 @@ fail() {
     fail "native Steam launcher is unavailable: $launcher"
 [[ -x $prepare && ! -L $prepare ]] ||
     fail "Proton direct Wine preparation tool is unavailable: $prepare"
-if [[ $mode == tombraider || $mode == tombraider-diagnostic ]]; then
+if [[ $mode == tombraider || $mode == tombraider-benchmark ||
+    $mode == tombraider-diagnostic ]]; then
     [[ -f $affinity && ! -L $affinity ]] ||
         fail "Tomb Raider affinity guard is unavailable: $affinity"
 fi
@@ -80,7 +81,8 @@ done
     fail 'direct dispatcher did not create its socket'
 }
 
-if [[ $mode == tombraider || $mode == tombraider-diagnostic ]]; then
+if [[ $mode == tombraider || $mode == tombraider-benchmark ||
+    $mode == tombraider-diagnostic ]]; then
     affinity_log=$base/logs/tombraider-direct-affinity-$stamp.log
     "$python" "$affinity" --watch --raknet-cpu1 --steam-base "$base" \
         --wait-for-cpu-log \
@@ -94,12 +96,16 @@ printf 'pid=%s\nmode=%s\nchild_preload=%s\nserver_pid=%s\nserver_log=%s\nlaunche
     "$launcher_log" "$affinity_log" >"$state"
 
 set +e
+game_arguments=(-nolauncher)
+if [[ $mode == tombraider-benchmark ]]; then
+    game_arguments+=(-benchmark)
+fi
 STEAM_ARM64_BWRAP_DIRECT=1 \
 STEAM_BACKGROUND=1 \
 STEAM_PROCESS_TIMEOUT=${STEAM_PROCESS_TIMEOUT:-180} \
 STEAM_WINDOW_TIMEOUT=${STEAM_WINDOW_TIMEOUT:-300} \
 STEAM_APP_TIMEOUT=${STEAM_APP_TIMEOUT:-300} \
-"$launcher" --appid 203160 -- -nolauncher >"$launcher_log" 2>&1
+"$launcher" --appid 203160 -- "${game_arguments[@]}" >"$launcher_log" 2>&1
 launcher_status=$?
 if (( launcher_status != 0 )) && kill -0 "$server_pid" 2>/dev/null; then
     kill -TERM "$server_pid" 2>/dev/null || true
