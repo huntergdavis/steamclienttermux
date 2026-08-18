@@ -17,6 +17,7 @@ def main():
         fake_start.write_text(
             "#!/bin/sh\n"
             'printf "background=%s\\n" "$STEAM_BACKGROUND" > "$CAPTURE"\n'
+            'printf "bwrap_direct=%s\\n" "$STEAM_ARM64_BWRAP_DIRECT" >> "$CAPTURE"\n'
             'printf "arg=%s\\n" "$@" >> "$CAPTURE"\n'
         )
         fake_start.chmod(0o700)
@@ -25,6 +26,7 @@ def main():
             **os.environ,
             "CAPTURE": str(capture),
             "STEAM_START_SCRIPT": str(fake_start),
+            "STEAM_ARM64_BWRAP_DIRECT": "1",
             "TOMB_RAIDER_LAUNCH_RETRIES": "0",
         }
         subprocess.run(
@@ -34,6 +36,7 @@ def main():
         )
         assert capture.read_text().splitlines() == [
             "background=1",
+            "bwrap_direct=0",
             "arg=--appid",
             "arg=203160",
             "arg=--",
@@ -49,6 +52,7 @@ def main():
         )
         assert capture.read_text().splitlines() == [
             "background=1",
+            "bwrap_direct=0",
             "arg=--proton-log",
             "arg=--appid",
             "arg=203160",

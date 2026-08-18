@@ -12,6 +12,11 @@ steam_start="${STEAM_START_SCRIPT:-$HOME/start-steam-native.sh}"
 # Keep the same direct, backgrounded Tomb Raider route as start-tombraider.sh,
 # but select the no-PRoot Steam/CEF host. Additional game arguments are kept.
 export STEAM_BACKGROUND=1
+# Steam's process-environment manager retains values supplied by earlier
+# forwarded invocations.  Explicitly disable the opt-in direct dispatcher so a
+# normal launch cannot inherit STEAM_ARM64_BWRAP_DIRECT=1 from a prior direct
+# diagnostic after that diagnostic server has exited.
+export STEAM_ARM64_BWRAP_DIRECT=0
 declare -a native_options=()
 if [[ ${1:-} == --proton-log ]]; then
     native_options+=(--proton-log)
