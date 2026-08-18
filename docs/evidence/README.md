@@ -82,6 +82,11 @@ These screenshots capture milestones and failures from the original tablet.
   19.0 FPS minimum, 36.0 maximum, and 25.7 average. Before the benchmark, its
   finite guard verified `/top-app`, game/Wine CPUs 1-7, RakNet CPU 1, and nine
   Steam helpers on CPU 0, then exited so it was absent from the timed scene.
+- `tombraider-direct-no-proot-terms-2026-08-17.png`: the real 2800x1752 game
+  window rendered by the direct patched-glibc Proton path after the final
+  Tomb Raider process left PRoot. It shows the Square Enix Terms of Service
+  prompt and proves that DirectX 11 initialization reached interactive UI; it
+  does not claim that the user accepted those terms.
 - `tombraider-gaminghub-added-performance-unconfirmed-2026-08-15.png`: a
   panel-native Low pass after both shared-UID apps were added to Gaming Hub but
   before the separate Performance selector was confirmed, reporting

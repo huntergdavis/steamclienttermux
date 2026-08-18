@@ -5728,3 +5728,83 @@ passwd memfd name. The capture contains no full process environment or FD
 contents. A graceful post-capture stop found no active game, and the final
 process audit found no Steam, game, Pressure Vessel, PRoot, X11, or PulseAudio
 process.
+
+## 2026-08-17: Tomb Raider reaches interactive UI outside PRoot
+
+The first real direct attempts failed for two independent, reproducible
+reasons. A host GDB attachment caught the initial `SIGABRT` in glibc's
+allocator:
+
+```text
+abort -> malloc_printerr -> unlink_chunk -> free
+      -> __is_mmaped -> mprotect -> Wine set_vprot -> virtual_map_image
+```
+
+The Termux glibc custom `mprotect.c` advances two buffers with `strtok_r`
+and later frees the advanced pointers. The reusable
+`termux-glibc-compat` fix is `libtgcompat-mprotect.so`: on only
+`EACCES + PROT_EXEC`, it copies the rejected file-backed range through a
+scratch mapping, replaces the exact range with anonymous memory, restores the
+bytes, and applies the requested protection without heap allocation. Commit
+`4b3c50e` added the shim and a deterministic forced-`EACCES` test; commit
+`43fecdd` made its temporary-file test use Android's writable temporary
+directory. The tablet's ARM64 test passed. The upstream implementation that
+exposed the invalid-free mechanism is
+[termux-pacman glibc mprotect.c](https://github.com/termux-pacman/glibc-packages/blob/main/gpkg/glibc/mprotect.c).
+
+Steam-side commit `ecf71f2` adds the shim to the lean final-Wine preload.
+That removed the allocator abort and exposed the next real failure:
+`Tomb Raider.log` showed `Failed to open BIGFILE.000` because the process
+started in the Termux home directory. Commit `643d695` gives only the final
+game child the validated
+`removable-library/steamapps/common/Tomb Raider` working directory. The next
+run mounted `TITLE.000`, every patch and DLC pack, created its DX11 swapchain,
+selected Turnip Adreno 730, and exposed a real 2800x1752
+`steam_app_203160` window. The game process had `TracerPid: 0`.
+
+The direct root then lacked Pressure Vessel's `/etc/alsa` binding. Commit
+`69265f4` generates a private mode-0600 ALSA configuration that loads the
+Runtime 4 base and Pulse definitions and selects Pulse as the default. The
+first retry reached the plugin but diagnosed its private dependency:
+`libasound_module_pcm_pulse.so` could not find
+`libpulsecommon-17.0.so`. Commit `2d32bcc` adds Runtime 4's
+`usr/lib/aarch64-linux-gnu/pulseaudio` directory to the direct loader path.
+The verified retry logged:
+
+```text
+[SND] Audio device found. FMOD reports 2 driver(s).
+[SND] Audio Driver Name: Speakers (PulseAudio Output)
+[SND] Speaker Mode: 2
+```
+
+The live process mapped `winepulse.so`, `libpulse.so.0`,
+`libpulsecommon-17.0.so`, and a Pulse memfd. This closes the direct-audio
+failure without adding PRoot back to the hot process.
+
+The same run repeatedly logged that the legacy WebService was not ready.
+Binary inspection identified `tras.os.eidos.com`; direct tablet HTTPS
+returned `200 OK`, and EOS authenticated successfully in the game log.
+A bounded file/network trace found no external `connect()` from the legacy
+thread but did find 323 failed opens of Termux glibc's missing
+`etc/localtime` in five seconds. Commit `c9088f8` gives only direct game
+children the file-free POSIX `TZ=UTC0` setting to remove that logging churn
+on the next launch.
+
+The important correction is visual: the WebService messages did not block
+game startup. Exact-window capture showed the live game at Square Enix's Terms
+of Service prompt with working `QUIT` and `ACKNOWLEDGE` controls. The
+unchanged capture is
+`docs/evidence/tombraider-direct-no-proot-terms-2026-08-17.png`, SHA-256
+`1c8a92249e114e5f69f5d69e0dc392cabc0395394a6a2972bb211c290af07d28`.
+Terms acceptance is deliberately left to the user. Steam PID 26255, X11 PID
+25663, and PulseAudio PID 25865 stayed alive throughout every game-only retry,
+and the saved Steam login state was never removed.
+
+The required focused recall searches for the allocator, ALSA/Pulse, and
+timezone failures returned no earlier indexed implementation. The reused
+project knowledge was the exact RunCommandService race documented above:
+hold `allow-external-apps` until the state file changes, then restore the
+original property byte-for-byte. Every guarded retry restored SHA-256
+`89094537f49531dc9b380a0dec3a441b2fb92577e0a4f1db505790eb8b7025b0`.
+The full `scripts/check-project.sh` suite passed after each Steam-side change,
+and each commit was pushed to `origin/main` before tablet installation.
