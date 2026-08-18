@@ -140,6 +140,7 @@ def main() -> None:
     ) == {"STEAM_COMPAT_APP_ID": "203160"}
     invocation_source = inspect.getsource(MODULE.pv_smoke_invocation)
     assert "libtgcompat-robust.so" in invocation_source
+    assert "libtgcompat-mprotect.so" in invocation_source
     assert '("lean", "lean-tmp-only", "lean-debug-wait")' in invocation_source
     assert '"lean-tmp-only"' in invocation_source
     assert '"lean-debug-wait"' in invocation_source
@@ -149,7 +150,7 @@ def main() -> None:
     assert "TGCOMPAT_EXEC_FINAL_PATH_PREFIX" in invocation_source
     assert "TGCOMPAT_EXEC_FINAL_LD_PRELOAD" in invocation_source
     assert "TGCOMPAT_EXEC_FINAL_PROC_SELF_EXE" in invocation_source
-    assert "[entry_preloads[0], entry_preloads[3]]" in invocation_source
+    assert "entry_preloads[4]" in invocation_source
     assert 'child_preload_profile == "lean-tmp-only"' in invocation_source
     assert '"TGCOMPAT_USERFAULTFD_ENOSYS": "1"' in invocation_source
     assert 'command_mode == "tombraider"' in invocation_source

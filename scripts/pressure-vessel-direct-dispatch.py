@@ -728,6 +728,7 @@ def pv_smoke_invocation(
         compat_repo / "build/libtgcompat-android-root.so",
         compat_repo / "build/libtgcompat-exec.so",
         compat_repo / "build/libtgcompat-robust.so",
+        compat_repo / "build/libtgcompat-mprotect.so",
     ]
     if any(not path.is_file() for path in entry_preloads):
         fail("pv-adverb compatibility preload is unavailable")
@@ -746,7 +747,11 @@ def pv_smoke_invocation(
         if child_preload_profile == "lean-tmp-only":
             final_preloads = [entry_preloads[0]]
         else:
-            final_preloads = [entry_preloads[0], entry_preloads[3]]
+            final_preloads = [
+                entry_preloads[0],
+                entry_preloads[3],
+                entry_preloads[4],
+            ]
         if child_preload_profile == "lean-debug-wait":
             debug_wait = base / "compat-bin/steam-arm64-debug-wait.so"
             if not debug_wait.is_file() or debug_wait.is_symlink():
