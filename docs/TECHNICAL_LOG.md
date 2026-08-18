@@ -6060,3 +6060,30 @@ The recalled prior session supplied the mapped helper and equality-gate
 analysis; the installed executable's current disassembly and bytes were
 independently reverified before implementation. No FPS or reliability claim is
 made for the binary fix until a fresh controlled series completes.
+
+## 2026-08-18: patched helper completes four controlled Fast launches
+
+After installation, the patcher reported exact target SHA-256
+`4f311ecb46d6eb8f781d0c6a5e2fac6ee6a6224d19f23a79e7173b8f260807ad`.
+It retained a full source-SHA backup at
+`~/steam-arm64/backups/tombraider-cpu-topology-disabled-20260818-020319-m1hjtgfj/TombRaider.exe`.
+Steam, X11, PulseAudio, the disabled external-command property, and saved
+authentication all survived the edit.
+
+Series `20260818T090408Z-fast` then completed four consecutive launches. The
+startup masks changed across passes (`0-4,6`, `0-5`, `0-7`, and `0-6`), yet the
+patched helper returned usable CPU counts every time (`6/6/6`, `6/6/6`,
+`6/5/5`, and `6/5/5`). Each guard subsequently verified the production
+CPUs 1-7/RakNet CPU 1/Steam-helper CPU 0 split. This is the first complete
+series with no false `1/1/1` launch after the repeated failures above.
+
+All four passes started at 37.0 C with full policy. The warm-up reported
+21.6/47.4/31.8 FPS. Recorded passes reported 21.4/48.4/30.2,
+21.5/43.9/30.3, and 21.2/46.2/30.9; recorded means are
+21.367/46.167/30.467 FPS. Against direct Safe, Fast improves minimum mean 13.1%
+but reduces maximum 3.3% and average 0.3%. Safe remains production pending a
+matched patched-topology repeat.
+
+The committed raw artifact is
+`docs/benchmark-series/tombraider-direct-glibc-fast-topology-fix-60hz-40c-20260818.json`,
+SHA-256 `3abf061dab28b8f06242cab6aa17f05df891d3ed9c5e27c19b33aed05739d768`.

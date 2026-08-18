@@ -903,3 +903,30 @@ to run while that exact game path is active. Restore the original bytes with:
 Steam file verification can also restore the vendor executable. The patch
 changes only the helper's local enumeration mask; the post-discovery game
 CPUs 1-7, RakNet CPU 1, and Steam-helper CPU 0 policy remains separate.
+
+## Completed patched-topology direct `fast` series (2026-08-18)
+
+Series `20260818T090408Z-fast` completed one warm-up and three recorded passes
+with the guarded CPU-topology fix enabled. All four passes started at 37.0 C,
+with full CPU/GPU policy, at 2800x1752 and 59.97 Hz. The helper returned usable
+topology on every launch despite Android granting different startup masks; all
+four affinity artifacts then reached the normal CPUs 1-7/RakNet/helper ready
+state.
+
+| Pass | Minimum | Maximum | Average |
+| --- | ---: | ---: | ---: |
+| warm-up | 21.6 | 47.4 | 31.8 |
+| recorded 1 | 21.4 | 48.4 | 30.2 |
+| recorded 2 | 21.5 | 43.9 | 30.3 |
+| recorded 3 | 21.2 | 46.2 | 30.9 |
+| recorded mean | **21.367** | **46.167** | **30.467** |
+
+Against the earlier direct `safe` mean of 18.900/47.733/30.567 FPS, `fast`
+improves minimum mean by 13.1%, reduces maximum mean by 3.3%, and reduces
+average mean by 0.3%. Average medians are identical at 30.3 FPS. The mean
+average difference is too small to justify changing the production profile;
+the next control is a patched-topology `safe` repeat.
+
+The complete schema-v1 artifact is
+[`tombraider-direct-glibc-fast-topology-fix-60hz-40c-20260818.json`](benchmark-series/tombraider-direct-glibc-fast-topology-fix-60hz-40c-20260818.json),
+SHA-256 `3abf061dab28b8f06242cab6aa17f05df891d3ed9c5e27c19b33aed05739d768`.
