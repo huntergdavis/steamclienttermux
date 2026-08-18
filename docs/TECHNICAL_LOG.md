@@ -6459,3 +6459,22 @@ The required `deja` search found no prior CPUs2-7 Tomb Raider benchmark. This
 experiment reuses the repository's exact AppID selection, fresh topology wait,
 top-app validation, unique RakNet identification, CPU1 pin, and late-thread
 convergence rather than assuming a result from an earlier session.
+
+The bounded pair, series `20260818T140606Z-safe`, completed without invoking
+the post-result abort exception. Its untreated warm-up scored
+18.7/45.4/32.6 FPS. Recorded control 1 scored 20.8/47.2/31.8 FPS on game
+CPUs1-7; recorded condition 2 scored 22.7/50.0/31.1 FPS with ordinary game
+threads on CPUs2-7 and RakNet alone on CPU1. The condition changed minimum,
+maximum, and average by +9.13%, +5.93%, and -2.20%, respectively. Both direct
+guards contained exactly one ready line with their expected mask, both
+launches returned zero, and the controller waited through CPU/GPU throttling
+until the fixed ceiling was satisfied before each pass.
+
+This mixed pair does not change production: the average regressed by 0.7 FPS.
+The 1.9 FPS minimum improvement is large enough to justify the already staged
+alternating replication, where three controls and three conditions can show
+whether the low-end change repeats. The exact pair manifest is
+`docs/benchmark-series/tombraider-direct-glibc-safe-topology-fix-raknet-exclusive-pair-60hz-40c-20260818.json`,
+SHA-256 `cda15d2c2ec58f6c4790a92e6c90f51c64d06521eed178cd03120e9b7211b4f0`.
+Steam PID 22318, X11 PID 25663, PulseAudio PID 25865, saved authentication,
+and the disabled property SHA survived unchanged.
