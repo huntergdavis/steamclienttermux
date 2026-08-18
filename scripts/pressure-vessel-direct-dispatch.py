@@ -798,6 +798,7 @@ def pv_smoke_invocation(
             {
                 "TGCOMPAT_EXEC_FINAL_PATH_PREFIX": str(final_path_prefix) + "/",
                 "TGCOMPAT_EXEC_FINAL_LD_PRELOAD": final_preload,
+                "TGCOMPAT_EXEC_FINAL_PROC_SELF_EXE": "",
             }
         )
     loader_arguments = [
