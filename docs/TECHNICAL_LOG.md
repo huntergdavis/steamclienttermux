@@ -5965,7 +5965,7 @@ the fresh topology line. Earlier `holding startup topology` artifacts remain
 accepted by the benchmark reader; corrected runs report `observing inherited
 startup topology`. The excluded 32.7 FPS pass is not included in aggregates.
 
-## 2026-08-18: stage an exact seven-CPU startup-topology candidate
+## 2026-08-18: make the startup-topology gate match Android's schedulable set
 
 Live ancestry from the corrected Fast warm-up showed the direct dispatcher
 requesting CPUs 1-7 before exec, but launch-time `sched_getaffinity` exposed
@@ -5974,18 +5974,26 @@ to Wine. After the X11 task settled in `/top-app`, the same direct lineage
 expanded to CPUs 1-7. This timing explains why the game consistently discovers
 five CPUs even though the finite guard later gives it all seven.
 
-The direct dispatcher now supports an opt-in
-`STEAM_ARM64_DIRECT_STARTUP_TOPOLOGY=full` mode. Before executing Proton it
-reapplies CPUs 1-7 and waits at most 15 seconds for `sched_getaffinity` to
-equal that exact set. It then derives Proton's topology from the verified
-result. Failure to obtain all seven CPUs returns 125 before Proton; it never
-silently runs the candidate with a partial mask. The benchmark controller
-exposes `--startup-topology {available,full}`, clears inherited values, records
-the choice in series JSON, and permits `full` only on the direct backend.
-Default `available` behavior is unchanged for the current Safe/Fast A/B.
+The first `full` implementation required literal equality with CPUs 1-7. Series
+`20260818T081852Z-fast` proved that condition does not describe the tablet's
+Android policy: it started at 37.0 C with full CPU/GPU frequency policy, but
+the top-app process set exposed only five non-efficiency CPUs at launch. The
+dispatcher returned 125 after its bounded wait, before Proton executed. The
+controller recorded the series as failed with zero runs; no value from it is
+eligible for an aggregate.
 
-The test suite exercises the real fork/affinity/exec path with an exact
-available mask and validates both accepted modes and invalid environment input.
-No FPS gain is claimed yet. Once the current Fast baseline is complete, the
-winning FEX profile can be repeated with only startup topology changed to
-`full`.
+Live `/proc` evidence also showed that fixed CPU IDs are the wrong invariant.
+Different valid top-app starts received `1-5` or `1-4,6`, while the invalid
+start that motivated this experiment received only CPU 1. The useful invariant
+is therefore at least five schedulable CPUs from the requested 1-7 set. The
+corrected `full` mode waits up to 15 seconds for that cardinality, then derives
+`PROTON_CPU_TOPOLOGY` from the exact mask Android granted. A one-CPU start still
+fails closed with status 125 before Proton; a five-, six-, or seven-CPU start
+can proceed without claiming CPUs outside its cgroup.
+
+All 47 project tests pass. The dispatcher test exercises the real
+fork/affinity/exec path and verifies that the child sees the same mask encoded
+in `PROTON_CPU_TOPOLOGY`. This diagnosis reused the earlier session's guarded
+RunCommandService property restoration and exact `/top-app` validation; focused
+`deja` searches found no indexed solution for a fixed five-versus-seven startup
+topology.

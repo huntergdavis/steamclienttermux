@@ -370,8 +370,15 @@ def run_loader_child(
     working_directory: Path | None = None,
     cpu_affinity: set[int] | None = None,
     match_proton_cpu_topology: bool = False,
-    require_exact_cpu_affinity: bool = False,
+    minimum_cpu_affinity_count: int = 0,
 ) -> tuple[int, int]:
+    if minimum_cpu_affinity_count < 0:
+        fail("minimum CPU affinity count must not be negative")
+    if (
+        cpu_affinity is not None
+        and minimum_cpu_affinity_count > len(cpu_affinity)
+    ):
+        fail("minimum CPU affinity count exceeds the requested CPU set")
     if working_directory is not None:
         try:
             working_metadata = working_directory.lstat()
@@ -443,7 +450,7 @@ def run_loader_child(
                         cpu_affinity
                     ):
                         os._exit(125)
-                    if not require_exact_cpu_affinity or actual_affinity == cpu_affinity:
+                    if len(actual_affinity) >= minimum_cpu_affinity_count:
                         break
                     if time.monotonic() >= affinity_deadline:
                         os._exit(125)
@@ -1190,7 +1197,7 @@ def run_tombraider(
         ),
         cpu_affinity=set(range(1, 8)),
         match_proton_cpu_topology=True,
-        require_exact_cpu_affinity=require_full_startup_topology(),
+        minimum_cpu_affinity_count=(5 if require_full_startup_topology() else 0),
     )
 
 
@@ -1213,7 +1220,7 @@ def run_tombraider_benchmark(
         ),
         cpu_affinity=set(range(1, 8)),
         match_proton_cpu_topology=True,
-        require_exact_cpu_affinity=require_full_startup_topology(),
+        minimum_cpu_affinity_count=(5 if require_full_startup_topology() else 0),
     )
 
 
@@ -1241,7 +1248,7 @@ def run_tombraider_diagnostic(
         ),
         cpu_affinity=set(range(1, 8)),
         match_proton_cpu_topology=True,
-        require_exact_cpu_affinity=require_full_startup_topology(),
+        minimum_cpu_affinity_count=(5 if require_full_startup_topology() else 0),
     )
 
 
