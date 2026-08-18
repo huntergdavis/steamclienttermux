@@ -154,6 +154,8 @@ install_one "$repo_root/scripts/run-tombraider-native-benchmark.py" \
     "$base/compat-bin/run-tombraider-native-benchmark.py" 600
 install_one "$repo_root/scripts/hold-tombraider-steam-cef.py" \
     "$base/compat-bin/hold-tombraider-steam-cef.py" 700
+install_one "$repo_root/scripts/isolate-tombraider-x11.py" \
+    "$base/compat-bin/isolate-tombraider-x11.py" 700
 install_one "$repo_root/scripts/run-tombraider-native-benchmark.sh" \
     "$HOME/run-tombraider-native-benchmark" 700
 install_one "$repo_root/scripts/test-tomb-raider-proton-40c-ceiling.sh" \
@@ -176,6 +178,8 @@ install_one "$repo_root/scripts/test-tomb-raider-direct-safe-full-topology-cef-h
     "$HOME/test-tomb-raider-direct-safe-full-topology-cef-hold-alternating-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/test-tomb-raider-direct-safe-full-topology-cef-hold-pair-40c-ceiling.sh" \
     "$HOME/test-tomb-raider-direct-safe-full-topology-cef-hold-pair-40c-ceiling.sh" 700
+install_one "$repo_root/scripts/test-tomb-raider-direct-safe-full-topology-x11-isolation-alternating-40c-ceiling.sh" \
+    "$HOME/test-tomb-raider-direct-safe-full-topology-x11-isolation-alternating-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/start-gtaiv-native.sh" \
     "$HOME/start-gtaiv-native.sh" 700
 install_one "$repo_root/scripts/stop-steam.sh" "$HOME/stop-steam.sh" 700

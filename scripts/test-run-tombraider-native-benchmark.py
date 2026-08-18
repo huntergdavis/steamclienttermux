@@ -71,6 +71,35 @@ def main():
             pass
         else:
             raise AssertionError("invalid Steam CEF hold log was accepted")
+    assert module.parse_x11_isolation_log(
+        "Termux X11 experimental isolation: active; pid=10; cpu=0; tids=10,11\n"
+        "Termux X11 experimental isolation: game exited\n"
+        "Termux X11 experimental isolation: restored; tids=10,11,12\n"
+    ) == {
+        "pid": 10,
+        "cpu": 0,
+        "active_tids": [10, 11],
+        "restored_tids": [10, 11, 12],
+    }
+    for invalid_x11_log in (
+        "Termux X11 experimental isolation: active; pid=10; cpu=0; tids=10,11\n",
+        "Termux X11 experimental isolation: active; pid=10; cpu=0; tids=11,10\n"
+        "Termux X11 experimental isolation: game exited\n"
+        "Termux X11 experimental isolation: restored; tids=10,11\n",
+        "Termux X11 experimental isolation: active; pid=10; cpu=0; tids=10,11\n"
+        "Termux X11 experimental isolation: game exited\n"
+        "Termux X11 experimental isolation: restored; tids=10\n",
+        "Termux X11 experimental isolation: active; pid=10; cpu=0; tids=10,11\n"
+        "Termux X11 experimental isolation: game exited\n"
+        "Termux X11 experimental isolation: restored; tids=10,11\n"
+        "unexpected noise\n",
+    ):
+        try:
+            module.parse_x11_isolation_log(invalid_x11_log)
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError("invalid Termux X11 isolation log was accepted")
     assert module.parse_recorded_passes("2,4,6") == (2, 4, 6)
     for invalid_passes in ("", "0", "2,2", "4,2", "one,2"):
         try:
@@ -104,6 +133,8 @@ def main():
     assert direct.startup_topology == "available"
     assert not direct.hold_steam_cef
     assert direct.steam_cef_hold_recorded_passes == ()
+    assert not direct.isolate_x11
+    assert direct.x11_isolation_recorded_passes == ()
     direct_cef_hold = module.build_parser().parse_args(
         ["--backend", "direct", "--hold-steam-cef"]
     )
@@ -112,6 +143,10 @@ def main():
         ["--backend", "direct", "--steam-cef-hold-recorded-passes", "2,4,6"]
     )
     assert direct_cef_pairs.steam_cef_hold_recorded_passes == (2, 4, 6)
+    direct_x11_pairs = module.build_parser().parse_args(
+        ["--backend", "direct", "--x11-isolation-recorded-passes", "2,4,6"]
+    )
+    assert direct_x11_pairs.x11_isolation_recorded_passes == (2, 4, 6)
     direct_priority = module.build_parser().parse_args(
         ["--backend", "direct", "--raknet-nice", "19"]
     )
@@ -140,6 +175,39 @@ def main():
     assert module.affinity_log_is_ready(
         "Tomb Raider performance state: ready; PID 1\n", "proot"
     )
+
+    condition_runs = [
+        {
+            "kind": "recorded",
+            "x11_isolation": False,
+            "metrics": {
+                "minimum_fps": 10.0,
+                "maximum_fps": 30.0,
+                "average_fps": 20.0,
+            },
+        },
+        {
+            "kind": "recorded",
+            "x11_isolation": True,
+            "metrics": {
+                "minimum_fps": 12.0,
+                "maximum_fps": 32.0,
+                "average_fps": 22.0,
+            },
+        },
+    ]
+    assert module.aggregate_x11_isolation_conditions(condition_runs) == {
+        "control": {
+            "minimum_fps": {"mean": 10.0, "median": 10.0, "values": [10.0]},
+            "maximum_fps": {"mean": 30.0, "median": 30.0, "values": [30.0]},
+            "average_fps": {"mean": 20.0, "median": 20.0, "values": [20.0]},
+        },
+        "x11_cpu0_isolation": {
+            "minimum_fps": {"mean": 12.0, "median": 12.0, "values": [12.0]},
+            "maximum_fps": {"mean": 32.0, "median": 32.0, "values": [32.0]},
+            "average_fps": {"mean": 22.0, "median": 22.0, "values": [22.0]},
+        },
+    }
 
     def snapshot(cpu_policy, gpu_policy, gpu_level, temperature):
         return {

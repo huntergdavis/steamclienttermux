@@ -37,6 +37,13 @@ CEF_HOLD_LOG_PATTERN = re.compile(
     r"Steam CEF experimental hold: game exited\n"
     r"Steam CEF experimental hold: resumed ([1-9][0-9]*(?:,[1-9][0-9]*)*)\n?"
 )
+X11_ISOLATION_LOG_PATTERN = re.compile(
+    r"Termux X11 experimental isolation: active; pid=([1-9][0-9]*); "
+    r"cpu=([0-7]); tids=([1-9][0-9]*(?:,[1-9][0-9]*)*)\n"
+    r"Termux X11 experimental isolation: game exited\n"
+    r"Termux X11 experimental isolation: restored; "
+    r"tids=([1-9][0-9]*(?:,[1-9][0-9]*)*)\n?"
+)
 
 
 def read_text(path: Path) -> str | None:
@@ -171,6 +178,21 @@ def parse_cef_hold_log(output: str) -> list[int]:
     if resumed != active:
         raise RuntimeError("Steam CEF hold did not resume the exact active PID set")
     return active
+
+
+def parse_x11_isolation_log(output: str) -> dict[str, int | list[int]]:
+    match = X11_ISOLATION_LOG_PATTERN.fullmatch(output)
+    if match is None:
+        raise RuntimeError("Termux X11 isolation log is incomplete or contains errors")
+    pid = int(match.group(1))
+    cpu = int(match.group(2))
+    active = [int(value) for value in match.group(3).split(",")]
+    restored = [int(value) for value in match.group(4).split(",")]
+    if active != sorted(set(active)) or restored != sorted(set(restored)):
+        raise RuntimeError("Termux X11 isolation TID sets are not sorted and unique")
+    if not set(active).issubset(restored):
+        raise RuntimeError("Termux X11 isolation did not restore every active TID")
+    return {"pid": pid, "cpu": cpu, "active_tids": active, "restored_tids": restored}
 
 
 def parse_recorded_passes(value: str) -> tuple[int, ...]:
@@ -440,6 +462,54 @@ def run_logged_with_cef_holder(
     return elapsed, parse_cef_hold_log(holder_output.read_text())
 
 
+def run_logged_with_x11_isolator(
+    command,
+    environment,
+    output: Path,
+    isolator_command,
+    isolator_output: Path,
+) -> tuple[float, dict[str, int | list[int]]]:
+    launch_error = None
+    elapsed = None
+    with isolator_output.open("w") as isolator_log:
+        isolator = subprocess.Popen(
+            [str(value) for value in isolator_command],
+            env=environment,
+            stdout=isolator_log,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+        try:
+            elapsed = run_logged(command, environment, output)
+        except BaseException as error:
+            launch_error = error
+        try:
+            isolator_return_code = isolator.wait(timeout=15)
+        except subprocess.TimeoutExpired as error:
+            isolator.terminate()
+            try:
+                isolator_return_code = isolator.wait(timeout=15)
+            except subprocess.TimeoutExpired as stop_error:
+                raise RuntimeError(
+                    "Termux X11 isolator did not stop after graceful termination; "
+                    "it retains its own bounded isolation timeout"
+                ) from stop_error
+            if launch_error is None:
+                launch_error = RuntimeError(
+                    "Termux X11 isolator outlived the game launch command"
+                )
+        if launch_error is not None:
+            raise launch_error
+        if isolator_return_code != 0:
+            raise RuntimeError(
+                f"Termux X11 isolator exited {isolator_return_code}; "
+                f"inspect {isolator_output}"
+            )
+    if elapsed is None:
+        raise RuntimeError("game launch elapsed time is unavailable")
+    return elapsed, parse_x11_isolation_log(isolator_output.read_text())
+
+
 def python_tool_command(tool: Path, *arguments: str) -> list[Path | str]:
     return [Path(sys.executable), tool, *arguments]
 
@@ -488,6 +558,25 @@ def aggregate_cef_hold_conditions(runs) -> dict[str, dict[str, dict[str, float]]
     }
 
 
+def aggregate_x11_isolation_conditions(runs) -> dict[str, dict[str, dict[str, float]]]:
+    control = [
+        run
+        for run in runs
+        if run["kind"] == "recorded" and not run["x11_isolation"]
+    ]
+    isolated = [
+        run
+        for run in runs
+        if run["kind"] == "recorded" and run["x11_isolation"]
+    ]
+    if not control or not isolated:
+        raise RuntimeError("paired X11 isolation comparison requires both conditions")
+    return {
+        "control": aggregate_results(control),
+        "x11_cpu0_isolation": aggregate_results(isolated),
+    }
+
+
 def affinity_log_is_ready(text: str, backend: str) -> bool:
     if "Tomb Raider performance state: ready;" not in text:
         return False
@@ -530,6 +619,19 @@ def build_parser() -> argparse.ArgumentParser:
         default=(),
         metavar="N[,N...]",
         help="recorded pass numbers that receive the experimental native Steam CEF hold",
+    )
+    x11_group = parser.add_mutually_exclusive_group()
+    x11_group.add_argument(
+        "--isolate-x11",
+        action="store_true",
+        help="experimentally isolate verified Termux:X11 threads to CPU 0 each pass",
+    )
+    x11_group.add_argument(
+        "--x11-isolation-recorded-passes",
+        type=parse_recorded_passes,
+        default=(),
+        metavar="N[,N...]",
+        help="recorded pass numbers that receive experimental X11 CPU-0 isolation",
     )
     parser.add_argument(
         "--raknet-nice",
@@ -599,6 +701,9 @@ def main() -> int:
     cef_hold_requested = bool(
         arguments.hold_steam_cef or arguments.steam_cef_hold_recorded_passes
     )
+    x11_isolation_requested = bool(
+        arguments.isolate_x11 or arguments.x11_isolation_recorded_passes
+    )
     if cef_hold_requested and arguments.backend != "direct":
         print("Steam CEF hold experiments require the direct backend", file=sys.stderr)
         return 2
@@ -607,6 +712,18 @@ def main() -> int:
         for number in arguments.steam_cef_hold_recorded_passes
     ):
         print("Steam CEF hold pass number exceeds configured recorded runs", file=sys.stderr)
+        return 2
+    if x11_isolation_requested and arguments.backend != "direct":
+        print("Termux X11 isolation experiments require the direct backend", file=sys.stderr)
+        return 2
+    if any(
+        number > arguments.runs
+        for number in arguments.x11_isolation_recorded_passes
+    ):
+        print("X11 isolation pass number exceeds configured recorded runs", file=sys.stderr)
+        return 2
+    if cef_hold_requested and x11_isolation_requested:
+        print("CEF hold and X11 isolation cannot be combined in one series", file=sys.stderr)
         return 2
     if arguments.startup_topology != "available" and arguments.backend != "direct":
         print("full startup topology requires the direct backend", file=sys.stderr)
@@ -627,6 +744,7 @@ def main() -> int:
     profile_checker = base / "compat-bin/configure-tombraider-performance.py"
     topology_checker = base / "compat-bin/configure-tombraider-cpu-topology.py"
     cef_holder = base / "compat-bin/hold-tombraider-steam-cef.py"
+    x11_isolator = base / "compat-bin/isolate-tombraider-x11.py"
     steam_executable = base / "client/steamrtarm64/steam"
     proc_root = Path("/proc")
     cpu_root = Path("/sys/devices/system/cpu")
@@ -656,6 +774,8 @@ def main() -> int:
             required.append((topology_checker, "Tomb Raider CPU-topology checker"))
             if cef_hold_requested:
                 required.append((cef_holder, "native Steam CEF holder"))
+            if x11_isolation_requested:
+                required.append((x11_isolator, "Termux X11 isolator"))
         for path, label in required:
             require_regular(path, label, executable=True)
         if not game_directory.is_dir() or game_directory.is_symlink():
@@ -708,6 +828,10 @@ def main() -> int:
                 "steam_cef_hold": arguments.hold_steam_cef,
                 "steam_cef_hold_recorded_passes": list(
                     arguments.steam_cef_hold_recorded_passes
+                ),
+                "x11_isolation": arguments.isolate_x11,
+                "x11_isolation_recorded_passes": list(
+                    arguments.x11_isolation_recorded_passes
                 ),
                 "startup_topology": arguments.startup_topology,
                 "backend": arguments.backend,
@@ -853,9 +977,14 @@ def main() -> int:
                 else [launcher, "-benchmark"]
             )
             cef_hold_pids = None
+            x11_isolation_evidence = None
             use_cef_hold = arguments.hold_steam_cef or (
                 kind == "recorded"
                 and number in arguments.steam_cef_hold_recorded_passes
+            )
+            use_x11_isolation = arguments.isolate_x11 or (
+                kind == "recorded"
+                and number in arguments.x11_isolation_recorded_passes
             )
             if use_cef_hold:
                 cef_hold_log = output_directory / f"{label}-steam-cef-hold.log"
@@ -874,6 +1003,28 @@ def main() -> int:
                         "300",
                     ),
                     cef_hold_log,
+                )
+            elif use_x11_isolation:
+                x11_isolation_log = output_directory / f"{label}-x11-isolation.log"
+                elapsed, x11_isolation_evidence = run_logged_with_x11_isolator(
+                    launch_command,
+                    environment,
+                    launch_log,
+                    python_tool_command(
+                        x11_isolator,
+                        "--acknowledge-experimental",
+                        "--display",
+                        arguments.display,
+                        "--cpu",
+                        "0",
+                        "--wait-seconds",
+                        "300",
+                        "--delay-seconds",
+                        "25",
+                        "--isolation-timeout-seconds",
+                        "300",
+                    ),
+                    x11_isolation_log,
                 )
             else:
                 elapsed = run_logged(launch_command, environment, launch_log)
@@ -915,6 +1066,8 @@ def main() -> int:
                 "source_affinity_log": str(ready_guards[0]),
                 "steam_cef_hold": use_cef_hold,
                 "steam_cef_hold_pids": cef_hold_pids,
+                "x11_isolation": use_x11_isolation,
+                "x11_isolation_evidence": x11_isolation_evidence,
                 "before": before,
                 "after": after,
             }
@@ -930,6 +1083,10 @@ def main() -> int:
         series["aggregate"] = aggregate_results(series["runs"])
         if arguments.steam_cef_hold_recorded_passes:
             series["condition_aggregates"] = aggregate_cef_hold_conditions(
+                series["runs"]
+            )
+        if arguments.x11_isolation_recorded_passes:
+            series["condition_aggregates"] = aggregate_x11_isolation_conditions(
                 series["runs"]
             )
         series["status"] = "complete"
