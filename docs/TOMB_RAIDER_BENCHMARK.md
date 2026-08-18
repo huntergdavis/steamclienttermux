@@ -1160,3 +1160,35 @@ the topology patch, and the disabled external-command property survived.
 The exact artifact is
 [`tombraider-direct-glibc-safe-topology-fix-raknet-exclusive-alternating-60hz-40c-20260818.json`](benchmark-series/tombraider-direct-glibc-safe-topology-fix-raknet-exclusive-alternating-60hz-40c-20260818.json),
 SHA-256 `48d87e6763d7a8f4d2008e4dece48dec2ddfc6f5a6548c51c0caebbc47cc2895`.
+
+## Topology-fixed direct Proton series (2026-08-18)
+
+The earlier Proton rows still crossed the Runtime/PRoot game boundary. Series
+`20260818T150228Z-proton` is the first Proton-profile measurement on the current
+direct hot path. It retained 2800x1752, 59.97 Hz, Low, motion blur off, V-Sync
+off, full topology fix, production affinity, and the fixed 40 C start ceiling.
+
+| Pass | Start temperature | Minimum | Maximum | Average |
+| --- | ---: | ---: | ---: | ---: |
+| warm-up | 37.0 C | 26.0 | 46.4 | 33.5 |
+| recorded 1 | 37.0 C | 24.6 | 45.1 | 32.1 |
+| recorded 2 | 37.0 C | 14.5 | 46.8 | 31.2 |
+| recorded 3 | 37.2 C | 22.1 | 44.8 | 30.6 |
+| recorded mean | n/a | **20.400** | **45.567** | **31.300** |
+
+Every start had full CPU/GPU policy and GPU thermal power level zero. All four
+launches returned zero and supplied a fresh ready topology/affinity guard. The
+phase-aware controller ended `complete`; the RunCommand transport reported
+`err=-1` and `exit_code=0`.
+
+Against the matched direct Safe baseline at 21.000/46.133/30.400 FPS, Proton
+changes minimum/maximum/average means by -2.86%/-1.23%/+2.96%. This makes it
+the leading FEX candidate, but not yet the default: the gain is small and the
+recorded average declines on every pass. Run an immediate reverse-order Safe
+control before assigning the delta to the profile.
+
+The exact artifact is
+[`tombraider-direct-glibc-proton-topology-fix-60hz-40c-20260818.json`](benchmark-series/tombraider-direct-glibc-proton-topology-fix-60hz-40c-20260818.json),
+SHA-256 `6f64685bfbeb57c0a6732b876f5c95589c15c27ba8653af6d28d230418a47d3d`.
+Steam PID 22318, X11 PID 25663, PulseAudio PID 25865, saved login, the topology
+patch, and the disabled external-command property survived unchanged.

@@ -6519,3 +6519,45 @@ authoritative for completed passes. The controller now additionally persists
 its own preflight/cooldown, launch/run, result-validation, acceptance, and
 terminal phases, including the active pass metadata, so monitoring does not
 infer those states from process samples.
+
+## 2026-08-18: direct Proton becomes the leading FEX candidate
+
+The repository audit found no topology-fixed direct `proton` series: both
+existing Proton artifacts still included the removed Runtime/PRoot game
+boundary. Commit `cee829b` added the missing reproducible wrapper. The exact
+foreground RunCommand gate then launched series `20260818T150228Z-proton`
+without restarting the authenticated Safe-profile Steam host; the direct
+dispatcher applied the Proton FEX environment only to the game tree.
+
+The controller's new atomic phase state identified every cooldown, launch/run,
+validation, acceptance, and terminal boundary without process-state inference.
+All four passes started unthrottled at 37.0-37.2 C under the fixed 40 C ceiling,
+full topology fix, 2800x1752, 59.97 Hz, Low, motion blur off, and V-Sync off.
+
+| Pass | Minimum | Maximum | Average |
+| --- | ---: | ---: | ---: |
+| warm-up | 26.0 | 46.4 | 33.5 |
+| recorded 1 | 24.6 | 45.1 | 32.1 |
+| recorded 2 | 14.5 | 46.8 | 31.2 |
+| recorded 3 | 22.1 | 44.8 | 30.6 |
+| recorded mean | **20.400** | **45.567** | **31.300** |
+
+Against the matched direct Safe baseline at 21.000/46.133/30.400 FPS, Proton
+changes minimum/maximum/average means by -2.86%/-1.23%/+2.96%. The average
+gain is promising, but small; the descending 32.1/31.2/30.6 sequence also
+makes session drift a credible explanation. Proton is the leading candidate,
+not the production default, pending an immediate reverse-order Safe control.
+
+Every launch returned zero and supplied one fresh ready topology/affinity log.
+The RunCommand transport completed with `err=-1` and `exit_code=0`.
+`termux.properties` returned to SHA-256
+`89094537f49531dc9b380a0dec3a441b2fb92577e0a4f1db505790eb8b7025b0`;
+Steam PID 22318, X11 PID 25663, PulseAudio PID 25865, and saved authentication
+survived. The exact manifest is
+`docs/benchmark-series/tombraider-direct-glibc-proton-topology-fix-60hz-40c-20260818.json`,
+SHA-256 `6f64685bfbeb57c0a6732b876f5c95589c15c27ba8653af6d28d230418a47d3d`.
+
+The required focused `deja` recall found no prior direct-Proton result or exact
+RunCommand command. This work reused the repository's fixed-ceiling direct
+Safe methodology and the official Termux RunCommand component/extras and
+structured-result contract instead of inferring a pass from live processes.
