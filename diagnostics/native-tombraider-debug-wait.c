@@ -17,7 +17,6 @@ static bool is_tombraider_preloader(void) {
     char command[8192];
     char probe[512];
     char *argument;
-    char *end;
     ssize_t length;
     size_t remaining;
     size_t target_length;
@@ -35,44 +34,40 @@ static bool is_tombraider_preloader(void) {
         return false;
     }
     command[length] = '\0';
+    static const char suffix[] = "TombRaider.exe";
+
     argument = command;
     remaining = (size_t)length;
-    for (int index = 0; index < 2; ++index) {
-        end = memchr(argument, '\0', remaining);
-        if (end == NULL) {
+    while (remaining > 0) {
+        target_length = strnlen(argument, remaining);
+        if (target_length == remaining) {
             return false;
         }
-        remaining -= (size_t)(end + 1 - argument);
-        argument = end + 1;
+        probe_length = snprintf(
+            probe,
+            sizeof(probe),
+            "TOMB_RAIDER_DEBUG_ARG_PID=%ld VALUE=%.*s\n",
+            (long)getpid(),
+            (int)(target_length < 320 ? target_length : 320),
+            argument
+        );
+        if (probe_length > 0 && (size_t)probe_length < sizeof(probe)) {
+            written = write(STDERR_FILENO, probe, (size_t)probe_length);
+            (void)written;
+        }
+        if (target_length >= 2 + sizeof(suffix) - 1 &&
+                argument[0] == 'Z' && argument[1] == ':' &&
+                memcmp(
+                    argument + target_length - (sizeof(suffix) - 1),
+                    suffix,
+                    sizeof(suffix) - 1
+                ) == 0) {
+            return true;
+        }
+        remaining -= target_length + 1;
+        argument += target_length + 1;
     }
-    if (remaining < 2) {
-        return false;
-    }
-    target_length = strnlen(argument, remaining);
-    probe_length = snprintf(
-        probe,
-        sizeof(probe),
-        "TOMB_RAIDER_DEBUG_ARG2_PID=%ld VALUE=%.*s\n",
-        (long)getpid(),
-        (int)(target_length < 320 ? target_length : 320),
-        argument
-    );
-    if (probe_length > 0 && (size_t)probe_length < sizeof(probe)) {
-        written = write(STDERR_FILENO, probe, (size_t)probe_length);
-        (void)written;
-    }
-    if (argument[0] != 'Z' || argument[1] != ':') {
-        return false;
-    }
-    static const char suffix[] = "TombRaider.exe";
-    if (target_length < sizeof(suffix) - 1 || target_length == remaining) {
-        return false;
-    }
-    return memcmp(
-        argument + target_length - (sizeof(suffix) - 1),
-        suffix,
-        sizeof(suffix) - 1
-    ) == 0;
+    return false;
 }
 
 __attribute__((constructor)) static void tombraider_debug_wait(void) {
