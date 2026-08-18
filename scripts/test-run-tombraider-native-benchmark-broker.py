@@ -19,6 +19,12 @@ DIRECT_WRAPPER = Path(__file__).with_name(
 DIRECT_FAST_WRAPPER = Path(__file__).with_name(
     "test-tomb-raider-direct-fast-40c-ceiling.sh"
 )
+DIRECT_SAFE_FULL_WRAPPER = Path(__file__).with_name(
+    "test-tomb-raider-direct-safe-full-topology-40c-ceiling.sh"
+)
+DIRECT_FAST_FULL_WRAPPER = Path(__file__).with_name(
+    "test-tomb-raider-direct-fast-full-topology-40c-ceiling.sh"
+)
 
 
 def main():
@@ -141,6 +147,30 @@ def main():
             "arg=--runs",
             "arg=1",
         ]
+
+        for profile, wrapper in (
+            ("safe", DIRECT_SAFE_FULL_WRAPPER),
+            ("fast", DIRECT_FAST_FULL_WRAPPER),
+        ):
+            full_capture = root / f"direct-{profile}-full-capture"
+            wrapper_environment["BENCHMARK_CAPTURE"] = str(full_capture)
+            subprocess.run(
+                ["bash", str(wrapper), "--runs", "1"],
+                env=wrapper_environment,
+                check=True,
+            )
+            assert full_capture.read_text().splitlines() == [
+                "arg=--backend",
+                "arg=direct",
+                "arg=--profile",
+                f"arg={profile}",
+                "arg=--startup-topology",
+                "arg=full",
+                "arg=--start-temperature-ceiling-c",
+                "arg=40",
+                "arg=--runs",
+                "arg=1",
+            ]
 
     print("native Tomb Raider benchmark broker and profile wrapper tests: PASS")
 
