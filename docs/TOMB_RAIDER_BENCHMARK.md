@@ -1127,3 +1127,36 @@ The excluded result, incomplete guard, and normal server log SHA-256 values
 are `853ff507b67a7691a24d16169351e4d37a31661b1d507be74d93048625f42dac`,
 `c7b6628a94f82c62a3cd12b3cb62085cf54f1fcb9dbbd38de3328e23c73f299c`,
 and `9e9d9f657f7c77d335643a3517d9b410992a698af76ba29fa49b71463d0ed8dc`.
+
+## RakNet-exclusive alternating replication (2026-08-18)
+
+The fixed-ceiling replication alternated three untreated controls with three
+passes reserving CPU1 exclusively for `Raknet-RecvFrom`. The target remained
+2800x1752 at 59.97 Hz, Low, motion blur off, V-Sync off, Safe FEX, direct game
+dispatch, full startup topology, and the fixed 40 C start ceiling.
+
+| Pass | Game CPUs | RakNet-exclusive | Minimum | Maximum | Average |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| warm-up | 1-7 | no | 22.3 | 45.2 | 31.9 |
+| recorded 1 | 1-7 | no | 19.3 | 44.7 | 30.9 |
+| recorded 2 | 2-7 | yes | 3.8 | 46.3 | 29.6 |
+| recorded 3 | 1-7 | no | 21.9 | 45.5 | 31.2 |
+| recorded 4 | 2-7 | yes | 20.4 | 46.9 | 30.5 |
+| recorded 5 | 1-7 | no | 21.7 | 46.1 | 30.7 |
+| recorded 6 | 2-7 | yes | 22.8 | 45.7 | 30.7 |
+
+Control mean minimum/maximum/average was 20.967/45.433/30.933 FPS. The
+condition was 15.667/46.300/30.267 FPS, changes of -25.28%, +1.91%, and
+-2.15%. Paired average changes were -1.3, -0.7, and 0.0 FPS. The condition
+did not repeat the first pair's minimum-FPS gain and introduced a 3.8 FPS
+minimum. It is rejected; production remains game CPUs1-7 with RakNet on CPU1.
+
+All seven launcher calls returned zero and their fresh guards proved the
+requested ready topology. The controller waited for unthrottled CPU/GPU,
+thermal power level zero, a sub-40 C reading, and three stable samples before
+each pass. Steam PID 22318, X11 PID 25663, PulseAudio PID 25865, saved login,
+the topology patch, and the disabled external-command property survived.
+
+The exact artifact is
+[`tombraider-direct-glibc-safe-topology-fix-raknet-exclusive-alternating-60hz-40c-20260818.json`](benchmark-series/tombraider-direct-glibc-safe-topology-fix-raknet-exclusive-alternating-60hz-40c-20260818.json),
+SHA-256 `48d87e6763d7a8f4d2008e4dece48dec2ddfc6f5a6548c51c0caebbc47cc2895`.

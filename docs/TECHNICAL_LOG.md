@@ -6478,3 +6478,43 @@ whether the low-end change repeats. The exact pair manifest is
 SHA-256 `cda15d2c2ec58f6c4790a92e6c90f51c64d06521eed178cd03120e9b7211b4f0`.
 Steam PID 22318, X11 PID 25663, PulseAudio PID 25865, saved authentication,
 and the disabled property SHA survived unchanged.
+
+## 2026-08-18: alternating replication rejects RakNet-exclusive CPU1
+
+Series `20260818T142035Z-safe` completed one untreated warm-up and three
+alternating control/condition pairs at 2800x1752, 59.97 Hz, Low, Safe, and the
+fixed 40 C start ceiling. Controls kept ordinary game threads on CPUs1-7;
+conditions constrained them to CPUs2-7 while retaining the uniquely identified
+RakNet receive thread on CPU1. Every pass produced one new exact ready guard,
+one accepted result, and launcher status zero.
+
+| Pass | Ordinary game CPUs | Minimum | Maximum | Average |
+| --- | ---: | ---: | ---: | ---: |
+| warm-up | 1-7 | 22.3 | 45.2 | 31.9 |
+| control 1 | 1-7 | 19.3 | 44.7 | 30.9 |
+| condition 1 | 2-7 | 3.8 | 46.3 | 29.6 |
+| control 2 | 1-7 | 21.9 | 45.5 | 31.2 |
+| condition 2 | 2-7 | 20.4 | 46.9 | 30.5 |
+| control 3 | 1-7 | 21.7 | 46.1 | 30.7 |
+| condition 3 | 2-7 | 22.8 | 45.7 | 30.7 |
+
+Control mean minimum/maximum/average was 20.967/45.433/30.933 FPS; the
+RakNet-exclusive condition was 15.667/46.300/30.267 FPS. The condition deltas
+were -25.28%, +1.91%, and -2.15%, respectively. Paired average deltas were
+-1.3, -0.7, and 0.0 FPS; paired minimum deltas were -15.5, -1.5, and +1.1
+FPS. The initial low-end signal did not repeat, and the 3.8 FPS condition
+outlier made tail behavior worse. The candidate is rejected; production
+remains ordinary game CPUs1-7 with RakNet pinned to CPU1.
+
+The exact manifest is
+`docs/benchmark-series/tombraider-direct-glibc-safe-topology-fix-raknet-exclusive-alternating-60hz-40c-20260818.json`,
+SHA-256 `48d87e6763d7a8f4d2008e4dece48dec2ddfc6f5a6548c51c0caebbc47cc2895`.
+Steam PID 22318, X11 PID 25663, PulseAudio PID 25865, saved authentication,
+the enabled topology fix, and the disabled external-command property survived.
+
+Live monitoring exposed a controller observability gap: process disappearance
+alone does not prove a pass boundary because the next launch may begin before
+the next polling sample. The accepted-run count in `series.json` is
+authoritative for completed passes. The controller will additionally persist
+its own cooldown, launch/run, validation, and completion phases so monitoring
+does not infer those states from process samples.
