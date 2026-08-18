@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "experiment_id": "bionic-vulkan-bridge-e004-e005-20260818",
+  "recorded_at": "2026-08-18T10:23:27-07:00",
+  "device": {
+    "model": "SM-X808U",
+    "product": "Samsung Galaxy Tab S8+",
+    "soc": "Qualcomm Snapdragon 8 Gen 1",
+    "gpu": "Adreno (TM) 730",
+    "android_release": "16",
+    "android_sdk": 36
+  },
+  "repositories": {
+    "steamclienttermux_parent_before_record": "a5a351dce8f678620b69a98f7517217c73242278",
+    "termux_glibc_compat_reused_protocol_source": "da200c72bb2fd4d3f6a4e7817d82eaf311f83780",
+    "bionic_vulkan_bridge_e004_pass": "0ad41f81f96a828cb73b387af025427a7c138a76",
+    "bionic_vulkan_bridge_e005_pass": "46a079a7e95c42de086e25cd4fe4dd55aa85ebd3",
+    "bionic_vulkan_bridge_documented_head": "c533b632bd4d63250e5775945283a740c5a8d591"
+  },
+  "binary_identity": {
+    "glibc_client": {
+      "path": "out/bvb-bridge-client-glibc",
+      "interpreter": "/data/data/com.termux/files/usr/glibc/lib/ld-linux-aarch64.so.1",
+      "sha256": "c855c7f04f79f518cadbe40baf73333ba811d557b4adce2db3eb2f4751adcc2c"
+    },
+    "bionic_service": {
+      "path": "build/bvb-bridge-service",
+      "interpreter": "/system/bin/linker64",
+      "needed": ["libdl.so", "libc.so"],
+      "sha256": "1af60d1e17bc45a72d7011f07b7dff4863072596913ffad80af50e6d5b50a7f3"
+    },
+    "bionic_direct_selftest": {
+      "path": "build/bvb-vulkan-selftest",
+      "interpreter": "/system/bin/linker64",
+      "sha256": "310ac3184b60c6f376c1937d7b124f5332342ac28a34baf91129a23512d24927"
+    }
+  },
+  "canonical_selftest": {
+    "loader_path": "/system/lib64/libvulkan.so",
+    "instance_extension_count": 14,
+    "device_extension_count": 90,
+    "queue_family_index": 0,
+    "queue_flags": 27,
+    "memory_type_index": 6,
+    "memory_property_flags": 15,
+    "buffer_bytes": 4096,
+    "fill_word_decimal": 2781081613,
+    "fill_word_hex": "0xa5c3f00d",
+    "verified_words": 1024,
+    "mismatched_words": 0,
+    "known_instance_extensions": [
+      "VK_KHR_surface",
+      "VK_KHR_android_surface",
+      "VK_KHR_get_physical_device_properties2",
+      "VK_KHR_external_memory_capabilities",
+      "VK_KHR_external_semaphore_capabilities"
+    ],
+    "known_device_extensions": [
+      "VK_KHR_swapchain",
+      "VK_KHR_external_memory",
+      "VK_KHR_external_memory_fd",
+      "VK_ANDROID_external_memory_android_hardware_buffer",
+      "VK_KHR_external_semaphore",
+      "VK_KHR_external_semaphore_fd",
+      "VK_KHR_timeline_semaphore",
+      "VK_KHR_external_fence_fd"
+    ],
+    "headless_surface_extension_present": false
+  },
+  "gates": {
+    "e004_direct_bionic_command_submission": {
+      "first_attempt_commit": "819371cead2d02e4d6892b0370a19ec8bfc96b9d",
+      "first_attempt_result": "FAIL: no transfer-capable queue family",
+      "cause": "queue family reported graphics and compute, whose implicit transfer support is sufficient even without VK_QUEUE_TRANSFER_BIT",
+      "passing_commit": "0ad41f81f96a828cb73b387af025427a7c138a76",
+      "exit_code": 0,
+      "stderr_empty": true,
+      "submit_wait_elapsed_ns": 3298542,
+      "whole_process_elapsed_ns": 206800729,
+      "mismatched_words": 0,
+      "result": "PASS"
+    },
+    "e005_glibc_triggered_bionic_command_submission": {
+      "commit": "46a079a7e95c42de086e25cd4fe4dd55aa85ebd3",
+      "protocol_version": 1,
+      "protocol_opcode": 3,
+      "response_bytes": 64,
+      "capability_parity": true,
+      "command_selftest_parity": true,
+      "bridged_submit_wait_elapsed_ns": 3440573,
+      "direct_control_submit_wait_elapsed_ns": 2371511,
+      "elapsed_ns_including_glibc_startup_handshake_caps_and_selftest": 209695208,
+      "bridged_mismatched_words": 0,
+      "direct_mismatched_words": 0,
+      "result": "PASS"
+    }
+  },
+  "surface_host_decision": {
+    "termux_x11_source_commit": "139f2197e6093d04d5df1400baa998bf1fb07b3c",
+    "observed_interface": "Binder exports X and log file descriptors, not the SurfaceView Surface",
+    "next_gate": "Create and query a Vulkan surface backed by a separately controlled ANativeWindow",
+    "visible_followup": "Use a dedicated SurfaceView host with explicit ownership; do not concurrently take over Termux:X11's EGL-owned surface"
+  },
+  "session_recall": {
+    "query": "Android Vulkan ANativeWindow Termux X11 surface bridge external memory Adreno headless command submission Bionic glibc",
+    "indexed_matches": 0,
+    "reused_repository_evidence": "termux-glibc-compat fixed-width little-endian framing, exact I/O loops, owner-only Unix socket, and peer-UID authentication"
+  },
+  "claims": {
+    "proven": [
+      "A Bionic process can create native Vulkan objects and execute a command buffer through the Android system loader and Adreno driver.",
+      "The glibc client can trigger the Bionic service command self-test without PRoot.",
+      "Direct and bridged deterministic self-test fields match and both buffers contain zero mismatched words."
+    ],
+    "not_yet_proven": [
+      "ANativeWindow-backed Vulkan surface creation",
+      "swapchain creation or visible presentation",
+      "AHardwareBuffer or external-FD import/export",
+      "game-facing Vulkan entry-point coverage or DXVK integration",
+      "rendered game output",
+      "Tomb Raider performance improvement"
+    ]
+  }
+}

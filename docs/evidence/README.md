@@ -101,6 +101,11 @@ These screenshots capture milestones and failures from the original tablet.
   capability parity through the bridge. It records binary interpreters,
   repository commits, hashes, timings, and the boundary of what is not yet
   proven.
+- `bionic-vulkan-bridge-e004-e005-20260818.json`: non-visual, machine-readable
+  evidence for direct and glibc-triggered native Adreno command submission.
+  Both paths filled and verified a 4 KiB host-visible buffer with zero
+  mismatches. It inventories WSI/interoperability extensions and preserves the
+  still-unproven visible-surface and game-integration boundary.
 - `tombraider-gaminghub-added-performance-unconfirmed-2026-08-15.png`: a
   panel-native Low pass after both shared-UID apps were added to Gaming Hub but
   before the separate Performance selector was confirmed, reporting

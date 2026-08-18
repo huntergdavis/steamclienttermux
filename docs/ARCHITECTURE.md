@@ -56,9 +56,19 @@ glibc game-side client
 On the Tab S8+, a Termux-built Bionic probe enumerated the Adreno 730 directly;
 an independently glibc-linked AArch64 client then negotiated protocol v1 and
 received the same capability fields through the service. Neither leg uses
-PRoot. This proves that the process/ABI boundary and Vulkan control plane are
-viable. Vulkan objects, shared graphics memory, synchronization, surfaces,
-command submission, DXVK integration, and rendering remain future work.
+PRoot. The service now also creates a logical device, command pool, queue, and
+host-visible buffer, executes `vkCmdFillBuffer`, synchronizes, maps, and verifies
+the result. Both a direct Bionic control and the glibc-triggered service path
+verified 1,024 words with zero mismatches. This proves native Vulkan object and
+command execution across the process/ABI control boundary.
+
+The current Termux:X11 Binder interface exports X and log descriptors, not its
+Android `Surface`; its in-process renderer already owns that `SurfaceView` as an
+EGL producer. An X connection is not an `ANativeWindow`, and the tablet lacks
+`VK_EXT_headless_surface`. The next isolated gate therefore uses a controlled
+Android native window before adding a dedicated visible `SurfaceView` host.
+Swapchain presentation, game-facing dispatch, DXVK integration, and any FPS
+improvement remain unproven.
 
 Termux remains the Bionic control plane, while glibc remains necessary for the
 commercial Linux game stack. The experiment therefore narrows one boundary

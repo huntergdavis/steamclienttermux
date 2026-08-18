@@ -6592,7 +6592,7 @@ survived. The exact reverse-control manifest is
 `docs/benchmark-series/tombraider-direct-glibc-safe-topology-fix-reverse-control-60hz-40c-20260818.json`,
 SHA-256 `40052514627a9eda68ef0fe93c8364d12073c7cb211b3a2abe47e65d45bf3103`.
 
-## 2026-08-18: Bionic Vulkan bridge passes direct, cross-libc, and parity gates
+## 2026-08-18: Bionic Vulkan bridge passes discovery and execution gates
 
 The graphics-architecture investigation moved into its own public reusable
 project, `huntergdavis/bionic-vulkan-bridge`. The production Tomb Raider path
@@ -6627,17 +6627,41 @@ control in the same script. Commit `7a59622` reported
 exchange, and Vulkan query took 311,055,990 ns. The bridged and direct device
 documents were identical.
 
-This proves the native driver is reachable and Vulkan control data can cross a
-real glibc/Bionic process boundary. It does not prove rendering or a speedup.
-Android surface/native-window integration, Vulkan handle ownership, shared GPU
-memory, synchronization, hot-path batching, generated entry-point dispatch,
-DXVK exposure, and a rendered-frame test remain. Only after those gates pass
-will the fixed native-resolution Tomb Raider benchmark be a valid graphics-path
-A/B. The exact machine-readable record is
-`docs/evidence/bionic-vulkan-bridge-e001-e003-20260818.json`.
+E004 moved from discovery to native execution. The Bionic self-test opened the
+absolute Android Vulkan loader, created a device, command pool, queue, and
+4,096-byte host-visible buffer, recorded `vkCmdFillBuffer` plus a host barrier,
+submitted and waited, then mapped and checked all 1,024 words against
+`0xa5c3f00d`. The first run at `819371c` correctly exposed a queue-selection
+bug: Adreno reported graphics and compute but omitted the optional explicit
+transfer flag. After `0ad41f8` accepted Vulkan's implicit transfer guarantee for
+graphics/compute queues, the test exited zero with no mismatches. Submit plus
+queue-idle wait took 3,298,542 ns; total process time was 206,800,729 ns.
+
+E005 added protocol opcode 3 so the glibc client could trigger that same test
+inside the Bionic service. At `46a079a`, the published cross-libc reproducer
+reported `capability_parity=PASS` and `command_selftest_parity=PASS`. The
+bridged submit/wait took 3,440,573 ns and the immediate direct control took
+2,371,511 ns; both verified all words. Combined glibc startup, handshake,
+capability query, and self-test took 209,695,208 ns. These one-shot timings
+establish operation and rough scale, not steady-state performance.
+
+This proves the native driver is reachable and that real device/object
+creation, command recording, submission, synchronization, and host-visible
+memory verification can be controlled across the glibc/Bionic boundary. It
+does not prove visible rendering or a speedup. The driver exposes Android
+surface/swapchain, AHardwareBuffer, and external-FD extensions but not
+`VK_EXT_headless_surface`. Termux:X11's current interface exports the X
+connection rather than its EGL-owned Android `Surface`, so the next gate is a
+separately controlled `ANativeWindow`, followed by swapchain presentation.
+Game-facing dispatch, DXVK exposure, and a rendered-frame test remain. Only
+after those gates pass will the fixed native-resolution Tomb Raider benchmark
+be a valid graphics-path A/B. Exact machine-readable records are
+`docs/evidence/bionic-vulkan-bridge-e001-e003-20260818.json` and
+`docs/evidence/bionic-vulkan-bridge-e004-e005-20260818.json`.
 
 The required `deja` queries for a prior Bionic Vulkan bridge and a prior
-cross-libc implementation returned no indexed matches. The wire-format and
-socket-hardening discipline were instead reused from
+cross-libc implementation returned no indexed matches. A follow-up query for
+an Android/Termux:X11 surface bridge also returned no indexed matches. The
+wire-format and socket-hardening discipline were instead reused from
 `termux-glibc-compat` commit
 `da200c72bb2fd4d3f6a4e7817d82eaf311f83780` and cited in the bridge ADR.
