@@ -89,10 +89,12 @@ fi
         -x $runtime_shadow/_v2-entry-point &&
         -d $runtime_depot && ! -L $runtime_shadow && ! -L $runtime_depot ]] ||
     fail 'ARM64 runtime shadow or official depot is unsafe/incomplete'
+proc_stat=${STEAM_ARM64_PROC_STAT:-$base/config/proc-stat}
 [[ -f $hosts && ! -L $hosts && -f $proc_net/route &&
         ! -L $proc_net/route && -f $proc_net/ipv6_route &&
-        ! -L $proc_net/ipv6_route ]] ||
-    fail 'validated hosts or /proc/net shadow is unavailable'
+        ! -L $proc_net/ipv6_route && -f $proc_stat &&
+        ! -L $proc_stat ]] ||
+    fail 'validated hosts or synthetic proc shadow is unavailable'
 [[ -d $mesa_lib && ! -L $mesa_lib ]] ||
     fail "Mesa library directory is unavailable: $mesa_lib"
 [[ -f $host_vk_driver_files && ! -L $host_vk_driver_files &&

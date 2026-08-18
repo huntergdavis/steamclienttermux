@@ -216,6 +216,38 @@ def main() -> None:
         route.unlink()
         route.write_text("route\n", encoding="utf-8")
         route.chmod(0o600)
+        proc_stat = fixture_base / "config/proc-stat"
+        proc_stat.write_text(
+            "cpu  20 0 10 100 0 0 0 0 0 0\n"
+            "cpu0 10 0 5 50 0 0 0 0 0 0\n"
+            "cpu1 10 0 5 50 0 0 0 0 0 0\n"
+            "intr 0\n",
+            encoding="ascii",
+        )
+        proc_stat.chmod(0o600)
+        assert MODULE.validated_proc_stat_shadow(fixture_base) == proc_stat
+        proc_stat.write_text(
+            "cpu 20 0 10 100\ncpu1 10 0 5 50\n", encoding="ascii"
+        )
+        try:
+            MODULE.validated_proc_stat_shadow(fixture_base)
+        except MODULE.DispatchError:
+            pass
+        else:
+            raise AssertionError("proc-stat validator accepted a missing cpu0 row")
+        proc_stat.unlink()
+        proc_stat.symlink_to(proc_net / "ipv6_route")
+        try:
+            MODULE.validated_proc_stat_shadow(fixture_base)
+        except MODULE.DispatchError:
+            pass
+        else:
+            raise AssertionError("proc-stat validator accepted a symlink")
+        proc_stat.unlink()
+        proc_stat.write_text(
+            "cpu 20 0 10 100\ncpu0 10 0 5 50\n", encoding="ascii"
+        )
+        proc_stat.chmod(0o600)
         wine_debug = (
             "+timestamp,+pid,+tid,+process,+module,+loaddll,+seh,"
             "+winsock,+wininet,+winhttp,+iphlpapi,+nsi,"
@@ -256,6 +288,7 @@ def main() -> None:
     assert 'child_preload_profile == "lean-tmp-only"' in invocation_source
     assert '"TGCOMPAT_USERFAULTFD_ENOSYS": "1"' in invocation_source
     assert '"TGCOMPAT_PROC_NET": str(proc_net_shadow)' in invocation_source
+    assert '"TGCOMPAT_PROC_STAT": str(proc_stat_shadow)' in invocation_source
     assert 'command_mode == "tombraider"' in invocation_source
     game_source = inspect.getsource(MODULE.run_tombraider)
     assert '"tombraider"' in game_source

@@ -726,6 +726,51 @@ def validated_proc_net_shadow(base: Path) -> Path:
     return shadow
 
 
+def validated_proc_stat_shadow(base: Path) -> Path:
+    shadow = base / "config/proc-stat"
+    try:
+        metadata = shadow.lstat()
+    except FileNotFoundError:
+        fail(f"synthetic proc-stat file is unavailable: {shadow}")
+    if (
+        not stat.S_ISREG(metadata.st_mode)
+        or shadow.is_symlink()
+        or metadata.st_uid != os.geteuid()
+        or metadata.st_mode & 0o022
+        or metadata.st_size < 1
+        or metadata.st_size > 1024 * 1024
+    ):
+        fail(f"synthetic proc-stat file is unsafe: {shadow}")
+    try:
+        lines = shadow.read_text(encoding="ascii").splitlines()
+    except (OSError, UnicodeError) as error:
+        fail(f"cannot read synthetic proc-stat file: {error}")
+    cpu_rows: list[int] = []
+    aggregate_seen = False
+    for line in lines:
+        fields = line.split()
+        if not fields:
+            continue
+        if fields[0] == "cpu":
+            if aggregate_seen or len(fields) < 5:
+                fail("synthetic proc-stat has an invalid aggregate CPU row")
+            aggregate_seen = True
+        elif re.fullmatch(r"cpu[0-9]+", fields[0]):
+            cpu_rows.append(int(fields[0][3:]))
+        else:
+            continue
+        if any(not value.isdecimal() for value in fields[1:]):
+            fail("synthetic proc-stat CPU row has a non-decimal field")
+    if (
+        not aggregate_seen
+        or not cpu_rows
+        or len(cpu_rows) > 256
+        or cpu_rows != list(range(len(cpu_rows)))
+    ):
+        fail("synthetic proc-stat CPU rows are incomplete or non-sequential")
+    return shadow
+
+
 def run_final_smoke(
     base: Path,
     payload: dict[str, object],
@@ -757,6 +802,7 @@ def pv_smoke_invocation(
     final_path_prefix: Path | None = None
     runtime_root, loader, runtime_libraries = selected_runtime(base)
     proc_net_shadow = validated_proc_net_shadow(base)
+    proc_stat_shadow = validated_proc_stat_shadow(base)
     bwrap_arguments = payload["bwrap_args"]
     payload_arguments = payload["payload_argv"]
     assert isinstance(bwrap_arguments, list)
@@ -914,6 +960,7 @@ def pv_smoke_invocation(
             "LD_PRELOAD": entry_preload,
             "TGCOMPAT_ANDROID_ROOT_O_PATH": "1",
             "TGCOMPAT_PROC_NET": str(proc_net_shadow),
+            "TGCOMPAT_PROC_STAT": str(proc_stat_shadow),
             "TGCOMPAT_PROC_SELF_EXE": str(pv_path),
             "TGCOMPAT_LD_SO": str(loader),
             "TGCOMPAT_LIBRARY_PATH": libraries,

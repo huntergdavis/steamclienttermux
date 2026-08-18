@@ -31,6 +31,7 @@ native_bwrap=$compat_bin/steam-arm64-native-bwrap-entry
 native_bwrap_script=$compat_bin/steam-arm64-native-bwrap
 proc_net_prep=$base/prepare-proc-net-shadow.sh
 proc_net_shadow=$base/config/proc-net
+proc_stat_shadow=$base/config/proc-stat
 steam_hosts=$base/config/hosts-ipv4
 removable_library_helper=$compat_bin/steam-arm64-removable-library.py
 runtime_direct_prep=$base/prepare-runtime-direct-run.sh
@@ -427,6 +428,7 @@ set +e
     DBUS_SESSION_BUS_ADDRESS="$dbus_address" \
     PRESSURE_VESSEL_BWRAP="$native_bwrap" \
     STEAM_ARM64_PROC_NET="$proc_net_shadow" \
+    STEAM_ARM64_PROC_STAT="$proc_stat_shadow" \
     LD_PRELOAD="$preload" \
     TGCOMPAT_EXEC_LD_PRELOAD="$preload" \
     TGCOMPAT_SOCKET="$socket_path" \

@@ -63,6 +63,10 @@ def prepare(root: Path) -> tuple[Path, Path]:
     (base / "config" / "proc-net").mkdir(parents=True)
     (base / "config" / "proc-net" / "route").write_text("route\n")
     (base / "config" / "proc-net" / "ipv6_route").write_text("route6\n")
+    (base / "config" / "proc-stat").write_text(
+        "cpu 20 0 10 100\ncpu0 10 0 5 50\ncpu1 10 0 5 50\n",
+        encoding="ascii",
+    )
     (base / "config" / "hosts-ipv4").write_text("127.0.0.1 localhost\n")
     executable(base / "config" / "steamlinuxruntime4-run-direct")
     (base / "mesa-kgsl" / "usr" / "lib" / "aarch64-linux-gnu").mkdir(
