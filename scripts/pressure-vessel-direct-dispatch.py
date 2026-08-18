@@ -613,6 +613,81 @@ def proton_smoke_environment(
     fail(f"unsupported Proton smoke mode: {command_mode}")
 
 
+def direct_audio_environment(base: Path, runtime_root: Path) -> dict[str, str]:
+    alsa_data = runtime_root / "usr/share/alsa"
+    alsa_config = alsa_data / "alsa.conf"
+    pulse_config = alsa_data / "alsa.conf.d/50-pulseaudio.conf"
+    plugin_directory = runtime_root / "usr/lib/aarch64-linux-gnu/alsa-lib"
+    for path, description in (
+        (alsa_config, "Runtime ALSA configuration"),
+        (pulse_config, "Runtime PulseAudio ALSA configuration"),
+    ):
+        try:
+            metadata = path.lstat()
+        except FileNotFoundError:
+            fail(f"{description} is unavailable: {path}")
+        if (
+            not stat.S_ISREG(metadata.st_mode)
+            or path.is_symlink()
+            or metadata.st_size <= 0
+        ):
+            fail(f"{description} is unsafe: {path}")
+    try:
+        plugin_metadata = plugin_directory.lstat()
+    except FileNotFoundError:
+        fail(f"Runtime ALSA plugin directory is unavailable: {plugin_directory}")
+    if (
+        not stat.S_ISDIR(plugin_metadata.st_mode)
+        or plugin_directory.is_symlink()
+    ):
+        fail(f"Runtime ALSA plugin directory is unsafe: {plugin_directory}")
+
+    run = private_directory(
+        base / "run/native-runtime-dispatch", "Runtime dispatch directory", create=True
+    )
+    direct_config = run / "alsa-direct.conf"
+    if direct_config.exists() or direct_config.is_symlink():
+        metadata = direct_config.lstat()
+        if (
+            not stat.S_ISREG(metadata.st_mode)
+            or metadata.st_uid != os.geteuid()
+            or metadata.st_mode & 0o077
+            or direct_config.is_symlink()
+        ):
+            fail(f"refusing unsafe direct ALSA configuration: {direct_config}")
+    content = (
+        f"<{alsa_config}>\n"
+        f"<{pulse_config}>\n"
+        "pcm.!default {\n"
+        "    type pulse\n"
+        "}\n"
+        "ctl.!default {\n"
+        "    type pulse\n"
+        "}\n"
+    ).encode("utf-8")
+    descriptor = os.open(
+        direct_config,
+        os.O_WRONLY
+        | os.O_CREAT
+        | os.O_TRUNC
+        | os.O_CLOEXEC
+        | getattr(os, "O_NOFOLLOW", 0),
+        0o600,
+    )
+    try:
+        os.fchmod(descriptor, 0o600)
+        offset = 0
+        while offset < len(content):
+            offset += os.write(descriptor, content[offset:])
+    finally:
+        os.close(descriptor)
+    return {
+        "ALSA_CONFIG_PATH": str(direct_config),
+        "ALSA_CONFIG_DIR": str(alsa_data),
+        "ALSA_PLUGIN_DIR": str(plugin_directory),
+    }
+
+
 def run_final_smoke(
     base: Path,
     payload: dict[str, object],
@@ -789,6 +864,8 @@ def pv_smoke_invocation(
         "tombraider",
     ):
         environment.update(proton_smoke_environment(command_mode, diagnostics))
+    if command_mode == "tombraider":
+        environment.update(direct_audio_environment(base, runtime_root))
     prefix = os.environ.get("PREFIX", "")
     if not prefix.startswith("/"):
         fail("Termux PREFIX is unavailable to the direct dispatcher")

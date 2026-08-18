@@ -147,6 +147,38 @@ def main() -> None:
         assert MODULE.proton_smoke_environment("tombraider") == {
             "WINEDEBUG": "-all"
         }
+        audio_runtime = fixture_base / "audio-runtime"
+        alsa_data = audio_runtime / "usr/share/alsa"
+        pulse_config = alsa_data / "alsa.conf.d/50-pulseaudio.conf"
+        plugin_directory = (
+            audio_runtime / "usr/lib/aarch64-linux-gnu/alsa-lib"
+        )
+        pulse_config.parent.mkdir(parents=True)
+        plugin_directory.mkdir(parents=True)
+        (alsa_data / "alsa.conf").write_text("# base\n", encoding="utf-8")
+        pulse_config.write_text("# pulse\n", encoding="utf-8")
+        audio_environment = MODULE.direct_audio_environment(
+            fixture_base, audio_runtime
+        )
+        direct_config = (
+            fixture_base / "run/native-runtime-dispatch/alsa-direct.conf"
+        )
+        assert audio_environment == {
+            "ALSA_CONFIG_PATH": str(direct_config),
+            "ALSA_CONFIG_DIR": str(alsa_data),
+            "ALSA_PLUGIN_DIR": str(plugin_directory),
+        }
+        assert direct_config.stat().st_mode & 0o777 == 0o600
+        assert direct_config.read_text(encoding="utf-8") == (
+            f"<{alsa_data / 'alsa.conf'}>\n"
+            f"<{pulse_config}>\n"
+            "pcm.!default {\n"
+            "    type pulse\n"
+            "}\n"
+            "ctl.!default {\n"
+            "    type pulse\n"
+            "}\n"
+        )
         wine_debug = "+timestamp,+pid,+tid,+process,+module,+loaddll,+seh"
         assert MODULE.proton_smoke_environment("proton-cmd", True) == {
             "WINEDEBUG": wine_debug
