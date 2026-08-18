@@ -19,6 +19,9 @@ DIRECT_WRAPPER = Path(__file__).with_name(
 DIRECT_FAST_WRAPPER = Path(__file__).with_name(
     "test-tomb-raider-direct-fast-40c-ceiling.sh"
 )
+DIRECT_PROTON_FULL_WRAPPER = Path(__file__).with_name(
+    "test-tomb-raider-direct-proton-full-topology-40c-ceiling.sh"
+)
 DIRECT_SAFE_FULL_WRAPPER = Path(__file__).with_name(
     "test-tomb-raider-direct-safe-full-topology-40c-ceiling.sh"
 )
@@ -164,6 +167,7 @@ def main():
         ]
 
         for profile, wrapper in (
+            ("proton", DIRECT_PROTON_FULL_WRAPPER),
             ("safe", DIRECT_SAFE_FULL_WRAPPER),
             ("fast", DIRECT_FAST_FULL_WRAPPER),
         ):

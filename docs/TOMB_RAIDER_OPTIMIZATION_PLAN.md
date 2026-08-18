@@ -84,6 +84,12 @@ X11 on CPUs 0-3. Change only the item named by each test.
    comparison, `safe` and `fast` differ by only 0.22% average mean. Retain
    `safe`; this profile phase is complete.
 
+   Those `proton` results still include the old Runtime/PRoot game boundary.
+   No topology-fixed direct `proton` series exists. Before inventing another
+   custom FEX bundle, run the staged direct/full-topology Proton wrapper at the
+   same fixed 40 C ceiling. It is the missing default-FEX control for the
+   current 30.400 FPS direct Safe baseline.
+
 7. RakNet nice 19 is rejected. Two verified passes differed from baseline by
    only +0.15 FPS average, and a third pass could not prove that a RakNet thread
    existed to receive the priority change. The next action is one explicitly

@@ -166,6 +166,8 @@ install_one "$repo_root/scripts/test-tomb-raider-direct-safe-40c-ceiling.sh" \
     "$HOME/test-tomb-raider-direct-safe-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/test-tomb-raider-direct-fast-40c-ceiling.sh" \
     "$HOME/test-tomb-raider-direct-fast-40c-ceiling.sh" 700
+install_one "$repo_root/scripts/test-tomb-raider-direct-proton-full-topology-40c-ceiling.sh" \
+    "$HOME/test-tomb-raider-direct-proton-full-topology-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/test-tomb-raider-direct-safe-full-topology-40c-ceiling.sh" \
     "$HOME/test-tomb-raider-direct-safe-full-topology-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/test-tomb-raider-direct-fast-full-topology-40c-ceiling.sh" \
