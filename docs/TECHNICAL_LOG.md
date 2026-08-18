@@ -6561,3 +6561,33 @@ The required focused `deja` recall found no prior direct-Proton result or exact
 RunCommand command. This work reused the repository's fixed-ceiling direct
 Safe methodology and the official Termux RunCommand component/extras and
 structured-result contract instead of inferring a pass from live processes.
+
+## 2026-08-18: reverse Safe control narrows Proton to 1.29%
+
+An immediate reverse-order Safe series, `20260818T151901Z-safe`, used the same
+authenticated host, direct dispatcher, topology fix, production affinity,
+2800x1752/59.97 Hz display, Low settings, and fixed 40 C ceiling. All four
+passes started unthrottled at exactly 37.0 C.
+
+| Pass | Minimum | Maximum | Average |
+| --- | ---: | ---: | ---: |
+| warm-up | 19.0 | 47.4 | 32.3 |
+| recorded 1 | 22.3 | 46.9 | 30.9 |
+| recorded 2 | 20.6 | 45.3 | 31.2 |
+| recorded 3 | 14.8 | 49.9 | 30.6 |
+| recorded mean | **19.233** | **47.367** | **30.900** |
+
+Against this immediate control, Proton's 20.400/45.567/31.300 FPS changes
+minimum/maximum/average means by +6.07%/-3.80%/+1.29%. More importantly, the
+ordered average differences are +1.2, 0.0, and 0.0 FPS: the small mean change
+comes entirely from the first recorded position and does not repeat. Safe
+therefore remains production. Proton remains available for explicit tests but
+is not a performance default.
+
+Every reverse-control launch returned zero with a fresh ready guard. The
+controller ended in its persisted `complete` phase, RunCommand reported
+`err=-1`/`exit_code=0`, and the property returned to its exact disabled hash.
+Steam PID 22318, X11 PID 25663, PulseAudio PID 25865, and authentication
+survived. The exact reverse-control manifest is
+`docs/benchmark-series/tombraider-direct-glibc-safe-topology-fix-reverse-control-60hz-40c-20260818.json`,
+SHA-256 `40052514627a9eda68ef0fe93c8364d12073c7cb211b3a2abe47e65d45bf3103`.

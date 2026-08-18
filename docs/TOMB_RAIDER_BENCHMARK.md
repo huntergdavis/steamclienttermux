@@ -1192,3 +1192,30 @@ The exact artifact is
 SHA-256 `6f64685bfbeb57c0a6732b876f5c95589c15c27ba8653af6d28d230418a47d3d`.
 Steam PID 22318, X11 PID 25663, PulseAudio PID 25865, saved login, the topology
 patch, and the disabled external-command property survived unchanged.
+
+## Reverse-order Safe control closes the Proton candidate (2026-08-18)
+
+The immediate follow-up returned to Safe without restarting the authenticated
+Steam host. Series `20260818T151901Z-safe` retained the exact direct path,
+topology fix, production affinity, 2800x1752/59.97 Hz display, Low settings,
+and fixed 40 C start ceiling. Every pass started unthrottled at 37.0 C.
+
+| Pass | Minimum | Maximum | Average |
+| --- | ---: | ---: | ---: |
+| warm-up | 19.0 | 47.4 | 32.3 |
+| recorded 1 | 22.3 | 46.9 | 30.9 |
+| recorded 2 | 20.6 | 45.3 | 31.2 |
+| recorded 3 | 14.8 | 49.9 | 30.6 |
+| recorded mean | **19.233** | **47.367** | **30.900** |
+
+Proton's 20.400/45.567/31.300 FPS means are +6.07%/-3.80%/+1.29% relative
+to this immediate Safe control. Ordered average differences are +1.2, 0.0,
+and 0.0 FPS, so the average signal is confined to the first position rather
+than repeating. Safe remains the production profile; Proton remains explicit.
+
+Every launcher returned zero and supplied a fresh ready guard. The controller
+ended `complete`, RunCommand returned `err=-1`/`exit_code=0`, and Steam, X11,
+PulseAudio, authentication, topology patch, and disabled property survived.
+The exact artifact is
+[`tombraider-direct-glibc-safe-topology-fix-reverse-control-60hz-40c-20260818.json`](benchmark-series/tombraider-direct-glibc-safe-topology-fix-reverse-control-60hz-40c-20260818.json),
+SHA-256 `40052514627a9eda68ef0fe93c8364d12073c7cb211b3a2abe47e65d45bf3103`.

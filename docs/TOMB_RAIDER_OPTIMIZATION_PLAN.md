@@ -85,11 +85,12 @@ X11 on CPUs 0-3. Change only the item named by each test.
    `safe`; this profile phase is complete.
 
    Those older `proton` results include the old Runtime/PRoot game boundary.
-   The missing topology-fixed direct series is now complete at 31.300 FPS,
-   2.96% above the 30.400 FPS direct Safe baseline. Minimum and maximum means
-   regress 2.86% and 1.23%, and recorded averages descend 32.1/31.2/30.6.
-   Treat Proton as the leading candidate, not the default, until a fresh
-   reverse-order Safe control distinguishes the gain from same-session drift.
+   The missing topology-fixed direct series completed at 31.300 FPS, 2.96%
+   above the older 30.400 FPS Safe baseline. The immediate reverse-order Safe
+   control then averaged 30.900 FPS. Proton's narrowed +1.29% average change
+   came from per-position deltas of +1.2/0.0/0.0 FPS; its minimum mean rose
+   6.07% while maximum mean fell 3.80%. Keep Safe as the default: the reverse
+   control does not prove a repeatable Proton gain.
 
 7. RakNet nice 19 is rejected. Two verified passes differed from baseline by
    only +0.15 FPS average, and a third pass could not prove that a RakNet thread

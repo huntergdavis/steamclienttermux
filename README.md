@@ -52,6 +52,7 @@ minimum/maximum/average FPS.
 | `safe` (direct game) | 2800×1752 | 59.97 Hz | 31.1 / 30.3 / 30.3 | 18.900 / 47.733 / **30.567** | Fixed 40 °C ceiling; all starts 37.0 °C | [JSON](docs/benchmark-series/tombraider-direct-glibc-safe-60hz-40c-20260818.json) |
 | `safe` (direct game, topology fix) | 2800×1752 | 59.97 Hz | 30.6 / 30.2 / 30.4 | 21.000 / 46.133 / **30.400** | Fixed 40 °C ceiling; starts 37.0–37.9 °C | [JSON](docs/benchmark-series/tombraider-direct-glibc-safe-topology-fix-60hz-40c-20260818.json) |
 | `proton` (direct game, topology fix) | 2800×1752 | 59.97 Hz | 32.1 / 31.2 / 30.6 | 20.400 / 45.567 / **31.300** | Fixed 40 °C ceiling; starts 37.0–37.2 °C; candidate | [JSON](docs/benchmark-series/tombraider-direct-glibc-proton-topology-fix-60hz-40c-20260818.json) |
+| `safe` (immediate reverse control) | 2800×1752 | 59.97 Hz | 30.9 / 31.2 / 30.6 | 19.233 / 47.367 / **30.900** | Fixed 40 °C ceiling; all starts 37.0 °C | [JSON](docs/benchmark-series/tombraider-direct-glibc-safe-topology-fix-reverse-control-60hz-40c-20260818.json) |
 | `safe` (RakNet pair controls) | 2800×1752 | 59.97 Hz | 30.9 / 31.2 / 30.7 | 20.967 / 45.433 / **30.933** | Fixed 40 °C ceiling; paired control | [JSON](docs/benchmark-series/tombraider-direct-glibc-safe-topology-fix-raknet-exclusive-alternating-60hz-40c-20260818.json) |
 | `safe` (RakNet-exclusive CPU1) | 2800×1752 | 59.97 Hz | 29.6 / 30.5 / 30.7 | 15.667 / 46.300 / **30.267** | Fixed 40 °C ceiling; paired/rejected | [JSON](docs/benchmark-series/tombraider-direct-glibc-safe-topology-fix-raknet-exclusive-alternating-60hz-40c-20260818.json) |
 | `safe` (direct game, topology fix, CEF hold) | 2800×1752 | 59.97 Hz | 31.5 / 31.3 / 30.9 | 20.367 / 46.567 / **31.233** | Fixed 40 °C ceiling; all starts 37.0 °C; experimental | [JSON](docs/benchmark-series/tombraider-direct-glibc-safe-topology-fix-cef-hold-60hz-40c-20260818.json) |
@@ -73,11 +74,11 @@ Reserving CPU1 exclusively for RakNet is rejected: three alternating pairs
 reduced average mean 2.15% (30.933 to 30.267 FPS) and minimum mean 25.28%,
 while raising maximum mean only 1.91%. The paired average changes were -1.3,
 -0.7, and 0.0 FPS, so production remains game CPUs1-7 with RakNet on CPU1.
-The first topology-fixed direct `proton` series averages 31.300 FPS, 2.96%
-above the matched 30.400 FPS Safe baseline, while minimum and maximum means
-fall 2.86% and 1.23%. It is the leading FEX candidate, not yet the default;
-a fresh reverse-order Safe control must distinguish the small gain from
-same-session drift.
+The first topology-fixed direct `proton` series averages 31.300 FPS. Against
+the immediate reverse-order Safe control at 30.900 FPS, that is only +1.29%;
+the per-position average changes are +1.2, 0.0, and 0.0 FPS. Proton raises
+minimum mean 6.07% but lowers maximum mean 3.80%. This does not prove a
+repeatable profile gain, so Safe remains the production default.
 The direct dispatcher leaves Steam's generated outer request waiting for
 lifecycle compatibility but executes the hot Proton/FEX/game tree outside the
 PRoot tracer. The unmatched Proton row is retained for audit, not used to
