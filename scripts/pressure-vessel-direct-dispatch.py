@@ -743,7 +743,7 @@ def pv_smoke_invocation(
             entry_preloads[2],
             entry_preloads[3],
         ]
-        final_preloads = [entry_preloads[0], entry_preloads[3]]
+        final_preloads = [entry_preloads[3]]
         if final_path_prefix is None:
             fail("lean child preload requires a validated Proton path")
     else:
