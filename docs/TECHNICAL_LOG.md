@@ -6433,3 +6433,29 @@ are `853ff507b67a7691a24d16169351e4d37a31661b1d507be74d93048625f42dac`,
 and `9e9d9f657f7c77d335643a3517d9b410992a698af76ba29fa49b71463d0ed8dc`.
 Steam PID 22318, X11 PID 25663, PulseAudio PID 25865, authentication, the
 disabled property SHA, and the restored X11 mask all remained intact.
+
+## 2026-08-18: stage a paired RakNet-exclusive CPU1 experiment
+
+The direct hot-tree profile measured Tomb Raider at 313% CPU and its single
+`Raknet-RecvFrom` thread at 99% on CPU1. With both native-host placement
+candidates closed, the next bounded test reserves CPU1 for that saturated
+thread and constrains every other game thread to CPUs2-7. Wineserver remains
+on CPUs1-7, Steam helpers remain on CPU0, X11 remains on CPUs0-3, and startup
+topology discovery remains the proven full schedulable set. This changes one
+post-discovery variable without removing the four performance cores.
+
+The affinity guard now accepts exactly two game masks: production CPUs1-7 and
+experimental CPUs2-7. The latter is rejected unless the existing exact RakNet
+CPU1 isolation is enabled. The dispatcher validates and records the requested
+mask. The controller applies it only to selected recorded passes, requires one
+new ready guard naming that exact mask, and records `raknet_exclusive` plus
+`game_cpus` in every run. CEF hold, X11 isolation, and RakNet-nice experiments
+cannot be combined with this series. The first wrapper runs an untreated
+control followed by one CPUs2-7 condition at the fixed 40 C ceiling; a
+six-pass alternating wrapper exists only for replication if the pair is valid
+and promising. The complete project suite passes before deployment.
+
+The required `deja` search found no prior CPUs2-7 Tomb Raider benchmark. This
+experiment reuses the repository's exact AppID selection, fresh topology wait,
+top-app validation, unique RakNet identification, CPU1 pin, and late-thread
+convergence rather than assuming a result from an earlier session.

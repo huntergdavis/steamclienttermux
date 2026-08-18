@@ -141,6 +141,7 @@ def main():
     assert direct.backend == "direct"
     assert direct.launcher is None
     assert direct.raknet_nice is None
+    assert direct.raknet_exclusive_recorded_passes == ()
     assert direct.startup_topology == "available"
     assert not direct.hold_steam_cef
     assert direct.steam_cef_hold_recorded_passes == ()
@@ -171,6 +172,10 @@ def main():
         ["--backend", "direct", "--raknet-nice", "19"]
     )
     assert direct_priority.raknet_nice == 19
+    direct_raknet_exclusive = module.build_parser().parse_args(
+        ["--backend", "direct", "--raknet-exclusive-recorded-passes", "2,4,6"]
+    )
+    assert direct_raknet_exclusive.raknet_exclusive_recorded_passes == (2, 4, 6)
     direct_full = module.build_parser().parse_args(
         ["--backend", "direct", "--startup-topology", "full"]
     )
@@ -179,18 +184,42 @@ def main():
         "Tomb Raider PID 1: observing inherited startup topology on CPUs 1-7\n"
         "Tomb Raider PID 1: startup topology ready; logical=7, cores=7, "
         "physical=7; affinity guard attached\n"
-        "Tomb Raider performance state: ready; PID 1\n",
+        "Tomb Raider performance state: ready; PID 1, CPUs 1-7\n",
         "direct",
     )
     assert module.affinity_log_is_ready(
         "Tomb Raider PID 1: holding startup topology on CPUs 1-7\n"
         "Tomb Raider PID 1: startup topology ready; logical=7, cores=7, "
         "physical=7; affinity guard attached\n"
-        "Tomb Raider performance state: ready; PID 1\n",
+        "Tomb Raider performance state: ready; PID 1, CPUs 1-7\n",
         "direct",
     )
     assert not module.affinity_log_is_ready(
         "Tomb Raider performance state: ready; PID 1\n", "direct"
+    )
+    assert not module.affinity_log_is_ready(
+        "Tomb Raider PID 1: observing inherited startup topology on CPUs 1-7\n"
+        "Tomb Raider PID 1: startup topology ready; logical=7, cores=7, "
+        "physical=7; affinity guard attached\n"
+        "Tomb Raider performance state: ready; PID 1, CPUs 1-7\n",
+        "direct",
+        "2-7",
+    )
+    assert not module.affinity_log_is_ready(
+        "Tomb Raider PID 1: observing inherited startup topology on CPUs 1-7\n"
+        "Tomb Raider PID 1: startup topology ready; logical=7, cores=7, "
+        "physical=7; affinity guard attached\n"
+        "Tomb Raider performance state: ready; PID 1, CPUs 2-7\n",
+        "direct",
+        "1-7",
+    )
+    assert module.affinity_log_is_ready(
+        "Tomb Raider PID 1: observing inherited startup topology on CPUs 1-7\n"
+        "Tomb Raider PID 1: startup topology ready; logical=7, cores=7, "
+        "physical=7; affinity guard attached\n"
+        "Tomb Raider performance state: ready; PID 1, CPUs 2-7, RakNet CPU 1\n",
+        "direct",
+        "2-7",
     )
     assert module.affinity_log_is_ready(
         "Tomb Raider performance state: ready; PID 1\n", "proot"
@@ -223,6 +252,22 @@ def main():
             "average_fps": {"mean": 20.0, "median": 20.0, "values": [20.0]},
         },
         "x11_isolation": {
+            "minimum_fps": {"mean": 12.0, "median": 12.0, "values": [12.0]},
+            "maximum_fps": {"mean": 32.0, "median": 32.0, "values": [32.0]},
+            "average_fps": {"mean": 22.0, "median": 22.0, "values": [22.0]},
+        },
+    }
+    raknet_runs = [
+        {**condition_runs[0], "raknet_exclusive": False},
+        {**condition_runs[1], "raknet_exclusive": True},
+    ]
+    assert module.aggregate_raknet_exclusive_conditions(raknet_runs) == {
+        "control": {
+            "minimum_fps": {"mean": 10.0, "median": 10.0, "values": [10.0]},
+            "maximum_fps": {"mean": 30.0, "median": 30.0, "values": [30.0]},
+            "average_fps": {"mean": 20.0, "median": 20.0, "values": [20.0]},
+        },
+        "raknet_exclusive": {
             "minimum_fps": {"mean": 12.0, "median": 12.0, "values": [12.0]},
             "maximum_fps": {"mean": 32.0, "median": 32.0, "values": [32.0]},
             "average_fps": {"mean": 22.0, "median": 22.0, "values": [22.0]},

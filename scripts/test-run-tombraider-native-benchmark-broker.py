@@ -37,6 +37,9 @@ DIRECT_SAFE_FULL_CEF_HOLD_ALTERNATING_WRAPPER = Path(__file__).with_name(
 DIRECT_SAFE_FULL_CEF_HOLD_PAIR_WRAPPER = Path(__file__).with_name(
     "test-tomb-raider-direct-safe-full-topology-cef-hold-pair-40c-ceiling.sh"
 )
+DIRECT_SAFE_FULL_RAKNET_EXCLUSIVE_PAIR_WRAPPER = Path(__file__).with_name(
+    "test-tomb-raider-direct-safe-full-topology-raknet-exclusive-pair-40c-ceiling.sh"
+)
 
 
 def main():
@@ -266,6 +269,28 @@ def main():
             "arg=--runs",
             "arg=2",
             "arg=--steam-cef-hold-recorded-passes",
+            "arg=2",
+            "arg=--start-temperature-ceiling-c",
+            "arg=40",
+        ]
+
+        raknet_pair_capture = root / "direct-safe-full-raknet-exclusive-pair-capture"
+        wrapper_environment["BENCHMARK_CAPTURE"] = str(raknet_pair_capture)
+        subprocess.run(
+            ["bash", str(DIRECT_SAFE_FULL_RAKNET_EXCLUSIVE_PAIR_WRAPPER)],
+            env=wrapper_environment,
+            check=True,
+        )
+        assert raknet_pair_capture.read_text().splitlines() == [
+            "arg=--backend",
+            "arg=direct",
+            "arg=--profile",
+            "arg=safe",
+            "arg=--startup-topology",
+            "arg=full",
+            "arg=--runs",
+            "arg=2",
+            "arg=--raknet-exclusive-recorded-passes",
             "arg=2",
             "arg=--start-temperature-ceiling-c",
             "arg=40",

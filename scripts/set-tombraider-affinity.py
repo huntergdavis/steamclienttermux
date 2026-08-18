@@ -15,6 +15,8 @@ import time
 APP_ID = b"203160"
 GAME_COMM = "TombRaider.exe"
 TARGET_CPUS = "1-7"
+EXPERIMENTAL_TARGET_CPUS = "2-7"
+ALLOWED_TARGET_CPUS = (TARGET_CPUS, EXPERIMENTAL_TARGET_CPUS)
 RAKNET_COMM = "Raknet-RecvFrom"
 RAKNET_CPU = "1"
 STEAM_HELPER_CPUS = "0"
@@ -287,13 +289,13 @@ def run_taskset(arguments, runner=subprocess.run):
     return runner(arguments, check=True, text=True, capture_output=True)
 
 
-def expected_mask(comm, isolate_raknet):
+def expected_mask(comm, isolate_raknet, target_cpus=TARGET_CPUS):
     if isolate_raknet and comm == RAKNET_COMM:
         return RAKNET_CPU
-    return TARGET_CPUS
+    return target_cpus
 
 
-def verify_threads(threads, isolate_raknet):
+def verify_threads(threads, isolate_raknet, target_cpus=TARGET_CPUS):
     if isolate_raknet:
         raknet = [tid for tid, (comm, _mask) in threads.items() if comm == RAKNET_COMM]
         if len(raknet) != 1:
@@ -301,9 +303,9 @@ def verify_threads(threads, isolate_raknet):
                 f"expected exactly one {RAKNET_COMM} thread, found {len(raknet)}"
             )
     wrong = {
-        tid: (comm, mask, expected_mask(comm, isolate_raknet))
+        tid: (comm, mask, expected_mask(comm, isolate_raknet, target_cpus))
         for tid, (comm, mask) in threads.items()
-        if mask != expected_mask(comm, isolate_raknet)
+        if mask != expected_mask(comm, isolate_raknet, target_cpus)
     }
     if wrong:
         raise RuntimeError(f"threads retain unexpected masks: {wrong}")
@@ -321,9 +323,14 @@ def verify_uniform_mask(process_dir, mask):
 
 
 def apply_affinity(
-    pid, process_dir, isolate_raknet, raknet_nice=None, runner=subprocess.run
+    pid,
+    process_dir,
+    isolate_raknet,
+    raknet_nice=None,
+    target_cpus=TARGET_CPUS,
+    runner=subprocess.run,
 ):
-    results = [run_taskset(["taskset", "-apc", TARGET_CPUS, str(pid)], runner)]
+    results = [run_taskset(["taskset", "-apc", target_cpus, str(pid)], runner)]
     if isolate_raknet:
         threads = read_threads(process_dir)
         raknet = [tid for tid, (comm, _mask) in threads.items() if comm == RAKNET_COMM]
@@ -376,6 +383,7 @@ def converge_game_affinity(
     process_dir,
     isolate_raknet,
     raknet_nice=None,
+    target_cpus=TARGET_CPUS,
     runner=subprocess.run,
 ):
     threads = read_threads(process_dir)
@@ -386,18 +394,19 @@ def converge_game_affinity(
         )
     ready_for_isolation = isolate_raknet and raknet_count == 1
     try:
-        verify_threads(threads, ready_for_isolation)
+        verify_threads(threads, ready_for_isolation, target_cpus)
     except RuntimeError:
         apply_affinity(
             pid,
             process_dir,
             ready_for_isolation,
             raknet_nice if ready_for_isolation else None,
+            target_cpus,
             runner,
         )
         threads = read_threads(process_dir)
         try:
-            verify_threads(threads, ready_for_isolation)
+            verify_threads(threads, ready_for_isolation, target_cpus)
         except RuntimeError:
             # FEX and the game create threads and can update their masks while
             # taskset -a is walking /proc/PID/task. A residual valid-process
@@ -566,6 +575,7 @@ def watch_for_ready_game(arguments, runner=subprocess.run):
                 process_dir,
                 arguments.raknet_cpu1,
                 arguments.raknet_nice,
+                arguments.game_cpus,
                 runner,
             )
         except (RuntimeError, subprocess.CalledProcessError):
@@ -617,10 +627,12 @@ def watch_for_ready_game(arguments, runner=subprocess.run):
                 stable_since = time.monotonic()
             elif time.monotonic() - stable_since >= arguments.stable_seconds:
                 threads = read_threads(process_dir)
-                verify_threads(threads, arguments.raknet_cpu1)
+                verify_threads(
+                    threads, arguments.raknet_cpu1, arguments.game_cpus
+                )
                 print(
                     f"Tomb Raider performance state: ready; PID {pid}, "
-                    f"{len(threads)} threads, CPUs 1-7"
+                    f"{len(threads)} threads, CPUs {arguments.game_cpus}"
                     + (", RakNet CPU 1" if arguments.raknet_cpu1 else "")
                     + (
                         f", RakNet nice {arguments.raknet_nice}"
@@ -654,6 +666,12 @@ def build_parser():
         "--raknet-nice",
         type=int,
         help="lower only the isolated RakNet receive thread to this nice value",
+    )
+    parser.add_argument(
+        "--game-cpus",
+        choices=ALLOWED_TARGET_CPUS,
+        default=TARGET_CPUS,
+        help="final non-RakNet game-thread CPU mask",
     )
     parser.add_argument("--proc-root", default="/proc", help=argparse.SUPPRESS)
     parser.add_argument(
@@ -692,6 +710,11 @@ def main():
                 raise RuntimeError("--raknet-nice requires --raknet-cpu1")
             if not 0 <= arguments.raknet_nice <= 19:
                 raise RuntimeError("--raknet-nice must be between 0 and 19")
+        if (
+            arguments.game_cpus == EXPERIMENTAL_TARGET_CPUS
+            and not arguments.raknet_cpu1
+        ):
+            raise RuntimeError("--game-cpus 2-7 requires --raknet-cpu1")
         layout = read_cpu_layout(Path(arguments.sys_cpu_root))
         validate_tab_s8_plus_layout(layout)
         if arguments.watch:
@@ -714,7 +737,7 @@ def main():
         before = read_threads(process_dir)
         print(f"Tomb Raider PID {pid}: {len(before)} threads")
         if arguments.check:
-            verify_threads(before, arguments.raknet_cpu1)
+            verify_threads(before, arguments.raknet_cpu1, arguments.game_cpus)
             auxiliaries = find_auxiliary_processes(
                 Path(arguments.proc_root), steam_base
             )
@@ -732,19 +755,24 @@ def main():
                 validate_top_app(helper_dir)
                 verify_uniform_mask(helper_dir, STEAM_HELPER_CPUS)
             print(
-                "Tomb Raider affinity: verified; Wine CPUs 1-7, "
+                f"Tomb Raider affinity: verified; game CPUs {arguments.game_cpus}, "
+                "Wine CPUs 1-7, "
                 f"{len(helpers)} Steam helpers CPU 0"
             )
             return 0
         for result in apply_affinity(
-            pid, process_dir, arguments.raknet_cpu1, arguments.raknet_nice
+            pid,
+            process_dir,
+            arguments.raknet_cpu1,
+            arguments.raknet_nice,
+            arguments.game_cpus,
         ):
             if result.stdout:
                 print(result.stdout, end="")
             if result.stderr:
                 print(result.stderr, end="", file=sys.stderr)
         after = read_threads(process_dir)
-        verify_threads(after, arguments.raknet_cpu1)
+        verify_threads(after, arguments.raknet_cpu1, arguments.game_cpus)
         if arguments.raknet_nice is not None:
             raknet_tid = next(
                 tid for tid, (comm, _mask) in after.items() if comm == RAKNET_COMM
@@ -754,7 +782,10 @@ def main():
         suffix = "; RakNet on CPU 1" if arguments.raknet_cpu1 else ""
         if arguments.raknet_nice is not None:
             suffix += f", nice {arguments.raknet_nice}"
-        print(f"Tomb Raider: all {len(after)} threads use CPUs 1-7{suffix}")
+        print(
+            f"Tomb Raider: all {len(after)} threads use CPUs "
+            f"{arguments.game_cpus}{suffix}"
+        )
     except (OSError, RuntimeError, subprocess.CalledProcessError) as error:
         print(f"set-tombraider-affinity: {error}", file=sys.stderr)
         return 2

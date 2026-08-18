@@ -127,6 +127,15 @@ def main():
         module.validate_top_app(process)
         threads = module.read_threads(process)
         module.verify_threads(threads, isolate_raknet=True)
+        exclusive_threads = {
+            27038: ("TombRaider.exe", "2-7"),
+            28142: ("Raknet-RecvFrom", "1"),
+        }
+        module.verify_threads(
+            exclusive_threads,
+            isolate_raknet=True,
+            target_cpus=module.EXPERIMENTAL_TARGET_CPUS,
+        )
         assert module.converge_game_affinity(27038, process, True)
         try:
             module.verify_threads(threads, isolate_raknet=False)
@@ -152,6 +161,18 @@ def main():
             ["taskset", "-apc", "1-7", "27038"],
             ["taskset", "-pc", "1", "28142"],
             ["renice", "-n", "19", "-p", "28142"],
+        ]
+        calls.clear()
+        module.apply_affinity(
+            27038,
+            process,
+            True,
+            target_cpus=module.EXPERIMENTAL_TARGET_CPUS,
+            runner=runner,
+        )
+        assert [call[0] for call in calls] == [
+            ["taskset", "-apc", "2-7", "27038"],
+            ["taskset", "-pc", "1", "28142"],
         ]
         raknet_stat = process / "task/28142/stat"
         assert module.read_thread_nice(process, 28142) == 0
@@ -311,11 +332,29 @@ def main():
             poll_seconds=0.0,
             raknet_cpu1=True,
             raknet_nice=None,
+            game_cpus="1-7",
             display=":0",
             window_regex="^Tomb Raider$",
             wait_for_cpu_log=False,
         )
         assert module.watch_for_ready_game(arguments, runner=window_runner) == 0
+        arguments.game_cpus = "2-7"
+        for status in process.glob("task/*/status"):
+            comm = (status.parent / "comm").read_text().strip()
+            mask = "1" if comm == "Raknet-RecvFrom" else "2-7"
+            status.write_text(
+                f"Name:\t{comm}\nState:\tS (sleeping)\n"
+                f"Cpus_allowed_list:\t{mask}\n"
+            )
+        assert module.watch_for_ready_game(arguments, runner=window_runner) == 0
+        arguments.game_cpus = "1-7"
+        for status in process.glob("task/*/status"):
+            comm = (status.parent / "comm").read_text().strip()
+            mask = "1" if comm == "Raknet-RecvFrom" else "1-7"
+            status.write_text(
+                f"Name:\t{comm}\nState:\tS (sleeping)\n"
+                f"Cpus_allowed_list:\t{mask}\n"
+            )
 
         # Direct startup affinity is inherited before exec. The finite guard
         # must not race Tomb Raider's per-CPU SetThreadAffinityMask probe by

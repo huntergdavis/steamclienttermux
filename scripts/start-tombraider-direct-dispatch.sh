@@ -15,6 +15,7 @@ mode=${TOMB_RAIDER_DIRECT_MODE:-tombraider}
 diagnostics=${TOMB_RAIDER_DIRECT_DIAGNOSTICS:-0}
 child_preload=${TOMB_RAIDER_DIRECT_CHILD_PRELOAD:-full}
 raknet_nice=${TOMB_RAIDER_RAKNET_NICE:-}
+game_cpus=${TOMB_RAIDER_GAME_CPUS:-1-7}
 socket=$base/run/native-runtime-dispatch/dispatch.sock
 state=$base/run/tombraider-direct-dispatch.state
 
@@ -36,6 +37,8 @@ if [[ -n $raknet_nice ]]; then
     [[ $raknet_nice =~ ^[0-9]+$ ]] && (( raknet_nice <= 19 )) ||
         fail 'TOMB_RAIDER_RAKNET_NICE must be an integer from 0 through 19'
 fi
+[[ $game_cpus == 1-7 || $game_cpus == 2-7 ]] ||
+    fail 'TOMB_RAIDER_GAME_CPUS must be 1-7 or 2-7'
 [[ -d $base/run && ! -L $base/run && -d $base/logs && ! -L $base/logs ]] ||
     fail "Steam run or log directory is unavailable below $base"
 [[ -x $python && (! -L $python || $python == "$default_python") ]] ||
@@ -96,7 +99,7 @@ done
 if [[ $mode == tombraider || $mode == tombraider-benchmark ||
     $mode == tombraider-diagnostic ]]; then
     affinity_log=$base/logs/tombraider-direct-affinity-$stamp.log
-    affinity_arguments=(--watch --raknet-cpu1 --steam-base "$base")
+    affinity_arguments=(--watch --raknet-cpu1 --steam-base "$base" --game-cpus "$game_cpus")
     if [[ -n $raknet_nice ]]; then
         affinity_arguments+=(--raknet-nice "$raknet_nice")
     fi
@@ -108,8 +111,8 @@ if [[ $mode == tombraider || $mode == tombraider-benchmark ||
     affinity_pid=$!
 fi
 
-printf 'pid=%s\nmode=%s\nchild_preload=%s\nserver_pid=%s\nserver_log=%s\nlauncher_log=%s\naffinity_log=%s\nstatus=launching\n' \
-    "$$" "$mode" "$child_preload" "$server_pid" "$server_log" \
+printf 'pid=%s\nmode=%s\nchild_preload=%s\ngame_cpus=%s\nserver_pid=%s\nserver_log=%s\nlauncher_log=%s\naffinity_log=%s\nstatus=launching\n' \
+    "$$" "$mode" "$child_preload" "$game_cpus" "$server_pid" "$server_log" \
     "$launcher_log" "$affinity_log" >"$state"
 
 set +e
@@ -137,8 +140,8 @@ if [[ -n ${affinity_pid:-} ]] && kill -0 "$affinity_pid" 2>/dev/null; then
 fi
 affinity_pid=
 
-printf 'pid=%s\nmode=%s\nchild_preload=%s\nserver_log=%s\nlauncher_log=%s\naffinity_log=%s\nstatus=complete\nlauncher_status=%s\nserver_status=%s\n' \
-    "$$" "$mode" "$child_preload" "$server_log" "$launcher_log" \
+printf 'pid=%s\nmode=%s\nchild_preload=%s\ngame_cpus=%s\nserver_log=%s\nlauncher_log=%s\naffinity_log=%s\nstatus=complete\nlauncher_status=%s\nserver_status=%s\n' \
+    "$$" "$mode" "$child_preload" "$game_cpus" "$server_log" "$launcher_log" \
     "$affinity_log" "$launcher_status" "$server_status" >"$state"
 printf 'Tomb Raider direct dispatch completed: mode=%s child_preload=%s launcher=%s server=%s server_log=%s launcher_log=%s\n' \
     "$mode" "$child_preload" "$launcher_status" "$server_status" \

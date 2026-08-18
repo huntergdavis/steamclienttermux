@@ -114,12 +114,14 @@ def main() -> None:
         state = (base / "run/tombraider-direct-dispatch.state").read_text()
         assert "mode=tombraider" in state
         assert "child_preload=full" in state
+        assert "game_cpus=1-7" in state
         assert "status=complete" in state
         assert "launcher_status=1" in state
         assert "server_status=0" in state
         assert "launcher_log=" in state
         assert affinity_result.read_text().splitlines() == [
-            f"--watch --raknet-cpu1 --steam-base {base} --wait-for-cpu-log "
+            f"--watch --raknet-cpu1 --steam-base {base} --game-cpus 1-7 "
+            "--wait-for-cpu-log "
             "--poll-seconds 0.25 "
             f"--lock-file {base}/runtime/tomb-raider-affinity.lock"
         ]
@@ -162,7 +164,8 @@ def main() -> None:
         )
         assert priority.returncode == 1, priority.stderr
         assert affinity_result.read_text().splitlines() == [
-            f"--watch --raknet-cpu1 --steam-base {base} --raknet-nice 19 "
+            f"--watch --raknet-cpu1 --steam-base {base} --game-cpus 1-7 "
+            "--raknet-nice 19 "
             "--wait-for-cpu-log --poll-seconds 0.25 "
             f"--lock-file {base}/runtime/tomb-raider-affinity.lock"
         ]
@@ -176,6 +179,34 @@ def main() -> None:
         )
         assert invalid_priority.returncode != 0
         assert "must be an integer from 0 through 19" in invalid_priority.stderr
+
+        (base / "run/native-runtime-dispatch/dispatch.sock").unlink()
+        exclusive = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env={**benchmark_environment, "TOMB_RAIDER_GAME_CPUS": "2-7"},
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        assert exclusive.returncode == 1, exclusive.stderr
+        assert affinity_result.read_text().splitlines() == [
+            f"--watch --raknet-cpu1 --steam-base {base} --game-cpus 2-7 "
+            "--wait-for-cpu-log --poll-seconds 0.25 "
+            f"--lock-file {base}/runtime/tomb-raider-affinity.lock"
+        ]
+        assert "game_cpus=2-7" in (
+            base / "run/tombraider-direct-dispatch.state"
+        ).read_text()
+
+        invalid_game_cpus = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env={**environment, "TOMB_RAIDER_GAME_CPUS": "0-7"},
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        assert invalid_game_cpus.returncode != 0
+        assert "must be 1-7 or 2-7" in invalid_game_cpus.stderr
 
         (base / "run/native-runtime-dispatch/dispatch.sock").unlink()
         diagnostic_environment = {

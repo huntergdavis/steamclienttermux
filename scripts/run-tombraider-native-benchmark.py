@@ -721,12 +721,43 @@ def aggregate_x11_isolation_conditions(runs) -> dict[str, dict[str, dict[str, fl
     }
 
 
-def affinity_log_is_ready(text: str, backend: str) -> bool:
-    if "Tomb Raider performance state: ready;" not in text:
+def aggregate_raknet_exclusive_conditions(
+    runs,
+) -> dict[str, dict[str, dict[str, float]]]:
+    control = [
+        run
+        for run in runs
+        if run["kind"] == "recorded" and not run["raknet_exclusive"]
+    ]
+    exclusive = [
+        run
+        for run in runs
+        if run["kind"] == "recorded" and run["raknet_exclusive"]
+    ]
+    if not control or not exclusive:
+        raise RuntimeError(
+            "paired RakNet-exclusive comparison requires both conditions"
+        )
+    return {
+        "control": aggregate_results(control),
+        "raknet_exclusive": aggregate_results(exclusive),
+    }
+
+
+def affinity_log_is_ready(
+    text: str, backend: str, expected_game_cpus: str = "1-7"
+) -> bool:
+    ready_lines = [
+        line
+        for line in text.splitlines()
+        if line.startswith("Tomb Raider performance state: ready;")
+    ]
+    if len(ready_lines) != 1:
         return False
     if backend == "direct":
         return (
-            (
+            f"CPUs {expected_game_cpus}" in ready_lines[0]
+            and (
                 "observing inherited startup topology on CPUs " in text
                 or "holding startup topology on CPUs " in text
             )
@@ -788,6 +819,16 @@ def build_parser() -> argparse.ArgumentParser:
         "--raknet-nice",
         type=int,
         help="opt-in nice value for the isolated RakNet receive thread",
+    )
+    parser.add_argument(
+        "--raknet-exclusive-recorded-passes",
+        type=parse_recorded_passes,
+        default=(),
+        metavar="N[,N...]",
+        help=(
+            "recorded pass numbers that reserve CPU1 for RakNet and constrain "
+            "other game threads to CPUs2-7"
+        ),
     )
     parser.add_argument(
         "--startup-topology",
@@ -855,6 +896,9 @@ def main() -> int:
     x11_isolation_requested = bool(
         arguments.isolate_x11 or arguments.x11_isolation_recorded_passes
     )
+    raknet_exclusive_requested = bool(
+        arguments.raknet_exclusive_recorded_passes
+    )
     if cef_hold_requested and arguments.backend != "direct":
         print("Steam CEF hold experiments require the direct backend", file=sys.stderr)
         return 2
@@ -875,6 +919,29 @@ def main() -> int:
         return 2
     if cef_hold_requested and x11_isolation_requested:
         print("CEF hold and X11 isolation cannot be combined in one series", file=sys.stderr)
+        return 2
+    if raknet_exclusive_requested and arguments.backend != "direct":
+        print("RakNet-exclusive experiments require the direct backend", file=sys.stderr)
+        return 2
+    if any(
+        number > arguments.runs
+        for number in arguments.raknet_exclusive_recorded_passes
+    ):
+        print(
+            "RakNet-exclusive pass number exceeds configured recorded runs",
+            file=sys.stderr,
+        )
+        return 2
+    if raknet_exclusive_requested and (
+        cef_hold_requested
+        or x11_isolation_requested
+        or arguments.raknet_nice is not None
+    ):
+        print(
+            "RakNet-exclusive passes cannot be combined with CEF, X11, or "
+            "RakNet-nice experiments",
+            file=sys.stderr,
+        )
         return 2
     if arguments.startup_topology != "available" and arguments.backend != "direct":
         print("full startup topology requires the direct backend", file=sys.stderr)
@@ -951,6 +1018,7 @@ def main() -> int:
             "STEAM_ARM64_FEX_PROFILE": arguments.profile,
         }
         environment.pop("TOMB_RAIDER_RAKNET_NICE", None)
+        environment.pop("TOMB_RAIDER_GAME_CPUS", None)
         environment.pop("STEAM_ARM64_DIRECT_STARTUP_TOPOLOGY", None)
         if arguments.backend == "direct":
             environment["STEAM_ARM64_DIRECT_STARTUP_TOPOLOGY"] = (
@@ -976,6 +1044,9 @@ def main() -> int:
                 "motion_blur": "off",
                 "fex_profile": arguments.profile,
                 "raknet_nice": arguments.raknet_nice,
+                "raknet_exclusive_recorded_passes": list(
+                    arguments.raknet_exclusive_recorded_passes
+                ),
                 "steam_cef_hold": arguments.hold_steam_cef,
                 "steam_cef_hold_recorded_passes": list(
                     arguments.steam_cef_hold_recorded_passes
@@ -1138,12 +1209,19 @@ def main() -> int:
                 kind == "recorded"
                 and number in arguments.x11_isolation_recorded_passes
             )
+            use_raknet_exclusive = (
+                kind == "recorded"
+                and number in arguments.raknet_exclusive_recorded_passes
+            )
+            expected_game_cpus = "2-7" if use_raknet_exclusive else "1-7"
+            pass_environment = environment.copy()
+            pass_environment["TOMB_RAIDER_GAME_CPUS"] = expected_game_cpus
             launch_return_code = 0
             if use_cef_hold:
                 cef_hold_log = output_directory / f"{label}-steam-cef-hold.log"
                 elapsed, cef_hold_pids, launch_return_code = run_logged_with_cef_holder(
                     launch_command,
-                    environment,
+                    pass_environment,
                     launch_log,
                     python_tool_command(
                         cef_holder,
@@ -1166,7 +1244,7 @@ def main() -> int:
                     launch_return_code,
                 ) = run_logged_with_x11_isolator(
                     launch_command,
-                    environment,
+                    pass_environment,
                     launch_log,
                     python_tool_command(
                         x11_isolator,
@@ -1188,10 +1266,12 @@ def main() -> int:
             else:
                 if arguments.backend == "direct":
                     elapsed, launch_return_code = run_logged_outcome(
-                        launch_command, environment, launch_log
+                        launch_command, pass_environment, launch_log
                     )
                 else:
-                    elapsed = run_logged(launch_command, environment, launch_log)
+                    elapsed = run_logged(
+                        launch_command, pass_environment, launch_log
+                    )
 
             result_files = new_regular_files(game_directory, RESULT_GLOB, result_before)
             if len(result_files) != 1:
@@ -1204,7 +1284,9 @@ def main() -> int:
                 path
                 for path in guard_files
                 if affinity_log_is_ready(
-                    read_text(path) or "", arguments.backend
+                    read_text(path) or "",
+                    arguments.backend,
+                    expected_game_cpus,
                 )
             ]
             if len(ready_guards) != 1:
@@ -1243,6 +1325,8 @@ def main() -> int:
                 "steam_cef_hold_pids": cef_hold_pids,
                 "x11_isolation": use_x11_isolation,
                 "x11_isolation_evidence": x11_isolation_evidence,
+                "raknet_exclusive": use_raknet_exclusive,
+                "game_cpus": expected_game_cpus,
                 "before": before,
                 "after": after,
             }
@@ -1262,6 +1346,10 @@ def main() -> int:
             )
         if arguments.x11_isolation_recorded_passes:
             series["condition_aggregates"] = aggregate_x11_isolation_conditions(
+                series["runs"]
+            )
+        if arguments.raknet_exclusive_recorded_passes:
+            series["condition_aggregates"] = aggregate_raknet_exclusive_conditions(
                 series["runs"]
             )
         series["status"] = "complete"
