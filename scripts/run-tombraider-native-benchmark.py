@@ -173,6 +173,24 @@ def parse_cef_hold_log(output: str) -> list[int]:
     return active
 
 
+def parse_recorded_passes(value: str) -> tuple[int, ...]:
+    try:
+        passes = tuple(int(item) for item in value.split(","))
+    except ValueError as error:
+        raise argparse.ArgumentTypeError(
+            "recorded pass list must contain comma-separated positive integers"
+        ) from error
+    if not passes or any(number <= 0 for number in passes):
+        raise argparse.ArgumentTypeError(
+            "recorded pass list must contain comma-separated positive integers"
+        )
+    if tuple(sorted(set(passes))) != passes:
+        raise argparse.ArgumentTypeError(
+            "recorded pass list must be sorted and contain no duplicates"
+        )
+    return passes
+
+
 def parse_xrandr_geometry(output: str) -> str | None:
     match = re.search(r"^Screen 0:.* current (\d+) x (\d+),", output, re.MULTILINE)
     return f"{match.group(1)}x{match.group(2)}" if match else None
@@ -451,6 +469,25 @@ def aggregate_results(runs) -> dict[str, dict[str, float]]:
     return result
 
 
+def aggregate_cef_hold_conditions(runs) -> dict[str, dict[str, dict[str, float]]]:
+    control = [
+        run
+        for run in runs
+        if run["kind"] == "recorded" and not run["steam_cef_hold"]
+    ]
+    held = [
+        run
+        for run in runs
+        if run["kind"] == "recorded" and run["steam_cef_hold"]
+    ]
+    if not control or not held:
+        raise RuntimeError("paired CEF comparison requires control and held passes")
+    return {
+        "control": aggregate_results(control),
+        "steam_cef_hold": aggregate_results(held),
+    }
+
+
 def affinity_log_is_ready(text: str, backend: str) -> bool:
     if "Tomb Raider performance state: ready;" not in text:
         return False
@@ -481,10 +518,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--profile", choices=("safe", "proton", "fast"), default="safe")
     parser.add_argument("--backend", choices=("proot", "direct"), default="proot")
-    parser.add_argument(
+    cef_group = parser.add_mutually_exclusive_group()
+    cef_group.add_argument(
         "--hold-steam-cef",
         action="store_true",
         help="experimentally suspend verified native Steam CEF descendants during each pass",
+    )
+    cef_group.add_argument(
+        "--steam-cef-hold-recorded-passes",
+        type=parse_recorded_passes,
+        default=(),
+        metavar="N[,N...]",
+        help="recorded pass numbers that receive the experimental native Steam CEF hold",
     )
     parser.add_argument(
         "--raknet-nice",
@@ -551,8 +596,17 @@ def main() -> int:
     if arguments.raknet_nice is not None and arguments.backend != "direct":
         print("RakNet nice experiments require the direct backend", file=sys.stderr)
         return 2
-    if arguments.hold_steam_cef and arguments.backend != "direct":
+    cef_hold_requested = bool(
+        arguments.hold_steam_cef or arguments.steam_cef_hold_recorded_passes
+    )
+    if cef_hold_requested and arguments.backend != "direct":
         print("Steam CEF hold experiments require the direct backend", file=sys.stderr)
+        return 2
+    if any(
+        number > arguments.runs
+        for number in arguments.steam_cef_hold_recorded_passes
+    ):
+        print("Steam CEF hold pass number exceeds configured recorded runs", file=sys.stderr)
         return 2
     if arguments.startup_topology != "available" and arguments.backend != "direct":
         print("full startup topology requires the direct backend", file=sys.stderr)
@@ -600,7 +654,7 @@ def main() -> int:
             required.insert(0, (primer, "native Steam primer"))
         else:
             required.append((topology_checker, "Tomb Raider CPU-topology checker"))
-            if arguments.hold_steam_cef:
+            if cef_hold_requested:
                 required.append((cef_holder, "native Steam CEF holder"))
         for path, label in required:
             require_regular(path, label, executable=True)
@@ -652,6 +706,9 @@ def main() -> int:
                 "fex_profile": arguments.profile,
                 "raknet_nice": arguments.raknet_nice,
                 "steam_cef_hold": arguments.hold_steam_cef,
+                "steam_cef_hold_recorded_passes": list(
+                    arguments.steam_cef_hold_recorded_passes
+                ),
                 "startup_topology": arguments.startup_topology,
                 "backend": arguments.backend,
                 "warmups": arguments.warmups,
@@ -796,7 +853,11 @@ def main() -> int:
                 else [launcher, "-benchmark"]
             )
             cef_hold_pids = None
-            if arguments.hold_steam_cef:
+            use_cef_hold = arguments.hold_steam_cef or (
+                kind == "recorded"
+                and number in arguments.steam_cef_hold_recorded_passes
+            )
+            if use_cef_hold:
                 cef_hold_log = output_directory / f"{label}-steam-cef-hold.log"
                 elapsed, cef_hold_pids = run_logged_with_cef_holder(
                     launch_command,
@@ -852,6 +913,7 @@ def main() -> int:
                 "cooldown_seconds": cooldown_seconds,
                 "source_result": str(result_files[0]),
                 "source_affinity_log": str(ready_guards[0]),
+                "steam_cef_hold": use_cef_hold,
                 "steam_cef_hold_pids": cef_hold_pids,
                 "before": before,
                 "after": after,
@@ -866,6 +928,10 @@ def main() -> int:
             )
 
         series["aggregate"] = aggregate_results(series["runs"])
+        if arguments.steam_cef_hold_recorded_passes:
+            series["condition_aggregates"] = aggregate_cef_hold_conditions(
+                series["runs"]
+            )
         series["status"] = "complete"
         series["finished_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
         atomic_json(output_directory / "series.json", series)

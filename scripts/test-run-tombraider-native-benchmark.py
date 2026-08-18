@@ -71,6 +71,14 @@ def main():
             pass
         else:
             raise AssertionError("invalid Steam CEF hold log was accepted")
+    assert module.parse_recorded_passes("2,4,6") == (2, 4, 6)
+    for invalid_passes in ("", "0", "2,2", "4,2", "one,2"):
+        try:
+            module.parse_recorded_passes(invalid_passes)
+        except module.argparse.ArgumentTypeError:
+            pass
+        else:
+            raise AssertionError("invalid recorded pass list was accepted")
 
     xrandr = (
         "Screen 0: minimum 320 x 200, current 2800 x 1752, maximum 8192 x 8192\n"
@@ -95,10 +103,15 @@ def main():
     assert direct.raknet_nice is None
     assert direct.startup_topology == "available"
     assert not direct.hold_steam_cef
+    assert direct.steam_cef_hold_recorded_passes == ()
     direct_cef_hold = module.build_parser().parse_args(
         ["--backend", "direct", "--hold-steam-cef"]
     )
     assert direct_cef_hold.hold_steam_cef
+    direct_cef_pairs = module.build_parser().parse_args(
+        ["--backend", "direct", "--steam-cef-hold-recorded-passes", "2,4,6"]
+    )
+    assert direct_cef_pairs.steam_cef_hold_recorded_passes == (2, 4, 6)
     direct_priority = module.build_parser().parse_args(
         ["--backend", "direct", "--raknet-nice", "19"]
     )
@@ -270,6 +283,13 @@ def main():
         "median": 22.0,
         "values": [20.0, 22.0, 24.0],
     }
+    paired_runs = [
+        {**run, "steam_cef_hold": index % 2 == 1}
+        for index, run in enumerate(runs[1:] + runs[1:])
+    ]
+    paired = module.aggregate_cef_hold_conditions(paired_runs)
+    assert paired["control"]["average_fps"]["values"] == [20.0, 24.0, 22.0]
+    assert paired["steam_cef_hold"]["average_fps"]["values"] == [22.0, 20.0, 24.0]
     failed = {"status": "initializing", "runs": []}
     module.mark_series_failed(failed, RuntimeError("controlled failure"))
     assert failed["status"] == "failed"

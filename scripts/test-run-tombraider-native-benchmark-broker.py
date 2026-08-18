@@ -31,6 +31,9 @@ DIRECT_SAFE_FULL_RAKNET_NICE19_WRAPPER = Path(__file__).with_name(
 DIRECT_SAFE_FULL_CEF_HOLD_WRAPPER = Path(__file__).with_name(
     "test-tomb-raider-direct-safe-full-topology-cef-hold-40c-ceiling.sh"
 )
+DIRECT_SAFE_FULL_CEF_HOLD_ALTERNATING_WRAPPER = Path(__file__).with_name(
+    "test-tomb-raider-direct-safe-full-topology-cef-hold-alternating-40c-ceiling.sh"
+)
 
 
 def main():
@@ -219,6 +222,28 @@ def main():
             "arg=40",
             "arg=--runs",
             "arg=1",
+        ]
+
+        alternating_capture = root / "direct-safe-full-cef-hold-alternating-capture"
+        wrapper_environment["BENCHMARK_CAPTURE"] = str(alternating_capture)
+        subprocess.run(
+            ["bash", str(DIRECT_SAFE_FULL_CEF_HOLD_ALTERNATING_WRAPPER)],
+            env=wrapper_environment,
+            check=True,
+        )
+        assert alternating_capture.read_text().splitlines() == [
+            "arg=--backend",
+            "arg=direct",
+            "arg=--profile",
+            "arg=safe",
+            "arg=--startup-topology",
+            "arg=full",
+            "arg=--runs",
+            "arg=6",
+            "arg=--steam-cef-hold-recorded-passes",
+            "arg=2,4,6",
+            "arg=--start-temperature-ceiling-c",
+            "arg=40",
         ]
 
     print("native Tomb Raider benchmark broker and profile wrapper tests: PASS")
