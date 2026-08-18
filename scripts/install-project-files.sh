@@ -152,6 +152,8 @@ install_one "$repo_root/scripts/start-tombraider-direct-diagnostic.sh" \
     "$HOME/start-tombraider-direct-diagnostic" 700
 install_one "$repo_root/scripts/run-tombraider-native-benchmark.py" \
     "$base/compat-bin/run-tombraider-native-benchmark.py" 600
+install_one "$repo_root/scripts/hold-tombraider-steam-cef.py" \
+    "$base/compat-bin/hold-tombraider-steam-cef.py" 700
 install_one "$repo_root/scripts/run-tombraider-native-benchmark.sh" \
     "$HOME/run-tombraider-native-benchmark" 700
 install_one "$repo_root/scripts/test-tomb-raider-proton-40c-ceiling.sh" \
