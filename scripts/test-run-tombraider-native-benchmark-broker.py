@@ -34,6 +34,9 @@ DIRECT_SAFE_FULL_CEF_HOLD_WRAPPER = Path(__file__).with_name(
 DIRECT_SAFE_FULL_CEF_HOLD_ALTERNATING_WRAPPER = Path(__file__).with_name(
     "test-tomb-raider-direct-safe-full-topology-cef-hold-alternating-40c-ceiling.sh"
 )
+DIRECT_SAFE_FULL_CEF_HOLD_PAIR_WRAPPER = Path(__file__).with_name(
+    "test-tomb-raider-direct-safe-full-topology-cef-hold-pair-40c-ceiling.sh"
+)
 
 
 def main():
@@ -242,6 +245,28 @@ def main():
             "arg=6",
             "arg=--steam-cef-hold-recorded-passes",
             "arg=2,4,6",
+            "arg=--start-temperature-ceiling-c",
+            "arg=40",
+        ]
+
+        pair_capture = root / "direct-safe-full-cef-hold-pair-capture"
+        wrapper_environment["BENCHMARK_CAPTURE"] = str(pair_capture)
+        subprocess.run(
+            ["bash", str(DIRECT_SAFE_FULL_CEF_HOLD_PAIR_WRAPPER)],
+            env=wrapper_environment,
+            check=True,
+        )
+        assert pair_capture.read_text().splitlines() == [
+            "arg=--backend",
+            "arg=direct",
+            "arg=--profile",
+            "arg=safe",
+            "arg=--startup-topology",
+            "arg=full",
+            "arg=--runs",
+            "arg=2",
+            "arg=--steam-cef-hold-recorded-passes",
+            "arg=2",
             "arg=--start-temperature-ceiling-c",
             "arg=40",
         ]
