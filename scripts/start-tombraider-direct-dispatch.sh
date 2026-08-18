@@ -14,6 +14,8 @@ topology_checker=${TOMB_RAIDER_DIRECT_TOPOLOGY_CHECKER:-$base/compat-bin/configu
 mode=${TOMB_RAIDER_DIRECT_MODE:-tombraider}
 diagnostics=${TOMB_RAIDER_DIRECT_DIAGNOSTICS:-0}
 child_preload=${TOMB_RAIDER_DIRECT_CHILD_PRELOAD:-full}
+vulkan_trace=${TOMB_RAIDER_VULKAN_TRACE:-0}
+vulkan_trace_preload=${TOMB_RAIDER_VULKAN_TRACE_PRELOAD:-$HOME/bionic-vulkan-bridge/out/glibc/libbvb-vulkan-resolve-trace.so}
 raknet_nice=${TOMB_RAIDER_RAKNET_NICE:-}
 game_cpus=${TOMB_RAIDER_GAME_CPUS:-1-7}
 socket=$base/run/native-runtime-dispatch/dispatch.sock
@@ -30,6 +32,8 @@ fail() {
     fail "unsupported direct-dispatch mode: $mode"
 [[ $diagnostics == 0 || $diagnostics == 1 ]] ||
     fail 'TOMB_RAIDER_DIRECT_DIAGNOSTICS must be 0 or 1'
+[[ $vulkan_trace == 0 || $vulkan_trace == 1 ]] ||
+    fail 'TOMB_RAIDER_VULKAN_TRACE must be 0 or 1'
 [[ $child_preload == full || $child_preload == lean ||
     $child_preload == lean-tmp-only || $child_preload == lean-debug-wait ]] ||
     fail 'TOMB_RAIDER_DIRECT_CHILD_PRELOAD must be full, lean, lean-tmp-only, or lean-debug-wait'
@@ -45,6 +49,13 @@ fi
     fail "Termux Python is unavailable: $python"
 [[ -f $dispatcher && ! -L $dispatcher ]] ||
     fail "direct dispatcher is unavailable: $dispatcher"
+if [[ $vulkan_trace == 1 ]]; then
+    [[ $child_preload == lean || $child_preload == lean-tmp-only ||
+        $child_preload == lean-debug-wait ]] ||
+        fail 'Vulkan tracing requires a lean final-process preload profile'
+    [[ -f $vulkan_trace_preload && ! -L $vulkan_trace_preload ]] ||
+        fail "Vulkan trace preload is unavailable: $vulkan_trace_preload"
+fi
 [[ -x $launcher && ! -L $launcher ]] ||
     fail "native Steam launcher is unavailable: $launcher"
 [[ -x $prepare && ! -L $prepare ]] ||
@@ -64,6 +75,12 @@ fi
 "$python" "$prepare" prepare --base "$base"
 
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
+vulkan_trace_file=
+if [[ $vulkan_trace == 1 ]]; then
+    vulkan_trace_file=$base/logs/tombraider-vulkan-resolve-$stamp-$$.tsv
+    (set -o noclobber; : >"$vulkan_trace_file") 2>/dev/null ||
+        fail "could not create private Vulkan trace output: $vulkan_trace_file"
+fi
 server_log=$base/logs/tombraider-direct-$mode-$child_preload-$stamp.log
 launcher_log=$base/logs/tombraider-direct-launcher-$mode-$child_preload-$stamp.log
 server_pid=
@@ -81,9 +98,18 @@ cleanup() {
 }
 trap cleanup EXIT HUP INT TERM
 
-STEAM_ARM64_DIRECT_DIAGNOSTICS=$diagnostics \
-STEAM_ARM64_DIRECT_CHILD_PRELOAD=$child_preload \
-"$python" "$dispatcher" serve --base "$base" --mode "$mode" \
+dispatcher_environment=(
+    "STEAM_ARM64_DIRECT_DIAGNOSTICS=$diagnostics"
+    "STEAM_ARM64_DIRECT_CHILD_PRELOAD=$child_preload"
+)
+if [[ $vulkan_trace == 1 ]]; then
+    dispatcher_environment+=(
+        "STEAM_ARM64_VULKAN_TRACE_PRELOAD=$vulkan_trace_preload"
+        "STEAM_ARM64_VULKAN_TRACE_FILE=$vulkan_trace_file"
+    )
+fi
+env "${dispatcher_environment[@]}" \
+    "$python" "$dispatcher" serve --base "$base" --mode "$mode" \
     >"$server_log" 2>&1 &
 server_pid=$!
 for _ in $(seq 1 100); do
@@ -111,9 +137,9 @@ if [[ $mode == tombraider || $mode == tombraider-benchmark ||
     affinity_pid=$!
 fi
 
-printf 'pid=%s\nmode=%s\nchild_preload=%s\ngame_cpus=%s\nserver_pid=%s\nserver_log=%s\nlauncher_log=%s\naffinity_log=%s\nstatus=launching\n' \
-    "$$" "$mode" "$child_preload" "$game_cpus" "$server_pid" "$server_log" \
-    "$launcher_log" "$affinity_log" >"$state"
+printf 'pid=%s\nmode=%s\nchild_preload=%s\ngame_cpus=%s\nvulkan_trace_file=%s\nserver_pid=%s\nserver_log=%s\nlauncher_log=%s\naffinity_log=%s\nstatus=launching\n' \
+    "$$" "$mode" "$child_preload" "$game_cpus" "$vulkan_trace_file" \
+    "$server_pid" "$server_log" "$launcher_log" "$affinity_log" >"$state"
 
 set +e
 game_arguments=(-nolauncher)
@@ -140,12 +166,13 @@ if [[ -n ${affinity_pid:-} ]] && kill -0 "$affinity_pid" 2>/dev/null; then
 fi
 affinity_pid=
 
-printf 'pid=%s\nmode=%s\nchild_preload=%s\ngame_cpus=%s\nserver_log=%s\nlauncher_log=%s\naffinity_log=%s\nstatus=complete\nlauncher_status=%s\nserver_status=%s\n' \
-    "$$" "$mode" "$child_preload" "$game_cpus" "$server_log" "$launcher_log" \
-    "$affinity_log" "$launcher_status" "$server_status" >"$state"
-printf 'Tomb Raider direct dispatch completed: mode=%s child_preload=%s launcher=%s server=%s server_log=%s launcher_log=%s\n' \
+printf 'pid=%s\nmode=%s\nchild_preload=%s\ngame_cpus=%s\nvulkan_trace_file=%s\nserver_log=%s\nlauncher_log=%s\naffinity_log=%s\nstatus=complete\nlauncher_status=%s\nserver_status=%s\n' \
+    "$$" "$mode" "$child_preload" "$game_cpus" "$vulkan_trace_file" \
+    "$server_log" "$launcher_log" "$affinity_log" "$launcher_status" \
+    "$server_status" >"$state"
+printf 'Tomb Raider direct dispatch completed: mode=%s child_preload=%s launcher=%s server=%s trace=%s server_log=%s launcher_log=%s\n' \
     "$mode" "$child_preload" "$launcher_status" "$server_status" \
-    "$server_log" "$launcher_log"
+    "$vulkan_trace_file" "$server_log" "$launcher_log"
 if (( launcher_status != 0 )); then
     exit "$launcher_status"
 fi

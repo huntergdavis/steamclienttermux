@@ -150,6 +150,8 @@ install_one "$repo_root/scripts/start-tombraider-direct-debug-wait.sh" \
     "$HOME/start-tombraider-direct-debug-wait" 700
 install_one "$repo_root/scripts/start-tombraider-direct-diagnostic.sh" \
     "$HOME/start-tombraider-direct-diagnostic" 700
+install_one "$repo_root/scripts/start-tombraider-vulkan-trace.sh" \
+    "$HOME/start-tombraider-vulkan-trace" 700
 install_one "$repo_root/scripts/run-tombraider-native-benchmark.py" \
     "$base/compat-bin/run-tombraider-native-benchmark.py" 600
 install_one "$repo_root/scripts/hold-tombraider-steam-cef.py" \

@@ -77,6 +77,52 @@ def validated_base(value: str) -> Path:
     return base
 
 
+def validated_vulkan_trace(base: Path) -> tuple[Path, Path] | None:
+    preload_value = os.environ.get("STEAM_ARM64_VULKAN_TRACE_PRELOAD")
+    trace_value = os.environ.get("STEAM_ARM64_VULKAN_TRACE_FILE")
+    if preload_value is None and trace_value is None:
+        return None
+    if not preload_value or not trace_value:
+        fail("Vulkan trace preload and output must be supplied together")
+
+    expected_preload = (
+        Path.home()
+        / "bionic-vulkan-bridge/out/glibc/libbvb-vulkan-resolve-trace.so"
+    )
+    preload = Path(preload_value)
+    if preload != expected_preload:
+        fail(f"Vulkan trace preload is not the pinned bridge artifact: {preload}")
+    try:
+        preload_metadata = preload.lstat()
+    except OSError as error:
+        fail(f"Vulkan trace preload is unavailable: {error}")
+    if (
+        not stat.S_ISREG(preload_metadata.st_mode)
+        or preload.is_symlink()
+        or preload_metadata.st_uid != os.geteuid()
+        or preload_metadata.st_mode & 0o022
+    ):
+        fail(f"Vulkan trace preload is not a private regular file: {preload}")
+
+    trace = Path(trace_value)
+    if trace.parent != base / "logs" or not re.fullmatch(
+        r"tombraider-vulkan-resolve-\d{8}T\d{6}Z-\d+\.tsv", trace.name
+    ):
+        fail(f"Vulkan trace output is outside the controlled log path: {trace}")
+    try:
+        trace_metadata = trace.lstat()
+    except OSError as error:
+        fail(f"Vulkan trace output is unavailable: {error}")
+    if (
+        not stat.S_ISREG(trace_metadata.st_mode)
+        or trace.is_symlink()
+        or trace_metadata.st_uid != os.geteuid()
+        or trace_metadata.st_mode & 0o077
+    ):
+        fail(f"Vulkan trace output is not a private regular file: {trace}")
+    return preload, trace
+
+
 def dispatch_socket(base: Path) -> Path:
     run = private_directory(base / "run", "Steam run directory", create=True)
     directory = private_directory(
@@ -533,6 +579,9 @@ def request_environment(payload: dict[str, object]) -> dict[str, str]:
         "TGCOMPAT_EXEC_LD_PRELOAD",
         "TGCOMPAT_PROC_SELF_EXE",
         "TGCOMPAT_USERFAULTFD_ENOSYS",
+        "BVB_VULKAN_TRACE_FILE",
+        "STEAM_ARM64_VULKAN_TRACE_PRELOAD",
+        "STEAM_ARM64_VULKAN_TRACE_FILE",
     ):
         environment.pop(name, None)
     return environment
@@ -1012,6 +1061,7 @@ def pv_smoke_invocation(
     child_preload_profile = os.environ.get(
         "STEAM_ARM64_DIRECT_CHILD_PRELOAD", "full"
     )
+    vulkan_trace = validated_vulkan_trace(base)
     if child_preload_profile == "full":
         child_preloads = entry_preloads
         final_preloads = None
@@ -1042,6 +1092,10 @@ def pv_smoke_invocation(
             "STEAM_ARM64_DIRECT_CHILD_PRELOAD must be full, lean, "
             "lean-tmp-only, or lean-debug-wait"
         )
+    if vulkan_trace is not None:
+        if final_preloads is None:
+            fail("Vulkan tracing requires a lean final-process preload profile")
+        final_preloads.append(vulkan_trace[0])
     entry_preload = ":".join(str(path) for path in entry_preloads)
     child_preload = ":".join(str(path) for path in child_preloads)
     final_preload = (
@@ -1103,6 +1157,8 @@ def pv_smoke_invocation(
                 "TGCOMPAT_EXEC_FINAL_PROC_SELF_EXE": "",
             }
         )
+    if vulkan_trace is not None:
+        environment["BVB_VULKAN_TRACE_FILE"] = str(vulkan_trace[1])
     loader_arguments = [
         str(loader),
         "--inhibit-cache",

@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import socket
 import tempfile
+from unittest import mock
 
 
 SCRIPT = Path(__file__).with_name("pressure-vessel-direct-dispatch.py")
@@ -357,9 +358,41 @@ def main() -> None:
                 "STEAM_COMPAT_APP_ID=203160",
                 "LD_PRELOAD=unsafe",
                 "TGCOMPAT_USERFAULTFD_ENOSYS=unsafe",
+                "BVB_VULKAN_TRACE_FILE=unsafe",
+                "STEAM_ARM64_VULKAN_TRACE_PRELOAD=unsafe",
+                "STEAM_ARM64_VULKAN_TRACE_FILE=unsafe",
             ]
         }
     ) == {"STEAM_COMPAT_APP_ID": "203160"}
+    with tempfile.TemporaryDirectory(prefix="vulkan-trace-validation.") as directory:
+        home = Path(directory)
+        base = home / "steam-arm64"
+        logs = base / "logs"
+        logs.mkdir(parents=True, mode=0o700)
+        preload = (
+            home
+            / "bionic-vulkan-bridge/out/glibc/libbvb-vulkan-resolve-trace.so"
+        )
+        preload.parent.mkdir(parents=True)
+        preload.write_bytes(b"tracer")
+        preload.chmod(0o600)
+        trace = logs / "tombraider-vulkan-resolve-20260818T120000Z-123.tsv"
+        trace.write_text("", encoding="ascii")
+        trace.chmod(0o600)
+        trace_environment = {
+            "HOME": str(home),
+            "STEAM_ARM64_VULKAN_TRACE_PRELOAD": str(preload),
+            "STEAM_ARM64_VULKAN_TRACE_FILE": str(trace),
+        }
+        with mock.patch.dict(os.environ, trace_environment, clear=False):
+            assert MODULE.validated_vulkan_trace(base) == (preload, trace)
+            os.environ["STEAM_ARM64_VULKAN_TRACE_PRELOAD"] = str(home / "other.so")
+            try:
+                MODULE.validated_vulkan_trace(base)
+            except MODULE.DispatchError:
+                pass
+            else:
+                raise AssertionError("Vulkan trace validator accepted an arbitrary preload")
     invocation_source = inspect.getsource(MODULE.pv_smoke_invocation)
     assert "libtgcompat-robust.so" in invocation_source
     assert "libtgcompat-mprotect.so" in invocation_source
@@ -372,6 +405,8 @@ def main() -> None:
     assert "TGCOMPAT_EXEC_FINAL_PATH_PREFIX" in invocation_source
     assert "TGCOMPAT_EXEC_FINAL_LD_PRELOAD" in invocation_source
     assert "TGCOMPAT_EXEC_FINAL_PROC_SELF_EXE" in invocation_source
+    assert "final_preloads.append(vulkan_trace[0])" in invocation_source
+    assert 'environment["BVB_VULKAN_TRACE_FILE"]' in invocation_source
     assert "entry_preloads[4]" in invocation_source
     assert "entry_preloads[1]" in invocation_source
     assert 'child_preload_profile == "lean-tmp-only"' in invocation_source
