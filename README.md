@@ -17,7 +17,7 @@ custom kernel, chroot, or system-wide library replacement.
 | --- | --- |
 | Steam | Authenticates, renders, downloads, and retains login state |
 | Graphics | Hardware Vulkan through private Mesa Turnip |
-| Experimental system-Vulkan bridge | A glibc producer drove 4,096 visibly rotating Adreno frames at 2800×1752 through Bionic shared-memory replay: 59.8 FPS, 16.66 ms median, 18.87 ms p95; game integration remains unimplemented ([bridge repository](https://github.com/huntergdavis/bionic-vulkan-bridge)) |
+| Experimental system-Vulkan bridge | A glibc producer drove 4,096 visibly rotating Adreno frames at 2800×1752 (59.8 FPS), and a separate game-facing Adreno device recovered all 4,096 glibc-mapped test bytes with zero mismatches; external-memory integration remains ([bridge repository](https://github.com/huntergdavis/bionic-vulkan-bridge)) |
 | Windows games | Official Proton 11 ARM64 + FEX + DXVK |
 | Audio/input | PulseAudio and Termux:X11 pointer/keyboard support |
 | Storage | Game payloads on microSD; lock-sensitive Steam metadata on internal F2FS |
@@ -114,8 +114,14 @@ the glibc producer drove a visibly rotating, aspect-correct triangle for all
 4,096 native-resolution frames at 59.8 FPS with 16.66 ms median and 18.87 ms
 p95 pacing. See the
 [E033 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e033-rotating-triangle.json).
+E034 then implements `vkMapMemory`, `vkFlushMappedMemoryRanges`,
+`vkInvalidateMappedMemoryRanges`, and `vkUnmapMemory` on the game-facing
+device. A real glibc client flushed a 4 KiB pattern into Adreno memory, cleared
+its local shadow, invalidated it, and recovered every byte with zero
+mismatches. See the
+[E034 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e034-mapped-memory.json).
 This is honest dispatch and lifecycle coverage plus FIFO/vsync-paced triangle
-replay, not yet a Tomb Raider FPS result.
+replay, not yet shared game output or a Tomb Raider FPS result.
 
 ## Tomb Raider benchmark snapshot
 

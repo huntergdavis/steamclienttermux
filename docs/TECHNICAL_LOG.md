@@ -7120,3 +7120,36 @@ timeout fix. E033 reused E023's persistent four-slot frame ring, E025's
 authenticated connection, and E026-E032's typed-handle and generated-dispatch
 path. E034 will add client-visible mapped uploads and prove them with vertex
 data supplied by glibc rather than baked into the shader.
+
+## 2026-08-19: E034 proves game-facing mapped-memory correctness
+
+The bridge now exposes `vkMapMemory`, `vkFlushMappedMemoryRanges`,
+`vkInvalidateMappedMemoryRanges`, and `vkUnmapMemory` through the generated
+glibc dispatch. Because a pointer cannot cross the process/libc boundary, the
+glibc side maps a bounded shadow allocation while fixed-width opcodes 48 and
+49 move chunks to and from the real Bionic-owned Vulkan allocation. Queue
+submit conservatively uploads active shadows owned by the submitting device.
+
+On the Galaxy Tab S8+, the live Adreno 730 gate selected memory type 6, mapped
+4,096 bytes, wrote and flushed a deterministic pattern, zeroed the local
+shadow, invalidated it, and recovered all bytes with zero mismatches. The
+existing GPU-fill and fence checks also remained green, and both client and
+service stderr were empty. All 18 host contracts, the tablet's generated glibc
+dispatch contract, and the live integration passed. The policy now marks 50
+of 742 measured names executable, 390 required-but-unimplemented, and 302
+observed-null.
+
+Implementation commit `61c1b98`, documentation commit `ec3d409`, and the
+canonical
+[E034 evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e034-mapped-memory.json)
+are pushed. The evidence is 7,611 bytes with SHA-256
+`e707f57d135850957fd27926a7c055c3200447531582e87751e03cfe7b832eec`.
+
+The required recall query found no earlier E034 mapped-memory implementation.
+E034 reused E031's allocation metadata and readback path plus E032's device-
+owned submission lifecycle. The original expectation that mapped data could
+immediately feed the visible triangle exposed the next architectural boundary:
+the game-facing Vulkan device and Android Activity renderer own separate
+allocations. E035 must establish an external-memory-backed allocation and
+synchronization path between them before vertex data can move out of shader
+constants without slow inline copies.
