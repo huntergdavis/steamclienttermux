@@ -7153,3 +7153,29 @@ the game-facing Vulkan device and Android Activity renderer own separate
 allocations. E035 must establish an external-memory-backed allocation and
 synchronization path between them before vertex data can move out of shader
 constants without slow inline copies.
+
+## 2026-08-19: E035 shares one Adreno allocation across devices
+
+The Bionic bridge selftest now enables the measured external-memory capability,
+base, and FD extensions, queries opaque-FD buffer compatibility, and creates
+matching 4 KiB transfer/vertex buffers on two distinct logical devices from
+the same Adreno 730 physical device. The source writes a deterministic pattern
+to an exportable allocation, exports one opaque FD, and the destination imports
+ownership into a second `VkDeviceMemory`, maps it, and compares every byte.
+
+The live tablet reported feature mask `7` (`DEDICATED_ONLY`, `EXPORTABLE`, and
+`IMPORTABLE`), compatible and re-exportable opaque-FD masks of `1`, host-
+visible/coherent memory type 4, 4,096 bytes, zero mismatches, and zero stderr.
+All 19 host contracts passed, including a real memfd-backed fake-driver
+regression. Implementation commit `0cecfb7`, harness commit `7e576b9`,
+documentation commit `9afcf53`, and canonical
+[E035 evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e035-external-memory.json)
+are pushed. The evidence is 1,196 bytes with SHA-256
+`fa2c7893a9b6a0539f81d559afc713192fa567164a2d40c73e4d1aba15e5b371`.
+
+The required recall query found no earlier E035 implementation. This reused
+E004/E005's loader, memory selection, and cleanup path plus E020/E021's explicit
+FD-ownership discipline. The driver-level sharing primitive is now proven;
+E036 will isolate cross-UID delivery by exporting from the visible Android
+renderer, carrying the FD through the existing Binder/`SCM_RIGHTS` broker, and
+importing it on the game-facing device with explicit synchronization.

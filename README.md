@@ -17,7 +17,7 @@ custom kernel, chroot, or system-wide library replacement.
 | --- | --- |
 | Steam | Authenticates, renders, downloads, and retains login state |
 | Graphics | Hardware Vulkan through private Mesa Turnip |
-| Experimental system-Vulkan bridge | A glibc producer drove 4,096 visibly rotating Adreno frames at 2800×1752 (59.8 FPS), and a separate game-facing Adreno device recovered all 4,096 glibc-mapped test bytes with zero mismatches; external-memory integration remains ([bridge repository](https://github.com/huntergdavis/bionic-vulkan-bridge)) |
+| Experimental system-Vulkan bridge | A glibc producer drove 4,096 visibly rotating Adreno frames at 2800×1752 (59.8 FPS); mapped-memory parity and a two-device opaque-FD allocation now pass with zero mismatches; cross-UID visible-host integration remains ([bridge repository](https://github.com/huntergdavis/bionic-vulkan-bridge)) |
 | Windows games | Official Proton 11 ARM64 + FEX + DXVK |
 | Audio/input | PulseAudio and Termux:X11 pointer/keyboard support |
 | Storage | Game payloads on microSD; lock-sensitive Steam metadata on internal F2FS |
@@ -120,6 +120,10 @@ device. A real glibc client flushed a 4 KiB pattern into Adreno memory, cleared
 its local shadow, invalidated it, and recovered every byte with zero
 mismatches. See the
 [E034 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e034-mapped-memory.json).
+E035 then exported a dedicated opaque-FD allocation from one Adreno logical
+device and imported it into a second. The destination recovered all 4,096
+patterned bytes with zero mismatches. See the
+[E035 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e035-external-memory.json).
 This is honest dispatch and lifecycle coverage plus FIFO/vsync-paced triangle
 replay, not yet shared game output or a Tomb Raider FPS result.
 
