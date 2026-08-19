@@ -6917,3 +6917,33 @@ The required recall query found no indexed E026 implementation; this gate
 reused E012's parented handles and E025's persistent authenticated connection.
 E027 is the bounded read-only physical-device discovery set needed before
 logical-device creation.
+
+## 2026-08-19: E027 returns complete base Adreno discovery across libc
+
+The game-facing bridge now executes four more instance-scoped calls:
+`vkGetPhysicalDeviceProperties`,
+`vkGetPhysicalDeviceQueueFamilyProperties`,
+`vkGetPhysicalDeviceMemoryProperties`, and
+`vkEnumerateDeviceExtensionProperties`. A generator derived from the pinned
+Khronos registry encodes every base-property field explicitly; native Vulkan C
+structure layout does not cross between glibc and Bionic. Device extensions use
+15-record pages under the protocol's 4 KiB payload bound while the client
+preserves Vulkan count/list and truncation behavior.
+
+The canonical Galaxy Tab S8+ run returned `Adreno (TM) 730`, physical-device
+API 1.1.128, two queue families, nine memory types, two memory heaps, and 90
+device extensions. Retrieving the full extension inventory exercised six
+pages. Both native instances were destroyed explicitly, both stderr streams
+were empty, all 18 host contracts passed, and all 16 Termux ARM64 contracts
+passed.
+
+The measured startup policy now marks 18 of 742 names executable, leaving 422
+resolved names unavailable and preserving 302 observed-null probes. Bridge
+milestone commit `eb003b4` is pushed to `main`; the canonical E027 evidence is
+[in the bridge repository](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e027-physical-device-discovery.json),
+SHA-256
+`0f5804f74b3509d331cb85cf47c33c18dfc0b47e286e8b5bc943343ba0c6ceda`.
+The required recall query reused E025's persistent authenticated connection and
+E026's stable parented physical-device handles. The next bounded gate is the
+feature-query surface plus constrained logical-device and queue creation; this
+milestone does not claim a Tomb Raider FPS change.

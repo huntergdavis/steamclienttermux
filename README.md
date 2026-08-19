@@ -82,8 +82,13 @@ calls executable through the real glibc-to-Bionic path: Android reported Vulkan
 1.4.0 and created two typed instance proxies while the bridge deliberately
 advertised zero unsupported extensions or layers. E026 then returned the real
 Adreno device as a stable type-2 proxy across repeated enumeration and
-explicitly destroyed both native instances. This is honest dispatch coverage
-and FIFO/vsync-paced triangle replay, not yet a Tomb Raider FPS result.
+explicitly destroyed both native instances. E027 now returns the Adreno 730's
+complete base properties, two queue families, nine memory types across two
+heaps, and all 90 device extensions through generated fixed-width wire codecs;
+the extension list crosses in six bounded pages. See the
+[E027 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e027-physical-device-discovery.json).
+This is honest dispatch coverage and FIFO/vsync-paced triangle replay, not yet
+a Tomb Raider FPS result.
 
 ## Tomb Raider benchmark snapshot
 
