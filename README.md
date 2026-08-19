@@ -80,8 +80,10 @@ triangle dispatch return non-null; 432 resolved-but-unimplemented and 302
 originally-null names remain unavailable. E025 makes the four global bootstrap
 calls executable through the real glibc-to-Bionic path: Android reported Vulkan
 1.4.0 and created two typed instance proxies while the bridge deliberately
-advertised zero unsupported extensions or layers. This is honest dispatch
-coverage and FIFO/vsync-paced triangle replay, not yet a Tomb Raider FPS result.
+advertised zero unsupported extensions or layers. E026 then returned the real
+Adreno device as a stable type-2 proxy across repeated enumeration and
+explicitly destroyed both native instances. This is honest dispatch coverage
+and FIFO/vsync-paced triangle replay, not yet a Tomb Raider FPS result.
 
 ## Tomb Raider benchmark snapshot
 

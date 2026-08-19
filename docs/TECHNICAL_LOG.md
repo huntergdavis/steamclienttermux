@@ -6891,3 +6891,29 @@ The required recall queries found no indexed E025 bootstrap implementation;
 the gate reused E003's authenticated control discipline, E012's typed handles,
 E015's generated dispatch pattern, and E024's measured policy. E026 will add
 explicit instance destruction and physical-device enumeration proxies.
+
+## 2026-08-19: E026 returns a stable Adreno proxy and destroys instances
+
+The bridge now implements the first two instance-scoped calls after E025's
+global bootstrap. `vkEnumeratePhysicalDevices` crosses the authenticated
+glibc-to-Bionic connection, resolves against the native instance, and returns a
+typed proxy instead of a Bionic pointer. Repeated count/fill enumeration maps
+the same native device to the same client pointer and wire ID.
+
+On the Galaxy Tab S8+, Android reported one physical device. Its stable proxy
+ID was `0x0200000000000001`: type 2 (`PHYSICAL_DEVICE`), serial 1, parented to
+instance `0x0100000000000001`. `vkDestroyInstance` then removed the child proxy
+and destroyed that native instance plus the second test instance explicitly.
+Both libc sides exited zero with empty stderr. Physical properties, queue and
+memory inventory, device extensions, logical-device creation, and WSI remain
+unimplemented.
+
+The measured policy now marks 14 of 742 startup names executable, leaving 426
+resolved names explicitly unavailable and preserving 302 observed-null probes.
+All 17 host contracts and all 15 available Termux ARM64 contracts pass. Bridge
+milestone commit `2ec9d31` is pushed to `main`; canonical evidence SHA-256 is
+`25456a8c75b4c6d844dde39a800c69bc5a005819bd8c36c6d71025ec794ce175`.
+The required recall query found no indexed E026 implementation; this gate
+reused E012's parented handles and E025's persistent authenticated connection.
+E027 is the bounded read-only physical-device discovery set needed before
+logical-device creation.
