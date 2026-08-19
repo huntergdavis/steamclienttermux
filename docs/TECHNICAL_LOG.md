@@ -7038,3 +7038,35 @@ This is a genuinely non-empty submit array, but the command buffer intentionally
 contains no GPU commands. Next is buffer/device-memory ownership plus one
 deterministic recorded GPU write; E030 does not claim rendering, game-facing
 animation, or an FPS change.
+
+## 2026-08-19: E031 executes and verifies a game-facing GPU buffer fill
+
+The bridge now owns ordinary Vulkan buffers and device memory through typed,
+device-parented proxies. Its generated glibc dispatch adds `vkCreateBuffer`,
+`vkDestroyBuffer`, `vkGetBufferMemoryRequirements`, `vkAllocateMemory`,
+`vkFreeMemory`, `vkBindBufferMemory`, and `vkCmdFillBuffer`. The bounded E031
+contract permits a transfer-destination buffer and allocations up to 16 MiB;
+unsupported shapes remain unavailable rather than crossing raw pointers or
+unimplemented structure chains.
+
+On the Galaxy Tab S8+, the glibc client created a 4 KiB buffer, selected Adreno
+memory type 6, bound it, and recorded a fill of 1,024 words with value
+`0xa5c3f00d`. The real Adreno 730 executed the command. After the queue wait,
+the Bionic verifier mapped the allocation and found zero mismatches. Buffer,
+memory, command objects, device, and instances were explicitly released; both
+stderr streams were empty. All 18 host contracts and all 16 Termux ARM64
+contracts passed.
+
+The E031 policy marks 40 of 742 measured names executable, leaves 400 resolved
+names required-but-unimplemented, and preserves 302 observed-null names. Bridge
+milestone commit `04964a3` is pushed to `main`; canonical evidence is
+[in the bridge repository](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e031-buffer-fill.json),
+6,746 bytes with SHA-256
+`8ed3e99014865629a8f76875b3e11216ee17853f936bdb674eab27d5de676d51`.
+
+The required recall query found no prior cross-libc buffer-fill bridge. E031
+reused the repository's proven native fill/barrier/map/readback sequence,
+E025's persistent authenticated connection, and E026-E030's parented proxy
+ownership. The next bounded work expands dispatch toward the measured DXVK
+startup subset; E031 does not yet prove image/shader resources, presentation
+through this path, DXVK startup, animation, or a Tomb Raider FPS change.

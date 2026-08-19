@@ -101,6 +101,10 @@ began and ended the buffer, submitted it through the real Adreno queue, waited,
 reset, freed, and destroyed it. The submit array is genuinely non-empty, but
 the command buffer intentionally contains no GPU commands yet. See the
 [E030 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e030-command-buffer.json).
+E031 adds typed buffer and device-memory proxies and actual GPU work: the glibc
+client recorded `vkCmdFillBuffer`, Adreno 730 executed it, and the Bionic
+service read back all 1,024 expected words with zero mismatches. See the
+[E031 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e031-buffer-fill.json).
 This is honest dispatch and lifecycle coverage plus FIFO/vsync-paced triangle
 replay, not yet a Tomb Raider FPS result.
 
