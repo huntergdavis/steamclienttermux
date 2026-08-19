@@ -7003,3 +7003,38 @@ handles, and the bridge's older native/fake Vulkan queue-submit and idle code.
 The next bounded gate is command-pool and command-buffer ownership followed by
 one real non-empty submit; E029 does not claim DXVK resource creation, WSI,
 game-facing animation, or an FPS change.
+
+## 2026-08-19: E030 submits a typed native command buffer
+
+The bridge now executes the measured command lifecycle through typed proxy
+ownership: `vkCreateCommandPool`, `vkAllocateCommandBuffers`,
+`vkBeginCommandBuffer`, `vkEndCommandBuffer`, one-buffer `vkQueueSubmit`,
+`vkQueueWaitIdle`, `vkResetCommandPool`, `vkFreeCommandBuffers`, and
+`vkDestroyCommandPool`. Fixed-width opcodes carry only IDs, flags, level, and
+count; pool type 10 is parented to the device and buffer type 11 to the pool.
+Both glibc and Bionic validate that submitted queue and buffer share a device.
+
+On the Galaxy Tab S8+, the real Adreno 730 created pool proxy
+`0x0a00000000000001` and primary-buffer proxy `0x0b00000000000001`. Begin,
+end, one-buffer submit, queue wait, and pool reset all returned `VK_SUCCESS`.
+The buffer and pool were explicitly freed/destroyed before the device and
+instances, both stderr streams were empty, all 18 host contracts passed, and
+all 16 Termux ARM64 contracts passed.
+
+The E030 policy marks 33 of 742 measured names executable, leaves 407 resolved
+names required-but-unimplemented, and preserves 302 observed-null names. Bridge
+milestone commit `6bbd16e` is pushed to `main`; canonical evidence is
+[in the bridge repository](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e030-command-buffer.json),
+6,037 bytes with SHA-256
+`cbefbe5d64797a597a1e77e21cc4ed489ec2c79988571d22938f6cea94bb16a4`.
+
+The required recall query found no prior cross-libc command-buffer bridge. E030
+reused the older native self-test's create/begin/end/submit order, its native
+and fake Vulkan lifecycle, E025's persistent authenticated connection, and the
+E026-E029 parented proxy model. A host test caught and fixed one ownership
+lookup bug before tablet deployment.
+
+This is a genuinely non-empty submit array, but the command buffer intentionally
+contains no GPU commands. Next is buffer/device-memory ownership plus one
+deterministic recorded GPU write; E030 does not claim rendering, game-facing
+animation, or an FPS change.

@@ -96,6 +96,11 @@ accepted an empty queue submit plus queue/device idle waits through the
 glibc-to-Bionic path. Non-empty submissions remain unavailable until command
 buffers and synchronization objects have typed proxy ownership. See the
 [E029 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e029-empty-submit.json).
+E030 then created typed native command-pool and primary-command-buffer proxies,
+began and ended the buffer, submitted it through the real Adreno queue, waited,
+reset, freed, and destroyed it. The submit array is genuinely non-empty, but
+the command buffer intentionally contains no GPU commands yet. See the
+[E030 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e030-command-buffer.json).
 This is honest dispatch and lifecycle coverage plus FIFO/vsync-paced triangle
 replay, not yet a Tomb Raider FPS result.
 
