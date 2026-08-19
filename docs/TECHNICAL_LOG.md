@@ -6947,3 +6947,30 @@ The required recall query reused E025's persistent authenticated connection and
 E026's stable parented physical-device handles. The next bounded gate is the
 feature-query surface plus constrained logical-device and queue creation; this
 milestone does not claim a Tomb Raider FPS change.
+
+## 2026-08-19: E028 creates a typed Adreno device and stable queue
+
+The game-facing bridge now executes `vkGetPhysicalDeviceFeatures`,
+`vkCreateDevice`, `vkGetDeviceProcAddr`, `vkGetDeviceQueue`, and
+`vkDestroyDevice`. The current create contract is deliberately narrow: one
+queue validated against native inventory, no extensions, no enabled features,
+no `pNext` chains, and no custom allocator. Bionic retains native ownership and
+returns type-3 device and type-4 queue proxies to glibc.
+
+On the Galaxy Tab S8+, the base feature record reported sampler anisotropy.
+The real client created logical-device proxy `0x0300000000000001`; two queue
+lookups returned the same pointer and queue proxy `0x0400000000000001`. The
+device and both instances were explicitly destroyed, both stderr streams were
+empty, all 18 host contracts passed, and all 16 Termux ARM64 contracts passed.
+
+The measured policy now marks 23 of 742 names executable, leaving 417 resolved
+names unavailable and preserving 302 observed-null probes. Bridge milestone
+commit `b8de649` is pushed to `main`; canonical evidence is
+[in the bridge repository](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e028-logical-device.json),
+SHA-256
+`2ccf3e0de86afecd206566e3172bfd7e190f6acb7012d641c4d2adcfef93c171`.
+The recall search found no prior E028 bridge implementation; this gate reused
+the native self-test's proven create sequence and the E025-E027 connection and
+handle ownership. Next is ordinary command-pool/buffer submission and
+synchronization through these proxies; E028 does not claim DXVK resource
+creation, WSI, animation, or a Tomb Raider FPS change.

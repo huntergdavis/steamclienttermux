@@ -87,8 +87,12 @@ complete base properties, two queue families, nine memory types across two
 heaps, and all 90 device extensions through generated fixed-width wire codecs;
 the extension list crosses in six bounded pages. See the
 [E027 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e027-physical-device-discovery.json).
-This is honest dispatch coverage and FIFO/vsync-paced triangle replay, not yet
-a Tomb Raider FPS result.
+E028 then queried base features and created a real Adreno logical device plus a
+stable queue through typed glibc proxies, followed by explicit native teardown.
+See the
+[E028 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e028-logical-device.json).
+This is honest dispatch and lifecycle coverage plus FIFO/vsync-paced triangle
+replay, not yet a Tomb Raider FPS result.
 
 ## Tomb Raider benchmark snapshot
 
