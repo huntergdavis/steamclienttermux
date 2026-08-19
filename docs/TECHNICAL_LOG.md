@@ -6857,3 +6857,37 @@ dispatch, and E023's persistent transport regression. E025 is the first
 semantic expansion: implement the four observed global Vulkan bootstrap calls,
 proxy instance ownership, and truthful extension enumeration through the
 Bionic control path.
+
+## 2026-08-19: E025 executes real Vulkan global bootstrap across libc
+
+The separate bridge now executes all four global calls observed in the
+Tomb Raider/DXVK startup trace: `vkEnumerateInstanceVersion`,
+`vkEnumerateInstanceExtensionProperties`,
+`vkEnumerateInstanceLayerProperties`, and `vkCreateInstance`. The Termux
+AArch64 glibc library keeps one authenticated Unix connection to the Android
+Bionic service. The service loads `/system/lib64/libvulkan.so`, retains native
+instance ownership, and returns type-1 proxy IDs rather than exposing Bionic
+pointers across libc.
+
+The canonical Galaxy Tab S8+ run used the glibc interpreter for the client and
+`/system/bin/linker64` for the service. Android reported Vulkan 1.4.0. The
+bridge exposed zero instance extensions and zero layers because none have
+complete bridge semantics yet. Two valid creates returned sequential IDs
+`0x0100000000000001` and `0x0100000000000002`; both processes exited cleanly
+with empty stderr. The generated policy now classifies 12 of the measured 742
+names as executable, leaving 428 resolved commands explicitly unimplemented
+and 302 originally-null probes unavailable.
+
+The first hardware attempt exposed a real conformance bug the fake loader had
+masked: Android returns null when `vkDestroyInstance` is resolved with a null
+instance because it is instance-scoped. The Bionic context now retains GIPA and
+resolves destruction after creation. All 17 host contracts, all 15 available
+Termux ARM64 contracts, and the corrected real-glibc hardware gate pass.
+
+Bridge milestone commit `3b5b1fe` is pushed to `main`. Canonical E025 evidence
+SHA-256 is
+`e27a42248ecc0302a38becf972203e3453314d0729b616d7c962e9aa9ca081d0`.
+The required recall queries found no indexed E025 bootstrap implementation;
+the gate reused E003's authenticated control discipline, E012's typed handles,
+E015's generated dispatch pattern, and E024's measured policy. E026 will add
+explicit instance destruction and physical-device enumeration proxies.
