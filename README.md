@@ -105,6 +105,10 @@ E031 adds typed buffer and device-memory proxies and actual GPU work: the glibc
 client recorded `vkCmdFillBuffer`, Adreno 730 executed it, and the Bionic
 service read back all 1,024 expected words with zero mismatches. See the
 [E031 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e031-buffer-fill.json).
+E032 replaces whole-queue synchronization for that fill with a typed fence:
+Adreno signaled it, the client waited and reset it successfully, and readback
+still had zero mismatches. See the
+[E032 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e032-fence-submit.json).
 This is honest dispatch and lifecycle coverage plus FIFO/vsync-paced triangle
 replay, not yet a Tomb Raider FPS result.
 

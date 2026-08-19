@@ -7070,3 +7070,24 @@ E025's persistent authenticated connection, and E026-E030's parented proxy
 ownership. The next bounded work expands dispatch toward the measured DXVK
 startup subset; E031 does not yet prove image/shader resources, presentation
 through this path, DXVK startup, animation, or a Tomb Raider FPS change.
+
+## 2026-08-19: E032 adds fence-backed Adreno submission
+
+The bridge now exposes typed fence creation, destruction, status, wait, and
+reset plus a same-device fenced variant of its one-command-buffer submit. On
+the Galaxy Tab S8+, the fence transitioned from `VK_NOT_READY` before the GPU
+fill to signaled after submission, waited successfully without queue-idle for
+that fill, and returned to `VK_NOT_READY` after reset. All 1,024 readback words
+still matched and both stderr streams were empty.
+
+All 18 host and 16 Termux ARM64 contracts passed. The policy now marks 45 of
+742 measured names executable, 395 required-but-unimplemented, and 302
+observed-null. Bridge commit `c5e21cb` and canonical
+[E032 evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e032-fence-submit.json)
+are pushed; the evidence is 7,372 bytes with SHA-256
+`c01dc3b12143db9edcb96965503a128b07e5aa01a195706be96edee53d560119`.
+
+The required recall query found no earlier fence bridge. This reused E025's
+persistent connection and E026-E031's parented handles, command recording, and
+fill/readback path. Next is the requested slow rotating triangle, carried as a
+new per-frame push constant through the established shared frame ring.
