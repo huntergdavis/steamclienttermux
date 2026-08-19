@@ -7091,3 +7091,32 @@ The required recall query found no earlier fence bridge. This reused E025's
 persistent connection and E026-E031's parented handles, command recording, and
 fill/readback path. Next is the requested slow rotating triangle, carried as a
 new per-frame push constant through the established shared frame ring.
+
+## 2026-08-19: E033 sustains a bridged rotating triangle
+
+The glibc producer now emits a typed `vkCmdPushConstants` record containing a
+pipeline-layout ID, deterministic per-frame angle, and native-window aspect
+ratio. The Bionic host validates that record, resolves the real layout, and
+pushes it into an aspect-correct vertex shader. The user visually confirmed
+continuous rotation rather than a sampled static frame.
+
+The first long run exposed a 10-second timeout in the outer Java SCM-rights
+helper: rendering was healthy, but the helper stopped the Activity while
+waiting for all 4,096 frames. Commit `90f087d` raises only that bounded
+completion wait to five minutes; the per-frame native watchdog remains 10
+seconds. The complete rerun processed all 4,096 frames at 2800x1752 in 68.443
+seconds: 59.8 FPS, 16.657 ms median, 18.869 ms p95, and 27.354 ms maximum.
+All relay, service, and valid-helper stderr streams were empty.
+
+The policy now marks 46 of 742 measured names executable, 394
+required-but-unimplemented, and 302 observed-null. Bridge commit `837d46b` and
+canonical
+[E033 evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e033-rotating-triangle.json)
+are pushed; the evidence is 2,773 bytes with SHA-256
+`24e573c19181a4725dfbd67dcfecbe4435ffbacfd4b72d9bc313de2e77093407`.
+
+The required recall query found no earlier rotating-triangle bridge or helper
+timeout fix. E033 reused E023's persistent four-slot frame ring, E025's
+authenticated connection, and E026-E032's typed-handle and generated-dispatch
+path. E034 will add client-visible mapped uploads and prove them with vertex
+data supplied by glibc rather than baked into the shader.

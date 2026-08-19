@@ -17,7 +17,7 @@ custom kernel, chroot, or system-wide library replacement.
 | --- | --- |
 | Steam | Authenticates, renders, downloads, and retains login state |
 | Graphics | Hardware Vulkan through private Mesa Turnip |
-| Experimental system-Vulkan bridge | Persistent glibc-to-Bionic shared-memory replay sustains 64 acknowledged frames at 2800×1752 with ~16.2 ms mean pacing; game integration remains unimplemented ([bridge repository](https://github.com/huntergdavis/bionic-vulkan-bridge)) |
+| Experimental system-Vulkan bridge | A glibc producer drove 4,096 visibly rotating Adreno frames at 2800×1752 through Bionic shared-memory replay: 59.8 FPS, 16.66 ms median, 18.87 ms p95; game integration remains unimplemented ([bridge repository](https://github.com/huntergdavis/bionic-vulkan-bridge)) |
 | Windows games | Official Proton 11 ARM64 + FEX + DXVK |
 | Audio/input | PulseAudio and Termux:X11 pointer/keyboard support |
 | Storage | Game payloads on microSD; lock-sensitive Steam metadata on internal F2FS |
@@ -109,6 +109,11 @@ E032 replaces whole-queue synchronization for that fill with a typed fence:
 Adreno signaled it, the client waited and reset it successfully, and readback
 still had zero mismatches. See the
 [E032 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e032-fence-submit.json).
+E033 adds generated `vkCmdPushConstants` dispatch and a typed per-frame angle:
+the glibc producer drove a visibly rotating, aspect-correct triangle for all
+4,096 native-resolution frames at 59.8 FPS with 16.66 ms median and 18.87 ms
+p95 pacing. See the
+[E033 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e033-rotating-triangle.json).
 This is honest dispatch and lifecycle coverage plus FIFO/vsync-paced triangle
 replay, not yet a Tomb Raider FPS result.
 
