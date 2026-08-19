@@ -74,7 +74,11 @@ batch through Android's Adreno Vulkan path. E023 keeps that mapping and control
 connection alive: two consecutive 64-frame, four-slot runs at 2800×1752
 averaged 16.07 and 16.33 ms per post-present acknowledgement. See the
 [E023 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e023-brokered-visible-gate.json).
-This is FIFO/vsync-paced triangle replay, not a Tomb Raider FPS result.
+E024 then generated a runtime policy for all 742 entry-point names observed in
+the Tomb Raider/DXVK startup trace. Only the eight names backed by executable
+triangle dispatch return non-null; 432 resolved-but-unimplemented and 302
+originally-null names remain unavailable. This is honest dispatch coverage and
+FIFO/vsync-paced triangle replay, not yet a Tomb Raider FPS result.
 
 ## Tomb Raider benchmark snapshot
 

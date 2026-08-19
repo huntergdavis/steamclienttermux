@@ -6830,3 +6830,30 @@ signed v13 APK and standalone glibc relay SHA-256 values are
 and `cab8177389a1db459fa6262b4cfee5a12c8c7b92541cbf60322de515a12abca9`.
 The required E023 recall query returned no indexed implementation; the work
 reused E022's retained renderer/mapping and E021's Binder/`SCM_RIGHTS` chain.
+
+## 2026-08-19: E024 makes measured DXVK dispatch coverage auditable
+
+The bridge now converts E011's complete 742-name Tomb Raider/DXVK startup
+observation into a generated runtime policy. The inventory contains 4 global,
+101 instance, 635 device, and 2 Wine-private names. Of the 440 names that
+resolved in the control trace, the resolver returns non-null only for the eight
+aliases already backed by the executable six-command triangle path. The other
+432 resolved names and all 302 originally-null probes deliberately return null.
+This prevents the Vulkan loader from mistaking inventory coverage for working
+semantics.
+
+The exhaustive policy test passed all 742 lookups under the real Termux AArch64
+glibc interpreter with empty stderr. All 16 normal-host contracts and all 14
+contracts available under Termux ARM64 also passed. A policy-aware regression
+then presented all 64 E023 frames at 2800×1752 with a 16.239 ms mean, 16.654 ms
+p50, and 19.539 ms p95 execute-to-ack latency, matching the earlier vsync-paced
+range.
+
+Bridge commit `7a8fc52` and canonical evidence SHA-256
+`ff17d8c2991c2de57f74326c9532f62fd2b75a8f90d887db5e6a941d34456045`
+are pushed to `main`. The required recall query found no indexed E024
+implementation; E024 reused E011's measured inventory, E015's executable
+dispatch, and E023's persistent transport regression. E025 is the first
+semantic expansion: implement the four observed global Vulkan bootstrap calls,
+proxy instance ownership, and truthful extension enumeration through the
+Bionic control path.
