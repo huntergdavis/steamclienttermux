@@ -6794,3 +6794,39 @@ The required lifecycle-handoff `deja` query returned no indexed implementation.
 E010 reused the bridge's E002-E005 fixed-width/authenticated protocol discipline
 and E008-E009 Activity renderer/lifecycle callbacks. It does not yet carry game
 Vulkan calls or input and makes no Tomb Raider FPS claim.
+
+## 2026-08-19: E023 sustains native-resolution cross-libc frame replay
+
+The separate `bionic-vulkan-bridge` project has advanced from E010's lifecycle
+proof to a persistent visible command path. E011-E016 traced the real DXVK
+startup entry points, added typed handles and shared command batching, generated
+an executable six-command triangle subset, and replayed it through a visible
+Android Vulkan render pass. E017-E022 then crossed the Android UID boundary:
+Binder delivers a sealed 4 KiB memfd to a Termux helper, same-UID `SCM_RIGHTS`
+relays it to the real glibc process, and only authenticated metadata crosses
+loopback before Bionic validates, submits, and presents the shared batch.
+
+E023 retains that mapping and one TCP connection for 64 frames. The glibc
+producer rotates through four 256-byte slots, writes a newly sequenced 200-byte
+six-command batch, and waits for Bionic's response after `vkQueuePresentKHR`
+and queue idle before reusing ownership. APK v13 keeps the Vulkan instance,
+device, queue, swapchain, render pass, pipeline, command pool, and semaphores
+alive across the run.
+
+Two consecutive hardware passes completed all 64 sequences at the tablet's
+native 2800×1752 surface with no rejected lifecycle events. Run 1 measured
+16.069 ms mean, 16.488 ms p50, and 18.958 ms p95 execute-to-ack latency; run 2
+measured 16.329, 16.815, and 19.352 ms. Their combined mean is 16.199 ms, about
+61.7 serialized acknowledgements per second. FIFO/vsync dominates this
+distribution, so it proves sustained native-resolution triangle replay rather
+than Tomb Raider FPS or a game-ready bridge. Only one frame is currently in
+flight, and per-frame image-view/framebuffer/command-buffer churn remains.
+
+Bridge source/evidence commit `dbb811cce15a7410ee40af725e62559cd030da3c`
+is pushed to `main`. Canonical E023 evidence SHA-256 is
+`67a243e5719a8c1d61f7e7777f5eacb4b0a40e4d32ff9c0126750a679d321055`;
+signed v13 APK and standalone glibc relay SHA-256 values are
+`8f83fd6d7158064e820b2a926affa12ceed5abd63b9e20569e7e0288b81ca0be`
+and `cab8177389a1db459fa6262b4cfee5a12c8c7b92541cbf60322de515a12abca9`.
+The required E023 recall query returned no indexed implementation; the work
+reused E022's retained renderer/mapping and E021's Binder/`SCM_RIGHTS` chain.

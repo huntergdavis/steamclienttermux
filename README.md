@@ -17,7 +17,7 @@ custom kernel, chroot, or system-wide library replacement.
 | --- | --- |
 | Steam | Authenticates, renders, downloads, and retains login state |
 | Graphics | Hardware Vulkan through private Mesa Turnip |
-| Experimental system-Vulkan bridge | Native commands, pixel-verified offscreen presentation, an immersive visible Activity, and authenticated lifecycle/status handoff to glibc pass; game integration remains unimplemented ([bridge repository](https://github.com/huntergdavis/bionic-vulkan-bridge)) |
+| Experimental system-Vulkan bridge | Persistent glibc-to-Bionic shared-memory replay sustains 64 acknowledged frames at 2800×1752 with ~16.2 ms mean pacing; game integration remains unimplemented ([bridge repository](https://github.com/huntergdavis/bionic-vulkan-bridge)) |
 | Windows games | Official Proton 11 ARM64 + FEX + DXVK |
 | Audio/input | PulseAudio and Termux:X11 pointer/keyboard support |
 | Storage | Game payloads on microSD; lock-sensitive Steam metadata on internal F2FS |
@@ -67,7 +67,14 @@ E010 then authenticated the real Activity's lifecycle into the Bionic service
 and exposed its 2800x1752 renderer-ready/focused state to a glibc query while
 rejecting a deliberately invalid token. See the
 [E010 record](docs/evidence/bionic-vulkan-bridge-e010-20260818.json). Vulkan
-game dispatch and any FPS gain remain unproven.
+game dispatch and any FPS gain remain unproven. E011-E022 then traced DXVK's
+startup calls, generated a six-command triangle dispatcher, brokered a sealed
+shared region through Binder and `SCM_RIGHTS`, and visibly replayed a glibc-built
+batch through Android's Adreno Vulkan path. E023 keeps that mapping and control
+connection alive: two consecutive 64-frame, four-slot runs at 2800×1752
+averaged 16.07 and 16.33 ms per post-present acknowledgement. See the
+[E023 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e023-brokered-visible-gate.json).
+This is FIFO/vsync-paced triangle replay, not a Tomb Raider FPS result.
 
 ## Tomb Raider benchmark snapshot
 
