@@ -6974,3 +6974,32 @@ the native self-test's proven create sequence and the E025-E027 connection and
 handle ownership. Next is ordinary command-pool/buffer submission and
 synchronization through these proxies; E028 does not claim DXVK resource
 creation, WSI, animation, or a Tomb Raider FPS change.
+
+## 2026-08-19: E029 crosses the queue synchronization boundary
+
+The bridge now executes `vkQueueSubmit` for the deliberately bounded zero-submit
+case, plus `vkQueueWaitIdle` and `vkDeviceWaitIdle`, through a real device proxy.
+The glibc client transports only the typed queue/device ID; Bionic resolves the
+owned native handle and native device dispatch. Non-empty submissions and
+fences return `VK_ERROR_FEATURE_NOT_PRESENT` on the client side until command
+buffers and synchronization objects have their own proxy lifecycles.
+
+On the Galaxy Tab S8+, the real Adreno 730 returned `VK_SUCCESS` for all three
+supported operations. The deliberately non-empty probe was rejected locally,
+the native logical device and both instances were explicitly destroyed, and
+both client and service stderr remained empty. All 18 host contracts and all 16
+Termux ARM64 contracts passed.
+
+The E029 policy marks 26 of 742 measured names executable, leaves 414 resolved
+names required-but-unimplemented, and preserves 302 observed-null names. Bridge
+milestone commit `009ac50` is pushed to `main`; canonical evidence is
+[in the bridge repository](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e029-empty-submit.json),
+5,284 bytes with SHA-256
+`a11c8483133cf254e4d5caa386514ed177e4876d5e40107b6da44200d75d2616`.
+
+The required recall query found no prior queue-RPC bridge implementation. E029
+reused E025's persistent authenticated connection, E026-E028's parented proxy
+handles, and the bridge's older native/fake Vulkan queue-submit and idle code.
+The next bounded gate is command-pool and command-buffer ownership followed by
+one real non-empty submit; E029 does not claim DXVK resource creation, WSI,
+game-facing animation, or an FPS change.

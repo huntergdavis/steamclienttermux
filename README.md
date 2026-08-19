@@ -91,6 +91,11 @@ E028 then queried base features and created a real Adreno logical device plus a
 stable queue through typed glibc proxies, followed by explicit native teardown.
 See the
 [E028 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e028-logical-device.json).
+E029 crossed the first queue-synchronization boundary: the real Adreno driver
+accepted an empty queue submit plus queue/device idle waits through the
+glibc-to-Bionic path. Non-empty submissions remain unavailable until command
+buffers and synchronization objects have typed proxy ownership. See the
+[E029 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e029-empty-submit.json).
 This is honest dispatch and lifecycle coverage plus FIFO/vsync-paced triangle
 replay, not yet a Tomb Raider FPS result.
 
