@@ -7175,7 +7175,28 @@ are pushed. The evidence is 1,196 bytes with SHA-256
 
 The required recall query found no earlier E035 implementation. This reused
 E004/E005's loader, memory selection, and cleanup path plus E020/E021's explicit
-FD-ownership discipline. The driver-level sharing primitive is now proven;
-E036 will isolate cross-UID delivery by exporting from the visible Android
-renderer, carrying the FD through the existing Binder/`SCM_RIGHTS` broker, and
-importing it on the game-facing device with explicit synchronization.
+FD-ownership discipline. The driver-level sharing primitive is now proven.
+
+## 2026-08-20: E036 passes the real cross-UID external-memory path
+
+Visible-host v24 exported a 9,396-byte opaque-FD allocation from the focused
+2800×1752 Android renderer. Binder delivered the descriptor into Termux, the
+same-UID native broker relayed it with `SCM_RIGHTS`, and a separate Bionic
+consumer imported it through `/system/lib64/libvulkan.so`. The consumer
+recovered all 4,096 patterned bytes with zero mismatches and empty stderr. The
+deliberately wrong 256-bit capability was rejected with `-EACCES` before
+descriptor delivery. Binder remains setup-only and is not in the frame path.
+
+The exact 1,797-byte
+[E036 evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e036-external-memory-broker.json)
+has SHA-256
+`976b6835cbe5233ccba37bbe018d41438cf12770330515842a9eeef58735eb22`.
+The implementation exercised source commit `7388d52`; evidence and the updated
+roadmap are pushed in bridge commit `d1207a0`. This reuses E035's explicit
+external-memory ownership model and the E036 visible-host capability broker;
+the required recall queries found no indexed prior session to reuse.
+
+The remaining E037 boundary is GPU-to-GPU synchronization for the externally
+shared resource without CPU waits or per-frame Binder traffic. E036 proves the
+cross-UID zero-copy transport primitive, not shared game frames, DXVK startup,
+or a Tomb Raider FPS increase.

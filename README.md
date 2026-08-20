@@ -17,7 +17,7 @@ custom kernel, chroot, or system-wide library replacement.
 | --- | --- |
 | Steam | Authenticates, renders, downloads, and retains login state |
 | Graphics | Hardware Vulkan through private Mesa Turnip |
-| Experimental system-Vulkan bridge | A glibc producer drove 4,096 visibly rotating Adreno frames at 2800×1752 (59.8 FPS); mapped-memory parity and a two-device opaque-FD allocation now pass with zero mismatches; cross-UID visible-host integration remains ([bridge repository](https://github.com/huntergdavis/bionic-vulkan-bridge)) |
+| Experimental system-Vulkan bridge | A glibc producer drove 4,096 visibly rotating Adreno frames at 2800×1752 (59.8 FPS); E036 now passes the visible-renderer → Binder/`SCM_RIGHTS` → separate Bionic-import path with all 4,096 bytes matching ([bridge repository](https://github.com/huntergdavis/bionic-vulkan-bridge)) |
 | Windows games | Official Proton 11 ARM64 + FEX + DXVK |
 | Audio/input | PulseAudio and Termux:X11 pointer/keyboard support |
 | Storage | Game payloads on microSD; lock-sensitive Steam metadata on internal F2FS |
@@ -124,8 +124,13 @@ E035 then exported a dedicated opaque-FD allocation from one Adreno logical
 device and imported it into a second. The destination recovered all 4,096
 patterned bytes with zero mismatches. See the
 [E035 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e035-external-memory.json).
-This is honest dispatch and lifecycle coverage plus FIFO/vsync-paced triangle
-replay, not yet shared game output or a Tomb Raider FPS result.
+E036 then exported from the visible renderer, relayed the opaque FD across the
+Android UID boundary through Binder and same-UID `SCM_RIGHTS`, and imported it
+in a separate Termux/Bionic process. All 4,096 patterned bytes matched, while a
+wrong capability was rejected with `-EACCES`. See the
+[E036 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e036-external-memory-broker.json).
+This proves the cross-UID zero-copy transport primitive, not yet shared GPU
+synchronization, shared game output, or a Tomb Raider FPS improvement.
 
 ## Tomb Raider benchmark snapshot
 
