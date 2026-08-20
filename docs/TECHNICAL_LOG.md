@@ -7312,3 +7312,34 @@ shared control page once and replaces every per-frame framework operation with
 native atomic sequence/acknowledgement words, futex wakeups, and local GPU
 fences. That sustained loop is the next prerequisite for DXVK presentation and
 the fixed native-resolution Tomb Raider benchmark.
+
+## 2026-08-20: E042 passes a persistent native external-image loop
+
+Visible-host v39 transferred one long-lived opaque image-memory FD and one
+4 KiB control memfd during setup, then left Java, Binder, sockets, and FD
+transfer completely outside the measured frame path. The producer and
+consumer reused their Vulkan devices and the consumer imported the 64×64 RGBA8
+image only once. Fixed-width shared atomics, process-shared futex wakeups, and
+local GPU fences then serialized 120 alternating magenta/green frames.
+
+All 120 frames and 491,520 aggregate pixel comparisons matched. The native
+loop took 233,743,020 ns, or 1.948 ms per small validation frame (513.4
+handoffs/s); consumer GPU fence waits totaled 59,211,559 ns. Complete setup,
+one-time import, loop, and teardown took 368,773,176 ns. This proves persistent
+ownership and removes allocation-time Android framework work from every frame,
+but the 64×64 readback test is not a native-resolution game FPS prediction.
+
+The wrong capability returned `-EACCES` and receiver stderr was empty.
+Canonical
+[E042 evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e042-persistent-frame-ring.json)
+is 2,276 bytes with SHA-256
+`b828195c8fd8ca1b8dbe37e1b46d700beb7ec27ce92e4aa0675616e9c18e6744`.
+The frame ABI, persistent implementation, and harness are bridge commits
+`8b7d593`, `434439d`, and `6369442`. The implementation reuses E035's external
+allocation ownership, E036's one-time Binder relay, E038's image import, and
+the E023 ownership/sequence discipline recovered from prior session recall;
+the required E042 `deja` query found no prior implementation to reuse.
+
+The next bounded gate is real DXVK presentation through this persistent path.
+Only after a DXVK frame appears will the project launch and benchmark Tomb
+Raider at the fixed 2800×1752 Low target against the current control.
