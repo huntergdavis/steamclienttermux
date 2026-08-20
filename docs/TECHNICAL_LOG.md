@@ -7343,3 +7343,30 @@ the required E042 `deja` query found no prior implementation to reuse.
 The next bounded gate is real DXVK presentation through this persistent path.
 Only after a DXVK frame appears will the project launch and benchmark Tomb
 Raider at the fixed 2800×1752 Low target against the current control.
+
+## 2026-08-20: E043 passes through Steam's standard glibc Vulkan loader
+
+Steam's real AArch64 glibc Vulkan loader 1.3.296 selected the bridge's standard
+ICD manifest and `libvulkan-bvb-glibc.so`, negotiated the loader/ICD interface,
+created an instance across the glibc-to-Bionic socket boundary, and enumerated
+the system Vulkan driver's `Adreno (TM) 730` (`vendorID=20803`,
+`deviceID=117637121`, `apiVersion=4206888`). Both client and Bionic service
+stderr were empty.
+
+This closes a critical integration gap: earlier bridge clients linked directly
+to the bridge library, while Wine/DXVK expects normal Vulkan loader discovery.
+The ICD now has loader-compatible dispatchable handles and required Vulkan 1.0
+format-query entry points. Those format queries conservatively report no
+support until their real Bionic RPCs are implemented, so E043 proves standard
+loader selection and physical-device enumeration—not DXVK execution or a
+rendered game frame.
+
+Canonical
+[E043 evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e043-steam-glibc-icd-loader.json)
+is 1,454 bytes with SHA-256
+`d0cdd186312e9430baa0003f91242f8784816574a13b7c62963362309f5719da`.
+The format-query gate is bridge commit `b3f1117`; the complete hardware record
+is `2a59738`. The implementation reuses E023's fixed-width transport discipline
+and the existing typed instance/physical-device ownership recovered through
+the required session recall. The next gate returns real device formats and
+capabilities, then advances the measured DXVK startup sequence.
