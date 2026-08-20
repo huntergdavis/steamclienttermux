@@ -45,7 +45,7 @@ chmod 700 "$run_dir"
 
 : >"$service_log"
 : >"$launcher_log"
-"$service" --socket "$socket" --once >"$service_log" 2>&1 &
+"$service" --socket "$socket" >"$service_log" 2>&1 &
 service_pid=$!
 for _ in $(seq 1 100); do
     [[ -S $socket ]] && break
