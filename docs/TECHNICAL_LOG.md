@@ -7448,3 +7448,21 @@ is 1,563 bytes with SHA-256
 `132bd04e8fe9fa4720fed397bb401d7c4009b5903457f24e517fdcc4344bf20b`.
 Implementation is bridge commit `6970fa3`; evidence is `f4e5d0a`. Extended
 `pNext` structures, instance WSI, DXVK execution, and game output remain open.
+
+## 2026-08-20: E048 enables a command-backed instance extension
+
+The Bionic service now filters native instance extensions through a bridge
+allowlist. Steam's glibc loader sees exactly
+`VK_KHR_get_physical_device_properties2`, whose base command family passed in
+E047, and the bridge transports and enables that name in the native Bionic
+instance. Non-allowlisted names are rejected rather than falsely advertised.
+
+The hardware gate repeated Vulkan 1.1 discovery, enabled
+`VK_KHR_swapchain` on the logical device, and completed queue/device idle with
+empty client/service stderr. Canonical
+[E048 evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e048-instance-extension-create.json)
+is 1,502 bytes with SHA-256
+`07e97299a4d98ee46bb48fec0630514140994f10300266b17464790f59f8fd4d`.
+Implementation is bridge commit `a0bce7b`; evidence is `ababc71`. The next
+large boundary is virtual surface/WSI backed by the persistent Android image
+path, followed by extended feature chains and real DXVK execution.
