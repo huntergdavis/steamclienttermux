@@ -76,6 +76,10 @@ def prepare(root: Path) -> tuple[Path, Path]:
     private_icd.parent.mkdir(parents=True)
     private_icd.write_text("{}\n", encoding="utf-8")
     private_icd.chmod(0o600)
+    bvb_icd = base / "bvb" / "icd.d" / "bvb_icd.aarch64.json"
+    bvb_icd.parent.mkdir(parents=True)
+    bvb_icd.write_text("{}\n", encoding="utf-8")
+    bvb_icd.chmod(0o600)
     executable(
         prefix / "bin" / "proot-distro",
         "#!/bin/sh\nprintf '%s\\n' \"$@\"\n",
@@ -84,7 +88,11 @@ def prepare(root: Path) -> tuple[Path, Path]:
 
 
 def run_bridge(
-    prefix: Path, base: Path, mode: str, capture_plan: Path | None = None
+    prefix: Path,
+    base: Path,
+    mode: str,
+    capture_plan: Path | None = None,
+    bvb_vulkan: bool = False,
 ) -> list[str]:
     removable_source = base.parent / "fixture-storage"
     removable_target = base / "removable-library"
@@ -115,6 +123,8 @@ def run_bridge(
     )
     if capture_plan is not None:
         environment["STEAM_ARM64_BWRAP_CAPTURE_PLAN"] = str(capture_plan)
+    if bvb_vulkan:
+        environment["STEAM_ARM64_BVB_VULKAN"] = "1"
     result = subprocess.run(
         [
             "bash",
@@ -260,6 +270,12 @@ def main() -> None:
             str(base / "removable-library/steamapps/common/Game/Game.exe"),
             f"{base.parent / 'fixture-storage'}-lookalike/Game.exe",
         ]
+
+        bvb = run_bridge(prefix, base, "bwrap", bvb_vulkan=True)
+        assert (
+            f"STEAM_ARM64_HOST_VK_DRIVER_FILES="
+            f"{base / 'bvb/icd.d/bvb_icd.aarch64.json'}"
+        ) in bvb
 
         runtime = run_bridge(prefix, base, "runtime")
         assert f"PRESSURE_VESSEL_BWRAP={route}" in runtime

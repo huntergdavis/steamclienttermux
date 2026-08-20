@@ -23,6 +23,8 @@
 #define PROC_NET_SUFFIX "/config/proc-net"
 #define HOST_VK_ICD_SUFFIX "/mesa-kgsl/icd.d/freedreno-private.json"
 #define HOST_VK_ICD_TARGET "/overrides/share/vulkan/icd.d/freedreno-private.json"
+#define HOST_BVB_ICD_SUFFIX "/bvb/icd.d/bvb_icd.aarch64.json"
+#define HOST_BVB_ICD_TARGET "/overrides/share/vulkan/icd.d/bvb_icd.aarch64.json"
 
 struct expected_file
 {
@@ -477,10 +479,13 @@ validate_proc_net (const char *path)
 }
 
 static int
-validate_host_vk_driver_files (const char *proc_net_path, const char *path)
+validate_host_vk_driver_files (const char *proc_net_path, const char *path,
+                               const char **target_out)
 {
   char expected[PATH_MAX];
   size_t proc_net_length;
+  size_t base_length;
+  const char *suffix;
   int fd;
 
   if (path == NULL)
@@ -493,13 +498,25 @@ validate_host_vk_driver_files (const char *proc_net_path, const char *path)
       || strcmp (proc_net_path + proc_net_length - strlen (PROC_NET_SUFFIX),
                  PROC_NET_SUFFIX) != 0)
     fail ("cannot derive native Vulkan ICD path");
+  base_length = proc_net_length - strlen (PROC_NET_SUFFIX);
+  suffix = HOST_VK_ICD_SUFFIX;
   if (snprintf (expected, sizeof (expected), "%.*s%s",
-                (int) (proc_net_length - strlen (PROC_NET_SUFFIX)),
-                proc_net_path, HOST_VK_ICD_SUFFIX) < 0
+                (int) base_length, proc_net_path, suffix) < 0
       || strlen (expected) >= sizeof (expected))
     fail ("native Vulkan ICD path is too long");
   if (strcmp (path, expected) != 0)
-    fail ("unexpected native Vulkan ICD path: %s", path);
+    {
+      suffix = HOST_BVB_ICD_SUFFIX;
+      if (snprintf (expected, sizeof (expected), "%.*s%s",
+                    (int) base_length, proc_net_path, suffix) < 0
+          || strlen (expected) >= sizeof (expected))
+        fail ("BVB Vulkan ICD path is too long");
+      if (strcmp (path, expected) != 0)
+        fail ("unexpected native Vulkan ICD path: %s", path);
+    }
+
+  *target_out = strcmp (suffix, HOST_BVB_ICD_SUFFIX) == 0
+                  ? HOST_BVB_ICD_TARGET : HOST_VK_ICD_TARGET;
 
   fd = open (path, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
   if (fd < 0)
@@ -651,6 +668,7 @@ main (int argc, char **argv)
   int args_fd = -1;
   int proc_net_fd;
   int host_vk_driver_files_fd;
+  const char *host_vk_driver_target = NULL;
   int gtaiv_view_fd;
   int gtaiv_directory_fds[
     sizeof (gtaiv_directories) / sizeof (gtaiv_directories[0])];
@@ -712,7 +730,8 @@ main (int argc, char **argv)
 
   proc_net_fd = validate_proc_net (proc_net_path);
   host_vk_driver_files_fd =
-    validate_host_vk_driver_files (proc_net_path, host_vk_driver_files);
+    validate_host_vk_driver_files (proc_net_path, host_vk_driver_files,
+                                   &host_vk_driver_target);
   gtaiv_view_fd = validate_gtaiv_view (proc_net_path, proc_net_fd,
                                        gtaiv_target, sizeof (gtaiv_target),
                                        gtaiv_directory_fds,
@@ -776,13 +795,13 @@ main (int argc, char **argv)
                 host_vk_driver_files_fd);
       write_arg (replacement_fd, "--ro-bind-fd");
       write_arg (replacement_fd, replacement_fd_value);
-      write_arg (replacement_fd, HOST_VK_ICD_TARGET);
+      write_arg (replacement_fd, host_vk_driver_target);
       write_arg (replacement_fd, "--setenv");
       write_arg (replacement_fd, "VK_DRIVER_FILES");
-      write_arg (replacement_fd, HOST_VK_ICD_TARGET);
+      write_arg (replacement_fd, host_vk_driver_target);
       write_arg (replacement_fd, "--setenv");
       write_arg (replacement_fd, "VK_ICD_FILENAMES");
-      write_arg (replacement_fd, HOST_VK_ICD_TARGET);
+      write_arg (replacement_fd, host_vk_driver_target);
     }
   write_all (replacement_fd, args_data + payload_offset,
              args_size - payload_offset);

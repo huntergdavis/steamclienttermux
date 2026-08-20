@@ -68,8 +68,9 @@ def mock_bwrap():
         if arg == "--ro-bind-fd":
             if args[index + 2] == "/proc/net":
                 injected = index
-            elif args[index + 2] == (
-                "/overrides/share/vulkan/icd.d/freedreno-private.json"
+            elif args[index + 2] in (
+                "/overrides/share/vulkan/icd.d/freedreno-private.json",
+                "/overrides/share/vulkan/icd.d/bvb_icd.aarch64.json",
             ):
                 vk_icd_bind_injected = index
             elif args[index + 2].endswith("/Grand Theft Auto IV/GTAIV"):
@@ -286,6 +287,10 @@ def run_tests():
         private_icd.parent.mkdir(parents=True)
         private_icd.write_text("{}\n")
         private_icd.chmod(0o600)
+        bvb_icd = tempdir / "bvb" / "icd.d" / "bvb_icd.aarch64.json"
+        bvb_icd.parent.mkdir(parents=True)
+        bvb_icd.write_text("{}\n")
+        bvb_icd.chmod(0o600)
 
         subprocess.run(
             [
@@ -360,6 +365,22 @@ def run_tests():
         assert payload["vk_driver_files_at_end"] is False
         assert payload["vk_icd_filenames_at_end"] is False
         assert payload["host_vk_driver_files_env"] is None
+
+        result = invoke(
+            wrapper,
+            proc_net,
+            ["--proc", "/proc", "--", "/bin/true"],
+            env_overrides={
+                "STEAM_ARM64_HOST_VK_DRIVER_FILES": str(bvb_icd)
+            },
+        )
+        assert result.returncode == 0, result.stderr
+        payload = json.loads(result.stdout)
+        bvb_target = "/overrides/share/vulkan/icd.d/bvb_icd.aarch64.json"
+        assert payload["vk_icd_source"] == str(bvb_icd)
+        assert payload["vk_icd_target"] == bvb_target
+        assert payload["vk_driver_files"] == bvb_target
+        assert payload["vk_icd_filenames"] == bvb_target
 
         result = invoke(
             wrapper,

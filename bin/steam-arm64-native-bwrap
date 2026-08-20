@@ -26,6 +26,7 @@ required_proot_patch=proot-runtime-directory-bind-target.patch
 proot_distro=${PREFIX:-}/bin/proot-distro
 mesa_lib=$base/mesa-kgsl/usr/lib/aarch64-linux-gnu
 host_vk_driver_files=$base/mesa-kgsl/icd.d/freedreno-private.json
+bvb_vulkan=${STEAM_ARM64_BVB_VULKAN:-0}
 bridge_mode=${STEAM_ARM64_NATIVE_BRIDGE_MODE:-bwrap}
 runtime_direct=${STEAM_ARM64_RUNTIME_DIRECT:-1}
 direct_run=$base/config/steamlinuxruntime4-run-direct
@@ -35,6 +36,12 @@ fail() {
     printf 'steam-arm64-native-bwrap: %s\n' "$*" >&2
     exit 125
 }
+
+[[ $bvb_vulkan == 0 || $bvb_vulkan == 1 ]] ||
+    fail 'STEAM_ARM64_BVB_VULKAN must be 0 or 1'
+if [[ $bvb_vulkan == 1 ]]; then
+    host_vk_driver_files=$base/bvb/icd.d/bvb_icd.aarch64.json
+fi
 
 [[ -n ${PREFIX:-} && $PREFIX == /* ]] || fail 'PREFIX must be absolute'
 [[ -x $proot_binary && ! -L $proot_binary ]] ||

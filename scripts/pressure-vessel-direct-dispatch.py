@@ -77,6 +77,29 @@ def validated_base(value: str) -> Path:
     return base
 
 
+def validated_host_vulkan_icd(base: Path) -> Path:
+    bvb = os.environ.get("STEAM_ARM64_BVB_VULKAN", "0")
+    if bvb not in ("0", "1"):
+        fail("STEAM_ARM64_BVB_VULKAN must be 0 or 1")
+    path = (
+        base / "bvb/icd.d/bvb_icd.aarch64.json"
+        if bvb == "1"
+        else base / "mesa-kgsl/icd.d/freedreno-private.json"
+    )
+    try:
+        metadata = path.lstat()
+    except OSError as error:
+        fail(f"selected Vulkan ICD is unavailable: {error}")
+    if (
+        not stat.S_ISREG(metadata.st_mode)
+        or path.is_symlink()
+        or metadata.st_uid != os.geteuid()
+        or metadata.st_mode & 0o077
+    ):
+        fail(f"selected Vulkan ICD is not a private regular file: {path}")
+    return path
+
+
 def validated_vulkan_trace(base: Path) -> tuple[Path, Path] | None:
     preload_value = os.environ.get("STEAM_ARM64_VULKAN_TRACE_PRELOAD")
     trace_value = os.environ.get("STEAM_ARM64_VULKAN_TRACE_FILE")
@@ -1120,6 +1143,7 @@ def pv_smoke_invocation(
     prefix = os.environ.get("PREFIX", "")
     if not prefix.startswith("/"):
         fail("Termux PREFIX is unavailable to the direct dispatcher")
+    vulkan_icd = validated_host_vulkan_icd(base)
     environment.update(
         {
             "LD_PRELOAD": entry_preload,
@@ -1145,8 +1169,8 @@ def pv_smoke_invocation(
                     prefix + "/bin",
                 )
             ),
-            "VK_DRIVER_FILES": str(base / "mesa-kgsl/icd.d/freedreno-private.json"),
-            "VK_ICD_FILENAMES": str(base / "mesa-kgsl/icd.d/freedreno-private.json"),
+            "VK_DRIVER_FILES": str(vulkan_icd),
+            "VK_ICD_FILENAMES": str(vulkan_icd),
         }
     )
     if final_preload is not None and final_path_prefix is not None:

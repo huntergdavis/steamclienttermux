@@ -47,6 +47,33 @@ def main() -> None:
     runtime_source = inspect.getsource(MODULE.selected_runtime)
     assert '"usr/lib/aarch64-linux-gnu/pulseaudio"' in runtime_source
 
+    with tempfile.TemporaryDirectory(prefix="vulkan-icd-select.") as directory:
+        base = Path(directory)
+        turnip = base / "mesa-kgsl/icd.d/freedreno-private.json"
+        bvb = base / "bvb/icd.d/bvb_icd.aarch64.json"
+        turnip.parent.mkdir(parents=True)
+        bvb.parent.mkdir(parents=True)
+        turnip.write_text("{}\n", encoding="ascii")
+        bvb.write_text("{}\n", encoding="ascii")
+        turnip.chmod(0o600)
+        bvb.chmod(0o600)
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("STEAM_ARM64_BVB_VULKAN", None)
+            assert MODULE.validated_host_vulkan_icd(base) == turnip
+        with mock.patch.dict(
+            os.environ, {"STEAM_ARM64_BVB_VULKAN": "1"}, clear=False
+        ):
+            assert MODULE.validated_host_vulkan_icd(base) == bvb
+        with mock.patch.dict(
+            os.environ, {"STEAM_ARM64_BVB_VULKAN": "invalid"}, clear=False
+        ):
+            try:
+                MODULE.validated_host_vulkan_icd(base)
+            except MODULE.DispatchError:
+                pass
+            else:
+                raise AssertionError("invalid BVB Vulkan selector was accepted")
+
     with tempfile.TemporaryDirectory(prefix="loader-child-cwd.") as directory:
         root = Path(directory)
         working_directory = root / "game"
