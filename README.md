@@ -17,7 +17,6 @@ custom kernel, chroot, or system-wide library replacement.
 | --- | --- |
 | Steam | Authenticates, renders, downloads, and retains login state |
 | Graphics | Hardware Vulkan through private Mesa Turnip |
-| Experimental system-Vulkan bridge | A glibc producer drove 4,096 visibly rotating Adreno frames at 2800×1752 (59.8 FPS); E038 now exports/imports a real optimal-tiling sampled Vulkan image with all 4,096 pixels matching after cross-process GPU synchronization ([bridge repository](https://github.com/huntergdavis/bionic-vulkan-bridge)) |
 | Windows games | Official Proton 11 ARM64 + FEX + DXVK |
 | Audio/input | PulseAudio and Termux:X11 pointer/keyboard support |
 | Storage | Game payloads on microSD; lock-sensitive Steam metadata on internal F2FS |
@@ -39,114 +38,12 @@ fast. The direct game dispatcher also removes the remaining hot PRoot boundary
 for its exact allow-listed commands. See the
 [launch artifacts](docs/launch-timings/) and [performance analysis](docs/PERFORMANCE.md).
 
-The separate
+The experimental
 [`bionic-vulkan-bridge`](https://github.com/huntergdavis/bionic-vulkan-bridge)
-project now proves that a glibc client can query Android's system Vulkan loader
-through a Bionic service with field-for-field parity against a direct Adreno
-730 probe. It also creates a native device and command pool, submits a buffer
-fill, synchronizes it, and verifies all 1,024 words through both direct and
-bridged paths. This is real command execution, not yet a visible renderer or
-FPS gain. A separately owned 64x64 `AImageReader`/`ANativeWindow` now also
-creates a real Android Vulkan surface and returns stable Adreno presentation
-capabilities without touching Termux:X11. See the
-[E001-E003](docs/evidence/bionic-vulkan-bridge-e001-e003-20260818.json),
-[E004-E005](docs/evidence/bionic-vulkan-bridge-e004-e005-20260818.json), and
-[E006](docs/evidence/bionic-vulkan-bridge-e006-20260818.json) evidence. E007
-then created a six-image swapchain, presented an opaque-magenta frame, acquired
-it from the Media NDK consumer, and verified all 4,096 RGBA pixels. See the
-[E007 record](docs/evidence/bionic-vulkan-bridge-e007-20260818.json). This is a
-real offscreen rendered/presented frame. E008 packages a standalone
-`NativeActivity`; the installed app visibly displayed the magenta Vulkan frame
-fullscreen, with Android navigation icons still visible at the bottom. See the
-[E008 record](docs/evidence/bionic-vulkan-bridge-e008-20260818.json). This is
-not yet bridged game output or an FPS gain. E009 then applied immersive-sticky
-system-UI control; the magenta frame remained visible while Android's navigation
-icons disappeared completely. See the
-[E009 record](docs/evidence/bionic-vulkan-bridge-e009-20260818.json).
-E010 then authenticated the real Activity's lifecycle into the Bionic service
-and exposed its 2800x1752 renderer-ready/focused state to a glibc query while
-rejecting a deliberately invalid token. See the
-[E010 record](docs/evidence/bionic-vulkan-bridge-e010-20260818.json). Vulkan
-game dispatch and any FPS gain remain unproven. E011-E022 then traced DXVK's
-startup calls, generated a six-command triangle dispatcher, brokered a sealed
-shared region through Binder and `SCM_RIGHTS`, and visibly replayed a glibc-built
-batch through Android's Adreno Vulkan path. E023 keeps that mapping and control
-connection alive: two consecutive 64-frame, four-slot runs at 2800×1752
-averaged 16.07 and 16.33 ms per post-present acknowledgement. See the
-[E023 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e023-brokered-visible-gate.json).
-E024 then generated a runtime policy for all 742 entry-point names observed in
-the Tomb Raider/DXVK startup trace. Only the eight names backed by executable
-triangle dispatch return non-null; 432 resolved-but-unimplemented and 302
-originally-null names remain unavailable. E025 makes the four global bootstrap
-calls executable through the real glibc-to-Bionic path: Android reported Vulkan
-1.4.0 and created two typed instance proxies while the bridge deliberately
-advertised zero unsupported extensions or layers. E026 then returned the real
-Adreno device as a stable type-2 proxy across repeated enumeration and
-explicitly destroyed both native instances. E027 now returns the Adreno 730's
-complete base properties, two queue families, nine memory types across two
-heaps, and all 90 device extensions through generated fixed-width wire codecs;
-the extension list crosses in six bounded pages. See the
-[E027 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e027-physical-device-discovery.json).
-E028 then queried base features and created a real Adreno logical device plus a
-stable queue through typed glibc proxies, followed by explicit native teardown.
-See the
-[E028 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e028-logical-device.json).
-E029 crossed the first queue-synchronization boundary: the real Adreno driver
-accepted an empty queue submit plus queue/device idle waits through the
-glibc-to-Bionic path. Non-empty submissions remain unavailable until command
-buffers and synchronization objects have typed proxy ownership. See the
-[E029 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e029-empty-submit.json).
-E030 then created typed native command-pool and primary-command-buffer proxies,
-began and ended the buffer, submitted it through the real Adreno queue, waited,
-reset, freed, and destroyed it. The submit array is genuinely non-empty, but
-the command buffer intentionally contains no GPU commands yet. See the
-[E030 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e030-command-buffer.json).
-E031 adds typed buffer and device-memory proxies and actual GPU work: the glibc
-client recorded `vkCmdFillBuffer`, Adreno 730 executed it, and the Bionic
-service read back all 1,024 expected words with zero mismatches. See the
-[E031 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e031-buffer-fill.json).
-E032 replaces whole-queue synchronization for that fill with a typed fence:
-Adreno signaled it, the client waited and reset it successfully, and readback
-still had zero mismatches. See the
-[E032 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e032-fence-submit.json).
-E033 adds generated `vkCmdPushConstants` dispatch and a typed per-frame angle:
-the glibc producer drove a visibly rotating, aspect-correct triangle for all
-4,096 native-resolution frames at 59.8 FPS with 16.66 ms median and 18.87 ms
-p95 pacing. See the
-[E033 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e033-rotating-triangle.json).
-E034 then implements `vkMapMemory`, `vkFlushMappedMemoryRanges`,
-`vkInvalidateMappedMemoryRanges`, and `vkUnmapMemory` on the game-facing
-device. A real glibc client flushed a 4 KiB pattern into Adreno memory, cleared
-its local shadow, invalidated it, and recovered every byte with zero
-mismatches. See the
-[E034 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e034-mapped-memory.json).
-E035 then exported a dedicated opaque-FD allocation from one Adreno logical
-device and imported it into a second. The destination recovered all 4,096
-patterned bytes with zero mismatches. See the
-[E035 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e035-external-memory.json).
-E036 then exported from the visible renderer, relayed the opaque FD across the
-Android UID boundary through Binder and same-UID `SCM_RIGHTS`, and imported it
-in a separate Termux/Bionic process. All 4,096 patterned bytes matched, while a
-wrong capability was rejected with `-EACCES`. See the
-[E036 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e036-external-memory-broker.json).
-E037 then paired that allocation with Adreno's supported temporary `SYNC_FD`.
-The visible renderer queued the GPU signal; the separate Bionic consumer
-imported and waited on it before validating all 4,096 bytes with zero errors.
-The measured consumer fence wait was 54,948 ns. See the
-[E037 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e037-external-sync-broker.json).
-E038 then exported a 64×64 optimal-tiling sampled RGBA8 image cleared on the
-producer GPU. The separate Bionic consumer imported it, waited on the
-`SYNC_FD`, copied it to readback memory on-GPU, and matched all 4,096 magenta
-pixels with zero errors. See the
-[E038 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e038-external-image-broker.json).
-E039 then proved Android denies raw cross-UID Vulkan-FD transfer, and E040
-proved an ordinary app UID cannot publish a global native Binder service. The
-fast path therefore uses framework Binder once for long-lived handles, then
-shared memory and native GPU/CPU synchronization with Java, Binder, sockets,
-and FD transfer absent from each frame. E041 has now imported a producer-fenced
-image from one long-lived FD and matched all 4,096 pixels without an external
-semaphore. E042 must sustain that ownership protocol across frames before the
-bridge can produce Tomb Raider output or a new game FPS result.
+explores a direct glibc-to-Android system-Vulkan path and has proved
+cross-process Adreno rendering and image sharing. It does not yet render Tomb
+Raider or establish a game FPS gain; its current status and evidence live in
+the bridge repository.
 
 ## Tomb Raider benchmark snapshot
 
