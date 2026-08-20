@@ -7200,3 +7200,34 @@ The remaining E037 boundary is GPU-to-GPU synchronization for the externally
 shared resource without CPU waits or per-frame Binder traffic. E036 proves the
 cross-UID zero-copy transport primitive, not shared game frames, DXVK startup,
 or a Tomb Raider FPS increase.
+
+## 2026-08-20: E037 passes cross-process Adreno GPU synchronization
+
+The real Adreno 730 capability probe showed why the first E037 implementation
+could not initialize: external `OPAQUE_FD` semaphores report feature mask 0,
+whereas `SYNC_FD` reports mask 3 (exportable and importable). Visible-host v27
+therefore retains the opaque-FD allocation from E036 but exports a temporary
+one-shot `SYNC_FD` only after queuing the producer GPU signal. The separate
+Bionic consumer imports it with `VK_SEMAPHORE_IMPORT_TEMPORARY_BIT`, queues its
+GPU wait, waits on an evidence fence, and validates the shared allocation.
+
+The live gate transported both descriptors through Binder and same-UID
+`SCM_RIGHTS`, imported them through `/system/lib64/libvulkan.so`, and matched
+all 1,024 expected 32-bit words with zero errors. The consumer fence wait took
+54,948 ns and receive/import took 140,961,146 ns. A wrong capability was
+rejected with `-EACCES`; native stderr was empty. Android tore down the window
+after renderer readiness, so the corrected evidence contract records that the
+ready event occurred instead of requiring it to be the final lifecycle state.
+
+The exact 2,161-byte
+[E037 evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e037-external-sync-broker.json)
+has SHA-256
+`478171f4a89ae0efa51f903a117d645f35e0b018d2d479a8ad7cde43d29a307c`.
+The producer is bridge commit `33c9bb3`, the lifecycle-aware harness is
+`486c9eb`, and canonical documentation is `b4dbc0a`; all are pushed. This
+reuses E035's external-memory ownership and E036's setup-only capability
+broker. The required recall query returned no indexed prior session.
+
+E038 now targets a real shared Vulkan image/frame and a persistent native
+descriptor channel for per-frame `SYNC_FD` delivery. Binder may establish the
+channel once, but Java and Binder must stay outside steady-state rendering.
