@@ -17,7 +17,7 @@ custom kernel, chroot, or system-wide library replacement.
 | --- | --- |
 | Steam | Authenticates, renders, downloads, and retains login state |
 | Graphics | Hardware Vulkan through private Mesa Turnip |
-| Experimental system-Vulkan bridge | A glibc producer drove 4,096 visibly rotating Adreno frames at 2800×1752 (59.8 FPS); E037 now adds ordered cross-process GPU access using Adreno `SYNC_FD`, with all 4,096 bytes matching after the consumer GPU wait ([bridge repository](https://github.com/huntergdavis/bionic-vulkan-bridge)) |
+| Experimental system-Vulkan bridge | A glibc producer drove 4,096 visibly rotating Adreno frames at 2800×1752 (59.8 FPS); E038 now exports/imports a real optimal-tiling sampled Vulkan image with all 4,096 pixels matching after cross-process GPU synchronization ([bridge repository](https://github.com/huntergdavis/bionic-vulkan-bridge)) |
 | Windows games | Official Proton 11 ARM64 + FEX + DXVK |
 | Audio/input | PulseAudio and Termux:X11 pointer/keyboard support |
 | Storage | Game payloads on microSD; lock-sensitive Steam metadata on internal F2FS |
@@ -134,8 +134,13 @@ The visible renderer queued the GPU signal; the separate Bionic consumer
 imported and waited on it before validating all 4,096 bytes with zero errors.
 The measured consumer fence wait was 54,948 ns. See the
 [E037 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e037-external-sync-broker.json).
-This proves cross-UID zero-copy memory plus GPU ordering, not yet a shared GPU
-image, shared game output, or a Tomb Raider FPS improvement.
+E038 then exported a 64×64 optimal-tiling sampled RGBA8 image cleared on the
+producer GPU. The separate Bionic consumer imported it, waited on the
+`SYNC_FD`, copied it to readback memory on-GPU, and matched all 4,096 magenta
+pixels with zero errors. See the
+[E038 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e038-external-image-broker.json).
+This proves cross-UID image compatibility and pixel parity, not yet a
+persistent 60/120-FPS native frame channel, game output, or Tomb Raider FPS.
 
 ## Tomb Raider benchmark snapshot
 

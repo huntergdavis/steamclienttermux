@@ -7231,3 +7231,31 @@ broker. The required recall query returned no indexed prior session.
 E038 now targets a real shared Vulkan image/frame and a persistent native
 descriptor channel for per-frame `SYNC_FD` delivery. Binder may establish the
 channel once, but Java and Binder must stay outside steady-state rendering.
+
+## 2026-08-20: E038 passes a real cross-process Vulkan image
+
+Visible-host v28 created a dedicated exportable 64×64
+`VK_FORMAT_R8G8B8A8_UNORM` optimal-tiling image with transfer and sampled usage,
+transitioned it to `GENERAL`, and cleared it to exact magenta on the Activity
+GPU. It exported the 25,780-byte allocation as opaque FD and the queued GPU
+signal as temporary `SYNC_FD`. The separate Bionic consumer recreated and
+imported the image, waited on-GPU, copied it to host-visible readback memory,
+and compared every pixel.
+
+All 4,096 pixels matched `0xffff00ff` with zero errors. Adreno selected image
+memory type 0 and readback memory flags 15. The consumer fence wait took
+2,696,041 ns; total receive/import/readback took 242,367,604 ns. A wrong
+capability was rejected with `-EACCES`, and receiver stderr was empty. The
+exact 2,264-byte
+[E038 evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e038-external-image-broker.json)
+has SHA-256
+`b4aa96c79d657717ae7272e092fbcc4af730f5a28a81fdbeca24ee85a75f190e`.
+Implementation commit `15fb544`, harness commit `0eb926b`, and evidence commit
+`ce3892a` are pushed. This reuses E035's allocation ownership, E036's
+cross-UID broker, and E037's Adreno `SYNC_FD` path; recall found no indexed
+prior session.
+
+E039 is now the speed-critical boundary: Binder establishes a channel once,
+then native code delivers frame metadata and each one-shot `SYNC_FD` without
+per-frame Java/Binder work. E038 proves image compatibility, not yet sustained
+60/120-FPS streaming, visible DXVK output, or Tomb Raider performance.
