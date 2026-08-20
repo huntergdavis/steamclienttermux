@@ -100,6 +100,21 @@ def validated_host_vulkan_icd(base: Path) -> Path:
     return path
 
 
+def bvb_vulkan_environment() -> dict[str, str]:
+    if os.environ.get("STEAM_ARM64_BVB_VULKAN", "0") != "1":
+        return {}
+    socket_path = os.environ.get("BVB_BRIDGE_SOCKET", "")
+    if not socket_path.startswith("/"):
+        fail("BVB_BRIDGE_SOCKET must be absolute when BVB Vulkan is enabled")
+    diagnostics = os.environ.get("BVB_ICD_DIAGNOSTICS", "1")
+    if diagnostics not in ("0", "1"):
+        fail("BVB_ICD_DIAGNOSTICS must be 0 or 1")
+    return {
+        "BVB_BRIDGE_SOCKET": socket_path,
+        "BVB_ICD_DIAGNOSTICS": diagnostics,
+    }
+
+
 def validated_vulkan_trace(base: Path) -> tuple[Path, Path] | None:
     preload_value = os.environ.get("STEAM_ARM64_VULKAN_TRACE_PRELOAD")
     trace_value = os.environ.get("STEAM_ARM64_VULKAN_TRACE_FILE")
@@ -871,8 +886,6 @@ def apply_direct_fex_profile(environment: dict[str, str], profile: str) -> None:
             "STEAM_FEX_TSOENABLED": "0" if profile == "fast" else "1",
         }
     )
-
-
 def validated_proc_net_shadow(base: Path) -> Path:
     shadow = private_directory(
         base / "config/proc-net", "synthetic proc-net directory"
@@ -1173,6 +1186,7 @@ def pv_smoke_invocation(
             "VK_ICD_FILENAMES": str(vulkan_icd),
         }
     )
+    environment.update(bvb_vulkan_environment())
     if final_preload is not None and final_path_prefix is not None:
         environment.update(
             {

@@ -64,6 +64,12 @@ def main() -> None:
             os.environ, {"STEAM_ARM64_BVB_VULKAN": "1"}, clear=False
         ):
             assert MODULE.validated_host_vulkan_icd(base) == bvb
+            os.environ["BVB_BRIDGE_SOCKET"] = "/private/bvb.sock"
+            os.environ["BVB_ICD_DIAGNOSTICS"] = "1"
+            assert MODULE.bvb_vulkan_environment() == {
+                "BVB_BRIDGE_SOCKET": "/private/bvb.sock",
+                "BVB_ICD_DIAGNOSTICS": "1",
+            }
         with mock.patch.dict(
             os.environ, {"STEAM_ARM64_BVB_VULKAN": "invalid"}, clear=False
         ):
@@ -73,6 +79,17 @@ def main() -> None:
                 pass
             else:
                 raise AssertionError("invalid BVB Vulkan selector was accepted")
+        with mock.patch.dict(
+            os.environ,
+            {"STEAM_ARM64_BVB_VULKAN": "1", "BVB_BRIDGE_SOCKET": "relative"},
+            clear=False,
+        ):
+            try:
+                MODULE.bvb_vulkan_environment()
+            except MODULE.DispatchError:
+                pass
+            else:
+                raise AssertionError("relative BVB socket was accepted")
 
     with tempfile.TemporaryDirectory(prefix="loader-child-cwd.") as directory:
         root = Path(directory)
@@ -421,6 +438,7 @@ def main() -> None:
             else:
                 raise AssertionError("Vulkan trace validator accepted an arbitrary preload")
     invocation_source = inspect.getsource(MODULE.pv_smoke_invocation)
+    assert "environment.update(bvb_vulkan_environment())" in invocation_source
     assert "libtgcompat-robust.so" in invocation_source
     assert "libtgcompat-mprotect.so" in invocation_source
     assert '("lean", "lean-tmp-only", "lean-debug-wait")' in invocation_source
