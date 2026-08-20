@@ -7411,3 +7411,22 @@ is 1,365 bytes with SHA-256
 The hardware harness is bridge commit `f4f41a2`, diagnosis is `f8e8bf0`, the
 fix is `17395b7`, and the evidence record is `6f188c1`. Application feature and
 extension chains, DXVK execution, and a game frame remain the next boundaries.
+
+## 2026-08-20: E046 enables a real device extension across libc boundaries
+
+Through Steam's loader, the glibc client enumerated the Adreno 730 extension
+list, confirmed `VK_KHR_swapchain`, transported that name to Bionic, and enabled
+it in the native `VkDeviceCreateInfo`. Device creation, graphics queue family 0,
+queue/device idle, and teardown all still passed with empty client/service
+stderr.
+
+The new bounded wire record supports up to 24 names in canonical 128-byte slots
+and rejects missing terminators, inconsistent lengths, excess counts, and
+nonzero padding. The Bionic service reconstructs its own pointer array, so no
+glibc pointer crosses the socket. Canonical
+[E046 evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e046-device-extension-create.json)
+is 1,482 bytes with SHA-256
+`6713be83250541f1e93ffb07c233709e92fceda209f9bcb86379ae97a6f5500c`.
+Implementation is bridge commit `2df2488`, harness naming is `814d346`, and the
+evidence record is `f6424eb`. Instance/WSI extensions, device feature chains,
+swapchain commands, DXVK execution, and a game frame remain unproven.
