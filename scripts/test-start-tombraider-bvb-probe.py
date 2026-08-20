@@ -43,7 +43,7 @@ def main() -> None:
             "#!/usr/bin/env python3\n"
             "import os, pathlib, socket\n"
             "required=['STEAM_ARM64_BVB_VULKAN','BVB_BRIDGE_SOCKET',"
-            "'BVB_ICD_DIAGNOSTICS']\n"
+            "'BVB_ICD_DIAGNOSTICS','BVB_ICD_PROBE_WSI']\n"
             f"pathlib.Path({str(result)!r}).write_text('\\n'.join("
             "f'{name}={os.environ[name]}' for name in required))\n"
             "client=socket.socket(socket.AF_UNIX)\n"
@@ -71,6 +71,7 @@ def main() -> None:
         )
         assert values["STEAM_ARM64_BVB_VULKAN"] == "1"
         assert values["BVB_ICD_DIAGNOSTICS"] == "1"
+        assert values["BVB_ICD_PROBE_WSI"] == "1"
         assert values["BVB_BRIDGE_SOCKET"].startswith(str(base / "run/bvb/"))
         assert not Path(values["BVB_BRIDGE_SOCKET"]).exists()
 

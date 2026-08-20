@@ -66,9 +66,11 @@ def main() -> None:
             assert MODULE.validated_host_vulkan_icd(base) == bvb
             os.environ["BVB_BRIDGE_SOCKET"] = "/private/bvb.sock"
             os.environ["BVB_ICD_DIAGNOSTICS"] = "1"
+            os.environ["BVB_ICD_PROBE_WSI"] = "1"
             assert MODULE.bvb_vulkan_environment() == {
                 "BVB_BRIDGE_SOCKET": "/private/bvb.sock",
                 "BVB_ICD_DIAGNOSTICS": "1",
+                "BVB_ICD_PROBE_WSI": "1",
             }
         with mock.patch.dict(
             os.environ, {"STEAM_ARM64_BVB_VULKAN": "invalid"}, clear=False

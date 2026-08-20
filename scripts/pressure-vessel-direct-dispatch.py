@@ -109,9 +109,13 @@ def bvb_vulkan_environment() -> dict[str, str]:
     diagnostics = os.environ.get("BVB_ICD_DIAGNOSTICS", "1")
     if diagnostics not in ("0", "1"):
         fail("BVB_ICD_DIAGNOSTICS must be 0 or 1")
+    probe_wsi = os.environ.get("BVB_ICD_PROBE_WSI", "0")
+    if probe_wsi not in ("0", "1"):
+        fail("BVB_ICD_PROBE_WSI must be 0 or 1")
     return {
         "BVB_BRIDGE_SOCKET": socket_path,
         "BVB_ICD_DIAGNOSTICS": diagnostics,
+        "BVB_ICD_PROBE_WSI": probe_wsi,
     }
 
 

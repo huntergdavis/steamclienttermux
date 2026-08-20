@@ -63,6 +63,7 @@ set +e
 STEAM_ARM64_BVB_VULKAN=1 \
 BVB_BRIDGE_SOCKET="$socket" \
 BVB_ICD_DIAGNOSTICS=1 \
+BVB_ICD_PROBE_WSI=1 \
 "$launcher" "$@" >"$launcher_log" 2>&1
 launcher_status=$?
 set -e
