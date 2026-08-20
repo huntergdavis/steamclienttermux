@@ -7430,3 +7430,21 @@ is 1,482 bytes with SHA-256
 Implementation is bridge commit `2df2488`, harness naming is `814d346`, and the
 evidence record is `f6424eb`. Instance/WSI extensions, device feature chains,
 swapchain commands, DXVK execution, and a game frame remain unproven.
+
+## 2026-08-20: E047 adds Vulkan 1.1 discovery through Steam's ICD path
+
+The bridge now resolves core and KHR aliases for the seven base Vulkan 1.1
+physical-device query families: Features2, Properties2, Format2, ImageFormat2,
+QueueFamilyProperties2, MemoryProperties2, and SparseImageFormatProperties2.
+They reuse the fixed-width core RPC results without transporting caller
+pointers.
+
+On the Galaxy Tab S8+, the standard glibc loader path reported sampler
+anisotropy through Features2, 9 memory types and 2 heaps through Memory2, and
+the same RGBA8 limits measured in E044 through Format2. The device still
+enabled `VK_KHR_swapchain` and passed queue/device idle. Canonical
+[E047 evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e047-vulkan11-discovery.json)
+is 1,563 bytes with SHA-256
+`132bd04e8fe9fa4720fed397bb401d7c4009b5903457f24e517fdcc4344bf20b`.
+Implementation is bridge commit `6970fa3`; evidence is `f4e5d0a`. Extended
+`pNext` structures, instance WSI, DXVK execution, and game output remain open.
