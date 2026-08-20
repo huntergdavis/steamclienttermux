@@ -7370,3 +7370,24 @@ is `2a59738`. The implementation reuses E023's fixed-width transport discipline
 and the existing typed instance/physical-device ownership recovered through
 the required session recall. The next gate returns real device formats and
 capabilities, then advances the measured DXVK startup sequence.
+
+## 2026-08-20: E044 returns real Adreno format limits through Steam's loader
+
+The bridge replaced E043's conservative format stubs with two fixed-width
+glibc-to-Bionic RPCs. Through Steam's real Vulkan loader, the Adreno 730
+reported `1047939` optimal-tiling feature bits for RGBA8, including sampled
+image support. Its 2D optimal sampled-image query returned `VK_SUCCESS`, a
+`16384×16384×1` maximum extent, and a `562949953421312`-byte maximum resource
+size. The fixed 2800×1752 Tomb Raider target is within that measured limit.
+
+No raw Vulkan struct or pointer crosses the libc boundary: the client sends
+the owned physical-device ID plus scalar query fields, and the Bionic service
+returns scalar properties. All 23 host tests passed, and hardware client and
+service stderr were empty. Canonical
+[E044 evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e044-real-format-capabilities.json)
+is 1,549 bytes with SHA-256
+`8bcb5918b4e546b194bc3d824e66f32f808a74eb64a18aaeedd2dca247740e47`.
+Implementation is bridge commit `700f0a0`, the distinct harness artifacts are
+`3a0dfb4`, and the evidence record is `404b8be`. The required recall search
+found no prior E044 implementation. Extended capability chains, DXVK execution,
+and a rendered game frame remain unproven.
