@@ -143,7 +143,7 @@ as a default-performance change but remains available for explicit experiments.
 | RakNet-exclusive CPU1 (rejected) | The direct profile measured the single `Raknet-RecvFrom` thread at 99% on CPU1 while the game used 313% total. | Three alternating pairs changed mean min/max/avg by -25.28%/+1.91%/-2.15%. Keep production game CPUs1-7 with RakNet on CPU1. |
 | Internal-storage A/B | The game is on Android FUSE over the removable exFAT/sdfat card. This may affect loading and minimum-FPS stalls. | Low priority for mean FPS. The 15.3 GB game would leave only about 3.7 GB of the currently free 19 GB internal space, so do not move it until space is freed. |
 | No-PRoot native glibc host | PRoot uses `ptrace` to intercept and rewrite guest syscalls; the old tracer alone used 60-65% CPU. | Completed for the hot game tree through the guarded direct dispatcher; retain the parked outer request only for Steam lifecycle compatibility. |
-| Bionic/system-Vulkan host | The bridge passes persistent native frame handoffs, standard selection by Steam's glibc loader, and real Adreno RGBA8 format/image queries with a 16384×16384 limit. | Observe and implement the next measured DXVK capability family, reach one real DXVK frame, then run the fixed 2800×1752 Low Tomb Raider A/B. |
+| Bionic/system-Vulkan host | The bridge passes persistent frame handoffs, Steam loader selection, real Adreno format limits, and standard-loader logical-device/queue creation plus idle/teardown. | Bridge the measured Wine/DXVK instance/device feature and extension chains, reach one real DXVK frame, then run the fixed 2800×1752 Low Tomb Raider A/B. |
 
 ## Changes not worth leading with
 

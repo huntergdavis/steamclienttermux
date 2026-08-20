@@ -7391,3 +7391,23 @@ Implementation is bridge commit `700f0a0`, the distinct harness artifacts are
 `3a0dfb4`, and the evidence record is `404b8be`. The required recall search
 found no prior E044 implementation. Extended capability chains, DXVK execution,
 and a rendered game frame remain unproven.
+
+## 2026-08-20: E045 creates an Adreno device through Steam's loader
+
+The standard glibc loader path now advances beyond physical-device queries:
+it created a real Bionic Adreno logical device on graphics queue family 0,
+recovered the queue, completed `vkQueueWaitIdle` and `vkDeviceWaitIdle`, and
+tore the objects down. Client and service stderr were empty, and all 23 host
+tests passed.
+
+The first attempt failed before the device RPC because Steam's loader prepends
+private `pNext` metadata to `VkDeviceCreateInfo`. The bridge now applies the
+same rule already proven for E043 instance creation: loader metadata remains
+local to the glibc ICD and only fixed-width application fields cross to Bionic.
+Canonical
+[E045 evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e045-standard-loader-device.json)
+is 1,365 bytes with SHA-256
+`0450fa2d0be7cf796f320c7fde950ecf8902774177ee0910f90a9179631f7889`.
+The hardware harness is bridge commit `f4f41a2`, diagnosis is `f8e8bf0`, the
+fix is `17395b7`, and the evidence record is `6f188c1`. Application feature and
+extension chains, DXVK execution, and a game frame remain the next boundaries.
