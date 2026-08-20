@@ -7259,3 +7259,31 @@ E039 is now the speed-critical boundary: Binder establishes a channel once,
 then native code delivers frame metadata and each one-shot `SYNC_FD` without
 per-frame Java/Binder work. E038 proves image compatibility, not yet sustained
 60/120-FPS streaming, visible DXVK output, or Tomb Raider performance.
+
+## 2026-08-20: E039/E040 isolate the Android policy boundary
+
+E039 tested both native Unix-stream and native Unix-datagram paths between the
+visible-host app UID and Termux. The stream `connect` failed with `-EACCES`.
+Datagram payloads crossed both ways, but the Termux `recvmsg` failed with
+`-EACCES` when the Activity attached Vulkan FDs through `SCM_RIGHTS`. This
+separates Android policy from capability validation and Vulkan correctness.
+Canonical
+[E039 evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e039-native-socket-policy.json)
+records both variants.
+
+E040 then compiled a zero-Java producer and consumer against stable API-29
+`libbinder_ndk`. The Activity retained the service's strong reference and
+reported the exact registration result through authenticated lifecycle event
+13. `AServiceManager_addService` returned `EX_SECURITY` (`-1`), while Termux
+lookup returned `STATUS_NAME_NOT_FOUND` (`-2`). Canonical
+[E040 evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e040-native-binder-policy.json)
+records the independent producer and consumer observations.
+
+Together these gates disprove the original persistent cross-UID native-FD
+channel plan on an unmodified tablet. The revised speed path transfers
+long-lived external image/control handles once through the already-proven
+framework Binder callback. Java and Binder then exit the hot path; shared
+atomics/futex wakeups and native GPU completion coordinate frames without
+per-frame sockets or descriptor transfer. E041 first validates one image after
+a producer queue fence, and E042 extends the same ownership model to a sustained
+multi-frame ring before DXVK/Tomb Raider integration.

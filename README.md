@@ -139,8 +139,12 @@ producer GPU. The separate Bionic consumer imported it, waited on the
 `SYNC_FD`, copied it to readback memory on-GPU, and matched all 4,096 magenta
 pixels with zero errors. See the
 [E038 bridge evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e038-external-image-broker.json).
-This proves cross-UID image compatibility and pixel parity, not yet a
-persistent 60/120-FPS native frame channel, game output, or Tomb Raider FPS.
+E039 then proved Android denies raw cross-UID Vulkan-FD transfer, and E040
+proved an ordinary app UID cannot publish a global native Binder service. The
+fast path therefore uses framework Binder once for long-lived handles, then
+shared memory and native GPU/CPU synchronization with Java, Binder, sockets,
+and FD transfer absent from each frame. This is the E041/E042 boundary; it has
+not yet produced Tomb Raider output or a new game FPS result.
 
 ## Tomb Raider benchmark snapshot
 
