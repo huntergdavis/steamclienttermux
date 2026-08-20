@@ -7287,3 +7287,28 @@ atomics/futex wakeups and native GPU completion coordinate frames without
 per-frame sockets or descriptor transfer. E041 first validates one image after
 a producer queue fence, and E042 extends the same ownership model to a sustained
 multi-frame ring before DXVK/Tomb Raider integration.
+
+## 2026-08-20: E041 passes a one-FD producer-fenced image handoff
+
+Visible-host v38 completed its external-image GPU write with a producer queue
+fence, retained that offscreen Vulkan resource across temporary Android window
+loss, and transferred only the 25,780-byte image allocation through the
+one-time Binder callback. The separate Termux/Bionic consumer imported the
+optimal-tiling 64×64 RGBA8 image without an external semaphore FD, submitted a
+local GPU readback, and matched all 4,096 magenta pixels with zero errors.
+
+The consumer GPU fence wait was 4,836,562 ns and complete
+receive/import/readback time was 241,366,667 ns. The wrong capability returned
+`-EACCES`; receiver stderr was empty. Canonical
+[E041 evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e041-fenced-external-image.json)
+is 2,329 bytes with SHA-256
+`42482a09591b0710901c6bf47c951f19857aab785e649e440193c892305e415d`.
+Implementation and Android lifecycle fixes are bridge commits `6004812`,
+`3f6159f`, `9dc125e`, and `12c22f5`; evidence commit `3e50048` is pushed.
+
+E041 proves the required ownership primitive, not a performance improvement:
+its one-shot validation intentionally waits for both GPUs. E042 now transfers a
+shared control page once and replaces every per-frame framework operation with
+native atomic sequence/acknowledgement words, futex wakeups, and local GPU
+fences. That sustained loop is the next prerequisite for DXVK presentation and
+the fixed native-resolution Tomb Raider benchmark.
