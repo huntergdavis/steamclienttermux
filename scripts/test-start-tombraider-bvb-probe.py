@@ -171,7 +171,7 @@ def main() -> None:
             "listener.bind('\\0'+name); listener.listen(1)\n"
             "connection,_=listener.accept(); assert connection.recv(64) == b'frame-setup'\n"
             "connection.close(); listener.close()\n"
-            "valid={'result':'pass','setup_transport':'persistent_external_image_ring','image_count':3,'generation':7,'per_frame_java_calls':0,'per_frame_binder_calls':0}\n"
+            "valid={'result':'pass','setup_transport':'persistent_external_image_ring','image_count':3,'generation':-7,'per_frame_java_calls':0,'per_frame_binder_calls':0}\n"
             "if mode == 'pass': result.write_text(json.dumps(valid)+'\\n')\n"
             "elif mode == 'fail':\n"
             "    result.write_text(json.dumps({'result':'fail','stage':'native_import'})+'\\n'); raise SystemExit(7)\n"
@@ -290,6 +290,7 @@ def main() -> None:
         frame_results = list(logs.glob("tombraider-bvb-frame-*.json"))
         assert len(frame_results) == 1
         assert '"image_count": 3' in frame_results[0].read_text()
+        assert '"generation": -7' in frame_results[0].read_text()
 
         expected_activity_count = 1
         for command_stream, mapped_memory, first_rejection_diagnostic in (

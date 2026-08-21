@@ -261,10 +261,14 @@ for name in ("image_count", "generation", "per_frame_java_calls", "per_frame_bin
         raise SystemExit(f"frame result {name} must be an integer")
 if not 2 <= document["image_count"] <= 4:
     raise SystemExit("frame result image_count must be in [2, 4]")
-if document["generation"] <= 0:
-    raise SystemExit("frame result generation must be positive")
+signed_generation = document["generation"]
+if (signed_generation == 0 or
+        signed_generation < -(1 << 63) or
+        signed_generation > (1 << 63) - 1):
+    raise SystemExit("frame result generation must be a nonzero signed 64-bit integer")
 if document["per_frame_java_calls"] != 0 or document["per_frame_binder_calls"] != 0:
     raise SystemExit("frame result per-frame Java/Binder counts must both be zero")
+document["generation"] = signed_generation & ((1 << 64) - 1)
 print(json.dumps(document, sort_keys=True, separators=(",", ":")))
 PY
 }

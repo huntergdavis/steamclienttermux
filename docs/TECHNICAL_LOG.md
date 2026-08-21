@@ -7746,3 +7746,14 @@ pass. The required `deja "E097 Activity frame transport status 1 after virtual
 swapchain image view"` query returned no indexed implementation. This reuses
 E074's explicit installed-native-library boundary; it does not change the APK
 or the per-frame no-Java/no-Binder architecture.
+
+## 2026-08-21: frame generations retain all 64 bits
+
+The E098 trace run completed the Activity's native three-image import, but the
+game launcher rejected its valid generation because Java rendered the unsigned
+64-bit ring identifier as a negative signed `long`. The standalone E074 gate
+already validates a nonzero signed 64-bit value and normalizes it modulo 2^64.
+The Tomb Raider launcher now uses that same rule. Its host contract exercises a
+negative generation through the complete successful handoff; no APK or frame
+transport ABI changed. The required `deja "BVB FrameTransportClient negative
+generation signed long JSON uint64"` query found no indexed implementation.
