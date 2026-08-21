@@ -35,6 +35,7 @@ def main() -> None:
             "#!/usr/bin/env python3\n"
             "import socket, struct, sys\n"
             "path=sys.argv[sys.argv.index('--socket')+1]\n"
+            "frame_name=sys.argv[sys.argv.index('--activity-frame-socket')+1]\n"
             f"assert sys.argv[sys.argv.index('--loader')+1] == {str(driver)!r}\n"
             "token=bytes.fromhex(sys.argv[sys.argv.index('--activity-token')+1])\n"
             "listener=socket.socket(socket.AF_UNIX)\n"
@@ -56,6 +57,13 @@ def main() -> None:
             "    print(f'bvb-bridge-service: activity_event={event} sequence={sequence} pid={pid} width={width} height={height}', flush=True)\n"
             "activity.close()\n"
             "connection,_=listener.accept()\n"
+            "frame=socket.socket(socket.AF_UNIX)\n"
+            "for attempt in range(100):\n"
+            "    try: frame.connect('\\0'+frame_name); break\n"
+            "    except OSError:\n"
+            "        if attempt == 99: raise\n"
+            "        import time; time.sleep(0.01)\n"
+            "frame.sendall(b'frame-setup'); frame.close()\n"
             "connection.close(); listener.close()\n",
         )
         activity_calls = root / "activity-calls.txt"
@@ -75,6 +83,32 @@ def main() -> None:
             "    with socket.create_connection(('127.0.0.1',port),timeout=1) as connection:\n"
             "        connection.sendall(wire); ack=connection.recv(16)\n"
             "    assert struct.unpack('<IHHIi',ack)[4] == 0\n",
+        )
+        helper_apk = root / "visible-host.apk"
+        helper_apk.write_bytes(b"test-visible-host-apk\n")
+        helper_apk.chmod(0o600)
+        package_manager = root / "fake-pm"
+        executable(
+            package_manager,
+            "#!/usr/bin/env python3\n"
+            "import sys\n"
+            "assert sys.argv[1:] == ['path', 'io.github.huntergdavis.bvb.visiblehost']\n"
+            f"print('package:{helper_apk}')\n",
+        )
+        app_process = root / "fake-app-process"
+        executable(
+            app_process,
+            "#!/usr/bin/env python3\n"
+            "import json, os, pathlib, socket, sys\n"
+            "assert os.environ['CLASSPATH'].endswith('visible-host.apk')\n"
+            "assert sys.argv[1:4] == ['-Xnoimage-dex2oat', '/', "
+            "'io.github.huntergdavis.bvb.visiblehost.FrameTransportClient']\n"
+            "result=pathlib.Path(sys.argv[-2]); name=sys.argv[-1]\n"
+            "listener=socket.socket(socket.AF_UNIX)\n"
+            "listener.bind('\\0'+name); listener.listen(1)\n"
+            "connection,_=listener.accept(); assert connection.recv(64) == b'frame-setup'\n"
+            "connection.close(); listener.close()\n"
+            "result.write_text(json.dumps({'result':'pass','per_frame_java_calls':0})+'\\n')\n",
         )
         result = root / "environment.txt"
         launcher = root / "launcher"
@@ -107,6 +141,8 @@ def main() -> None:
                 "STEAM_ARM64_BASE": str(base),
                 "TOMB_RAIDER_BVB_LAUNCHER": str(launcher),
                 "BVB_ACTIVITY_LAUNCHER": str(activity_launcher),
+                "BVB_PACKAGE_MANAGER": str(package_manager),
+                "BVB_APP_PROCESS": str(app_process),
             }
         )
         completed = subprocess.run(
@@ -144,6 +180,9 @@ def main() -> None:
             ".VisibleHostActivity --ei bvb_activity_port "
         )
         assert "--es bvb_activity_token " in calls[0]
+        frame_results = list(logs.glob("tombraider-bvb-frame-*.json"))
+        assert len(frame_results) == 1
+        assert '"per_frame_java_calls": 0' in frame_results[0].read_text()
 
         executable(launcher, "#!/bin/sh\nexit 17\n")
         failed = subprocess.run(

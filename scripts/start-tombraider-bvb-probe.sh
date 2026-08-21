@@ -10,19 +10,27 @@ manifest=$base/bvb/icd.d/bvb_icd.aarch64.json
 launcher=${TOMB_RAIDER_BVB_LAUNCHER:-$HOME/start-tombraider-direct-lean}
 activity_launcher=${BVB_ACTIVITY_LAUNCHER:-am}
 activity_component=${BVB_VISIBLE_HOST_COMPONENT:-io.github.huntergdavis.bvb.visiblehost/.VisibleHostActivity}
+package_manager=${BVB_PACKAGE_MANAGER:-pm}
+app_process=${BVB_APP_PROCESS:-/system/bin/app_process}
+frame_client_class=io.github.huntergdavis.bvb.visiblehost.FrameTransportClient
 run_dir=$base/run/bvb
 log_dir=$base/logs
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
 socket=$run_dir/tombraider-probe-$stamp-$$.sock
+frame_setup_socket=bvb-frame-$stamp-$$
 service_log=$log_dir/tombraider-bvb-service-$stamp.log
 launcher_log=$log_dir/tombraider-bvb-launcher-$stamp.log
+frame_client_log=$log_dir/tombraider-bvb-frame-client-$stamp.log
+frame_result=$log_dir/tombraider-bvb-frame-$stamp.json
 start_gate=$run_dir/tombraider-start-$stamp-$$.gate
 start_gate_waiting=$start_gate.waiting
 start_gate_launcher_ready=$start_gate.launcher-ready
 service_pid=
 launcher_pid=
+frame_client_pid=
 activity_token=
 activity_port=
+helper_apk=
 
 fail() {
     printf 'start-tombraider-bvb-probe: %s\n' "$*" >&2
@@ -43,6 +51,11 @@ cleanup() {
     if [[ -n ${launcher_pid:-} ]] && kill -0 "$launcher_pid" 2>/dev/null; then
         kill -TERM "$launcher_pid" 2>/dev/null || true
         wait "$launcher_pid" 2>/dev/null || true
+    fi
+    if [[ -n ${frame_client_pid:-} ]] &&
+       kill -0 "$frame_client_pid" 2>/dev/null; then
+        kill -TERM "$frame_client_pid" 2>/dev/null || true
+        wait "$frame_client_pid" 2>/dev/null || true
     fi
     if [[ -n ${service_pid:-} ]] && kill -0 "$service_pid" 2>/dev/null; then
         kill -TERM "$service_pid" 2>/dev/null || true
@@ -72,6 +85,10 @@ trap cleanup EXIT HUP INT TERM
     fail "Tomb Raider direct launcher is unavailable: $launcher"
 command -v "$activity_launcher" >/dev/null 2>&1 ||
     fail "Android Activity launcher is unavailable: $activity_launcher"
+command -v "$package_manager" >/dev/null 2>&1 ||
+    fail "Android package manager is unavailable: $package_manager"
+[[ $app_process == /* && -x $app_process && ! -L $app_process ]] ||
+    fail "Android app_process is unavailable or unsafe: $app_process"
 for command_name in grep od sed seq tail tr; do
     command -v "$command_name" >/dev/null 2>&1 ||
         fail "required command is unavailable: $command_name"
@@ -82,11 +99,14 @@ chmod 700 "$run_dir"
 
 : >"$service_log"
 : >"$launcher_log"
+: >"$frame_client_log"
+: >"$frame_result"
 activity_token=$(od -An -N32 -tx1 /dev/urandom | tr -d ' \n')
 [[ $activity_token =~ ^[0-9a-f]{64}$ ]] ||
     fail 'could not generate a 256-bit Activity capability'
 "$service" --socket "$socket" --loader "$driver" --activity-port 0 \
-    --activity-token "$activity_token" >"$service_log" 2>&1 &
+    --activity-token "$activity_token" \
+    --activity-frame-socket "$frame_setup_socket" >"$service_log" 2>&1 &
 service_pid=$!
 for _ in $(seq 1 100); do
     activity_port=$(sed -n \
@@ -150,6 +170,24 @@ grep -Eq 'activity_event=11 .*width=[1-9][0-9]* height=[1-9][0-9]*' \
     sed -n '1,120p' "$service_log" >&2 || true
     fail 'installed BVB Activity did not report a ready Vulkan renderer'
 }
+helper_apk=$("$package_manager" path "${activity_component%%/*}" 2>/dev/null |
+    sed -n 's/^package://p' | sed -n '1p')
+[[ $helper_apk == /* && -f $helper_apk && -r $helper_apk && ! -L $helper_apk ]] ||
+    fail 'could not resolve a readable installed BVB Activity APK'
+env -u LD_LIBRARY_PATH -u LD_PRELOAD CLASSPATH="$helper_apk" \
+    "$app_process" -Xnoimage-dex2oat / "$frame_client_class" \
+    "$activity_token" "$frame_result" "$frame_setup_socket" \
+    >"$frame_client_log" 2>&1 &
+frame_client_pid=$!
+for _ in $(seq 1 200); do
+    grep -Fq "@$frame_setup_socket" /proc/net/unix && break
+    process_is_running "$frame_client_pid" || break
+    sleep 0.05
+done
+grep -Fq "@$frame_setup_socket" /proc/net/unix || {
+    sed -n '1,80p' "$frame_client_log" >&2 || true
+    fail 'Activity frame setup relay did not publish its same-UID socket'
+}
 (set -o noclobber; : >"$start_gate") 2>/dev/null ||
     fail 'could not release the private direct-launch gate'
 
@@ -161,6 +199,11 @@ launcher_status=$?
 set -e
 launcher_pid=
 
+if [[ -n $frame_client_pid ]] && ! process_is_running "$frame_client_pid"; then
+    wait "$frame_client_pid" 2>/dev/null || true
+    frame_client_pid=
+fi
+
 if kill -0 "$service_pid" 2>/dev/null; then
     kill -TERM "$service_pid" 2>/dev/null || true
 fi
@@ -168,4 +211,8 @@ wait "$service_pid" 2>/dev/null || true
 service_pid=
 printf 'Tomb Raider BVB probe complete: status=%s service_log=%s launcher_log=%s\n' \
     "$launcher_status" "$service_log" "$launcher_log"
+if [[ -s $frame_result ]]; then
+    printf 'Tomb Raider BVB frame setup: result=%s log=%s\n' \
+        "$(sed -n '1p' "$frame_result")" "$frame_client_log"
+fi
 exit "$launcher_status"
