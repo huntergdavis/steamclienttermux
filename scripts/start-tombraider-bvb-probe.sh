@@ -5,6 +5,7 @@ umask 077
 
 base=${STEAM_ARM64_BASE:-$HOME/steam-arm64}
 service=$base/bvb/bin/bvb-bridge-service
+driver=$base/bvb/driver/libvulkan_freedreno.so
 manifest=$base/bvb/icd.d/bvb_icd.aarch64.json
 launcher=${TOMB_RAIDER_BVB_LAUNCHER:-$HOME/start-tombraider-direct-lean}
 activity_launcher=${BVB_ACTIVITY_LAUNCHER:-am}
@@ -63,6 +64,8 @@ trap cleanup EXIT HUP INT TERM
     fail "Steam base or log directory is unavailable below $base"
 [[ -x $service && ! -L $service ]] ||
     fail "installed Bionic bridge service is unavailable: $service"
+[[ -r $driver && -f $driver && ! -L $driver ]] ||
+    fail "private Turnip Vulkan driver is unavailable: $driver"
 [[ -f $manifest && ! -L $manifest ]] ||
     fail "installed BVB ICD manifest is unavailable: $manifest"
 [[ -x $launcher && ! -L $launcher ]] ||
@@ -82,7 +85,7 @@ chmod 700 "$run_dir"
 activity_token=$(od -An -N32 -tx1 /dev/urandom | tr -d ' \n')
 [[ $activity_token =~ ^[0-9a-f]{64}$ ]] ||
     fail 'could not generate a 256-bit Activity capability'
-"$service" --socket "$socket" --activity-port 0 \
+"$service" --socket "$socket" --loader "$driver" --activity-port 0 \
     --activity-token "$activity_token" >"$service_log" 2>&1 &
 service_pid=$!
 for _ in $(seq 1 100); do

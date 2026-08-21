@@ -25,12 +25,17 @@ def main() -> None:
         manifest.parent.mkdir(parents=True)
         manifest.write_text("{}\n", encoding="ascii")
         manifest.chmod(0o600)
+        driver = base / "bvb/driver/libvulkan_freedreno.so"
+        driver.parent.mkdir(parents=True)
+        driver.write_bytes(b"private-turnip-test-fixture\n")
+        driver.chmod(0o600)
         service = base / "bvb/bin/bvb-bridge-service"
         executable(
             service,
             "#!/usr/bin/env python3\n"
             "import socket, struct, sys\n"
             "path=sys.argv[sys.argv.index('--socket')+1]\n"
+            f"assert sys.argv[sys.argv.index('--loader')+1] == {str(driver)!r}\n"
             "token=bytes.fromhex(sys.argv[sys.argv.index('--activity-token')+1])\n"
             "listener=socket.socket(socket.AF_UNIX)\n"
             "listener.bind(path); listener.listen(1)\n"
