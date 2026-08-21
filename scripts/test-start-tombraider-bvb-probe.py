@@ -61,7 +61,7 @@ def main() -> None:
             "import pathlib, socket, struct, sys\n"
             f"log=pathlib.Path({str(activity_calls)!r})\n"
             "with log.open('a', encoding='utf-8') as output: output.write(' '.join(sys.argv[1:])+'\\n')\n"
-            "if sys.argv[1] != 'start': raise SystemExit(0)\n"
+            "assert sys.argv[1:3] == ['start', '-S']\n"
             "port=int(sys.argv[sys.argv.index('bvb_activity_port')+1])\n"
             "token=bytes.fromhex(sys.argv[sys.argv.index('bvb_activity_token')+1])\n"
             "events=[(1,0,0),(2,0,0),(3,0,0),(7,2800,1752),(11,2800,1752),(9,0,0)]\n"
@@ -112,12 +112,12 @@ def main() -> None:
         assert values["BVB_BRIDGE_SOCKET"].startswith(str(base / "run/bvb/"))
         assert not Path(values["BVB_BRIDGE_SOCKET"]).exists()
         calls = activity_calls.read_text(encoding="utf-8").splitlines()
-        assert calls[0] == "force-stop io.github.huntergdavis.bvb.visiblehost"
-        assert calls[1].startswith(
-            "start -W -n io.github.huntergdavis.bvb.visiblehost/"
+        assert len(calls) == 1
+        assert calls[0].startswith(
+            "start -S -W -n io.github.huntergdavis.bvb.visiblehost/"
             ".VisibleHostActivity --ei bvb_activity_port "
         )
-        assert "--es bvb_activity_token " in calls[1]
+        assert "--es bvb_activity_token " in calls[0]
 
 
 if __name__ == "__main__":

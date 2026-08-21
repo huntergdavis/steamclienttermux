@@ -8,7 +8,6 @@ service=$base/bvb/bin/bvb-bridge-service
 manifest=$base/bvb/icd.d/bvb_icd.aarch64.json
 launcher=${TOMB_RAIDER_BVB_LAUNCHER:-$HOME/start-tombraider-direct-lean}
 activity_launcher=${BVB_ACTIVITY_LAUNCHER:-am}
-activity_package=${BVB_VISIBLE_HOST_PACKAGE:-io.github.huntergdavis.bvb.visiblehost}
 activity_component=${BVB_VISIBLE_HOST_COMPONENT:-io.github.huntergdavis.bvb.visiblehost/.VisibleHostActivity}
 run_dir=$base/run/bvb
 log_dir=$base/logs
@@ -79,8 +78,7 @@ done
 if command -v termux-wake-lock >/dev/null 2>&1; then
     termux-wake-lock >/dev/null 2>&1 || true
 fi
-"$activity_launcher" force-stop "$activity_package" >/dev/null
-"$activity_launcher" start -W -n "$activity_component" \
+"$activity_launcher" start -S -W -n "$activity_component" \
     --ei bvb_activity_port "$activity_port" \
     --es bvb_activity_token "$activity_token" >/dev/null
 for _ in $(seq 1 200); do
