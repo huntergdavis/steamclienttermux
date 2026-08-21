@@ -92,8 +92,13 @@ def main() -> None:
             package_manager,
             "#!/usr/bin/env python3\n"
             "import sys\n"
-            "assert sys.argv[1:] == ['path', 'io.github.huntergdavis.bvb.visiblehost']\n"
-            f"print('package:{helper_apk}')\n",
+            "if sys.argv[1:] == ['list', 'packages', '--show-versioncode', "
+            "'io.github.huntergdavis.bvb.visiblehost']:\n"
+            "    print('package:io.github.huntergdavis.bvb.visiblehost versionCode:40')\n"
+            "elif sys.argv[1:] == ['path', 'io.github.huntergdavis.bvb.visiblehost']:\n"
+            f"    print('package:{helper_apk}')\n"
+            "else:\n"
+            "    raise SystemExit(2)\n",
         )
         app_process = root / "fake-app-process"
         executable(
@@ -180,6 +185,7 @@ def main() -> None:
             ".VisibleHostActivity --ei bvb_activity_port "
         )
         assert "--es bvb_activity_token " in calls[0]
+        assert "--ei bvb_retain_external_renderer 1" in calls[0]
         frame_results = list(logs.glob("tombraider-bvb-frame-*.json"))
         assert len(frame_results) == 1
         assert '"per_frame_java_calls": 0' in frame_results[0].read_text()
@@ -198,6 +204,77 @@ def main() -> None:
             failed.stderr
         )
         assert len(activity_calls.read_text(encoding="utf-8").splitlines()) == 1
+
+        executable(
+            package_manager,
+            "#!/usr/bin/env python3\n"
+            "import sys\n"
+            "if sys.argv[1] == 'list':\n"
+            "    print('package:io.github.huntergdavis.bvb.visiblehost versionCode:39')\n"
+            "elif sys.argv[1] == 'path':\n"
+            f"    print('package:{helper_apk}')\n"
+            "else:\n"
+            "    raise SystemExit(2)\n",
+        )
+        stale = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env=environment,
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=3,
+        )
+        assert stale.returncode == 1
+        assert "visible host versionCode 40 or newer is required" in stale.stderr
+        assert len(activity_calls.read_text(encoding="utf-8").splitlines()) == 1
+
+        executable(
+            package_manager,
+            "#!/usr/bin/env python3\n"
+            "import sys\n"
+            "if sys.argv[1] == 'list':\n"
+            "    print('package:io.github.huntergdavis.bvb.visiblehost versionCode:40')\n"
+            "elif sys.argv[1] == 'path':\n"
+            f"    print('package:{helper_apk}')\n"
+            "else:\n"
+            "    raise SystemExit(2)\n",
+        )
+        executable(
+            app_process,
+            "#!/usr/bin/env python3\n"
+            "import json, pathlib, socket, sys\n"
+            "result=pathlib.Path(sys.argv[-2]); name=sys.argv[-1]\n"
+            "listener=socket.socket(socket.AF_UNIX)\n"
+            "listener.bind('\\0'+name); listener.listen(1)\n"
+            "connection,_=listener.accept(); connection.recv(64)\n"
+            "connection.close(); listener.close()\n"
+            "result.write_text(json.dumps({'result':'fail','stage':'native_import'})+'\\n')\n"
+            "raise SystemExit(7)\n",
+        )
+        executable(
+            launcher,
+            "#!/usr/bin/env python3\n"
+            "import os, pathlib, socket, time\n"
+            "gate=pathlib.Path(os.environ['STEAM_ARM64_DIRECT_START_GATE'])\n"
+            "pathlib.Path(str(gate)+'.waiting').write_text('')\n"
+            "pathlib.Path(str(gate)+'.launcher-ready').write_text('')\n"
+            "deadline=time.monotonic()+5\n"
+            "while not gate.exists() and time.monotonic()<deadline: time.sleep(0.01)\n"
+            "gate.unlink(); pathlib.Path(str(gate)+'.waiting').unlink()\n"
+            "client=socket.socket(socket.AF_UNIX)\n"
+            "client.connect(os.environ['BVB_BRIDGE_SOCKET']); client.close()\n",
+        )
+        frame_failed = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env=environment,
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=15,
+        )
+        assert frame_failed.returncode == 1
+        assert "Activity frame transport did not pass: status=7" in frame_failed.stderr
+        assert len(activity_calls.read_text(encoding="utf-8").splitlines()) == 2
 
 
 if __name__ == "__main__":

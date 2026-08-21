@@ -32,6 +32,8 @@ frame_client_pid=
 activity_token=
 activity_port=
 helper_apk=
+activity_package=${activity_component%%/*}
+activity_version_code=
 direct_diagnostics=${TOMB_RAIDER_DIRECT_DIAGNOSTICS:-0}
 
 fail() {
@@ -101,6 +103,15 @@ mkdir -p "$run_dir"
 [[ -d $run_dir && ! -L $run_dir ]] || fail "unsafe BVB run directory: $run_dir"
 chmod 700 "$run_dir"
 
+activity_package_line=$("$package_manager" list packages --show-versioncode \
+    "$activity_package" 2>/dev/null | sed -n '1p')
+if [[ $activity_package_line =~ ^package:([^[:space:]]+)[[:space:]]+versionCode:([0-9]+) ]] &&
+   [[ ${BASH_REMATCH[1]} == "$activity_package" ]]; then
+    activity_version_code=${BASH_REMATCH[2]}
+fi
+[[ $activity_version_code =~ ^[0-9]+$ && $activity_version_code -ge 40 ]] ||
+    fail "BVB visible host versionCode 40 or newer is required: ${activity_package_line:-not installed}"
+
 : >"$service_log"
 : >"$launcher_log"
 : >"$frame_client_log"
@@ -162,6 +173,7 @@ fi
 
 "$activity_launcher" start -S -W -n "$activity_component" \
     --ei bvb_activity_port "$activity_port" \
+    --ei bvb_retain_external_renderer 1 \
     --es bvb_activity_token "$activity_token" >/dev/null
 for _ in $(seq 1 200); do
     grep -Eq 'activity_event=11 .*width=[1-9][0-9]* height=[1-9][0-9]*' \
@@ -174,7 +186,7 @@ grep -Eq 'activity_event=11 .*width=[1-9][0-9]* height=[1-9][0-9]*' \
     sed -n '1,120p' "$service_log" >&2 || true
     fail 'installed BVB Activity did not report a ready Vulkan renderer'
 }
-helper_apk=$("$package_manager" path "${activity_component%%/*}" 2>/dev/null |
+helper_apk=$("$package_manager" path "$activity_package" 2>/dev/null |
     sed -n 's/^package://p' | sed -n '1p')
 [[ $helper_apk == /* && -f $helper_apk && -r $helper_apk && ! -L $helper_apk ]] ||
     fail 'could not resolve a readable installed BVB Activity APK'
@@ -203,8 +215,19 @@ launcher_status=$?
 set -e
 launcher_pid=
 
-if [[ -n $frame_client_pid ]] && ! process_is_running "$frame_client_pid"; then
-    wait "$frame_client_pid" 2>/dev/null || true
+for _ in $(seq 1 200); do
+    process_is_running "$frame_client_pid" || break
+    sleep 0.05
+done
+frame_client_status=0
+if [[ -n $frame_client_pid ]]; then
+    if process_is_running "$frame_client_pid"; then
+        kill -TERM "$frame_client_pid" 2>/dev/null || true
+    fi
+    set +e
+    wait "$frame_client_pid"
+    frame_client_status=$?
+    set -e
     frame_client_pid=
 fi
 
@@ -215,8 +238,12 @@ wait "$service_pid" 2>/dev/null || true
 service_pid=
 printf 'Tomb Raider BVB probe complete: status=%s service_log=%s launcher_log=%s\n' \
     "$launcher_status" "$service_log" "$launcher_log"
-if [[ -s $frame_result ]]; then
+if [[ $frame_client_status -eq 0 && -s $frame_result ]] &&
+   grep -Eq '"result"[[:space:]]*:[[:space:]]*"pass"' "$frame_result"; then
     printf 'Tomb Raider BVB frame setup: result=%s log=%s\n' \
         "$(sed -n '1p' "$frame_result")" "$frame_client_log"
+else
+    sed -n '1,80p' "$frame_client_log" >&2 || true
+    fail "Activity frame transport did not pass: status=$frame_client_status result=$frame_result"
 fi
 exit "$launcher_status"
