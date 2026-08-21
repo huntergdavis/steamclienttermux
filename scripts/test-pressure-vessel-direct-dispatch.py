@@ -385,7 +385,7 @@ def main() -> None:
         )
         proc_stat.chmod(0o600)
         wine_debug = (
-            "+timestamp,+pid,+tid,+process,+module,+loaddll,+seh,"
+            "+timestamp,+pid,+tid,+process,+module,+loaddll,+seh,+vulkan,"
             "+winsock,+wininet,+winhttp,+iphlpapi,+nsi,"
             "+secur32,+schannel"
         )

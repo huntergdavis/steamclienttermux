@@ -749,7 +749,7 @@ def proton_smoke_environment(
         if diagnostics:
             return {
                 "WINEDEBUG": (
-                    "+timestamp,+pid,+tid,+process,+module,+loaddll,+seh,"
+                    "+timestamp,+pid,+tid,+process,+module,+loaddll,+seh,+vulkan,"
                     "+winsock,+wininet,+winhttp,+iphlpapi,+nsi,"
                     "+secur32,+schannel"
                 )
