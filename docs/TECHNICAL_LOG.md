@@ -7492,3 +7492,35 @@ This reused E011 and E043-E048 repository evidence; the required `deja`
 searches found no additional prior implementation. E050 will bridge the two
 measured external-capability command families, then return to virtual WSI and
 the first DXVK frame.
+
+## 2026-08-20: E051 reaches the visible Android host from real Tomb Raider
+
+The real AppID 203160 path now performs a deterministic foreground handoff.
+Termux:X11 is restored to Android's `/top-app` CPU classes before Steam is
+asked to launch; the direct dispatcher then waits for Steam acknowledgement
+and its own game-request marker before the authenticated BVB Activity takes
+the foreground. This corrected two observed races without weakening the
+performance guard. Commits `7fed0b0`, `96c7645`, and `940c9a9` are pushed to
+`origin/main`.
+
+On the Galaxy Tab S8+, the installed Activity authenticated to the bridge,
+reported renderer-ready event 11 at 2800×1752, and remained as the visible
+native app while the game child started. Wine selected the BVB ICD, advertised
+the four virtual WSI extensions, normalized its application extension list,
+and received `VK_SUCCESS` from the bridge's real Bionic `vkCreateInstance`.
+The direct child then exited with status 3 before a Tomb Raider frame replaced
+the rotating triangle. The same trace measured a separate Zink device request
+with two queue-create records, a non-null feature chain, and 33 extensions;
+the current bounded device bridge accepts one queue record and 24 extensions.
+Wine's later Tomb Raider instance resolved the virtual surface entry points
+but did not call surface creation before exit, so the next gate must diagnose
+that exact transition rather than assume Zink's device rejection is the only
+cause.
+
+Steam PID 5973 and X11 PID 27923 survived the run, and the probe cleaned its
+service and launch processes. This reuses E045's loader-private `pNext`
+discipline, E046's bounded extension transport, and E049's real Wine trace
+route. The required `deja` searches returned no additional prior
+implementation. E051 proves a visible authenticated Activity and successful
+Wine instance creation, not a swapchain, presented game frame, or performance
+result.
