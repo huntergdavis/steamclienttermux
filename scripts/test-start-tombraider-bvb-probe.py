@@ -138,6 +138,21 @@ def main() -> None:
         )
         assert "--es bvb_activity_token " in calls[0]
 
+        executable(launcher, "#!/bin/sh\nexit 17\n")
+        failed = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env=environment,
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=3,
+        )
+        assert failed.returncode == 1
+        assert "Steam foreground launch failed before Activity handoff: status=17" in (
+            failed.stderr
+        )
+        assert len(activity_calls.read_text(encoding="utf-8").splitlines()) == 1
+
 
 if __name__ == "__main__":
     main()

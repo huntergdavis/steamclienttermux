@@ -28,6 +28,16 @@ fail() {
     exit 1
 }
 
+process_is_running() {
+    local pid="$1" stat_line remainder state
+    [[ $pid =~ ^[1-9][0-9]*$ && -r /proc/$pid/stat ]] || return 1
+    IFS= read -r stat_line <"/proc/$pid/stat" || return 1
+    remainder=${stat_line##*) }
+    [[ $remainder != "$stat_line" ]] || return 1
+    state=${remainder%% *}
+    [[ $state != Z && $state != X ]]
+}
+
 cleanup() {
     if [[ -n ${launcher_pid:-} ]] && kill -0 "$launcher_pid" 2>/dev/null; then
         kill -TERM "$launcher_pid" 2>/dev/null || true
@@ -104,12 +114,12 @@ for _ in $(seq 1 6000); do
     [[ -f $start_gate_waiting && ! -L $start_gate_waiting &&
        -f $start_gate_launcher_ready && ! -L $start_gate_launcher_ready ]] &&
         break
-    kill -0 "$launcher_pid" 2>/dev/null || break
+    process_is_running "$launcher_pid" || break
     sleep 0.05
 done
 if [[ ! -f $start_gate_waiting || -L $start_gate_waiting ||
       ! -f $start_gate_launcher_ready || -L $start_gate_launcher_ready ]]; then
-    if kill -0 "$launcher_pid" 2>/dev/null; then
+    if process_is_running "$launcher_pid"; then
         sed -n '1,160p' "$launcher_log" >&2 || true
         fail 'Steam foreground handoff timed out before launch acknowledgement'
     fi
