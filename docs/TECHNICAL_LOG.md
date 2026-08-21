@@ -7603,3 +7603,23 @@ first-invocation trace. The required E077 and RGBW `deja` queries returned no
 indexed implementation; this sequence reuses E073's virtual swapchain, E074's
 fail-closed APK identity gate, E076's four-frame producer, and E077's
 strict/shared transport contracts.
+
+## 2026-08-21: E078 removes the shared-recording global lock
+
+The bridge's opt-in shared command stream now records distinct Vulkan command
+buffers concurrently instead of serializing every `Begin`/command/`End` behind
+the process-wide socket mutex. Each command buffer owns its recording lock, the
+bounded slot allocator has a separate lock, and typed object lookup uses a
+read-mostly registry. Submission remains on the existing control/socket
+boundary and follows a fixed control-to-command-buffer-to-slot lock order;
+strict mode and all wire formats remain unchanged.
+
+The host contract recorded two command buffers from two threads, with 256 fill
+commands per thread, zero recording socket exchanges, and one validated native
+submission containing both immutable streams. ThreadSanitizer passed that
+case, and the integrated bridge suite passed 53/53 at pushed bridge commit
+`422249a04a985872d7ecb7a2a64fd97df69f21a0`. This removes a CPU serialization
+bottleneck but is not a tablet frame or FPS result. The required exact `deja`
+query found no prior implementation; E078 reuses E075/E075a's command-stream
+ownership and transactional replay rules plus E077's strict-by-default A/B
+discipline.
