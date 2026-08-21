@@ -29,12 +29,47 @@ def main() -> None:
         executable(
             service,
             "#!/usr/bin/env python3\n"
-            "import socket, sys\n"
+            "import socket, struct, sys\n"
             "path=sys.argv[sys.argv.index('--socket')+1]\n"
+            "token=bytes.fromhex(sys.argv[sys.argv.index('--activity-token')+1])\n"
             "listener=socket.socket(socket.AF_UNIX)\n"
             "listener.bind(path); listener.listen(1)\n"
+            "activity=socket.socket(socket.AF_INET)\n"
+            "activity.bind(('127.0.0.1', 0)); activity.listen(1)\n"
+            "port=activity.getsockname()[1]\n"
+            "print(f'bvb-bridge-service: ready socket={path} loader=fake activity_port={port}', flush=True)\n"
+            "for expected_sequence in range(1, 7):\n"
+            "    connection,_=activity.accept()\n"
+            "    wire=b''\n"
+            "    while len(wire) < 64:\n"
+            "        wire += connection.recv(64-len(wire))\n"
+            "    magic,version,event,sequence,width,height,pid,clock,received_token=struct.unpack('<IHHIIIIQ32s', wire)\n"
+            "    status=0 if (magic,version,sequence,received_token)==(0x314c5642,1,expected_sequence,token) else -71\n"
+            "    connection.sendall(struct.pack('<IHHIi',0x314c5642,1,0,sequence,status))\n"
+            "    connection.close()\n"
+            "    if status != 0: raise SystemExit(4)\n"
+            "    print(f'bvb-bridge-service: activity_event={event} sequence={sequence} pid={pid} width={width} height={height}', flush=True)\n"
+            "activity.close()\n"
             "connection,_=listener.accept()\n"
             "connection.close(); listener.close()\n",
+        )
+        activity_calls = root / "activity-calls.txt"
+        activity_launcher = root / "fake-am"
+        executable(
+            activity_launcher,
+            "#!/usr/bin/env python3\n"
+            "import pathlib, socket, struct, sys\n"
+            f"log=pathlib.Path({str(activity_calls)!r})\n"
+            "with log.open('a', encoding='utf-8') as output: output.write(' '.join(sys.argv[1:])+'\\n')\n"
+            "if sys.argv[1] != 'start': raise SystemExit(0)\n"
+            "port=int(sys.argv[sys.argv.index('bvb_activity_port')+1])\n"
+            "token=bytes.fromhex(sys.argv[sys.argv.index('bvb_activity_token')+1])\n"
+            "events=[(1,0,0),(2,0,0),(3,0,0),(7,2800,1752),(11,2800,1752),(9,0,0)]\n"
+            "for sequence,(event,width,height) in enumerate(events,1):\n"
+            "    wire=struct.pack('<IHHIIIIQ32s',0x314c5642,1,event,sequence,width,height,12345,9876543210+sequence,token)\n"
+            "    with socket.create_connection(('127.0.0.1',port),timeout=1) as connection:\n"
+            "        connection.sendall(wire); ack=connection.recv(16)\n"
+            "    assert struct.unpack('<IHHIi',ack)[4] == 0\n",
         )
         result = root / "environment.txt"
         launcher = root / "launcher"
@@ -43,9 +78,10 @@ def main() -> None:
             "#!/usr/bin/env python3\n"
             "import os, pathlib, socket\n"
             "required=['STEAM_ARM64_BVB_VULKAN','BVB_BRIDGE_SOCKET',"
-            "'BVB_ICD_DIAGNOSTICS','BVB_ICD_PROBE_WSI']\n"
+            "'BVB_ICD_DIAGNOSTICS']\n"
             f"pathlib.Path({str(result)!r}).write_text('\\n'.join("
-            "f'{name}={os.environ[name]}' for name in required))\n"
+            "[*(f'{name}={os.environ[name]}' for name in required),"
+            "f\"BVB_ICD_PROBE_WSI={os.environ.get('BVB_ICD_PROBE_WSI','')}\"]))\n"
             "client=socket.socket(socket.AF_UNIX)\n"
             "client.connect(os.environ['BVB_BRIDGE_SOCKET'])\n"
             "client.close()\n",
@@ -55,6 +91,7 @@ def main() -> None:
             {
                 "STEAM_ARM64_BASE": str(base),
                 "TOMB_RAIDER_BVB_LAUNCHER": str(launcher),
+                "BVB_ACTIVITY_LAUNCHER": str(activity_launcher),
             }
         )
         completed = subprocess.run(
@@ -71,9 +108,16 @@ def main() -> None:
         )
         assert values["STEAM_ARM64_BVB_VULKAN"] == "1"
         assert values["BVB_ICD_DIAGNOSTICS"] == "1"
-        assert values["BVB_ICD_PROBE_WSI"] == "1"
+        assert values["BVB_ICD_PROBE_WSI"] == ""
         assert values["BVB_BRIDGE_SOCKET"].startswith(str(base / "run/bvb/"))
         assert not Path(values["BVB_BRIDGE_SOCKET"]).exists()
+        calls = activity_calls.read_text(encoding="utf-8").splitlines()
+        assert calls[0] == "force-stop io.github.huntergdavis.bvb.visiblehost"
+        assert calls[1].startswith(
+            "start -W -n io.github.huntergdavis.bvb.visiblehost/"
+            ".VisibleHostActivity --ei bvb_activity_port "
+        )
+        assert "--es bvb_activity_token " in calls[1]
 
 
 if __name__ == "__main__":
