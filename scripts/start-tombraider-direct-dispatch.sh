@@ -21,6 +21,7 @@ game_cpus=${TOMB_RAIDER_GAME_CPUS:-1-7}
 socket=$base/run/native-runtime-dispatch/dispatch.sock
 state=$base/run/tombraider-direct-dispatch.state
 start_gate=${STEAM_ARM64_DIRECT_START_GATE:-}
+start_gate_ack_timeout=${STEAM_ARM64_DIRECT_START_GATE_ACK_TIMEOUT:-300}
 start_gate_waiting=
 start_gate_launcher_ready=
 
@@ -49,6 +50,10 @@ fi
 [[ -d $base/run && ! -L $base/run && -d $base/logs && ! -L $base/logs ]] ||
     fail "Steam run or log directory is unavailable below $base"
 if [[ -n $start_gate ]]; then
+    if ! [[ $start_gate_ack_timeout =~ ^[0-9]+$ ]] ||
+            (( start_gate_ack_timeout < 1 || start_gate_ack_timeout > 600 )); then
+        fail 'STEAM_ARM64_DIRECT_START_GATE_ACK_TIMEOUT must be 1 through 600'
+    fi
     gate_directory=$base/run/bvb
     [[ -d $gate_directory && ! -L $gate_directory ]] ||
         fail "BVB launch-gate directory is unavailable: $gate_directory"
@@ -170,11 +175,17 @@ STEAM_APP_TIMEOUT=${STEAM_APP_TIMEOUT:-300} \
 "$launcher" --appid 203160 -- "${game_arguments[@]}" >"$launcher_log" 2>&1
 launcher_status=$?
 if (( launcher_status == 0 )) && [[ -n $start_gate ]]; then
+    for _ in $(seq 1 $((start_gate_ack_timeout * 20))); do
+        [[ -L $start_gate_waiting || -f $start_gate_waiting ]] && break
+        kill -0 "$server_pid" 2>/dev/null || break
+        sleep 0.05
+    done
     if [[ -f $start_gate_waiting && ! -L $start_gate_waiting ]] &&
        (set -o noclobber; : >"$start_gate_launcher_ready") 2>/dev/null; then
-        chmod 600 "$start_gate_launcher_ready"
+        :
     else
-        printf 'start-tombraider-direct-dispatch: launch gate was not waiting after Steam acknowledgement\n' \
+        printf 'start-tombraider-direct-dispatch: direct dispatch did not reach the launch gate within %ss after Steam acknowledgement\n' \
+            "$start_gate_ack_timeout" \
             >>"$launcher_log"
         launcher_status=1
     fi

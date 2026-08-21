@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import subprocess
 import tempfile
+import time
 
 
 SCRIPT = Path(__file__).with_name("start-tombraider-direct-dispatch.sh")
@@ -24,7 +25,7 @@ def main() -> None:
         executable(
             dispatcher,
             "#!/usr/bin/env python3\n"
-            "import argparse, pathlib, socket\n"
+            "import argparse, os, pathlib, socket, time\n"
             "parser = argparse.ArgumentParser()\n"
             "parser.add_argument('serve')\n"
             "parser.add_argument('--base')\n"
@@ -35,7 +36,9 @@ def main() -> None:
             "    listener.bind(str(path))\n"
             "    listener.listen(1)\n"
             "    connection, _ = listener.accept()\n"
-            "    connection.close()\n",
+            "    connection.close()\n"
+            "    if os.environ.get('FIXTURE_SERVER_HOLD') == '1':\n"
+            "        time.sleep(1)\n",
         )
         result_file = root / "launcher-environment"
         prepare_result = root / "prepare-result"
@@ -134,23 +137,36 @@ def main() -> None:
             gate_directory / "tombraider-start-20260821T010203Z-42.gate"
         )
         waiting = Path(f"{start_gate}.waiting")
-        waiting.write_text("", encoding="ascii")
-        waiting.chmod(0o600)
         executable(
             launcher,
             failing_launcher_body.replace("exit 1", "exit 0"),
         )
+        delayed_marker = subprocess.Popen(
+            [
+                os.sys.executable,
+                "-c",
+                "import os, pathlib, time; "
+                "time.sleep(0.5); "
+                "os.umask(0o077); "
+                "pathlib.Path(os.environ['FIXTURE_WAITING']).write_text('')",
+            ],
+            env={**os.environ, "FIXTURE_WAITING": str(waiting)},
+        )
+        started = time.monotonic()
         gated = subprocess.run(
             ["bash", str(SCRIPT)],
             env={
                 **environment,
                 "STEAM_ARM64_DIRECT_START_GATE": str(start_gate),
+                "FIXTURE_SERVER_HOLD": "1",
             },
             text=True,
             capture_output=True,
             check=False,
         )
+        delayed_marker.wait(timeout=2)
         assert gated.returncode == 0, gated.stderr
+        assert time.monotonic() - started >= 0.45
         launcher_ready = Path(f"{start_gate}.launcher-ready")
         assert launcher_ready.is_file() and not launcher_ready.is_symlink()
         assert launcher_ready.stat().st_mode & 0o077 == 0
