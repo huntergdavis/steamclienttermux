@@ -7569,3 +7569,37 @@ implementation therefore reuses E075's audited game-only command-stream
 selector, the native-bwrap environment-preservation boundary, and the direct
 dispatcher's existing sanitized final-environment reconstruction rather than
 introducing another environment path.
+
+## 2026-08-21: E077 is real on Turnip; v40 RGBW is the next truth gate
+
+The matching BVB implementation now passes on the Galaxy Tab S8+ through the
+real glibc-client/Bionic-service/private-Turnip boundary. An authoritative
+same-runtime A/B kept the allocation mapped through submit in both modes.
+Strict used 11 control round trips across map, flush, invalidate, unmap, and
+submit (`2/2/2/2/3`); the upload-only shared transport used five
+(`1/1/1/1/1`), a 54.5% reduction in this bounded control path. Both modes had
+zero mapped-byte and GPU-fill mismatches. This is a transport result, not a
+Tomb Raider frame or FPS result. The compact record, complete raw JSON, and
+rollback manifest are retained in the
+[bridge E077 evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e077-upload-memory-transport-tablet.json).
+
+The next gate is deliberately visual and isolated from Steam: Android Activity
+v40 must import the three exported images and display four producer-authored
+red/green/blue/white frames with ring slots `0,1,2,0`. The one-command runner
+pins the exact service, producer, adjacent ICD, APK, and Turnip identities;
+rejects a shadowing RUNPATH or malformed helper result; and requires one import
+plus exactly four correlated presents. Its current preflight correctly refuses
+the still-installed v39 before launching anything. The staged v40 update needs
+the user to approve Android's normal Update dialog; it has not been installed
+autonomously.
+
+Before that update, the installed E073 bridge and three current selector files
+were copied to a verified no-clobber rollback snapshot. The exact `065b64e`
+selector trio is separately staged and syntax-checked, but not installed.
+Steam PID 5973 and Termux:X11 PID 27923 retain their original start ticks. Once
+the user installs v40, the order is RGBW visual proof first, E077 deployment
+second, selector installation third, and only then a bounded real Tomb Raider
+first-invocation trace. The required E077 and RGBW `deja` queries returned no
+indexed implementation; this sequence reuses E073's virtual swapchain, E074's
+fail-closed APK identity gate, E076's four-frame producer, and E077's
+strict/shared transport contracts.
