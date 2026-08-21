@@ -14,6 +14,7 @@ import socket
 import stat
 import struct
 import sys
+import tempfile
 import time
 from typing import NoReturn
 
@@ -902,9 +903,25 @@ def direct_audio_environment(base: Path, runtime_root: Path) -> dict[str, str]:
     }
 
 
-def direct_game_environment(base: Path, runtime_root: Path) -> dict[str, str]:
+def direct_dxvk_environment(base: Path) -> dict[str, str]:
+    logs = private_directory(base / "logs", "Steam log directory", create=True)
+    directory = Path(tempfile.mkdtemp(prefix="dxvk-direct-", dir=logs))
+    directory.chmod(0o700)
+    private_directory(directory, "Direct DXVK log directory")
+    print(f"DXVK_LOG_PATH={directory}", flush=True)
+    return {
+        "DXVK_LOG_LEVEL": "info",
+        "DXVK_LOG_PATH": str(directory),
+    }
+
+
+def direct_game_environment(
+    base: Path, runtime_root: Path, diagnostics: bool = False
+) -> dict[str, str]:
     environment = direct_audio_environment(base, runtime_root)
     environment["TZ"] = "UTC0"
+    if diagnostics:
+        environment.update(direct_dxvk_environment(base))
     return environment
 
 
@@ -1222,7 +1239,9 @@ def pv_smoke_invocation(
     ):
         environment.update(proton_smoke_environment(command_mode, diagnostics))
     if command_mode in ("tombraider", "tombraider-benchmark"):
-        environment.update(direct_game_environment(base, runtime_root))
+        environment.update(
+            direct_game_environment(base, runtime_root, diagnostics)
+        )
         direct_fex_profile = os.environ.get("STEAM_ARM64_DIRECT_FEX_PROFILE")
         if direct_fex_profile is not None:
             apply_direct_fex_profile(environment, direct_fex_profile)

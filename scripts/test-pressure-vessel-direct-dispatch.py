@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import socket
+import stat
 import tempfile
 import threading
 import time
@@ -330,6 +331,21 @@ def main() -> None:
             **audio_environment,
             "TZ": "UTC0",
         }
+        diagnostic_game_environment = MODULE.direct_game_environment(
+            fixture_base, audio_runtime, True
+        )
+        dxvk_log_path = Path(diagnostic_game_environment["DXVK_LOG_PATH"])
+        assert diagnostic_game_environment == {
+            **audio_environment,
+            "TZ": "UTC0",
+            "DXVK_LOG_LEVEL": "info",
+            "DXVK_LOG_PATH": str(dxvk_log_path),
+        }
+        assert dxvk_log_path.parent == fixture_base / "logs"
+        assert dxvk_log_path.name.startswith("dxvk-direct-")
+        assert dxvk_log_path.is_dir() and not dxvk_log_path.is_symlink()
+        assert stat.S_IMODE(dxvk_log_path.stat().st_mode) == 0o700
+        assert dxvk_log_path.stat().st_uid == os.geteuid()
         stale_fex = {
             "FEX_MAXINST": "500",
             "FEX_TSOENABLED": "1",
@@ -521,6 +537,7 @@ def main() -> None:
     assert '"TGCOMPAT_PROC_NET": str(proc_net_shadow)' in invocation_source
     assert '"TGCOMPAT_PROC_STAT": str(proc_stat_shadow)' in invocation_source
     assert '("tombraider", "tombraider-benchmark")' in invocation_source
+    assert "direct_game_environment(base, runtime_root, diagnostics)" in invocation_source
     game_source = inspect.getsource(MODULE.run_tombraider)
     assert '"tombraider"' in game_source
     assert '"removable-library/steamapps/common/Tomb Raider"' in game_source
