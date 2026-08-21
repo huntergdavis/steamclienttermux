@@ -469,7 +469,16 @@ helper_apk=$(package_manager_call path "$activity_package" 2>/dev/null |
     sed -n 's/^package://p' | sed -n '1p')
 [[ $helper_apk == /* && -f $helper_apk && -r $helper_apk && ! -L $helper_apk ]] ||
     fail 'could not resolve a readable installed BVB Activity APK'
-env -u LD_LIBRARY_PATH -u LD_PRELOAD CLASSPATH="$helper_apk" \
+[[ $helper_apk == */base.apk ]] ||
+    fail 'installed BVB Activity APK path is not canonical'
+helper_native_library=${helper_apk%/base.apk}/lib/arm64/libbvb-visible-host.so
+[[ $helper_native_library == /* && -f $helper_native_library &&
+   -r $helper_native_library && -x $helper_native_library &&
+   ! -L $helper_native_library ]] ||
+    fail 'could not resolve the installed BVB Activity native library'
+env -u LD_LIBRARY_PATH -u LD_PRELOAD \
+    BVB_VISIBLE_HOST_NATIVE_LIBRARY="$helper_native_library" \
+    CLASSPATH="$helper_apk" \
     "$app_process" -Xnoimage-dex2oat / "$frame_client_class" \
     "$activity_token" "$frame_result" "$frame_setup_socket" \
     >"$frame_client_log" 2>&1 &

@@ -7728,3 +7728,21 @@ required `deja "BVB Activity ADB fullscreen Samsung window mode screenshot Tomb
 Raider launcher"` query found no indexed implementation. This reuses the
 existing bounded child cleanup and exact-package Activity ownership rules; it
 does not claim a Tomb Raider frame or FPS result.
+
+## 2026-08-21: Tomb Raider frame helper loads the installed native host
+
+The first E097 Tomb Raider rerun proved the Vulkan image-view fix but its
+standalone `app_process` frame helper failed before AHardwareBuffer receipt:
+`System.loadLibrary` cannot infer an APK's installed native-library directory
+from a bare `CLASSPATH`. The authoritative E074 runner had already solved this
+by passing `BVB_VISIBLE_HOST_NATIVE_LIBRARY`; the game launcher had omitted the
+same proven handoff.
+
+The launcher now requires a canonical installed `base.apk`, derives and
+validates its regular executable `lib/arm64/libbvb-visible-host.so`, and passes
+that exact absolute path only to `FrameTransportClient`. The fake package tree
+and helper contract prove both identities, and the complete project checks
+pass. The required `deja "E097 Activity frame transport status 1 after virtual
+swapchain image view"` query returned no indexed implementation. This reuses
+E074's explicit installed-native-library boundary; it does not change the APK
+or the per-frame no-Java/no-Binder architecture.
