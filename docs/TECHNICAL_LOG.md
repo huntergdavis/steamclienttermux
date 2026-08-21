@@ -7688,3 +7688,22 @@ integrated suite passed 58/58 at pushed bridge commit
 pass. This proves a client lookup reduction, not a tablet FPS gain. The exact
 `deja` query found no prior implementation; E080 reuses E075/E075a service
 validation, E076 typed poison, E078 locking, and E079a diagnostics.
+
+## 2026-08-21: E081 restores the full Termux build gate
+
+The combined E079a/E080 bridge compiled on the tablet, but one host-only E074
+contract repeatedly printed PASS and then aborted under Termux Python 3.14.6.
+A bridge-free reduction reproduced the Scudo failure with temporary nested
+`#!/usr/bin/env python3` fake command-line tools; equivalent fixed-output shell
+tools did not. E081 changes only those test fixtures. The real v40 preflight
+subprocess and its APK, certificate, ICD linkage, marker, frame-document, and
+authentication checks remain intact.
+
+The corrected contract passed 13/13 focused tablet runs, including a final
+10-run consecutive stress pass. The complete tablet suite passed 56/56 and the
+complete host suite passed 58/58. Installed E073, Activity v39, Steam, and
+Termux:X11 remained unchanged. Bridge main is pushed at
+`bb8b8333d1d0b95362b26e278b64b9a7c7d6858c`. This is test-infrastructure proof,
+not a deployed bridge, visible frame, Tomb Raider result, or FPS claim. The
+required `deja` query found no indexed match; E081 reuses E074's fail-closed
+runtime-gate semantics rather than weakening or skipping them.
