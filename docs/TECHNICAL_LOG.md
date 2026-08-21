@@ -7643,3 +7643,48 @@ required `deja "Tomb Raider BVB first rejection diagnostic final Wine DXVK
 environment selector captured environment smuggling"` query returned no
 indexed session. The implementation reuses E075/E077's audited game-only
 selector and sanitized final-environment reconstruction patterns.
+
+## 2026-08-21: E079a makes the first-rejection trace fail closed
+
+An adversarial review blocked the original E079 diagnostic before deployment:
+unsupported void Vulkan stubs could silently return, and stdio split the sole
+record across multiple writes. E079a supersedes that unsafe boundary. A
+missing `vkCmd*` now poisons the real command buffer and emits its one record at
+`EndCommandBuffer` with the typed command-buffer ID and sequence; an unsupported
+non-command void entry records and terminates only the opt-in diagnostic process
+with status 86. The immutable winning record is formatted off-lock and sent by
+one bounded `write(2)`. Negative Xlib, Xcb, and Wayland surface-create results
+are also covered without treating a false presentation-support boolean as an
+error.
+
+The standalone Termux glibc builder now generates and compiles the diagnostic
+dispatch as well as the normal CMake build. Real command-buffer poison,
+protected WSI rejection, concurrent first-winner, exact one-write, default-off
+pointer identity, and null-policy contracts all pass. The integrated bridge
+suite passed 57/57 before the next performance gate. This remains host proof;
+the exact next Tomb Raider Vulkan rejection is deliberately unknown until one
+selector-scoped tablet run emits it. Required `deja` searches found no prior
+implementation; the correction reuses E011's dispatch inventory, E075a's
+poison/End semantics, and E077/E078's default-off and locking rules.
+
+## 2026-08-21: E080 caches shared-recording ownership checks
+
+E078 removed socket and process-global mutex traffic from shared command
+recording, but each `vkCmd*` still touched the process-wide object-registry
+rwlock. E080 adds a fixed 16-entry positive ownership cache to each command
+buffer. A first reference still validates exact type and same-device ownership
+under the registry lock; repeated references in that recording stay local.
+`BeginCommandBuffer` and successful pool reset clear the cache, collisions
+revalidate, negative entries are never cached, and the Bionic service still
+authoritatively validates every typed object before replay.
+
+In the bounded host case, two threads appended 256 repeated fills each while
+performing two registry reads total—one per command buffer—instead of 512.
+Reset, collision, rerecord, cross-device, and stale-positive tests pass; the
+stale-positive case destroyed the buffer after recording and proved Submit2
+failed before native replay by preserving the native-memory sentinel. The
+integrated suite passed 58/58 at pushed bridge commit
+`b522c57ee7489ea95a0cf26ff87742c4c3cd2053`, with a fresh TSAN concurrency
+pass. This proves a client lookup reduction, not a tablet FPS gain. The exact
+`deja` query found no prior implementation; E080 reuses E075/E075a service
+validation, E076 typed poison, E078 locking, and E079a diagnostics.
