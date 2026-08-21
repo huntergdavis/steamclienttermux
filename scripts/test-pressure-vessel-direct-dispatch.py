@@ -39,7 +39,9 @@ def main() -> None:
     arm64_source = inspect.getsource(MODULE.run_proton_arm64_cmd_smoke)
     assert "proton-arm64-wine-" in arm64_source
     assert "trace_path" in arm64_source
-    assert 'diagnostics == "1"' in arm64_source
+    assert "direct_diagnostics_enabled" in arm64_source
+    tombraider_source = inspect.getsource(MODULE.run_tombraider)
+    assert "direct_diagnostics_enabled" in tombraider_source
     loader_source = inspect.getsource(MODULE.run_loader_child)
     assert '"-k"' in loader_source
     assert '"trace=%process,%signal,%network"' in loader_source
@@ -398,6 +400,23 @@ def main() -> None:
         assert MODULE.proton_smoke_environment("tombraider", True) == {
             "WINEDEBUG": wine_debug
         }
+        with mock.patch.dict(
+            os.environ, {"STEAM_ARM64_DIRECT_DIAGNOSTICS": "1"}, clear=False
+        ):
+            assert MODULE.direct_diagnostics_enabled()
+        with mock.patch.dict(
+            os.environ, {"STEAM_ARM64_DIRECT_DIAGNOSTICS": "0"}, clear=False
+        ):
+            assert not MODULE.direct_diagnostics_enabled()
+        with mock.patch.dict(
+            os.environ, {"STEAM_ARM64_DIRECT_DIAGNOSTICS": "invalid"}, clear=False
+        ):
+            try:
+                MODULE.direct_diagnostics_enabled()
+            except MODULE.DispatchError:
+                pass
+            else:
+                raise AssertionError("invalid direct diagnostics flag was accepted")
     assert MODULE.request_environment(
         {
             "environment": [

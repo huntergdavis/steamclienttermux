@@ -1250,19 +1250,24 @@ def run_proton_cmd_smoke(
     )
 
 
+def direct_diagnostics_enabled() -> bool:
+    diagnostics = os.environ.get("STEAM_ARM64_DIRECT_DIAGNOSTICS", "0")
+    if diagnostics not in ("0", "1"):
+        fail("STEAM_ARM64_DIRECT_DIAGNOSTICS must be 0 or 1")
+    return diagnostics == "1"
+
+
 def run_proton_arm64_cmd_smoke(
     base: Path,
     payload: dict[str, object],
     descriptors: list[int],
 ) -> tuple[int, int]:
-    diagnostics = os.environ.get("STEAM_ARM64_DIRECT_DIAGNOSTICS", "0")
-    if diagnostics not in ("0", "1"):
-        fail("STEAM_ARM64_DIRECT_DIAGNOSTICS must be 0 or 1")
+    diagnostics = direct_diagnostics_enabled()
     loader, arguments, environment = pv_smoke_invocation(
-        base, payload, "proton-arm64-cmd", diagnostics == "1"
+        base, payload, "proton-arm64-cmd", diagnostics
     )
     trace_path = None
-    if diagnostics == "1":
+    if diagnostics:
         logs = private_directory(base / "logs", "Steam log directory")
         trace_path = logs / f"proton-arm64-wine-{os.getpid()}.strace"
         print(f"STRACE_LOG={trace_path}", flush=True)
@@ -1282,7 +1287,7 @@ def run_tombraider(
     descriptors: list[int],
 ) -> tuple[int, int]:
     loader, arguments, environment = pv_smoke_invocation(
-        base, payload, "tombraider"
+        base, payload, "tombraider", direct_diagnostics_enabled()
     )
     return run_loader_child(
         loader,
@@ -1305,7 +1310,7 @@ def run_tombraider_benchmark(
     descriptors: list[int],
 ) -> tuple[int, int]:
     loader, arguments, environment = pv_smoke_invocation(
-        base, payload, "tombraider-benchmark"
+        base, payload, "tombraider-benchmark", direct_diagnostics_enabled()
     )
     return run_loader_child(
         loader,
