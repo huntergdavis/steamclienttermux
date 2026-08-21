@@ -37,6 +37,7 @@ activity_version_code=
 direct_diagnostics=${TOMB_RAIDER_DIRECT_DIAGNOSTICS:-0}
 command_stream=${TOMB_RAIDER_BVB_COMMAND_STREAM:-strict}
 mapped_memory=${TOMB_RAIDER_BVB_MAPPED_MEMORY:-strict}
+first_rejection_diagnostic=${TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC-0}
 child_stop_ticks=${BVB_CHILD_STOP_TICKS:-100}
 child_kill_ticks=${BVB_CHILD_KILL_TICKS:-20}
 frame_finish_ticks=${BVB_FRAME_FINISH_TICKS:-200}
@@ -199,12 +200,17 @@ trap 'exit 143' TERM
     fail 'TOMB_RAIDER_BVB_COMMAND_STREAM must be strict or shared'
 [[ $mapped_memory == strict || $mapped_memory == shared ]] ||
     fail 'TOMB_RAIDER_BVB_MAPPED_MEMORY must be strict or shared'
+[[ $first_rejection_diagnostic == 0 || $first_rejection_diagnostic == 1 ]] ||
+    fail 'TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC must be 0 or 1'
 # The effective ICD switch belongs only to the reconstructed Wine/DXVK
 # environment. Do not let caller-supplied copies reach the Bionic service,
 # Activity helper, direct launcher, Steam, or CEF.
 unset BVB_COMMAND_STREAM STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
     TOMB_RAIDER_BVB_COMMAND_STREAM BVB_MAPPED_MEMORY \
-    STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY TOMB_RAIDER_BVB_MAPPED_MEMORY
+    STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY TOMB_RAIDER_BVB_MAPPED_MEMORY \
+    BVB_FIRST_REJECTION_DIAGNOSTIC \
+    STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC \
+    TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC
 for tick_setting in child_stop_ticks child_kill_ticks frame_finish_ticks; do
     tick_value=${!tick_setting}
     [[ $tick_value =~ ^[1-9][0-9]*$ && $tick_value -le 6000 ]] ||
@@ -277,6 +283,7 @@ BVB_ICD_DIAGNOSTICS=1 \
 TOMB_RAIDER_DIRECT_DIAGNOSTICS="$direct_diagnostics" \
 TOMB_RAIDER_BVB_COMMAND_STREAM="$command_stream" \
 TOMB_RAIDER_BVB_MAPPED_MEMORY="$mapped_memory" \
+TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC="$first_rejection_diagnostic" \
 STEAM_ARM64_DIRECT_START_GATE="$start_gate" \
 "$launcher" "$@" >"$launcher_log" 2>&1 &
 launcher_pid=$!

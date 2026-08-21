@@ -112,40 +112,55 @@ def main() -> None:
                 "BVB_ICD_PROBE_WSI": "1",
                 "BVB_COMMAND_STREAM": "smuggled",
                 "BVB_MAPPED_MEMORY": "smuggled",
+                "BVB_FIRST_REJECTION_DIAGNOSTIC": "smuggled",
+                "TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC": "smuggled",
             },
             clear=False,
         ):
             assert MODULE.validated_host_vulkan_icd(base) == bvb
             os.environ.pop("STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM", None)
             os.environ.pop("STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY", None)
+            os.environ.pop(
+                "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC", None
+            )
             default_environment = MODULE.bvb_vulkan_environment()
             assert "BVB_COMMAND_STREAM" not in default_environment
             assert "BVB_MAPPED_MEMORY" not in default_environment
+            assert "BVB_FIRST_REJECTION_DIAGNOSTIC" not in default_environment
             for command_stream in ("strict", "shared"):
                 for mapped_memory in ("strict", "shared"):
-                    os.environ["STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM"] = (
-                        command_stream
-                    )
-                    os.environ["STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY"] = (
-                        mapped_memory
-                    )
-                    selected = MODULE.bvb_vulkan_environment()
-                    assert selected == {
-                        "BVB_BRIDGE_SOCKET": "/private/bvb.sock",
-                        "BVB_ICD_DIAGNOSTICS": "1",
-                        "BVB_ICD_PROBE_WSI": "1",
-                        **(
-                            {"BVB_COMMAND_STREAM": "shared"}
-                            if command_stream == "shared"
-                            else {}
-                        ),
-                        **(
-                            {"BVB_MAPPED_MEMORY": "shared"}
-                            if mapped_memory == "shared"
-                            else {}
-                        ),
-                        "VK_LOADER_DEBUG": "error,warn,driver",
-                    }
+                    for first_rejection_diagnostic in ("0", "1"):
+                        os.environ["STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM"] = (
+                            command_stream
+                        )
+                        os.environ["STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY"] = (
+                            mapped_memory
+                        )
+                        os.environ[
+                            "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC"
+                        ] = first_rejection_diagnostic
+                        selected = MODULE.bvb_vulkan_environment()
+                        assert selected == {
+                            "BVB_BRIDGE_SOCKET": "/private/bvb.sock",
+                            "BVB_ICD_DIAGNOSTICS": "1",
+                            "BVB_ICD_PROBE_WSI": "1",
+                            **(
+                                {"BVB_COMMAND_STREAM": "shared"}
+                                if command_stream == "shared"
+                                else {}
+                            ),
+                            **(
+                                {"BVB_MAPPED_MEMORY": "shared"}
+                                if mapped_memory == "shared"
+                                else {}
+                            ),
+                            **(
+                                {"BVB_FIRST_REJECTION_DIAGNOSTIC": "1"}
+                                if first_rejection_diagnostic == "1"
+                                else {}
+                            ),
+                            "VK_LOADER_DEBUG": "error,warn,driver",
+                        }
             os.environ["STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM"] = "invalid"
             try:
                 MODULE.bvb_vulkan_environment()
@@ -161,6 +176,18 @@ def main() -> None:
                 pass
             else:
                 raise AssertionError("invalid BVB mapped-memory selector was accepted")
+            os.environ["STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY"] = "strict"
+            os.environ[
+                "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC"
+            ] = "invalid"
+            try:
+                MODULE.bvb_vulkan_environment()
+            except MODULE.DispatchError:
+                pass
+            else:
+                raise AssertionError(
+                    "invalid BVB first-rejection diagnostic selector was accepted"
+                )
         with mock.patch.dict(
             os.environ,
             {
@@ -191,6 +218,24 @@ def main() -> None:
                 pass
             else:
                 raise AssertionError("shared mapped memory without BVB was accepted")
+        with mock.patch.dict(
+            os.environ,
+            {
+                "STEAM_ARM64_BVB_VULKAN": "0",
+                "STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM": "strict",
+                "STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY": "strict",
+                "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC": "1",
+            },
+            clear=False,
+        ):
+            try:
+                MODULE.bvb_vulkan_environment()
+            except MODULE.DispatchError:
+                pass
+            else:
+                raise AssertionError(
+                    "first-rejection diagnostic without BVB was accepted"
+                )
         with mock.patch.dict(
             os.environ, {"STEAM_ARM64_BVB_VULKAN": "invalid"}, clear=False
         ):
@@ -564,6 +609,9 @@ def main() -> None:
                 "BVB_MAPPED_MEMORY=shared",
                 "STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY=shared",
                 "TOMB_RAIDER_BVB_MAPPED_MEMORY=shared",
+                "BVB_FIRST_REJECTION_DIAGNOSTIC=1",
+                "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC=1",
+                "TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC=1",
             ]
         }
     ) == {"STEAM_COMPAT_APP_ID": "203160"}

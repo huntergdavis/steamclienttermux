@@ -7623,3 +7623,23 @@ bottleneck but is not a tablet frame or FPS result. The required exact `deja`
 query found no prior implementation; E078 reuses E075/E075a's command-stream
 ownership and transactional replay rules plus E077's strict-by-default A/B
 discipline.
+
+## 2026-08-21: E079 gets a game-only first-rejection diagnostic selector
+
+`TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC` accepts `0` (the default) or
+`1`. The direct launcher validates the user control and gives only the private
+`STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC` control to the dispatcher.
+The probe service, Activity launcher, package query, frame helper, Steam/CEF
+launch, and captured Pressure Vessel environment receive none of the user,
+private-control, or effective variables. Only an enabled final BVB Wine/DXVK
+environment receives exact `BVB_FIRST_REJECTION_DIAGNOSTIC=1`; disabled omits
+it. Unknown values and enablement without BVB fail closed.
+
+Tests cross both diagnostic values with all four command-stream/mapped-memory
+combinations, reject captured-environment smuggling, and prove the non-game
+process boundaries remain clean. This is diagnostic routing for the upcoming
+bridge E079 first-rejection trace, not a game-frame or performance result. The
+required `deja "Tomb Raider BVB first rejection diagnostic final Wine DXVK
+environment selector captured environment smuggling"` query returned no
+indexed session. The implementation reuses E075/E077's audited game-only
+selector and sanitized final-environment reconstruction patterns.

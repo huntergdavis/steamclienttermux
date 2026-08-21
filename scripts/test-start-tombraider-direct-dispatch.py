@@ -32,7 +32,7 @@ def main() -> None:
             "parser.add_argument('--base')\n"
             "parser.add_argument('--mode')\n"
             "args = parser.parse_args()\n"
-            "names=('BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_COMMAND_STREAM','BVB_MAPPED_MEMORY','STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY','TOMB_RAIDER_BVB_MAPPED_MEMORY')\n"
+            "names=('BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_COMMAND_STREAM','BVB_MAPPED_MEMORY','STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY','TOMB_RAIDER_BVB_MAPPED_MEMORY','BVB_FIRST_REJECTION_DIAGNOSTIC','STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC','TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC')\n"
             "pathlib.Path(os.environ['FIXTURE_SERVER_ENVIRONMENT']).write_text('\\n'.join(name+'='+os.environ.get(name,'<absent>') for name in names))\n"
             "path = pathlib.Path(args.base) / 'run/native-runtime-dispatch/dispatch.sock'\n"
             "with socket.socket(socket.AF_UNIX) as listener:\n"
@@ -61,7 +61,7 @@ def main() -> None:
             launcher,
             "#!/bin/bash\n"
             "printf '%s\\n' \"${STEAM_ARM64_BWRAP_DIRECT:-}\" \"$*\" >\"$FIXTURE_RESULT\"\n"
-            "for name in BVB_COMMAND_STREAM STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM TOMB_RAIDER_BVB_COMMAND_STREAM BVB_MAPPED_MEMORY STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY TOMB_RAIDER_BVB_MAPPED_MEMORY; do printf '%s=%s\\n' \"$name\" \"${!name-<absent>}\"; done >\"$FIXTURE_LAUNCHER_CONTROL_ENVIRONMENT\"\n"
+            "for name in BVB_COMMAND_STREAM STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM TOMB_RAIDER_BVB_COMMAND_STREAM BVB_MAPPED_MEMORY STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY TOMB_RAIDER_BVB_MAPPED_MEMORY BVB_FIRST_REJECTION_DIAGNOSTIC STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC; do printf '%s=%s\\n' \"$name\" \"${!name-<absent>}\"; done >\"$FIXTURE_LAUNCHER_CONTROL_ENVIRONMENT\"\n"
             "python3 - <<'PY'\n"
             "import os, socket\n"
             "with socket.socket(socket.AF_UNIX) as connection:\n"
@@ -112,10 +112,13 @@ def main() -> None:
             "STEAM_ARM64_BVB_VULKAN": "1",
             "TOMB_RAIDER_BVB_COMMAND_STREAM": "shared",
             "TOMB_RAIDER_BVB_MAPPED_MEMORY": "shared",
+            "TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC": "1",
             "BVB_COMMAND_STREAM": "smuggled",
             "STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM": "smuggled",
             "BVB_MAPPED_MEMORY": "smuggled",
             "STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY": "smuggled",
+            "BVB_FIRST_REJECTION_DIAGNOSTIC": "smuggled",
+            "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC": "smuggled",
         }
         result = subprocess.run(
             ["bash", str(SCRIPT)],
@@ -138,6 +141,9 @@ def main() -> None:
             "BVB_MAPPED_MEMORY=<absent>",
             "STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY=shared",
             "TOMB_RAIDER_BVB_MAPPED_MEMORY=<absent>",
+            "BVB_FIRST_REJECTION_DIAGNOSTIC=<absent>",
+            "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC=1",
+            "TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC=<absent>",
         ]
         assert launcher_control_environment.read_text().splitlines() == [
             "BVB_COMMAND_STREAM=<absent>",
@@ -146,6 +152,9 @@ def main() -> None:
             "BVB_MAPPED_MEMORY=<absent>",
             "STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY=<absent>",
             "TOMB_RAIDER_BVB_MAPPED_MEMORY=<absent>",
+            "BVB_FIRST_REJECTION_DIAGNOSTIC=<absent>",
+            "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC=<absent>",
+            "TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC=<absent>",
         ]
         state = (base / "run/tombraider-direct-dispatch.state").read_text()
         assert "mode=tombraider" in state
@@ -282,6 +291,36 @@ def main() -> None:
             invalid_mapped_memory.stderr
         )
 
+        invalid_first_rejection_diagnostic = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env={
+                **environment,
+                "TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC": "invalid",
+            },
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        assert invalid_first_rejection_diagnostic.returncode != 0
+        assert "TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC must be 0 or 1" in (
+            invalid_first_rejection_diagnostic.stderr
+        )
+
+        empty_first_rejection_diagnostic = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env={
+                **environment,
+                "TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC": "",
+            },
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        assert empty_first_rejection_diagnostic.returncode != 0
+        assert "TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC must be 0 or 1" in (
+            empty_first_rejection_diagnostic.stderr
+        )
+
         shared_without_bvb = subprocess.run(
             ["bash", str(SCRIPT)],
             env={
@@ -311,6 +350,24 @@ def main() -> None:
         assert mapped_memory_without_bvb.returncode != 0
         assert "shared BVB mapped memory requires" in (
             mapped_memory_without_bvb.stderr
+        )
+
+        diagnostic_without_bvb = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env={
+                **environment,
+                "TOMB_RAIDER_BVB_COMMAND_STREAM": "strict",
+                "TOMB_RAIDER_BVB_MAPPED_MEMORY": "strict",
+                "TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC": "1",
+                "STEAM_ARM64_BVB_VULKAN": "0",
+            },
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        assert diagnostic_without_bvb.returncode != 0
+        assert "BVB first-rejection diagnostic requires" in (
+            diagnostic_without_bvb.stderr
         )
 
         (base / "run/native-runtime-dispatch/dispatch.sock").unlink()

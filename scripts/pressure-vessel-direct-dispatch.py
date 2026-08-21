@@ -109,15 +109,24 @@ def bvb_vulkan_environment() -> dict[str, str]:
     mapped_memory = os.environ.get(
         "STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY", "strict"
     )
+    first_rejection_diagnostic = os.environ.get(
+        "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC", "0"
+    )
     if command_stream not in ("strict", "shared"):
         fail("STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM must be strict or shared")
     if mapped_memory not in ("strict", "shared"):
         fail("STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY must be strict or shared")
+    if first_rejection_diagnostic not in ("0", "1"):
+        fail(
+            "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC must be 0 or 1"
+        )
     if bvb != "1":
         if command_stream == "shared":
             fail("shared BVB command stream requires STEAM_ARM64_BVB_VULKAN=1")
         if mapped_memory == "shared":
             fail("shared BVB mapped memory requires STEAM_ARM64_BVB_VULKAN=1")
+        if first_rejection_diagnostic == "1":
+            fail("BVB first-rejection diagnostic requires STEAM_ARM64_BVB_VULKAN=1")
         return {}
     socket_path = os.environ.get("BVB_BRIDGE_SOCKET", "")
     if not socket_path.startswith("/"):
@@ -137,6 +146,8 @@ def bvb_vulkan_environment() -> dict[str, str]:
         environment["BVB_COMMAND_STREAM"] = "shared"
     if mapped_memory == "shared":
         environment["BVB_MAPPED_MEMORY"] = "shared"
+    if first_rejection_diagnostic == "1":
+        environment["BVB_FIRST_REJECTION_DIAGNOSTIC"] = "1"
     if diagnostics == "1":
         environment["VK_LOADER_DEBUG"] = "error,warn,driver"
     return environment
@@ -719,6 +730,9 @@ def request_environment(payload: dict[str, object]) -> dict[str, str]:
         "BVB_MAPPED_MEMORY",
         "STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY",
         "TOMB_RAIDER_BVB_MAPPED_MEMORY",
+        "BVB_FIRST_REJECTION_DIAGNOSTIC",
+        "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC",
+        "TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC",
     ):
         environment.pop(name, None)
     return environment
