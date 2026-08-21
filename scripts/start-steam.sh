@@ -354,6 +354,17 @@ require_top_app() {
         fail "$label PID $pid is cpuset=${cpuset:-unknown}, cpu=${cpu:-unknown}; refusing a four-core background launch. Open Termux visibly and run ~/start-steam.sh there"
 }
 
+wait_for_top_app() {
+    local pid="$1" _ cpuset cpu
+    for _ in $(seq 1 100); do
+        cpuset="$(cgroup_class "$pid" cpuset)"
+        cpu="$(cgroup_class "$pid" cpu)"
+        [[ "$cpuset" == /top-app && "$cpu" == /top-app ]] && return 0
+        sleep 0.05
+    done
+    return 1
+}
+
 thread_masks_are() {
     local pid="$1" expected="$2" status mask count=0
     for status in "/proc/$pid/task/"[0-9]*/status; do
@@ -549,6 +560,12 @@ case "${#x11_pids[@]}" in
             fail "expected one X server after startup, found ${#x11_pids[@]}"
         ;;
     1)
+        # A prior native Activity (including BVB) can leave this shared-UID
+        # X server backgrounded. Ask Android to foreground its visible Activity
+        # before enforcing the performance cgroup invariant.
+        foreground_x11
+        wait_for_top_app "${x11_pids[0]}" ||
+            require_top_app X11 "${x11_pids[0]}"
         require_top_app X11 "${x11_pids[0]}"
         wait_for_x11 || fail "existing X server ${x11_pids[0]} is unreachable"
         ;;

@@ -34,6 +34,13 @@ def main():
     assert source.count("settle_steam_processes") == 3
     assert source.count("--wait-for-cpu-log") == 1
     assert "multiple Steam main processes remained" in source
+    assert "wait_for_top_app()" in source
+    reused_x11 = source.index('    1)\n        # A prior native Activity')
+    foreground = source.index("        foreground_x11", reused_x11)
+    wait_top = source.index('        wait_for_top_app "${x11_pids[0]}"', foreground)
+    require_top = source.index('        require_top_app X11 "${x11_pids[0]}"', wait_top)
+    wait_x11 = source.index('        wait_for_x11 || fail "existing X server', require_top)
+    assert reused_x11 < foreground < wait_top < require_top < wait_x11
     assert parse() == {"appid": "", "background": "0", "argc": "0", "args": []}
     assert parse("203160", "-nolauncher", "-benchmark") == {
         "appid": "203160",
