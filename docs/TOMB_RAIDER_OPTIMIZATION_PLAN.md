@@ -143,7 +143,7 @@ as a default-performance change but remains available for explicit experiments.
 | RakNet-exclusive CPU1 (rejected) | The direct profile measured the single `Raknet-RecvFrom` thread at 99% on CPU1 while the game used 313% total. | Three alternating pairs changed mean min/max/avg by -25.28%/+1.91%/-2.15%. Keep production game CPUs1-7 with RakNet on CPU1. |
 | Internal-storage A/B | The game is on Android FUSE over the removable exFAT/sdfat card. This may affect loading and minimum-FPS stalls. | Low priority for mean FPS. The 15.3 GB game would leave only about 3.7 GB of the currently free 19 GB internal space, so do not move it until space is freed. |
 | No-PRoot native glibc host | PRoot uses `ptrace` to intercept and rewrite guest syscalls; the old tracer alone used 60-65% CPU. | Completed for the hot game tree through the guarded direct dispatcher; retain the parked outer request only for Steam lifecycle compatibility. |
-| Bionic/system-Vulkan host | The bridge passes persistent frame handoffs, Steam loader selection, real Adreno limits, device extensions, Vulkan 1.1 discovery, and one command-backed instance extension. | Build virtual Wine/DXVK surface/WSI on the persistent Android image path, add measured feature chains, reach one DXVK frame, then run the fixed 2800×1752 Low A/B. |
+| Bionic/private-Turnip host | E073 created the real 2800×1752 virtual swapchain, returned three exported images, acquired and presented one, and handed three image FDs plus the control page to the authenticated Activity sink. | Install the v40 Activity consumer, prove import and changing pixels, then reach one DXVK/Tomb Raider frame and run the fixed 2800×1752 Low A/B. No visible frame or FPS is claimed yet. |
 
 ## Changes not worth leading with
 

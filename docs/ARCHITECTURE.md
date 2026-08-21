@@ -62,31 +62,16 @@ the result. Both a direct Bionic control and the glibc-triggered service path
 verified 1,024 words with zero mismatches. This proves native Vulkan object and
 command execution across the process/ABI control boundary.
 
-The current Termux:X11 Binder interface exports X and log descriptors, not its
-Android `Surface`; its in-process renderer already owns that `SurfaceView` as an
-EGL producer. An X connection is not an `ANativeWindow`, and the tablet lacks
-`VK_EXT_headless_surface`. The next isolated gate therefore uses a controlled
-Android native window before adding a dedicated visible `SurfaceView` host.
-E006 passed that first gate with an independently owned 64x64
-`AImageReader`/`ANativeWindow`: the system loader created its Vulkan surface and
-reported stable queue, capability, format, and present-mode data across four
-runs. E007 then created its six-image FIFO swapchain, acquired and cleared an
-image, synchronized and presented it, acquired the consumer `AImage`, and
-verified all 4,096 opaque-magenta RGBA pixels. The full offscreen
-producer/BufferQueue/consumer loop now passes. E008 then packaged a standalone Bionic
-`NativeActivity` whose dedicated Android window visibly displayed the same
-opaque-magenta Vulkan frame. The bottom navigation bar remained visible. E009
-applied immersive-sticky flags on creation and after focus returns; the frame
-remained visible while the user confirmed that Android's navigation icons were
-fully hidden. The immersive visible host therefore works, while explicit
-bridge lifecycle handoff, shared-UID integration, game dispatch, DXVK
-integration, and performance remain future gates. E010 closes the first of
-those: a fresh 256-bit launch capability authenticates fixed-width Activity
-events to an opt-in `127.0.0.1` service ingress, while the existing
-owner-authenticated Unix socket exposes the derived state to glibc. The hardware
-gate reported the Activity created, started, resumed, focused, window-present,
-and renderer-ready at 2800x1752. Game dispatch, DXVK integration, and performance
-remain future gates.
+The bridge now owns an authenticated fullscreen Android Activity and a virtual
+desktop `VK_KHR_swapchain` backed by private Turnip. E073's canonical hardware
+run created a 2800x1752 three-image exportable ring, acquired and presented an
+image, and delivered its three image FDs plus shared control page to the
+authenticated Activity-side sink. The same run passed the exercised logical
+device, queue, memory, command, fence, and timeline paths without PRoot. This is
+a real producer/transport result, but the installed Activity has not yet
+imported and displayed those images: changing pixels, a Tomb Raider frame, and
+FPS remain unproven. The next gate is the v40 Activity import/present consumer,
+followed by the fixed native-resolution Tomb Raider A/B.
 
 Termux remains the Bionic control plane, while glibc remains necessary for the
 commercial Linux game stack. The experiment therefore narrows one boundary
