@@ -76,9 +76,18 @@ def main() -> None:
         executable(
             launcher,
             "#!/usr/bin/env python3\n"
-            "import os, pathlib, socket\n"
+            "import os, pathlib, socket, time\n"
             "required=['STEAM_ARM64_BVB_VULKAN','BVB_BRIDGE_SOCKET',"
-            "'BVB_ICD_DIAGNOSTICS']\n"
+            "'BVB_ICD_DIAGNOSTICS','STEAM_ARM64_DIRECT_START_GATE']\n"
+            "gate=pathlib.Path(os.environ['STEAM_ARM64_DIRECT_START_GATE'])\n"
+            "waiting=pathlib.Path(str(gate)+'.waiting')\n"
+            "ready=pathlib.Path(str(gate)+'.launcher-ready')\n"
+            "waiting.write_text('', encoding='ascii'); waiting.chmod(0o600)\n"
+            "ready.write_text('', encoding='ascii'); ready.chmod(0o600)\n"
+            "deadline=time.monotonic()+5\n"
+            "while not gate.exists() and time.monotonic()<deadline: time.sleep(0.01)\n"
+            "assert gate.is_file() and not gate.is_symlink()\n"
+            "gate.unlink(); waiting.unlink()\n"
             f"pathlib.Path({str(result)!r}).write_text('\\n'.join("
             "[*(f'{name}={os.environ[name]}' for name in required),"
             "f\"BVB_ICD_PROBE_WSI={os.environ.get('BVB_ICD_PROBE_WSI','')}\"]))\n"
@@ -110,7 +119,17 @@ def main() -> None:
         assert values["BVB_ICD_DIAGNOSTICS"] == "1"
         assert values["BVB_ICD_PROBE_WSI"] == ""
         assert values["BVB_BRIDGE_SOCKET"].startswith(str(base / "run/bvb/"))
+        assert values["STEAM_ARM64_DIRECT_START_GATE"].startswith(
+            str(base / "run/bvb/tombraider-start-")
+        )
         assert not Path(values["BVB_BRIDGE_SOCKET"]).exists()
+        assert not Path(values["STEAM_ARM64_DIRECT_START_GATE"]).exists()
+        assert not Path(
+            values["STEAM_ARM64_DIRECT_START_GATE"] + ".waiting"
+        ).exists()
+        assert not Path(
+            values["STEAM_ARM64_DIRECT_START_GATE"] + ".launcher-ready"
+        ).exists()
         calls = activity_calls.read_text(encoding="utf-8").splitlines()
         assert len(calls) == 1
         assert calls[0].startswith(

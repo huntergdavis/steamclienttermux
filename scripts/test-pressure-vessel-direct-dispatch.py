@@ -7,6 +7,8 @@ import os
 from pathlib import Path
 import socket
 import tempfile
+import threading
+import time
 from unittest import mock
 
 
@@ -48,6 +50,44 @@ def main() -> None:
     assert "os.chdir(working_directory)" in loader_source
     runtime_source = inspect.getsource(MODULE.selected_runtime)
     assert '"usr/lib/aarch64-linux-gnu/pulseaudio"' in runtime_source
+
+    with tempfile.TemporaryDirectory(prefix="direct-start-gate.") as directory:
+        base = Path(directory)
+        gate_directory = base / "run/bvb"
+        gate_directory.mkdir(parents=True, mode=0o700)
+        gate = gate_directory / "tombraider-start-20260821T010203Z-42.gate"
+        waiting = Path(f"{gate}.waiting")
+        failures: list[BaseException] = []
+
+        def wait_for_gate() -> None:
+            try:
+                MODULE.wait_for_direct_start_gate(base)
+            except BaseException as error:  # test thread must report failures
+                failures.append(error)
+
+        with mock.patch.dict(
+            os.environ,
+            {
+                "STEAM_ARM64_DIRECT_START_GATE": str(gate),
+                "STEAM_ARM64_DIRECT_START_GATE_TIMEOUT": "5",
+            },
+            clear=False,
+        ):
+            thread = threading.Thread(target=wait_for_gate)
+            thread.start()
+            deadline = time.monotonic() + 2.0
+            while not waiting.exists() and time.monotonic() < deadline:
+                time.sleep(0.01)
+            assert waiting.is_file() and not waiting.is_symlink()
+            descriptor = os.open(
+                gate, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600
+            )
+            os.close(descriptor)
+            thread.join(timeout=2.0)
+            assert not thread.is_alive()
+        assert failures == []
+        assert not gate.exists()
+        assert not waiting.exists()
 
     with tempfile.TemporaryDirectory(prefix="vulkan-icd-select.") as directory:
         base = Path(directory)

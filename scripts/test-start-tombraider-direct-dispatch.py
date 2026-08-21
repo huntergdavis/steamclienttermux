@@ -62,6 +62,7 @@ def main() -> None:
             "sleep 0.2\n"
             "exit 1\n",
         )
+        failing_launcher_body = launcher.read_text(encoding="utf-8")
         affinity = root / "affinity"
         executable(
             affinity,
@@ -125,6 +126,37 @@ def main() -> None:
             "--poll-seconds 0.25 "
             f"--lock-file {base}/runtime/tomb-raider-affinity.lock"
         ]
+
+        (base / "run/native-runtime-dispatch/dispatch.sock").unlink()
+        gate_directory = base / "run/bvb"
+        gate_directory.mkdir(mode=0o700)
+        start_gate = (
+            gate_directory / "tombraider-start-20260821T010203Z-42.gate"
+        )
+        waiting = Path(f"{start_gate}.waiting")
+        waiting.write_text("", encoding="ascii")
+        waiting.chmod(0o600)
+        executable(
+            launcher,
+            failing_launcher_body.replace("exit 1", "exit 0"),
+        )
+        gated = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env={
+                **environment,
+                "STEAM_ARM64_DIRECT_START_GATE": str(start_gate),
+            },
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        assert gated.returncode == 0, gated.stderr
+        launcher_ready = Path(f"{start_gate}.launcher-ready")
+        assert launcher_ready.is_file() and not launcher_ready.is_symlink()
+        assert launcher_ready.stat().st_mode & 0o077 == 0
+        waiting.unlink()
+        launcher_ready.unlink()
+        executable(launcher, failing_launcher_body)
 
         (base / "run/native-runtime-dispatch/dispatch.sock").unlink()
         benchmark_environment = {

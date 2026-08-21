@@ -173,6 +173,72 @@ def dispatch_socket(base: Path) -> Path:
     return directory / "dispatch.sock"
 
 
+def wait_for_direct_start_gate(base: Path) -> None:
+    value = os.environ.get("STEAM_ARM64_DIRECT_START_GATE")
+    if value is None:
+        return
+    gate = Path(value)
+    directory = private_directory(
+        base / "run/bvb", "BVB launch-gate directory"
+    )
+    if (
+        not gate.is_absolute()
+        or gate.parent != directory
+        or not re.fullmatch(
+            r"tombraider-start-\d{8}T\d{6}Z-\d+\.gate", gate.name
+        )
+    ):
+        fail(f"direct start gate is outside the controlled path: {gate}")
+    waiting = Path(f"{gate}.waiting")
+    for path in (gate, waiting):
+        if path.exists() or path.is_symlink():
+            fail(f"direct start gate path already exists: {path}")
+    descriptor = os.open(
+        waiting,
+        os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC,
+        0o600,
+    )
+    os.close(descriptor)
+    print(f"START_GATE_WAITING={waiting}", flush=True)
+    timeout_value = os.environ.get("STEAM_ARM64_DIRECT_START_GATE_TIMEOUT", "300")
+    if not timeout_value.isdecimal() or not 1 <= int(timeout_value) <= 600:
+        waiting.unlink()
+        fail("STEAM_ARM64_DIRECT_START_GATE_TIMEOUT must be 1 through 600")
+    deadline = time.monotonic() + int(timeout_value)
+    try:
+        while time.monotonic() < deadline:
+            if gate.is_symlink():
+                fail("direct start gate must not be a symbolic link")
+            try:
+                metadata = gate.lstat()
+            except FileNotFoundError:
+                time.sleep(0.05)
+                continue
+            if (
+                not stat.S_ISREG(metadata.st_mode)
+                or metadata.st_uid != os.geteuid()
+                or metadata.st_mode & 0o077
+                or metadata.st_size != 0
+            ):
+                fail(f"direct start gate is unsafe: {gate}")
+            gate.unlink()
+            print("START_GATE_RELEASED=1", flush=True)
+            return
+        fail("direct start gate timed out")
+    finally:
+        try:
+            metadata = waiting.lstat()
+        except FileNotFoundError:
+            pass
+        else:
+            if (
+                stat.S_ISREG(metadata.st_mode)
+                and not waiting.is_symlink()
+                and metadata.st_uid == os.geteuid()
+            ):
+                waiting.unlink()
+
+
 def locate_args_fd(arguments: list[str]) -> tuple[int, int, int]:
     for index, argument in enumerate(arguments):
         if argument == "--args":
@@ -1286,6 +1352,7 @@ def run_tombraider(
     payload: dict[str, object],
     descriptors: list[int],
 ) -> tuple[int, int]:
+    wait_for_direct_start_gate(base)
     loader, arguments, environment = pv_smoke_invocation(
         base, payload, "tombraider", direct_diagnostics_enabled()
     )
@@ -1309,6 +1376,7 @@ def run_tombraider_benchmark(
     payload: dict[str, object],
     descriptors: list[int],
 ) -> tuple[int, int]:
+    wait_for_direct_start_gate(base)
     loader, arguments, environment = pv_smoke_invocation(
         base, payload, "tombraider-benchmark", direct_diagnostics_enabled()
     )
@@ -1332,6 +1400,7 @@ def run_tombraider_diagnostic(
     payload: dict[str, object],
     descriptors: list[int],
 ) -> tuple[int, int]:
+    wait_for_direct_start_gate(base)
     loader, arguments, environment = pv_smoke_invocation(
         base, payload, "tombraider", True
     )

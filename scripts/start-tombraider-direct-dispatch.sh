@@ -20,6 +20,9 @@ raknet_nice=${TOMB_RAIDER_RAKNET_NICE:-}
 game_cpus=${TOMB_RAIDER_GAME_CPUS:-1-7}
 socket=$base/run/native-runtime-dispatch/dispatch.sock
 state=$base/run/tombraider-direct-dispatch.state
+start_gate=${STEAM_ARM64_DIRECT_START_GATE:-}
+start_gate_waiting=
+start_gate_launcher_ready=
 
 fail() {
     printf 'start-tombraider-direct-dispatch: %s\n' "$*" >&2
@@ -45,6 +48,19 @@ fi
     fail 'TOMB_RAIDER_GAME_CPUS must be 1-7 or 2-7'
 [[ -d $base/run && ! -L $base/run && -d $base/logs && ! -L $base/logs ]] ||
     fail "Steam run or log directory is unavailable below $base"
+if [[ -n $start_gate ]]; then
+    gate_directory=$base/run/bvb
+    [[ -d $gate_directory && ! -L $gate_directory ]] ||
+        fail "BVB launch-gate directory is unavailable: $gate_directory"
+    [[ ${start_gate%/*} == "$gate_directory" &&
+       ${start_gate##*/} =~ ^tombraider-start-[0-9]{8}T[0-9]{6}Z-[0-9]+\.gate$ ]] ||
+        fail "direct start gate is outside the controlled path: $start_gate"
+    start_gate_waiting=$start_gate.waiting
+    start_gate_launcher_ready=$start_gate.launcher-ready
+    [[ ! -e $start_gate && ! -L $start_gate &&
+       ! -e $start_gate_launcher_ready && ! -L $start_gate_launcher_ready ]] ||
+        fail 'direct start gate or launcher-ready marker already exists'
+fi
 [[ -x $python && (! -L $python || $python == "$default_python") ]] ||
     fail "Termux Python is unavailable: $python"
 [[ -f $dispatcher && ! -L $dispatcher ]] ||
@@ -153,6 +169,16 @@ STEAM_WINDOW_TIMEOUT=${STEAM_WINDOW_TIMEOUT:-300} \
 STEAM_APP_TIMEOUT=${STEAM_APP_TIMEOUT:-300} \
 "$launcher" --appid 203160 -- "${game_arguments[@]}" >"$launcher_log" 2>&1
 launcher_status=$?
+if (( launcher_status == 0 )) && [[ -n $start_gate ]]; then
+    if [[ -f $start_gate_waiting && ! -L $start_gate_waiting ]] &&
+       (set -o noclobber; : >"$start_gate_launcher_ready") 2>/dev/null; then
+        chmod 600 "$start_gate_launcher_ready"
+    else
+        printf 'start-tombraider-direct-dispatch: launch gate was not waiting after Steam acknowledgement\n' \
+            >>"$launcher_log"
+        launcher_status=1
+    fi
+fi
 if (( launcher_status != 0 )) && kill -0 "$server_pid" 2>/dev/null; then
     kill -TERM "$server_pid" 2>/dev/null || true
 fi

@@ -15,7 +15,11 @@ stamp=$(date -u +%Y%m%dT%H%M%SZ)
 socket=$run_dir/tombraider-probe-$stamp-$$.sock
 service_log=$log_dir/tombraider-bvb-service-$stamp.log
 launcher_log=$log_dir/tombraider-bvb-launcher-$stamp.log
+start_gate=$run_dir/tombraider-start-$stamp-$$.gate
+start_gate_waiting=$start_gate.waiting
+start_gate_launcher_ready=$start_gate.launcher-ready
 service_pid=
+launcher_pid=
 activity_token=
 activity_port=
 
@@ -25,6 +29,10 @@ fail() {
 }
 
 cleanup() {
+    if [[ -n ${launcher_pid:-} ]] && kill -0 "$launcher_pid" 2>/dev/null; then
+        kill -TERM "$launcher_pid" 2>/dev/null || true
+        wait "$launcher_pid" 2>/dev/null || true
+    fi
     if [[ -n ${service_pid:-} ]] && kill -0 "$service_pid" 2>/dev/null; then
         kill -TERM "$service_pid" 2>/dev/null || true
         wait "$service_pid" 2>/dev/null || true
@@ -32,6 +40,12 @@ cleanup() {
     if [[ -S $socket ]]; then
         unlink -- "$socket"
     fi
+    for marker in "$start_gate" "$start_gate_waiting" \
+        "$start_gate_launcher_ready"; do
+        if [[ -f $marker && ! -L $marker ]]; then
+            unlink -- "$marker"
+        fi
+    done
 }
 trap cleanup EXIT HUP INT TERM
 
@@ -78,6 +92,36 @@ done
 if command -v termux-wake-lock >/dev/null 2>&1; then
     termux-wake-lock >/dev/null 2>&1 || true
 fi
+printf 'Preparing Tomb Raider BVB foreground handoff: socket=%s service_log=%s launcher_log=%s\n' \
+    "$socket" "$service_log" "$launcher_log"
+STEAM_ARM64_BVB_VULKAN=1 \
+BVB_BRIDGE_SOCKET="$socket" \
+BVB_ICD_DIAGNOSTICS=1 \
+STEAM_ARM64_DIRECT_START_GATE="$start_gate" \
+"$launcher" "$@" >"$launcher_log" 2>&1 &
+launcher_pid=$!
+for _ in $(seq 1 6000); do
+    [[ -f $start_gate_waiting && ! -L $start_gate_waiting &&
+       -f $start_gate_launcher_ready && ! -L $start_gate_launcher_ready ]] &&
+        break
+    kill -0 "$launcher_pid" 2>/dev/null || break
+    sleep 0.05
+done
+if [[ ! -f $start_gate_waiting || -L $start_gate_waiting ||
+      ! -f $start_gate_launcher_ready || -L $start_gate_launcher_ready ]]; then
+    if kill -0 "$launcher_pid" 2>/dev/null; then
+        sed -n '1,160p' "$launcher_log" >&2 || true
+        fail 'Steam foreground handoff timed out before launch acknowledgement'
+    fi
+    set +e
+    wait "$launcher_pid"
+    launcher_status=$?
+    set -e
+    launcher_pid=
+    sed -n '1,160p' "$launcher_log" >&2 || true
+    fail "Steam foreground launch failed before Activity handoff: status=$launcher_status"
+fi
+
 "$activity_launcher" start -S -W -n "$activity_component" \
     --ei bvb_activity_port "$activity_port" \
     --es bvb_activity_token "$activity_token" >/dev/null
@@ -92,16 +136,16 @@ grep -Eq 'activity_event=11 .*width=[1-9][0-9]* height=[1-9][0-9]*' \
     sed -n '1,120p' "$service_log" >&2 || true
     fail 'installed BVB Activity did not report a ready Vulkan renderer'
 }
+(set -o noclobber; : >"$start_gate") 2>/dev/null ||
+    fail 'could not release the private direct-launch gate'
 
 printf 'Starting Tomb Raider BVB probe: socket=%s activity_port=%s service_log=%s launcher_log=%s\n' \
     "$socket" "$activity_port" "$service_log" "$launcher_log"
 set +e
-STEAM_ARM64_BVB_VULKAN=1 \
-BVB_BRIDGE_SOCKET="$socket" \
-BVB_ICD_DIAGNOSTICS=1 \
-"$launcher" "$@" >"$launcher_log" 2>&1
+wait "$launcher_pid"
 launcher_status=$?
 set -e
+launcher_pid=
 
 if kill -0 "$service_pid" 2>/dev/null; then
     kill -TERM "$service_pid" 2>/dev/null || true
