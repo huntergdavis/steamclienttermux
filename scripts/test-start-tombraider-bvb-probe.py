@@ -86,6 +86,7 @@ def main() -> None:
             "args=sys.argv[1:]\n"
             "with log.open('a', encoding='utf-8') as output: output.write(' '.join(args)+'\\n')\n"
             f"if args == ['force-stop', '--user', '0', {PACKAGE!r}]: raise SystemExit(0)\n"
+            "if args[:2] == ['task', 'resize'] and len(args) == 7: raise SystemExit(0)\n"
             "assert args[:2] == ['start', '-S']\n"
             "port=int(args[args.index('bvb_activity_port')+1])\n"
             "token=bytes.fromhex(args[args.index('bvb_activity_token')+1])\n"
@@ -104,7 +105,7 @@ def main() -> None:
         executable(
             package_manager,
             "#!/usr/bin/env python3\n"
-            "import os, sys\n"
+            "import os, pathlib, sys\n"
             "assert not any(name in os.environ for name in ('BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_COMMAND_STREAM','BVB_MAPPED_MEMORY','STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY','TOMB_RAIDER_BVB_MAPPED_MEMORY','BVB_FIRST_REJECTION_DIAGNOSTIC','STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC','TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC'))\n"
             f"package={PACKAGE!r}\n"
             "if sys.argv[1:] == ['list', 'packages', '--show-versioncode', package]:\n"
@@ -112,6 +113,37 @@ def main() -> None:
             "    print(f'package:{package} versionCode:{os.environ.get(\"FAKE_PM_VERSION\", \"40\")}')\n"
             "elif sys.argv[1:] == ['path', package]:\n"
             f"    print('package:{helper_apk}')\n"
+            "else:\n"
+            "    raise SystemExit(2)\n",
+        )
+
+        adb = root / "fake-adb"
+        executable(
+            adb,
+            "#!/usr/bin/env python3\n"
+            "import os, pathlib, sys\n"
+            "assert not any(name in os.environ for name in ('BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_COMMAND_STREAM','BVB_MAPPED_MEMORY','STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY','TOMB_RAIDER_BVB_MAPPED_MEMORY','BVB_FIRST_REJECTION_DIAGNOSTIC','STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC','TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC'))\n"
+            "args=sys.argv[1:]\n"
+            "assert args[:2] == ['-s','test-device:5555']\n"
+            "if args[2:] == ['get-state']:\n"
+            "    print('device')\n"
+            "elif args[2:4] == ['shell','am']:\n"
+            f"    os.execv({str(activity_launcher)!r}, [{str(activity_launcher)!r}, *args[4:]])\n"
+            "elif args[2:4] == ['shell','pm']:\n"
+            f"    os.execv({str(package_manager)!r}, [{str(package_manager)!r}, *args[4:]])\n"
+            "elif args[2:] == ['shell','dumpsys','activity','recents']:\n"
+            f"    records=pathlib.Path({str(activity_calls)!r}).read_text().splitlines() if pathlib.Path({str(activity_calls)!r}).exists() else []\n"
+            f"    if sum(line.startswith('start ') for line in records) > sum(line.startswith('force-stop ') for line in records): print('  * Recent #0: Task{{fake #4242 type=standard A=10323:{PACKAGE}}}')\n"
+            "elif args[2:] == ['shell','dumpsys','window','displays']:\n"
+            "    print('  Display: init=1752x2800 cur=2800x1752 app=2800x1752')\n"
+            "elif args[2:] == ['shell','dumpsys','window']:\n"
+            f"    print('  mCurrentFocus=Window{{fake u0 {PACKAGE}/.VisibleHostActivity}}')\n"
+            "elif args[2:4] == ['shell','input']:\n"
+            "    assert args[4:6] == ['tap','2630'] and args[6:] == ['74']\n"
+            "elif args[2:] == ['shell','cat','/proc/net/unix']:\n"
+            "    print(pathlib.Path('/proc/net/unix').read_text(), end='')\n"
+            "elif args[2:] == ['exec-out','screencap','-p']:\n"
+            "    sys.stdout.buffer.write(bytes.fromhex('89504e470d0a1a0a')+b'fake-png')\n"
             "else:\n"
             "    raise SystemExit(2)\n",
         )
@@ -375,6 +407,20 @@ def main() -> None:
         assert "probe complete: status=17" in launcher_first.stdout
         assert "Activity frame transport did not pass" not in launcher_first.stderr
         assert_activity_balanced(11)
+
+        paired_adb, _ = run_case(
+            BVB_ACTIVITY_ADB_SERIAL="test-device:5555",
+            BVB_ADB_COMMAND=str(adb),
+        )
+        assert paired_adb.returncode == 0, paired_adb.stderr
+        assert_activity_balanced(12)
+        paired_start = [record for record in calls() if record.startswith("start ")][-1]
+        assert "--windowingMode 1" in paired_start, paired_start
+        paired_resizes = [record for record in calls() if record.startswith("task resize ")]
+        assert paired_resizes[-1] == "task resize 4242 0 0 2800 1752"
+        paired_screenshots = list(logs.glob("tombraider-bvb-activity-*.png"))
+        assert len(paired_screenshots) == 1
+        assert paired_screenshots[0].read_bytes().startswith(bytes.fromhex("89504e470d0a1a0a"))
 
 
 if __name__ == "__main__":

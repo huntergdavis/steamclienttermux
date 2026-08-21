@@ -11,6 +11,8 @@ launcher=${TOMB_RAIDER_BVB_LAUNCHER:-$HOME/start-tombraider-direct-lean}
 activity_launcher=${BVB_ACTIVITY_LAUNCHER:-am}
 activity_component=${BVB_VISIBLE_HOST_COMPONENT:-io.github.huntergdavis.bvb.visiblehost/.VisibleHostActivity}
 package_manager=${BVB_PACKAGE_MANAGER:-pm}
+activity_adb_serial=${BVB_ACTIVITY_ADB_SERIAL:-}
+adb_command=${BVB_ADB_COMMAND:-adb}
 app_process=${BVB_APP_PROCESS:-/system/bin/app_process64}
 frame_client_class=io.github.huntergdavis.bvb.visiblehost.FrameTransportClient
 run_dir=$base/run/bvb
@@ -23,6 +25,7 @@ service_log=$log_dir/tombraider-bvb-service-$run_id.log
 launcher_log=$log_dir/tombraider-bvb-launcher-$run_id.log
 frame_client_log=$log_dir/tombraider-bvb-frame-client-$run_id.log
 frame_result=$log_dir/tombraider-bvb-frame-$run_id.json
+activity_screenshot=$log_dir/tombraider-bvb-activity-$run_id.png
 start_gate=$run_dir/tombraider-start-$run_id.gate
 start_gate_waiting=$start_gate.waiting
 start_gate_launcher_ready=$start_gate.launcher-ready
@@ -51,6 +54,127 @@ frame_result_summary=
 fail() {
     printf 'start-tombraider-bvb-probe: %s\n' "$*" >&2
     exit 1
+}
+
+activity_manager() {
+    if [[ -n $activity_adb_serial ]]; then
+        "$adb_command" -s "$activity_adb_serial" shell am "$@"
+    else
+        "$activity_launcher" "$@"
+    fi
+}
+
+package_manager_call() {
+    if [[ -n $activity_adb_serial ]]; then
+        "$adb_command" -s "$activity_adb_serial" shell pm "$@"
+    else
+        "$package_manager" "$@"
+    fi
+}
+
+frame_setup_listener_visible() {
+    if [[ -n $activity_adb_serial ]]; then
+        "$adb_command" -s "$activity_adb_serial" shell cat /proc/net/unix \
+            2>/dev/null | grep -Fq "@$frame_setup_socket"
+    else
+        grep -Fq "@$frame_setup_socket" /proc/net/unix
+    fi
+}
+
+remove_stale_activity_tasks() {
+    local task_dump task_id
+    [[ -n $activity_adb_serial ]] || return 0
+    task_dump=$("$adb_command" -s "$activity_adb_serial" shell \
+        dumpsys activity recents 2>/dev/null) ||
+        fail 'could not inspect BVB Activity tasks through paired ADB'
+    while IFS= read -r task_id; do
+        [[ $task_id =~ ^[1-9][0-9]{0,9}$ ]] ||
+            fail "unsafe BVB Activity task ID: $task_id"
+        activity_manager stack remove "$task_id" >/dev/null ||
+            fail "could not remove stale BVB Activity task: $task_id"
+    done < <(printf '%s\n' "$task_dump" |
+        grep -F ":$activity_package}" |
+        sed -n 's/.*#\([0-9][0-9]*\) type=.*/\1/p' |
+        sort -nu)
+}
+
+prepare_adb_activity_fullscreen() {
+    local display_dump task_dump focus_dump task_id display_width display_height
+    local fullscreen_x fullscreen_y png_magic
+    [[ -n $activity_adb_serial ]] || return 0
+
+    display_dump=$("$adb_command" -s "$activity_adb_serial" shell \
+        dumpsys window displays 2>/dev/null) ||
+        fail 'could not inspect the current Android display through paired ADB'
+    if [[ $display_dump =~ cur=([1-9][0-9]{2,4})x([1-9][0-9]{2,4}) ]]; then
+        display_width=${BASH_REMATCH[1]}
+        display_height=${BASH_REMATCH[2]}
+    else
+        fail 'could not resolve the current Android display extent'
+    fi
+
+    task_dump=$("$adb_command" -s "$activity_adb_serial" shell \
+        dumpsys activity recents 2>/dev/null) ||
+        fail 'could not inspect the launched BVB Activity task'
+    task_id=$(printf '%s\n' "$task_dump" |
+        grep -F ":$activity_package}" |
+        sed -n 's/.*#\([0-9][0-9]*\) type=.*/\1/p' |
+        sort -nu | tail -1)
+    [[ $task_id =~ ^[1-9][0-9]{0,9}$ ]] ||
+        fail 'could not resolve the launched BVB Activity task ID'
+
+    activity_manager task resize "$task_id" 0 0 \
+        "$display_width" "$display_height" >/dev/null ||
+        fail "could not resize BVB Activity task $task_id"
+    for _ in $(seq 1 200); do
+        grep -Eq "activity_event=11 .*width=$display_width height=$display_height" \
+            "$service_log" && break
+        kill -0 "$service_pid" 2>/dev/null || break
+        sleep 0.05
+    done
+    grep -Eq "activity_event=11 .*width=$display_width height=$display_height" \
+        "$service_log" ||
+        fail "BVB Activity did not adopt display extent ${display_width}x${display_height}"
+
+    focus_dump=$("$adb_command" -s "$activity_adb_serial" shell \
+        dumpsys window 2>/dev/null) ||
+        fail 'could not inspect Android window focus through paired ADB'
+    if ! printf '%s\n' "$focus_dump" | grep -F 'mCurrentFocus=' |
+            grep -Fq "$activity_package"; then
+        activity_manager start -W --activity-reorder-to-front \
+            -n "$activity_component" \
+            --ei bvb_activity_port "$activity_port" \
+            --ei bvb_retain_external_renderer 1 \
+            --es bvb_activity_token "$activity_token" >/dev/null ||
+            fail 'could not reorder the authenticated BVB Activity to the foreground'
+        sleep 0.25
+        focus_dump=$("$adb_command" -s "$activity_adb_serial" shell \
+            dumpsys window 2>/dev/null) ||
+            fail 'could not recheck Android window focus through paired ADB'
+    fi
+    printf '%s\n' "$focus_dump" | grep -F 'mCurrentFocus=' |
+        grep -Fq "$activity_package" ||
+        fail 'BVB Activity did not own Android window focus before fullscreen input'
+
+    fullscreen_x=$((display_width - 170))
+    fullscreen_y=74
+    (( fullscreen_x > 0 && fullscreen_y < display_height )) ||
+        fail 'resolved display extent cannot safely address the fullscreen control'
+    "$adb_command" -s "$activity_adb_serial" shell input tap \
+        "$fullscreen_x" "$fullscreen_y" >/dev/null ||
+        fail 'could not activate the Samsung fullscreen control'
+    # Let the renderer replace the Android splash before recording the milestone.
+    sleep 2
+
+    (set -o noclobber; "$adb_command" -s "$activity_adb_serial" \
+        exec-out screencap -p >"$activity_screenshot") 2>/dev/null ||
+        fail "could not capture the BVB Activity milestone screenshot: $activity_screenshot"
+    png_magic=$(od -An -N8 -tx1 "$activity_screenshot" | tr -d ' \n')
+    [[ $png_magic == 89504e470d0a1a0a ]] ||
+        fail "BVB Activity milestone screenshot is not PNG: $activity_screenshot"
+    chmod 600 "$activity_screenshot"
+    printf 'BVB Activity fullscreen ready: task=%s extent=%sx%s screenshot=%s\n' \
+        "$task_id" "$display_width" "$display_height" "$activity_screenshot"
 }
 
 process_is_running() {
@@ -158,7 +282,7 @@ cleanup() {
     stop_child_bounded "${service_pid:-}" service_status bridge-service || true
     service_pid=
     if [[ $activity_started -eq 1 ]]; then
-        "$activity_launcher" force-stop --user 0 "$activity_package" \
+        activity_manager force-stop --user 0 "$activity_package" \
             >/dev/null 2>&1 &
         activity_cleanup_pid=$!
         if ! wait_child_bounded "$activity_cleanup_pid" activity_cleanup_status \
@@ -216,13 +340,22 @@ for tick_setting in child_stop_ticks child_kill_ticks frame_finish_ticks; do
     [[ $tick_value =~ ^[1-9][0-9]*$ && $tick_value -le 6000 ]] ||
         fail "$tick_setting must be an integer in [1, 6000]"
 done
-command -v "$activity_launcher" >/dev/null 2>&1 ||
-    fail "Android Activity launcher is unavailable: $activity_launcher"
-command -v "$package_manager" >/dev/null 2>&1 ||
-    fail "Android package manager is unavailable: $package_manager"
+if [[ -n $activity_adb_serial ]]; then
+    [[ $activity_adb_serial =~ ^[A-Za-z0-9._:-]{1,128}$ ]] ||
+        fail 'BVB_ACTIVITY_ADB_SERIAL has an unsafe value'
+    command -v "$adb_command" >/dev/null 2>&1 ||
+        fail "ADB command is unavailable: $adb_command"
+    [[ $("$adb_command" -s "$activity_adb_serial" get-state 2>/dev/null) == device ]] ||
+        fail "paired ADB device is unavailable: $activity_adb_serial"
+else
+    command -v "$activity_launcher" >/dev/null 2>&1 ||
+        fail "Android Activity launcher is unavailable: $activity_launcher"
+    command -v "$package_manager" >/dev/null 2>&1 ||
+        fail "Android package manager is unavailable: $package_manager"
+fi
 [[ $app_process == /* && -x $app_process && ! -L $app_process ]] ||
     fail "Android app_process is unavailable or unsafe: $app_process"
-for command_name in grep od python3 sed seq tail tr; do
+for command_name in grep od python3 sed seq sort tail tr; do
     command -v "$command_name" >/dev/null 2>&1 ||
         fail "required command is unavailable: $command_name"
 done
@@ -230,7 +363,7 @@ mkdir -p "$run_dir"
 [[ -d $run_dir && ! -L $run_dir ]] || fail "unsafe BVB run directory: $run_dir"
 chmod 700 "$run_dir"
 
-if ! activity_package_output=$("$package_manager" list packages --show-versioncode \
+if ! activity_package_output=$(package_manager_call list packages --show-versioncode \
     "$activity_package" 2>/dev/null); then
     fail "could not query BVB visible host package: $activity_package"
 fi
@@ -309,10 +442,16 @@ if [[ ! -f $start_gate_waiting || -L $start_gate_waiting ||
     fail "Steam foreground launch failed before Activity handoff: status=$launcher_status"
 fi
 
-"$activity_launcher" start -S -W -n "$activity_component" \
-    --ei bvb_activity_port "$activity_port" \
-    --ei bvb_retain_external_renderer 1 \
-    --es bvb_activity_token "$activity_token" >/dev/null
+remove_stale_activity_tasks
+activity_start_arguments=(start -S -W)
+if [[ -n $activity_adb_serial ]]; then
+    activity_start_arguments+=(--windowingMode 1)
+fi
+activity_start_arguments+=(-n "$activity_component"
+    --ei bvb_activity_port "$activity_port"
+    --ei bvb_retain_external_renderer 1
+    --es bvb_activity_token "$activity_token")
+activity_manager "${activity_start_arguments[@]}" >/dev/null
 activity_started=1
 for _ in $(seq 1 200); do
     grep -Eq 'activity_event=11 .*width=[1-9][0-9]* height=[1-9][0-9]*' \
@@ -325,7 +464,8 @@ grep -Eq 'activity_event=11 .*width=[1-9][0-9]* height=[1-9][0-9]*' \
     sed -n '1,120p' "$service_log" >&2 || true
     fail 'installed BVB Activity did not report a ready Vulkan renderer'
 }
-helper_apk=$("$package_manager" path "$activity_package" 2>/dev/null |
+prepare_adb_activity_fullscreen
+helper_apk=$(package_manager_call path "$activity_package" 2>/dev/null |
     sed -n 's/^package://p' | sed -n '1p')
 [[ $helper_apk == /* && -f $helper_apk && -r $helper_apk && ! -L $helper_apk ]] ||
     fail 'could not resolve a readable installed BVB Activity APK'
@@ -335,11 +475,11 @@ env -u LD_LIBRARY_PATH -u LD_PRELOAD CLASSPATH="$helper_apk" \
     >"$frame_client_log" 2>&1 &
 frame_client_pid=$!
 for _ in $(seq 1 200); do
-    grep -Fq "@$frame_setup_socket" /proc/net/unix && break
+    frame_setup_listener_visible && break
     process_is_running "$frame_client_pid" || break
     sleep 0.05
 done
-grep -Fq "@$frame_setup_socket" /proc/net/unix || {
+frame_setup_listener_visible || {
     sed -n '1,80p' "$frame_client_log" >&2 || true
     fail 'Activity frame setup relay did not publish its same-UID socket'
 }

@@ -7707,3 +7707,24 @@ Termux:X11 remained unchanged. Bridge main is pushed at
 not a deployed bridge, visible frame, Tomb Raider result, or FPS claim. The
 required `deja` query found no indexed match; E081 reuses E074's fail-closed
 runtime-gate semantics rather than weakening or skipping them.
+
+## 2026-08-21: paired ADB owns the fullscreen Activity handoff
+
+The BVB probe can now route only Android package, Activity, task, focus, input,
+frame-listener visibility, and screenshot operations through an explicitly
+paired `BVB_ACTIVITY_ADB_SERIAL`. Steam, Wine, DXVK, the Bionic bridge service,
+and the frame helper remain in their existing Termux paths. The launcher removes
+only stale tasks for the exact BVB package, starts the Activity in fullscreen
+windowing mode, resizes the exact new task to the measured Android display,
+requires a matching renderer-ready extent and current focus, activates Samsung's
+fullscreen control, waits for the renderer to replace the splash, and records a
+PNG milestone without overwriting an existing file. The non-ADB path is
+unchanged.
+
+The host contract covers paired-device validation, exact package/task scope,
+display extent, focus, fullscreen input, screenshot signature, and absence of
+the game-only BVB optimization selectors from ADB and Activity helpers. The
+required `deja "BVB Activity ADB fullscreen Samsung window mode screenshot Tomb
+Raider launcher"` query found no indexed implementation. This reuses the
+existing bounded child cleanup and exact-package Activity ownership rules; it
+does not claim a Tomb Raider frame or FPS result.
