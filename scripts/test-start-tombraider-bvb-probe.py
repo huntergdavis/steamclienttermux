@@ -4,9 +4,11 @@ import os
 from pathlib import Path
 import subprocess
 import tempfile
+import time
 
 
 SCRIPT = Path(__file__).with_name("start-tombraider-bvb-probe.sh")
+PACKAGE = "io.github.huntergdavis.bvb.visiblehost"
 
 
 def executable(path: Path, body: str) -> None:
@@ -29,11 +31,12 @@ def main() -> None:
         driver.parent.mkdir(parents=True)
         driver.write_bytes(b"private-turnip-test-fixture\n")
         driver.chmod(0o600)
+
         service = base / "bvb/bin/bvb-bridge-service"
         executable(
             service,
             "#!/usr/bin/env python3\n"
-            "import socket, struct, sys\n"
+            "import os, signal, socket, struct, sys, time\n"
             "path=sys.argv[sys.argv.index('--socket')+1]\n"
             "frame_name=sys.argv[sys.argv.index('--activity-frame-socket')+1]\n"
             f"assert sys.argv[sys.argv.index('--loader')+1] == {str(driver)!r}\n"
@@ -49,7 +52,8 @@ def main() -> None:
             "    wire=b''\n"
             "    while len(wire) < 64:\n"
             "        wire += connection.recv(64-len(wire))\n"
-            "    magic,version,event,sequence,width,height,pid,clock,received_token=struct.unpack('<IHHIIIIQ32s', wire)\n"
+            "    values=struct.unpack('<IHHIIIIQ32s', wire)\n"
+            "    magic,version,event,sequence,width,height,pid,clock,received_token=values\n"
             "    status=0 if (magic,version,sequence,received_token)==(0x314c5642,1,expected_sequence,token) else -71\n"
             "    connection.sendall(struct.pack('<IHHIi',0x314c5642,1,0,sequence,status))\n"
             "    connection.close()\n"
@@ -62,10 +66,14 @@ def main() -> None:
             "    try: frame.connect('\\0'+frame_name); break\n"
             "    except OSError:\n"
             "        if attempt == 99: raise\n"
-            "        import time; time.sleep(0.01)\n"
+            "        time.sleep(0.01)\n"
             "frame.sendall(b'frame-setup'); frame.close()\n"
-            "connection.close(); listener.close()\n",
+            "connection.close(); listener.close()\n"
+            "if os.environ.get('FAKE_SERVICE_MODE') == 'die_after_handoff':\n"
+            "    raise SystemExit(23)\n"
+            "signal.pause()\n",
         )
+
         activity_calls = root / "activity-calls.txt"
         activity_launcher = root / "fake-am"
         executable(
@@ -73,10 +81,12 @@ def main() -> None:
             "#!/usr/bin/env python3\n"
             "import pathlib, socket, struct, sys\n"
             f"log=pathlib.Path({str(activity_calls)!r})\n"
-            "with log.open('a', encoding='utf-8') as output: output.write(' '.join(sys.argv[1:])+'\\n')\n"
-            "assert sys.argv[1:3] == ['start', '-S']\n"
-            "port=int(sys.argv[sys.argv.index('bvb_activity_port')+1])\n"
-            "token=bytes.fromhex(sys.argv[sys.argv.index('bvb_activity_token')+1])\n"
+            "args=sys.argv[1:]\n"
+            "with log.open('a', encoding='utf-8') as output: output.write(' '.join(args)+'\\n')\n"
+            f"if args == ['force-stop', '--user', '0', {PACKAGE!r}]: raise SystemExit(0)\n"
+            "assert args[:2] == ['start', '-S']\n"
+            "port=int(args[args.index('bvb_activity_port')+1])\n"
+            "token=bytes.fromhex(args[args.index('bvb_activity_token')+1])\n"
             "events=[(1,0,0),(2,0,0),(3,0,0),(7,2800,1752),(11,2800,1752),(9,0,0)]\n"
             "for sequence,(event,width,height) in enumerate(events,1):\n"
             "    wire=struct.pack('<IHHIIIIQ32s',0x314c5642,1,event,sequence,width,height,12345,9876543210+sequence,token)\n"
@@ -84,6 +94,7 @@ def main() -> None:
             "        connection.sendall(wire); ack=connection.recv(16)\n"
             "    assert struct.unpack('<IHHIi',ack)[4] == 0\n",
         )
+
         helper_apk = root / "visible-host.apk"
         helper_apk.write_bytes(b"test-visible-host-apk\n")
         helper_apk.chmod(0o600)
@@ -91,55 +102,67 @@ def main() -> None:
         executable(
             package_manager,
             "#!/usr/bin/env python3\n"
-            "import sys\n"
-            "if sys.argv[1:] == ['list', 'packages', '--show-versioncode', "
-            "'io.github.huntergdavis.bvb.visiblehost']:\n"
-            "    print('package:io.github.huntergdavis.bvb.visiblehost versionCode:40')\n"
-            "elif sys.argv[1:] == ['path', 'io.github.huntergdavis.bvb.visiblehost']:\n"
+            "import os, sys\n"
+            f"package={PACKAGE!r}\n"
+            "if sys.argv[1:] == ['list', 'packages', '--show-versioncode', package]:\n"
+            "    print('package:io.github.huntergdavis.bvb.visiblehost.decoy versionCode:999')\n"
+            "    print(f'package:{package} versionCode:{os.environ.get(\"FAKE_PM_VERSION\", \"40\")}')\n"
+            "elif sys.argv[1:] == ['path', package]:\n"
             f"    print('package:{helper_apk}')\n"
             "else:\n"
             "    raise SystemExit(2)\n",
         )
+
         app_process = root / "fake-app-process"
         executable(
             app_process,
             "#!/usr/bin/env python3\n"
-            "import json, os, pathlib, socket, sys\n"
+            "import json, os, pathlib, signal, socket, sys, time\n"
             "assert os.environ['CLASSPATH'].endswith('visible-host.apk')\n"
-            "assert sys.argv[1:4] == ['-Xnoimage-dex2oat', '/', "
-            "'io.github.huntergdavis.bvb.visiblehost.FrameTransportClient']\n"
+            "assert sys.argv[1:4] == ['-Xnoimage-dex2oat', '/', 'io.github.huntergdavis.bvb.visiblehost.FrameTransportClient']\n"
             "result=pathlib.Path(sys.argv[-2]); name=sys.argv[-1]\n"
+            "mode=os.environ.get('FAKE_HELPER_MODE','pass')\n"
+            "if mode in ('hang','delayed_fail'): signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
             "listener=socket.socket(socket.AF_UNIX)\n"
             "listener.bind('\\0'+name); listener.listen(1)\n"
             "connection,_=listener.accept(); assert connection.recv(64) == b'frame-setup'\n"
             "connection.close(); listener.close()\n"
-            "result.write_text(json.dumps({'result':'pass','per_frame_java_calls':0})+'\\n')\n",
+            "valid={'result':'pass','setup_transport':'persistent_external_image_ring','image_count':3,'generation':7,'per_frame_java_calls':0,'per_frame_binder_calls':0}\n"
+            "if mode == 'pass': result.write_text(json.dumps(valid)+'\\n')\n"
+            "elif mode == 'fail':\n"
+            "    result.write_text(json.dumps({'result':'fail','stage':'native_import'})+'\\n'); raise SystemExit(7)\n"
+            "elif mode == 'nested':\n"
+            "    valid.update({'result':'fail','nested':{'result':'pass'}}); result.write_text(json.dumps(valid)+'\\n')\n"
+            "elif mode == 'multiple': result.write_text(json.dumps(valid)+'\\n'+json.dumps(valid)+'\\n')\n"
+            "elif mode == 'delayed_fail': time.sleep(60)\n"
+            "elif mode == 'hang': time.sleep(60)\n"
+            "else: raise SystemExit(90)\n",
         )
-        result = root / "environment.txt"
+
+        environment_capture = root / "environment.txt"
         launcher = root / "launcher"
         executable(
             launcher,
             "#!/usr/bin/env python3\n"
-            "import os, pathlib, socket, time\n"
-            "required=['STEAM_ARM64_BVB_VULKAN','BVB_BRIDGE_SOCKET',"
-            "'BVB_ICD_DIAGNOSTICS','TOMB_RAIDER_DIRECT_DIAGNOSTICS',"
-            "'STEAM_ARM64_DIRECT_START_GATE']\n"
+            "import os, pathlib, signal, socket, sys, time\n"
+            "mode=os.environ.get('FAKE_LAUNCHER_MODE','pass')\n"
+            "if mode == 'early17': raise SystemExit(17)\n"
+            "required=['STEAM_ARM64_BVB_VULKAN','BVB_BRIDGE_SOCKET','BVB_ICD_DIAGNOSTICS','TOMB_RAIDER_DIRECT_DIAGNOSTICS','STEAM_ARM64_DIRECT_START_GATE']\n"
             "gate=pathlib.Path(os.environ['STEAM_ARM64_DIRECT_START_GATE'])\n"
-            "waiting=pathlib.Path(str(gate)+'.waiting')\n"
-            "ready=pathlib.Path(str(gate)+'.launcher-ready')\n"
+            "waiting=pathlib.Path(str(gate)+'.waiting'); ready=pathlib.Path(str(gate)+'.launcher-ready')\n"
             "waiting.write_text('', encoding='ascii'); waiting.chmod(0o600)\n"
             "ready.write_text('', encoding='ascii'); ready.chmod(0o600)\n"
             "deadline=time.monotonic()+5\n"
             "while not gate.exists() and time.monotonic()<deadline: time.sleep(0.01)\n"
             "assert gate.is_file() and not gate.is_symlink()\n"
             "gate.unlink(); waiting.unlink()\n"
-            f"pathlib.Path({str(result)!r}).write_text('\\n'.join("
-            "[*(f'{name}={os.environ[name]}' for name in required),"
-            "f\"BVB_ICD_PROBE_WSI={os.environ.get('BVB_ICD_PROBE_WSI','')}\"]))\n"
-            "client=socket.socket(socket.AF_UNIX)\n"
-            "client.connect(os.environ['BVB_BRIDGE_SOCKET'])\n"
-            "client.close()\n",
+            f"pathlib.Path({str(environment_capture)!r}).write_text('\\n'.join([*(f'{{name}}={{os.environ[name]}}' for name in required),f\"BVB_ICD_PROBE_WSI={{os.environ.get('BVB_ICD_PROBE_WSI','')}}\"]))\n"
+            "client=socket.socket(socket.AF_UNIX); client.connect(os.environ['BVB_BRIDGE_SOCKET']); client.close()\n"
+            "if mode == 'post17': raise SystemExit(17)\n"
+            "if mode == 'ignore_term': signal.signal(signal.SIGTERM, signal.SIG_IGN); time.sleep(60)\n"
+            "if mode != 'pass': raise SystemExit(91)\n",
         )
+
         environment = os.environ.copy()
         environment.update(
             {
@@ -148,19 +171,47 @@ def main() -> None:
                 "BVB_ACTIVITY_LAUNCHER": str(activity_launcher),
                 "BVB_PACKAGE_MANAGER": str(package_manager),
                 "BVB_APP_PROCESS": str(app_process),
+                "BVB_CHILD_STOP_TICKS": "4",
+                "BVB_CHILD_KILL_TICKS": "4",
+                "BVB_FRAME_FINISH_TICKS": "4",
             }
         )
-        completed = subprocess.run(
-            ["bash", str(SCRIPT)],
-            env=environment,
-            text=True,
-            capture_output=True,
-            check=False,
-        )
+
+        def run_case(**overrides: str) -> tuple[subprocess.CompletedProcess[str], float]:
+            case_environment = environment.copy()
+            case_environment.update(overrides)
+            before = time.monotonic()
+            completed = subprocess.run(
+                ["bash", str(SCRIPT)],
+                env=case_environment,
+                text=True,
+                capture_output=True,
+                check=False,
+                timeout=8,
+            )
+            return completed, time.monotonic() - before
+
+        def calls() -> list[str]:
+            if not activity_calls.exists():
+                return []
+            return activity_calls.read_text(encoding="utf-8").splitlines()
+
+        def assert_activity_balanced(expected: int) -> None:
+            records = calls()
+            starts = [record for record in records if record.startswith("start ")]
+            stops = [record for record in records if record.startswith("force-stop ")]
+            assert len(starts) == expected, records
+            assert len(stops) == expected, records
+            assert all(record == f"force-stop --user 0 {PACKAGE}" for record in stops)
+
+        completed, _ = run_case()
         assert completed.returncode == 0, completed.stderr
+        assert "frame setup-only handoff" in completed.stdout
+        assert "E057_FRAME_PRESENTED" not in completed.stdout
+        assert "standalone_E074=authoritative" in completed.stdout
         values = dict(
             line.split("=", 1)
-            for line in result.read_text(encoding="utf-8").splitlines()
+            for line in environment_capture.read_text(encoding="utf-8").splitlines()
         )
         assert values["STEAM_ARM64_BVB_VULKAN"] == "1"
         assert values["BVB_ICD_DIAGNOSTICS"] == "1"
@@ -172,109 +223,71 @@ def main() -> None:
         )
         assert not Path(values["BVB_BRIDGE_SOCKET"]).exists()
         assert not Path(values["STEAM_ARM64_DIRECT_START_GATE"]).exists()
-        assert not Path(
-            values["STEAM_ARM64_DIRECT_START_GATE"] + ".waiting"
-        ).exists()
-        assert not Path(
-            values["STEAM_ARM64_DIRECT_START_GATE"] + ".launcher-ready"
-        ).exists()
-        calls = activity_calls.read_text(encoding="utf-8").splitlines()
-        assert len(calls) == 1
-        assert calls[0].startswith(
-            "start -S -W -n io.github.huntergdavis.bvb.visiblehost/"
-            ".VisibleHostActivity --ei bvb_activity_port "
-        )
-        assert "--es bvb_activity_token " in calls[0]
-        assert "--ei bvb_retain_external_renderer 1" in calls[0]
+        assert_activity_balanced(1)
+        start_record = next(record for record in calls() if record.startswith("start "))
+        assert "--es bvb_activity_token " in start_record
+        assert "--ei bvb_retain_external_renderer 1" in start_record
         frame_results = list(logs.glob("tombraider-bvb-frame-*.json"))
         assert len(frame_results) == 1
-        assert '"per_frame_java_calls": 0' in frame_results[0].read_text()
+        assert '"image_count": 3' in frame_results[0].read_text()
 
-        executable(launcher, "#!/bin/sh\nexit 17\n")
-        failed = subprocess.run(
-            ["bash", str(SCRIPT)],
-            env=environment,
-            text=True,
-            capture_output=True,
-            check=False,
-            timeout=3,
-        )
-        assert failed.returncode == 1
-        assert "Steam foreground launch failed before Activity handoff: status=17" in (
-            failed.stderr
-        )
-        assert len(activity_calls.read_text(encoding="utf-8").splitlines()) == 1
+        early, _ = run_case(FAKE_LAUNCHER_MODE="early17")
+        assert early.returncode == 1
+        assert "failed before Activity handoff: status=17" in early.stderr
+        assert_activity_balanced(1)
 
-        executable(
-            package_manager,
-            "#!/usr/bin/env python3\n"
-            "import sys\n"
-            "if sys.argv[1] == 'list':\n"
-            "    print('package:io.github.huntergdavis.bvb.visiblehost versionCode:39')\n"
-            "elif sys.argv[1] == 'path':\n"
-            f"    print('package:{helper_apk}')\n"
-            "else:\n"
-            "    raise SystemExit(2)\n",
-        )
-        stale = subprocess.run(
-            ["bash", str(SCRIPT)],
-            env=environment,
-            text=True,
-            capture_output=True,
-            check=False,
-            timeout=3,
-        )
+        stale, _ = run_case(FAKE_PM_VERSION="39")
         assert stale.returncode == 1
         assert "visible host versionCode 40 or newer is required" in stale.stderr
-        assert len(activity_calls.read_text(encoding="utf-8").splitlines()) == 1
+        assert_activity_balanced(1)
 
-        executable(
-            package_manager,
-            "#!/usr/bin/env python3\n"
-            "import sys\n"
-            "if sys.argv[1] == 'list':\n"
-            "    print('package:io.github.huntergdavis.bvb.visiblehost versionCode:40')\n"
-            "elif sys.argv[1] == 'path':\n"
-            f"    print('package:{helper_apk}')\n"
-            "else:\n"
-            "    raise SystemExit(2)\n",
-        )
-        executable(
-            app_process,
-            "#!/usr/bin/env python3\n"
-            "import json, pathlib, socket, sys\n"
-            "result=pathlib.Path(sys.argv[-2]); name=sys.argv[-1]\n"
-            "listener=socket.socket(socket.AF_UNIX)\n"
-            "listener.bind('\\0'+name); listener.listen(1)\n"
-            "connection,_=listener.accept(); connection.recv(64)\n"
-            "connection.close(); listener.close()\n"
-            "result.write_text(json.dumps({'result':'fail','stage':'native_import'})+'\\n')\n"
-            "raise SystemExit(7)\n",
-        )
-        executable(
-            launcher,
-            "#!/usr/bin/env python3\n"
-            "import os, pathlib, socket, time\n"
-            "gate=pathlib.Path(os.environ['STEAM_ARM64_DIRECT_START_GATE'])\n"
-            "pathlib.Path(str(gate)+'.waiting').write_text('')\n"
-            "pathlib.Path(str(gate)+'.launcher-ready').write_text('')\n"
-            "deadline=time.monotonic()+5\n"
-            "while not gate.exists() and time.monotonic()<deadline: time.sleep(0.01)\n"
-            "gate.unlink(); pathlib.Path(str(gate)+'.waiting').unlink()\n"
-            "client=socket.socket(socket.AF_UNIX)\n"
-            "client.connect(os.environ['BVB_BRIDGE_SOCKET']); client.close()\n",
-        )
-        frame_failed = subprocess.run(
-            ["bash", str(SCRIPT)],
-            env=environment,
-            text=True,
-            capture_output=True,
-            check=False,
-            timeout=15,
+        frame_failed, elapsed = run_case(
+            FAKE_HELPER_MODE="fail", FAKE_LAUNCHER_MODE="ignore_term"
         )
         assert frame_failed.returncode == 1
         assert "Activity frame transport did not pass: status=7" in frame_failed.stderr
-        assert len(activity_calls.read_text(encoding="utf-8").splitlines()) == 2
+        assert elapsed < 4, elapsed
+        assert "launcher pid" in frame_failed.stderr and "sending KILL" in frame_failed.stderr
+        assert_activity_balanced(2)
+
+        nested, _ = run_case(
+            FAKE_HELPER_MODE="nested", FAKE_LAUNCHER_MODE="ignore_term"
+        )
+        assert nested.returncode == 1
+        assert "Activity frame transport did not pass: status=0" in nested.stderr
+        assert_activity_balanced(3)
+
+        multiple, _ = run_case(
+            FAKE_HELPER_MODE="multiple", FAKE_LAUNCHER_MODE="ignore_term"
+        )
+        assert multiple.returncode == 1
+        assert "Activity frame transport did not pass: status=0" in multiple.stderr
+        assert_activity_balanced(4)
+
+        hung_helper, elapsed = run_case(FAKE_HELPER_MODE="hang")
+        assert hung_helper.returncode == 1
+        assert "Activity frame transport timed out" in hung_helper.stderr
+        assert "frame-client pid" in hung_helper.stderr and "sending KILL" in hung_helper.stderr
+        assert elapsed < 4, elapsed
+        assert_activity_balanced(5)
+
+        service_died, elapsed = run_case(
+            FAKE_SERVICE_MODE="die_after_handoff",
+            FAKE_HELPER_MODE="hang",
+            FAKE_LAUNCHER_MODE="ignore_term",
+        )
+        assert service_died.returncode == 1
+        assert "BVB service exited during the foreground probe: status=23" in service_died.stderr
+        assert elapsed < 4, elapsed
+        assert_activity_balanced(6)
+
+        launcher_first, _ = run_case(
+            FAKE_HELPER_MODE="delayed_fail", FAKE_LAUNCHER_MODE="post17"
+        )
+        assert launcher_first.returncode == 17, launcher_first.stderr
+        assert "probe complete: status=17" in launcher_first.stdout
+        assert "Activity frame transport did not pass" not in launcher_first.stderr
+        assert_activity_balanced(7)
 
 
 if __name__ == "__main__":

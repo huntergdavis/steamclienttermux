@@ -35,6 +35,15 @@ helper_apk=
 activity_package=${activity_component%%/*}
 activity_version_code=
 direct_diagnostics=${TOMB_RAIDER_DIRECT_DIAGNOSTICS:-0}
+child_stop_ticks=${BVB_CHILD_STOP_TICKS:-100}
+child_kill_ticks=${BVB_CHILD_KILL_TICKS:-20}
+frame_finish_ticks=${BVB_FRAME_FINISH_TICKS:-200}
+activity_started=0
+cleanup_started=0
+launcher_status=
+frame_client_status=
+service_status=
+frame_result_summary=
 
 fail() {
     printf 'start-tombraider-bvb-probe: %s\n' "$*" >&2
@@ -51,19 +60,110 @@ process_is_running() {
     [[ $state != Z && $state != X ]]
 }
 
+reap_child() {
+    local pid="$1" status_name="$2" child_status
+    if wait "$pid" 2>/dev/null; then
+        child_status=0
+    else
+        child_status=$?
+    fi
+    printf -v "$status_name" '%s' "$child_status"
+}
+
+stop_child_bounded() {
+    local pid="$1" status_name="$2" label="$3"
+    [[ $pid =~ ^[1-9][0-9]*$ ]] || return 0
+    if process_is_running "$pid"; then
+        kill -TERM "$pid" 2>/dev/null || true
+        for _ in $(seq 1 "$child_stop_ticks"); do
+            process_is_running "$pid" || break
+            sleep 0.05
+        done
+    fi
+    if process_is_running "$pid"; then
+        printf 'start-tombraider-bvb-probe: %s pid %s ignored TERM; sending KILL\n' \
+            "$label" "$pid" >&2
+        kill -KILL "$pid" 2>/dev/null || true
+        for _ in $(seq 1 "$child_kill_ticks"); do
+            process_is_running "$pid" || break
+            sleep 0.05
+        done
+    fi
+    if process_is_running "$pid"; then
+        printf 'start-tombraider-bvb-probe: %s pid %s survived bounded cleanup\n' \
+            "$label" "$pid" >&2
+        printf -v "$status_name" '%s' 124
+        return 1
+    fi
+    reap_child "$pid" "$status_name"
+}
+
+# Invoked by EXIT-trap cleanup.
+# shellcheck disable=SC2329
+wait_child_bounded() {
+    local pid="$1" status_name="$2" label="$3" ticks="$4"
+    [[ $pid =~ ^[1-9][0-9]*$ ]] || return 0
+    for _ in $(seq 1 "$ticks"); do
+        process_is_running "$pid" || break
+        sleep 0.05
+    done
+    if process_is_running "$pid"; then
+        stop_child_bounded "$pid" "$status_name" "$label"
+        return 124
+    fi
+    reap_child "$pid" "$status_name"
+}
+
+validate_frame_result() {
+    python3 - "$frame_result" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+try:
+    document = json.loads(path.read_text(encoding="utf-8"))
+except (OSError, UnicodeError, json.JSONDecodeError) as error:
+    raise SystemExit(f"invalid frame result JSON: {error}")
+if not isinstance(document, dict):
+    raise SystemExit("frame result must be one top-level JSON object")
+if document.get("result") != "pass":
+    raise SystemExit("frame result is not pass")
+for name in ("image_count", "generation", "per_frame_java_calls", "per_frame_binder_calls"):
+    if type(document.get(name)) is not int:
+        raise SystemExit(f"frame result {name} must be an integer")
+if not 2 <= document["image_count"] <= 4:
+    raise SystemExit("frame result image_count must be in [2, 4]")
+if document["generation"] <= 0:
+    raise SystemExit("frame result generation must be positive")
+if document["per_frame_java_calls"] != 0 or document["per_frame_binder_calls"] != 0:
+    raise SystemExit("frame result per-frame Java/Binder counts must both be zero")
+print(json.dumps(document, sort_keys=True, separators=(",", ":")))
+PY
+}
+
+# Invoked by the EXIT trap below.
+# shellcheck disable=SC2329
 cleanup() {
-    if [[ -n ${launcher_pid:-} ]] && kill -0 "$launcher_pid" 2>/dev/null; then
-        kill -TERM "$launcher_pid" 2>/dev/null || true
-        wait "$launcher_pid" 2>/dev/null || true
-    fi
-    if [[ -n ${frame_client_pid:-} ]] &&
-       kill -0 "$frame_client_pid" 2>/dev/null; then
-        kill -TERM "$frame_client_pid" 2>/dev/null || true
-        wait "$frame_client_pid" 2>/dev/null || true
-    fi
-    if [[ -n ${service_pid:-} ]] && kill -0 "$service_pid" 2>/dev/null; then
-        kill -TERM "$service_pid" 2>/dev/null || true
-        wait "$service_pid" 2>/dev/null || true
+    local original_status=$? activity_cleanup_pid='' activity_cleanup_status=''
+    [[ $cleanup_started -eq 0 ]] || return "$original_status"
+    cleanup_started=1
+    stop_child_bounded "${launcher_pid:-}" launcher_status launcher || true
+    launcher_pid=
+    stop_child_bounded "${frame_client_pid:-}" frame_client_status frame-client || true
+    frame_client_pid=
+    stop_child_bounded "${service_pid:-}" service_status bridge-service || true
+    service_pid=
+    if [[ $activity_started -eq 1 ]]; then
+        "$activity_launcher" force-stop --user 0 "$activity_package" \
+            >/dev/null 2>&1 &
+        activity_cleanup_pid=$!
+        if ! wait_child_bounded "$activity_cleanup_pid" activity_cleanup_status \
+            activity-force-stop "$child_stop_ticks" ||
+           [[ $activity_cleanup_status -ne 0 ]]; then
+            printf 'start-tombraider-bvb-probe: Activity force-stop cleanup failed: status=%s\n' \
+                "${activity_cleanup_status:-unknown}" >&2
+        fi
     fi
     if [[ -S $socket ]]; then
         unlink -- "$socket"
@@ -74,8 +174,12 @@ cleanup() {
             unlink -- "$marker"
         fi
     done
+    return "$original_status"
 }
-trap cleanup EXIT HUP INT TERM
+trap cleanup EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 [[ -d $base && ! -L $base && -d $log_dir && ! -L $log_dir ]] ||
     fail "Steam base or log directory is unavailable below $base"
@@ -89,13 +193,18 @@ trap cleanup EXIT HUP INT TERM
     fail "Tomb Raider direct launcher is unavailable: $launcher"
 [[ $direct_diagnostics =~ ^[01]$ ]] ||
     fail 'TOMB_RAIDER_DIRECT_DIAGNOSTICS must be 0 or 1'
+for tick_setting in child_stop_ticks child_kill_ticks frame_finish_ticks; do
+    tick_value=${!tick_setting}
+    [[ $tick_value =~ ^[1-9][0-9]*$ && $tick_value -le 6000 ]] ||
+        fail "$tick_setting must be an integer in [1, 6000]"
+done
 command -v "$activity_launcher" >/dev/null 2>&1 ||
     fail "Android Activity launcher is unavailable: $activity_launcher"
 command -v "$package_manager" >/dev/null 2>&1 ||
     fail "Android package manager is unavailable: $package_manager"
 [[ $app_process == /* && -x $app_process && ! -L $app_process ]] ||
     fail "Android app_process is unavailable or unsafe: $app_process"
-for command_name in grep od sed seq tail tr; do
+for command_name in grep od python3 sed seq tail tr; do
     command -v "$command_name" >/dev/null 2>&1 ||
         fail "required command is unavailable: $command_name"
 done
@@ -103,14 +212,22 @@ mkdir -p "$run_dir"
 [[ -d $run_dir && ! -L $run_dir ]] || fail "unsafe BVB run directory: $run_dir"
 chmod 700 "$run_dir"
 
-activity_package_line=$("$package_manager" list packages --show-versioncode \
-    "$activity_package" 2>/dev/null | sed -n '1p')
-if [[ $activity_package_line =~ ^package:([^[:space:]]+)[[:space:]]+versionCode:([0-9]+) ]] &&
-   [[ ${BASH_REMATCH[1]} == "$activity_package" ]]; then
-    activity_version_code=${BASH_REMATCH[2]}
+if ! activity_package_output=$("$package_manager" list packages --show-versioncode \
+    "$activity_package" 2>/dev/null); then
+    fail "could not query BVB visible host package: $activity_package"
 fi
+activity_package_line=
+while IFS= read -r package_line; do
+    if [[ $package_line =~ ^package:([^[:space:]]+)[[:space:]]+versionCode:([0-9]+)$ ]] &&
+       [[ ${BASH_REMATCH[1]} == "$activity_package" ]]; then
+        [[ -z $activity_package_line ]] ||
+            fail "multiple exact BVB visible host package records: $activity_package"
+        activity_package_line=$package_line
+        activity_version_code=${BASH_REMATCH[2]}
+    fi
+done <<<"$activity_package_output"
 [[ $activity_version_code =~ ^[0-9]+$ && $activity_version_code -ge 40 ]] ||
-    fail "BVB visible host versionCode 40 or newer is required: ${activity_package_line:-not installed}"
+    fail "BVB visible host versionCode 40 or newer is required: ${activity_package_output:-not installed}"
 
 : >"$service_log"
 : >"$launcher_log"
@@ -175,6 +292,7 @@ fi
     --ei bvb_activity_port "$activity_port" \
     --ei bvb_retain_external_renderer 1 \
     --es bvb_activity_token "$activity_token" >/dev/null
+activity_started=1
 for _ in $(seq 1 200); do
     grep -Eq 'activity_event=11 .*width=[1-9][0-9]* height=[1-9][0-9]*' \
         "$service_log" && break
@@ -209,41 +327,92 @@ grep -Fq "@$frame_setup_socket" /proc/net/unix || {
 
 printf 'Starting Tomb Raider BVB probe: socket=%s activity_port=%s service_log=%s launcher_log=%s\n' \
     "$socket" "$activity_port" "$service_log" "$launcher_log"
-set +e
-wait "$launcher_pid"
-launcher_status=$?
-set -e
-launcher_pid=
-
-for _ in $(seq 1 200); do
-    process_is_running "$frame_client_pid" || break
+terminal_failure=
+while :; do
+    # Deterministic precedence: a launcher exit observed in this sample wins
+    # when nonzero; while it remains live, service death precedes helper death.
+    if ! process_is_running "$launcher_pid"; then
+        reap_child "$launcher_pid" launcher_status
+        launcher_pid=
+        if [[ $launcher_status -ne 0 ]]; then
+            terminal_failure=launcher
+            break
+        fi
+        if ! process_is_running "$service_pid"; then
+            reap_child "$service_pid" service_status
+            service_pid=
+            terminal_failure=service
+        fi
+        break
+    fi
+    if ! process_is_running "$service_pid"; then
+        reap_child "$service_pid" service_status
+        service_pid=
+        terminal_failure=service
+        break
+    fi
+    if [[ -n $frame_client_pid ]] && ! process_is_running "$frame_client_pid"; then
+        reap_child "$frame_client_pid" frame_client_status
+        frame_client_pid=
+        if [[ $frame_client_status -ne 0 ]] ||
+           ! frame_result_summary=$(validate_frame_result 2>>"$frame_client_log"); then
+            terminal_failure=frame
+            break
+        fi
+    fi
     sleep 0.05
 done
-frame_client_status=0
-if [[ -n $frame_client_pid ]]; then
-    if process_is_running "$frame_client_pid"; then
-        kill -TERM "$frame_client_pid" 2>/dev/null || true
-    fi
-    set +e
-    wait "$frame_client_pid"
-    frame_client_status=$?
-    set -e
-    frame_client_pid=
+
+if [[ $terminal_failure == launcher ]]; then
+    printf 'Tomb Raider BVB probe complete: status=%s service_log=%s launcher_log=%s\n' \
+        "$launcher_status" "$service_log" "$launcher_log"
+    exit "$launcher_status"
+fi
+if [[ $terminal_failure == service ]]; then
+    sed -n '1,120p' "$service_log" >&2 || true
+    fail "BVB service exited during the foreground probe: status=${service_status:-unknown}"
+fi
+if [[ $terminal_failure == frame ]]; then
+    sed -n '1,80p' "$frame_client_log" >&2 || true
+    fail "Activity frame transport did not pass: status=${frame_client_status:-unknown} result=$frame_result"
 fi
 
-if kill -0 "$service_pid" 2>/dev/null; then
-    kill -TERM "$service_pid" 2>/dev/null || true
+if [[ -n $frame_client_pid ]]; then
+    for _ in $(seq 1 "$frame_finish_ticks"); do
+        if ! process_is_running "$service_pid"; then
+            reap_child "$service_pid" service_status
+            service_pid=
+            terminal_failure=service
+            break
+        fi
+        if ! process_is_running "$frame_client_pid"; then
+            reap_child "$frame_client_pid" frame_client_status
+            frame_client_pid=
+            break
+        fi
+        sleep 0.05
+    done
+    if [[ $terminal_failure == service ]]; then
+        sed -n '1,120p' "$service_log" >&2 || true
+        fail "BVB service exited while frame setup was finishing: status=${service_status:-unknown}"
+    fi
+    if [[ -n $frame_client_pid ]]; then
+        stop_child_bounded "$frame_client_pid" frame_client_status frame-client || true
+        frame_client_pid=
+        sed -n '1,80p' "$frame_client_log" >&2 || true
+        fail "Activity frame transport timed out: status=${frame_client_status:-unknown} result=$frame_result"
+    fi
+    if [[ $frame_client_status -ne 0 ]] ||
+       ! frame_result_summary=$(validate_frame_result 2>>"$frame_client_log"); then
+        sed -n '1,80p' "$frame_client_log" >&2 || true
+        fail "Activity frame transport did not pass: status=$frame_client_status result=$frame_result"
+    fi
 fi
-wait "$service_pid" 2>/dev/null || true
+
+stop_child_bounded "$service_pid" service_status bridge-service || true
 service_pid=
 printf 'Tomb Raider BVB probe complete: status=%s service_log=%s launcher_log=%s\n' \
     "$launcher_status" "$service_log" "$launcher_log"
-if [[ $frame_client_status -eq 0 && -s $frame_result ]] &&
-   grep -Eq '"result"[[:space:]]*:[[:space:]]*"pass"' "$frame_result"; then
-    printf 'Tomb Raider BVB frame setup: result=%s log=%s\n' \
-        "$(sed -n '1p' "$frame_result")" "$frame_client_log"
-else
-    sed -n '1,80p' "$frame_client_log" >&2 || true
-    fail "Activity frame transport did not pass: status=$frame_client_status result=$frame_result"
-fi
+printf 'Tomb Raider BVB frame setup-only handoff: result=%s log=%s E057_present_proof=not-claimed standalone_E074=authoritative\n' \
+    "$frame_result_summary" "$frame_client_log"
 exit "$launcher_status"
