@@ -78,7 +78,8 @@ def main() -> None:
             "#!/usr/bin/env python3\n"
             "import os, pathlib, socket, time\n"
             "required=['STEAM_ARM64_BVB_VULKAN','BVB_BRIDGE_SOCKET',"
-            "'BVB_ICD_DIAGNOSTICS','STEAM_ARM64_DIRECT_START_GATE']\n"
+            "'BVB_ICD_DIAGNOSTICS','STEAM_ARM64_DIRECT_DIAGNOSTICS',"
+            "'STEAM_ARM64_DIRECT_START_GATE']\n"
             "gate=pathlib.Path(os.environ['STEAM_ARM64_DIRECT_START_GATE'])\n"
             "waiting=pathlib.Path(str(gate)+'.waiting')\n"
             "ready=pathlib.Path(str(gate)+'.launcher-ready')\n"
@@ -117,6 +118,7 @@ def main() -> None:
         )
         assert values["STEAM_ARM64_BVB_VULKAN"] == "1"
         assert values["BVB_ICD_DIAGNOSTICS"] == "1"
+        assert values["STEAM_ARM64_DIRECT_DIAGNOSTICS"] == "1"
         assert values["BVB_ICD_PROBE_WSI"] == ""
         assert values["BVB_BRIDGE_SOCKET"].startswith(str(base / "run/bvb/"))
         assert values["STEAM_ARM64_DIRECT_START_GATE"].startswith(

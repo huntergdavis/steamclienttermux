@@ -107,6 +107,7 @@ printf 'Preparing Tomb Raider BVB foreground handoff: socket=%s service_log=%s l
 STEAM_ARM64_BVB_VULKAN=1 \
 BVB_BRIDGE_SOCKET="$socket" \
 BVB_ICD_DIAGNOSTICS=1 \
+STEAM_ARM64_DIRECT_DIAGNOSTICS=1 \
 STEAM_ARM64_DIRECT_START_GATE="$start_gate" \
 "$launcher" "$@" >"$launcher_log" 2>&1 &
 launcher_pid=$!

@@ -113,6 +113,7 @@ def main() -> None:
                 "BVB_BRIDGE_SOCKET": "/private/bvb.sock",
                 "BVB_ICD_DIAGNOSTICS": "1",
                 "BVB_ICD_PROBE_WSI": "1",
+                "VK_LOADER_DEBUG": "error,warn,driver",
             }
         with mock.patch.dict(
             os.environ, {"STEAM_ARM64_BVB_VULKAN": "invalid"}, clear=False
