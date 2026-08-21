@@ -7466,3 +7466,29 @@ is 1,502 bytes with SHA-256
 Implementation is bridge commit `a0bce7b`; evidence is `ababc71`. The next
 large boundary is virtual surface/WSI backed by the persistent Android image
 path, followed by extended feature chains and real DXVK execution.
+
+## 2026-08-20: E049 measures Wine's real Tomb Raider instance requirements
+
+The authenticated ARM64 Steam client launched the real Tomb Raider executable
+through the direct glibc dispatcher and selected the BVB ICD through Steam's
+standard Vulkan loader. The concurrent Bionic service accepted independent
+connections from Zink and `TombRaider.exe`, proving that the prior single-client
+stall is gone without restarting Steam or losing login state.
+
+Opt-in ICD and Wine Vulkan diagnostics measured the next exact boundary. Wine
+recognizes BVB's surface, Xlib-surface, and Wayland-surface probe names, while
+its Tomb Raider path requires `VK_KHR_external_memory_capabilities`,
+`VK_KHR_external_semaphore_capabilities`, and
+`VK_KHR_get_physical_device_properties2`. E048 command-backs only properties2,
+so the standard loader returns `VK_ERROR_EXTENSION_NOT_PRESENT` before the
+ICD's instance-create call. Normal launches remain `WINEDEBUG=-all`; the 1.09
+MB trace was bounded and stopped after measurement.
+
+Canonical
+[E049 evidence](https://github.com/huntergdavis/bionic-vulkan-bridge/blob/main/docs/evidence/e049-tombraider-wine-instance-requirements.json)
+is 3,440 bytes with SHA-256
+`20ec2b6b1618297b2d2ba9d1c80b3be036795b50bc4f5b863051f7c60e1da66f`.
+This reused E011 and E043-E048 repository evidence; the required `deja`
+searches found no additional prior implementation. E050 will bridge the two
+measured external-capability command families, then return to virtual WSI and
+the first DXVK frame.
