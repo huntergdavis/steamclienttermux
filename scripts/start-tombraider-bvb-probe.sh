@@ -16,13 +16,14 @@ frame_client_class=io.github.huntergdavis.bvb.visiblehost.FrameTransportClient
 run_dir=$base/run/bvb
 log_dir=$base/logs
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
-socket=$run_dir/tombraider-probe-$stamp-$$.sock
-frame_setup_socket=bvb-frame-$stamp-$$
-service_log=$log_dir/tombraider-bvb-service-$stamp.log
-launcher_log=$log_dir/tombraider-bvb-launcher-$stamp.log
-frame_client_log=$log_dir/tombraider-bvb-frame-client-$stamp.log
-frame_result=$log_dir/tombraider-bvb-frame-$stamp.json
-start_gate=$run_dir/tombraider-start-$stamp-$$.gate
+run_id=$stamp-$$
+socket=$run_dir/tombraider-probe-$run_id.sock
+frame_setup_socket=bvb-frame-$run_id
+service_log=$log_dir/tombraider-bvb-service-$run_id.log
+launcher_log=$log_dir/tombraider-bvb-launcher-$run_id.log
+frame_client_log=$log_dir/tombraider-bvb-frame-client-$run_id.log
+frame_result=$log_dir/tombraider-bvb-frame-$run_id.json
+start_gate=$run_dir/tombraider-start-$run_id.gate
 start_gate_waiting=$start_gate.waiting
 start_gate_launcher_ready=$start_gate.launcher-ready
 service_pid=
@@ -31,6 +32,7 @@ frame_client_pid=
 activity_token=
 activity_port=
 helper_apk=
+direct_diagnostics=${TOMB_RAIDER_DIRECT_DIAGNOSTICS:-0}
 
 fail() {
     printf 'start-tombraider-bvb-probe: %s\n' "$*" >&2
@@ -83,6 +85,8 @@ trap cleanup EXIT HUP INT TERM
     fail "installed BVB ICD manifest is unavailable: $manifest"
 [[ -x $launcher && ! -L $launcher ]] ||
     fail "Tomb Raider direct launcher is unavailable: $launcher"
+[[ $direct_diagnostics =~ ^[01]$ ]] ||
+    fail 'TOMB_RAIDER_DIRECT_DIAGNOSTICS must be 0 or 1'
 command -v "$activity_launcher" >/dev/null 2>&1 ||
     fail "Android Activity launcher is unavailable: $activity_launcher"
 command -v "$package_manager" >/dev/null 2>&1 ||
@@ -130,7 +134,7 @@ printf 'Preparing Tomb Raider BVB foreground handoff: socket=%s service_log=%s l
 STEAM_ARM64_BVB_VULKAN=1 \
 BVB_BRIDGE_SOCKET="$socket" \
 BVB_ICD_DIAGNOSTICS=1 \
-TOMB_RAIDER_DIRECT_DIAGNOSTICS=1 \
+TOMB_RAIDER_DIRECT_DIAGNOSTICS="$direct_diagnostics" \
 STEAM_ARM64_DIRECT_START_GATE="$start_gate" \
 "$launcher" "$@" >"$launcher_log" 2>&1 &
 launcher_pid=$!
