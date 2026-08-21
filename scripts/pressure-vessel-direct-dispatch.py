@@ -106,11 +106,18 @@ def bvb_vulkan_environment() -> dict[str, str]:
     command_stream = os.environ.get(
         "STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM", "strict"
     )
+    mapped_memory = os.environ.get(
+        "STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY", "strict"
+    )
     if command_stream not in ("strict", "shared"):
         fail("STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM must be strict or shared")
+    if mapped_memory not in ("strict", "shared"):
+        fail("STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY must be strict or shared")
     if bvb != "1":
         if command_stream == "shared":
             fail("shared BVB command stream requires STEAM_ARM64_BVB_VULKAN=1")
+        if mapped_memory == "shared":
+            fail("shared BVB mapped memory requires STEAM_ARM64_BVB_VULKAN=1")
         return {}
     socket_path = os.environ.get("BVB_BRIDGE_SOCKET", "")
     if not socket_path.startswith("/"):
@@ -128,6 +135,8 @@ def bvb_vulkan_environment() -> dict[str, str]:
     }
     if command_stream == "shared":
         environment["BVB_COMMAND_STREAM"] = "shared"
+    if mapped_memory == "shared":
+        environment["BVB_MAPPED_MEMORY"] = "shared"
     if diagnostics == "1":
         environment["VK_LOADER_DEBUG"] = "error,warn,driver"
     return environment
@@ -707,6 +716,9 @@ def request_environment(payload: dict[str, object]) -> dict[str, str]:
         "BVB_COMMAND_STREAM",
         "STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM",
         "TOMB_RAIDER_BVB_COMMAND_STREAM",
+        "BVB_MAPPED_MEMORY",
+        "STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY",
+        "TOMB_RAIDER_BVB_MAPPED_MEMORY",
     ):
         environment.pop(name, None)
     return environment

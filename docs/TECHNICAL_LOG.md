@@ -7541,3 +7541,31 @@ indexed implementation. The design instead reuses the audited native-bwrap
 environment-preservation boundary, the direct dispatcher's existing sanitized
 environment reconstruction, E075's explicit opt-in, and the established
 game-authored thermal benchmark contract.
+
+## 2026-08-21: E077 mapped memory gets an independent game-only selector
+
+`TOMB_RAIDER_BVB_MAPPED_MEMORY` now accepts `strict` (the default) or
+`shared`, independently of `TOMB_RAIDER_BVB_COMMAND_STREAM`. The probe and
+direct launcher validate both controls and fail closed on an unknown value or
+either shared mode without BVB. Only the direct-dispatch server receives the
+validated internal `STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY` control. The probe
+service, Activity launcher, package query, frame helper, Steam/CEF launch, and
+captured Pressure Vessel request receive no effective, internal-control, or
+caller-control mapped-memory variable. The final reconstructed BVB Wine/DXVK
+environment receives exactly `BVB_MAPPED_MEMORY=shared` only for the shared
+selection; strict omits it.
+
+Tests cover all four strict/shared combinations of command recording and
+mapped memory and prove that changing either selector changes only its own
+final variable. They also cover effective/control smuggling, the strict
+defaults, invalid selectors, and shared-without-BVB rejection at both launcher
+and dispatcher boundaries. This is host-side A/B wiring for the corresponding
+bridge capability; it does not claim that the bridge implementation is
+integrated, deployed, visually proven, or faster.
+
+The required exact history query, `deja "Tomb Raider BVB mapped memory shared
+final Wine environment selector"`, returned no indexed session. The
+implementation therefore reuses E075's audited game-only command-stream
+selector, the native-bwrap environment-preservation boundary, and the direct
+dispatcher's existing sanitized final-environment reconstruction rather than
+introducing another environment path.

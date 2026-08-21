@@ -37,7 +37,7 @@ def main() -> None:
             service,
             "#!/usr/bin/env python3\n"
             "import os, signal, socket, struct, sys, time\n"
-            "assert not any(name in os.environ for name in ('BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_COMMAND_STREAM'))\n"
+            "assert not any(name in os.environ for name in ('BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_COMMAND_STREAM','BVB_MAPPED_MEMORY','STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY','TOMB_RAIDER_BVB_MAPPED_MEMORY'))\n"
             "path=sys.argv[sys.argv.index('--socket')+1]\n"
             "frame_name=sys.argv[sys.argv.index('--activity-frame-socket')+1]\n"
             f"assert sys.argv[sys.argv.index('--loader')+1] == {str(driver)!r}\n"
@@ -81,7 +81,7 @@ def main() -> None:
             activity_launcher,
             "#!/usr/bin/env python3\n"
             "import os, pathlib, socket, struct, sys\n"
-            "assert not any(name in os.environ for name in ('BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_COMMAND_STREAM'))\n"
+            "assert not any(name in os.environ for name in ('BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_COMMAND_STREAM','BVB_MAPPED_MEMORY','STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY','TOMB_RAIDER_BVB_MAPPED_MEMORY'))\n"
             f"log=pathlib.Path({str(activity_calls)!r})\n"
             "args=sys.argv[1:]\n"
             "with log.open('a', encoding='utf-8') as output: output.write(' '.join(args)+'\\n')\n"
@@ -105,7 +105,7 @@ def main() -> None:
             package_manager,
             "#!/usr/bin/env python3\n"
             "import os, sys\n"
-            "assert not any(name in os.environ for name in ('BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_COMMAND_STREAM'))\n"
+            "assert not any(name in os.environ for name in ('BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_COMMAND_STREAM','BVB_MAPPED_MEMORY','STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY','TOMB_RAIDER_BVB_MAPPED_MEMORY'))\n"
             f"package={PACKAGE!r}\n"
             "if sys.argv[1:] == ['list', 'packages', '--show-versioncode', package]:\n"
             "    print('package:io.github.huntergdavis.bvb.visiblehost.decoy versionCode:999')\n"
@@ -121,7 +121,7 @@ def main() -> None:
             app_process,
             "#!/usr/bin/env python3\n"
             "import json, os, pathlib, signal, socket, sys, time\n"
-            "assert not any(name in os.environ for name in ('BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_COMMAND_STREAM'))\n"
+            "assert not any(name in os.environ for name in ('BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_COMMAND_STREAM','BVB_MAPPED_MEMORY','STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY','TOMB_RAIDER_BVB_MAPPED_MEMORY'))\n"
             "assert os.environ['CLASSPATH'].endswith('visible-host.apk')\n"
             "assert sys.argv[1:4] == ['-Xnoimage-dex2oat', '/', 'io.github.huntergdavis.bvb.visiblehost.FrameTransportClient']\n"
             "result=pathlib.Path(sys.argv[-2]); name=sys.argv[-1]\n"
@@ -151,9 +151,8 @@ def main() -> None:
             "import os, pathlib, signal, socket, sys, time\n"
             "mode=os.environ.get('FAKE_LAUNCHER_MODE','pass')\n"
             "if mode == 'early17': raise SystemExit(17)\n"
-            "required=['STEAM_ARM64_BVB_VULKAN','BVB_BRIDGE_SOCKET','BVB_ICD_DIAGNOSTICS','TOMB_RAIDER_DIRECT_DIAGNOSTICS','TOMB_RAIDER_BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_START_GATE']\n"
-            "assert 'BVB_COMMAND_STREAM' not in os.environ\n"
-            "assert 'STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM' not in os.environ\n"
+            "required=['STEAM_ARM64_BVB_VULKAN','BVB_BRIDGE_SOCKET','BVB_ICD_DIAGNOSTICS','TOMB_RAIDER_DIRECT_DIAGNOSTICS','TOMB_RAIDER_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_MAPPED_MEMORY','STEAM_ARM64_DIRECT_START_GATE']\n"
+            "assert not any(name in os.environ for name in ('BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','BVB_MAPPED_MEMORY','STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY'))\n"
             "gate=pathlib.Path(os.environ['STEAM_ARM64_DIRECT_START_GATE'])\n"
             "waiting=pathlib.Path(str(gate)+'.waiting'); ready=pathlib.Path(str(gate)+'.launcher-ready')\n"
             "waiting.write_text('', encoding='ascii'); waiting.chmod(0o600)\n"
@@ -162,7 +161,7 @@ def main() -> None:
             "while not gate.exists() and time.monotonic()<deadline: time.sleep(0.01)\n"
             "assert gate.is_file() and not gate.is_symlink()\n"
             "gate.unlink(); waiting.unlink()\n"
-            f"pathlib.Path({str(environment_capture)!r}).write_text('\\n'.join([*(f'{{name}}={{os.environ[name]}}' for name in required),f\"BVB_ICD_PROBE_WSI={{os.environ.get('BVB_ICD_PROBE_WSI','')}}\",f\"BVB_COMMAND_STREAM={{os.environ.get('BVB_COMMAND_STREAM','')}}\",f\"STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM={{os.environ.get('STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','')}}\"]))\n"
+            f"pathlib.Path({str(environment_capture)!r}).write_text('\\n'.join([*(f'{{name}}={{os.environ[name]}}' for name in required),f\"BVB_ICD_PROBE_WSI={{os.environ.get('BVB_ICD_PROBE_WSI','')}}\",f\"BVB_COMMAND_STREAM={{os.environ.get('BVB_COMMAND_STREAM','')}}\",f\"STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM={{os.environ.get('STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','')}}\",f\"BVB_MAPPED_MEMORY={{os.environ.get('BVB_MAPPED_MEMORY','')}}\",f\"STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY={{os.environ.get('STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY','')}}\"]))\n"
             "client=socket.socket(socket.AF_UNIX); client.connect(os.environ['BVB_BRIDGE_SOCKET']); client.close()\n"
             "if mode == 'post17': raise SystemExit(17)\n"
             "if mode == 'ignore_term': signal.signal(signal.SIGTERM, signal.SIG_IGN); time.sleep(60)\n"
@@ -182,6 +181,8 @@ def main() -> None:
                 "BVB_FRAME_FINISH_TICKS": "4",
                 "BVB_COMMAND_STREAM": "smuggled",
                 "STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM": "smuggled",
+                "BVB_MAPPED_MEMORY": "smuggled",
+                "STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY": "smuggled",
             }
         )
 
@@ -225,8 +226,11 @@ def main() -> None:
         assert values["BVB_ICD_DIAGNOSTICS"] == "1"
         assert values["TOMB_RAIDER_DIRECT_DIAGNOSTICS"] == "0"
         assert values["TOMB_RAIDER_BVB_COMMAND_STREAM"] == "strict"
+        assert values["TOMB_RAIDER_BVB_MAPPED_MEMORY"] == "strict"
         assert values["BVB_COMMAND_STREAM"] == ""
         assert values["STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM"] == ""
+        assert values["BVB_MAPPED_MEMORY"] == ""
+        assert values["STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY"] == ""
         assert values["BVB_ICD_PROBE_WSI"] == ""
         assert values["BVB_BRIDGE_SOCKET"].startswith(str(base / "run/bvb/"))
         assert values["STEAM_ARM64_DIRECT_START_GATE"].startswith(
@@ -242,31 +246,53 @@ def main() -> None:
         assert len(frame_results) == 1
         assert '"image_count": 3' in frame_results[0].read_text()
 
-        shared, _ = run_case(TOMB_RAIDER_BVB_COMMAND_STREAM="shared")
-        assert shared.returncode == 0, shared.stderr
-        shared_values = dict(
-            line.split("=", 1)
-            for line in environment_capture.read_text(encoding="utf-8").splitlines()
-        )
-        assert shared_values["TOMB_RAIDER_BVB_COMMAND_STREAM"] == "shared"
-        assert shared_values["BVB_COMMAND_STREAM"] == ""
-        assert shared_values["STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM"] == ""
-        assert_activity_balanced(2)
+        expected_activity_count = 1
+        for command_stream, mapped_memory in (
+            ("shared", "strict"),
+            ("strict", "shared"),
+            ("shared", "shared"),
+        ):
+            selected, _ = run_case(
+                TOMB_RAIDER_BVB_COMMAND_STREAM=command_stream,
+                TOMB_RAIDER_BVB_MAPPED_MEMORY=mapped_memory,
+            )
+            assert selected.returncode == 0, selected.stderr
+            selected_values = dict(
+                line.split("=", 1)
+                for line in environment_capture.read_text(encoding="utf-8").splitlines()
+            )
+            assert selected_values["TOMB_RAIDER_BVB_COMMAND_STREAM"] == command_stream
+            assert selected_values["TOMB_RAIDER_BVB_MAPPED_MEMORY"] == mapped_memory
+            assert selected_values["BVB_COMMAND_STREAM"] == ""
+            assert selected_values["STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM"] == ""
+            assert selected_values["BVB_MAPPED_MEMORY"] == ""
+            assert selected_values["STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY"] == ""
+            expected_activity_count += 1
+            assert_activity_balanced(expected_activity_count)
 
         invalid_stream, _ = run_case(TOMB_RAIDER_BVB_COMMAND_STREAM="invalid")
         assert invalid_stream.returncode == 1
         assert "must be strict or shared" in invalid_stream.stderr
-        assert_activity_balanced(2)
+        assert_activity_balanced(4)
+
+        invalid_mapped_memory, _ = run_case(
+            TOMB_RAIDER_BVB_MAPPED_MEMORY="invalid"
+        )
+        assert invalid_mapped_memory.returncode == 1
+        assert "TOMB_RAIDER_BVB_MAPPED_MEMORY must be strict or shared" in (
+            invalid_mapped_memory.stderr
+        )
+        assert_activity_balanced(4)
 
         early, _ = run_case(FAKE_LAUNCHER_MODE="early17")
         assert early.returncode == 1
         assert "failed before Activity handoff: status=17" in early.stderr
-        assert_activity_balanced(2)
+        assert_activity_balanced(4)
 
         stale, _ = run_case(FAKE_PM_VERSION="39")
         assert stale.returncode == 1
         assert "visible host versionCode 40 or newer is required" in stale.stderr
-        assert_activity_balanced(2)
+        assert_activity_balanced(4)
 
         frame_failed, elapsed = run_case(
             FAKE_HELPER_MODE="fail", FAKE_LAUNCHER_MODE="ignore_term"
@@ -275,28 +301,28 @@ def main() -> None:
         assert "Activity frame transport did not pass: status=7" in frame_failed.stderr
         assert elapsed < 4, elapsed
         assert "launcher pid" in frame_failed.stderr and "sending KILL" in frame_failed.stderr
-        assert_activity_balanced(3)
+        assert_activity_balanced(5)
 
         nested, _ = run_case(
             FAKE_HELPER_MODE="nested", FAKE_LAUNCHER_MODE="ignore_term"
         )
         assert nested.returncode == 1
         assert "Activity frame transport did not pass: status=0" in nested.stderr
-        assert_activity_balanced(4)
+        assert_activity_balanced(6)
 
         multiple, _ = run_case(
             FAKE_HELPER_MODE="multiple", FAKE_LAUNCHER_MODE="ignore_term"
         )
         assert multiple.returncode == 1
         assert "Activity frame transport did not pass: status=0" in multiple.stderr
-        assert_activity_balanced(5)
+        assert_activity_balanced(7)
 
         hung_helper, elapsed = run_case(FAKE_HELPER_MODE="hang")
         assert hung_helper.returncode == 1
         assert "Activity frame transport timed out" in hung_helper.stderr
         assert "frame-client pid" in hung_helper.stderr and "sending KILL" in hung_helper.stderr
         assert elapsed < 4, elapsed
-        assert_activity_balanced(6)
+        assert_activity_balanced(8)
 
         service_died, elapsed = run_case(
             FAKE_SERVICE_MODE="die_after_handoff",
@@ -306,7 +332,7 @@ def main() -> None:
         assert service_died.returncode == 1
         assert "BVB service exited during the foreground probe: status=23" in service_died.stderr
         assert elapsed < 4, elapsed
-        assert_activity_balanced(7)
+        assert_activity_balanced(9)
 
         launcher_first, _ = run_case(
             FAKE_HELPER_MODE="delayed_fail", FAKE_LAUNCHER_MODE="post17"
@@ -314,7 +340,7 @@ def main() -> None:
         assert launcher_first.returncode == 17, launcher_first.stderr
         assert "probe complete: status=17" in launcher_first.stdout
         assert "Activity frame transport did not pass" not in launcher_first.stderr
-        assert_activity_balanced(8)
+        assert_activity_balanced(10)
 
 
 if __name__ == "__main__":

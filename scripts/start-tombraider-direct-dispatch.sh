@@ -14,6 +14,7 @@ topology_checker=${TOMB_RAIDER_DIRECT_TOPOLOGY_CHECKER:-$base/compat-bin/configu
 mode=${TOMB_RAIDER_DIRECT_MODE:-tombraider}
 diagnostics=${TOMB_RAIDER_DIRECT_DIAGNOSTICS:-0}
 command_stream=${TOMB_RAIDER_BVB_COMMAND_STREAM:-strict}
+mapped_memory=${TOMB_RAIDER_BVB_MAPPED_MEMORY:-strict}
 child_preload=${TOMB_RAIDER_DIRECT_CHILD_PRELOAD:-full}
 vulkan_trace=${TOMB_RAIDER_VULKAN_TRACE:-0}
 vulkan_trace_preload=${TOMB_RAIDER_VULKAN_TRACE_PRELOAD:-$HOME/bionic-vulkan-bridge/out/glibc/libbvb-vulkan-resolve-trace.so}
@@ -39,13 +40,19 @@ fail() {
     fail 'TOMB_RAIDER_DIRECT_DIAGNOSTICS must be 0 or 1'
 [[ $command_stream == strict || $command_stream == shared ]] ||
     fail 'TOMB_RAIDER_BVB_COMMAND_STREAM must be strict or shared'
+[[ $mapped_memory == strict || $mapped_memory == shared ]] ||
+    fail 'TOMB_RAIDER_BVB_MAPPED_MEMORY must be strict or shared'
 if [[ $command_stream == shared && ${STEAM_ARM64_BVB_VULKAN:-0} != 1 ]]; then
     fail 'shared BVB command stream requires STEAM_ARM64_BVB_VULKAN=1'
+fi
+if [[ $mapped_memory == shared && ${STEAM_ARM64_BVB_VULKAN:-0} != 1 ]]; then
+    fail 'shared BVB mapped memory requires STEAM_ARM64_BVB_VULKAN=1'
 fi
 # Preserve only the validated local value. The actual ICD switch is injected by
 # the dispatcher into the final Wine/DXVK environment, never into Steam/CEF.
 unset BVB_COMMAND_STREAM STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
-    TOMB_RAIDER_BVB_COMMAND_STREAM
+    TOMB_RAIDER_BVB_COMMAND_STREAM BVB_MAPPED_MEMORY \
+    STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY TOMB_RAIDER_BVB_MAPPED_MEMORY
 [[ $vulkan_trace == 0 || $vulkan_trace == 1 ]] ||
     fail 'TOMB_RAIDER_VULKAN_TRACE must be 0 or 1'
 [[ $child_preload == full || $child_preload == lean ||
@@ -133,6 +140,7 @@ dispatcher_environment=(
     "STEAM_ARM64_DIRECT_DIAGNOSTICS=$diagnostics"
     "STEAM_ARM64_DIRECT_CHILD_PRELOAD=$child_preload"
     "STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM=$command_stream"
+    "STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY=$mapped_memory"
 )
 if [[ $vulkan_trace == 1 ]]; then
     dispatcher_environment+=(
@@ -141,6 +149,7 @@ if [[ $vulkan_trace == 1 ]]; then
     )
 fi
 env -u BVB_COMMAND_STREAM -u TOMB_RAIDER_BVB_COMMAND_STREAM \
+    -u BVB_MAPPED_MEMORY -u TOMB_RAIDER_BVB_MAPPED_MEMORY \
     "${dispatcher_environment[@]}" \
     "$python" "$dispatcher" serve --base "$base" --mode "$mode" \
     >"$server_log" 2>&1 &
@@ -181,6 +190,8 @@ if [[ $mode == tombraider-benchmark ]]; then
 fi
 env -u BVB_COMMAND_STREAM -u STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
     -u TOMB_RAIDER_BVB_COMMAND_STREAM \
+    -u BVB_MAPPED_MEMORY -u STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY \
+    -u TOMB_RAIDER_BVB_MAPPED_MEMORY \
     STEAM_ARM64_BWRAP_DIRECT=1 \
     STEAM_BACKGROUND=1 \
     STEAM_PROCESS_TIMEOUT=${STEAM_PROCESS_TIMEOUT:-180} \
