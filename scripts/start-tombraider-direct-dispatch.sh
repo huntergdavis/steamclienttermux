@@ -13,6 +13,7 @@ affinity=${TOMB_RAIDER_DIRECT_AFFINITY:-$base/compat-bin/set-tombraider-affinity
 topology_checker=${TOMB_RAIDER_DIRECT_TOPOLOGY_CHECKER:-$base/compat-bin/configure-tombraider-cpu-topology.py}
 mode=${TOMB_RAIDER_DIRECT_MODE:-tombraider}
 diagnostics=${TOMB_RAIDER_DIRECT_DIAGNOSTICS:-0}
+command_stream=${TOMB_RAIDER_BVB_COMMAND_STREAM:-strict}
 child_preload=${TOMB_RAIDER_DIRECT_CHILD_PRELOAD:-full}
 vulkan_trace=${TOMB_RAIDER_VULKAN_TRACE:-0}
 vulkan_trace_preload=${TOMB_RAIDER_VULKAN_TRACE_PRELOAD:-$HOME/bionic-vulkan-bridge/out/glibc/libbvb-vulkan-resolve-trace.so}
@@ -36,6 +37,15 @@ fail() {
     fail "unsupported direct-dispatch mode: $mode"
 [[ $diagnostics == 0 || $diagnostics == 1 ]] ||
     fail 'TOMB_RAIDER_DIRECT_DIAGNOSTICS must be 0 or 1'
+[[ $command_stream == strict || $command_stream == shared ]] ||
+    fail 'TOMB_RAIDER_BVB_COMMAND_STREAM must be strict or shared'
+if [[ $command_stream == shared && ${STEAM_ARM64_BVB_VULKAN:-0} != 1 ]]; then
+    fail 'shared BVB command stream requires STEAM_ARM64_BVB_VULKAN=1'
+fi
+# Preserve only the validated local value. The actual ICD switch is injected by
+# the dispatcher into the final Wine/DXVK environment, never into Steam/CEF.
+unset BVB_COMMAND_STREAM STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
+    TOMB_RAIDER_BVB_COMMAND_STREAM
 [[ $vulkan_trace == 0 || $vulkan_trace == 1 ]] ||
     fail 'TOMB_RAIDER_VULKAN_TRACE must be 0 or 1'
 [[ $child_preload == full || $child_preload == lean ||
@@ -122,6 +132,7 @@ trap cleanup EXIT HUP INT TERM
 dispatcher_environment=(
     "STEAM_ARM64_DIRECT_DIAGNOSTICS=$diagnostics"
     "STEAM_ARM64_DIRECT_CHILD_PRELOAD=$child_preload"
+    "STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM=$command_stream"
 )
 if [[ $vulkan_trace == 1 ]]; then
     dispatcher_environment+=(
@@ -129,7 +140,8 @@ if [[ $vulkan_trace == 1 ]]; then
         "STEAM_ARM64_VULKAN_TRACE_FILE=$vulkan_trace_file"
     )
 fi
-env "${dispatcher_environment[@]}" \
+env -u BVB_COMMAND_STREAM -u TOMB_RAIDER_BVB_COMMAND_STREAM \
+    "${dispatcher_environment[@]}" \
     "$python" "$dispatcher" serve --base "$base" --mode "$mode" \
     >"$server_log" 2>&1 &
 server_pid=$!
@@ -167,12 +179,14 @@ game_arguments=(-nolauncher)
 if [[ $mode == tombraider-benchmark ]]; then
     game_arguments+=(-benchmark)
 fi
-STEAM_ARM64_BWRAP_DIRECT=1 \
-STEAM_BACKGROUND=1 \
-STEAM_PROCESS_TIMEOUT=${STEAM_PROCESS_TIMEOUT:-180} \
-STEAM_WINDOW_TIMEOUT=${STEAM_WINDOW_TIMEOUT:-300} \
-STEAM_APP_TIMEOUT=${STEAM_APP_TIMEOUT:-300} \
-"$launcher" --appid 203160 -- "${game_arguments[@]}" >"$launcher_log" 2>&1
+env -u BVB_COMMAND_STREAM -u STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
+    -u TOMB_RAIDER_BVB_COMMAND_STREAM \
+    STEAM_ARM64_BWRAP_DIRECT=1 \
+    STEAM_BACKGROUND=1 \
+    STEAM_PROCESS_TIMEOUT=${STEAM_PROCESS_TIMEOUT:-180} \
+    STEAM_WINDOW_TIMEOUT=${STEAM_WINDOW_TIMEOUT:-300} \
+    STEAM_APP_TIMEOUT=${STEAM_APP_TIMEOUT:-300} \
+    "$launcher" --appid 203160 -- "${game_arguments[@]}" >"$launcher_log" 2>&1
 launcher_status=$?
 if (( launcher_status == 0 )) && [[ -n $start_gate ]]; then
     for _ in $(seq 1 $((start_gate_ack_timeout * 20))); do

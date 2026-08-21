@@ -7524,3 +7524,20 @@ route. The required `deja` searches returned no additional prior
 implementation. E051 proves a visible authenticated Activity and successful
 Wine instance creation, not a swapchain, presented game frame, or performance
 result.
+
+## 2026-08-21: E075 shared recording gets a game-only A/B selector
+
+`TOMB_RAIDER_BVB_COMMAND_STREAM` now accepts `strict` (the default) or
+`shared`. The probe and direct launcher validate it, remove caller-supplied
+effective/control copies, and give only the inert control value to the direct
+dispatcher server. Captured Pressure Vessel environments cannot smuggle those
+names back in. Only a shared BVB Wine/DXVK invocation receives
+`BVB_COMMAND_STREAM=shared`; Steam, CEF, the Bionic service, and Activity
+helpers do not. Shared without BVB and every unknown value fail closed.
+
+This prepares the post-E076 cooled strict/shared benchmark; it does not claim
+a visible game frame or FPS gain. The required focused `deja` query found no
+indexed implementation. The design instead reuses the audited native-bwrap
+environment-preservation boundary, the direct dispatcher's existing sanitized
+environment reconstruction, E075's explicit opt-in, and the established
+game-authored thermal benchmark contract.

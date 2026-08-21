@@ -35,6 +35,7 @@ helper_apk=
 activity_package=${activity_component%%/*}
 activity_version_code=
 direct_diagnostics=${TOMB_RAIDER_DIRECT_DIAGNOSTICS:-0}
+command_stream=${TOMB_RAIDER_BVB_COMMAND_STREAM:-strict}
 child_stop_ticks=${BVB_CHILD_STOP_TICKS:-100}
 child_kill_ticks=${BVB_CHILD_KILL_TICKS:-20}
 frame_finish_ticks=${BVB_FRAME_FINISH_TICKS:-200}
@@ -193,6 +194,13 @@ trap 'exit 143' TERM
     fail "Tomb Raider direct launcher is unavailable: $launcher"
 [[ $direct_diagnostics =~ ^[01]$ ]] ||
     fail 'TOMB_RAIDER_DIRECT_DIAGNOSTICS must be 0 or 1'
+[[ $command_stream == strict || $command_stream == shared ]] ||
+    fail 'TOMB_RAIDER_BVB_COMMAND_STREAM must be strict or shared'
+# The effective ICD switch belongs only to the reconstructed Wine/DXVK
+# environment. Do not let caller-supplied copies reach the Bionic service,
+# Activity helper, direct launcher, Steam, or CEF.
+unset BVB_COMMAND_STREAM STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
+    TOMB_RAIDER_BVB_COMMAND_STREAM
 for tick_setting in child_stop_ticks child_kill_ticks frame_finish_ticks; do
     tick_value=${!tick_setting}
     [[ $tick_value =~ ^[1-9][0-9]*$ && $tick_value -le 6000 ]] ||
@@ -263,6 +271,7 @@ STEAM_ARM64_BVB_VULKAN=1 \
 BVB_BRIDGE_SOCKET="$socket" \
 BVB_ICD_DIAGNOSTICS=1 \
 TOMB_RAIDER_DIRECT_DIAGNOSTICS="$direct_diagnostics" \
+TOMB_RAIDER_BVB_COMMAND_STREAM="$command_stream" \
 STEAM_ARM64_DIRECT_START_GATE="$start_gate" \
 "$launcher" "$@" >"$launcher_log" 2>&1 &
 launcher_pid=$!

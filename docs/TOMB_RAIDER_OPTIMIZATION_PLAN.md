@@ -144,6 +144,7 @@ as a default-performance change but remains available for explicit experiments.
 | Internal-storage A/B | The game is on Android FUSE over the removable exFAT/sdfat card. This may affect loading and minimum-FPS stalls. | Low priority for mean FPS. The 15.3 GB game would leave only about 3.7 GB of the currently free 19 GB internal space, so do not move it until space is freed. |
 | No-PRoot native glibc host | PRoot uses `ptrace` to intercept and rewrite guest syscalls; the old tracer alone used 60-65% CPU. | Completed for the hot game tree through the guarded direct dispatcher; retain the parked outer request only for Steam lifecycle compatibility. |
 | Bionic/private-Turnip host | E073 created the real 2800×1752 virtual swapchain, returned three exported images, acquired and presented one, and handed three image FDs plus the control page to the authenticated Activity sink. | Install the v40 Activity consumer, prove import and changing pixels, then reach one DXVK/Tomb Raider frame and run the fixed 2800×1752 Low A/B. No visible frame or FPS is claimed yet. |
+| BVB shared command stream | E075's host contract removes the five per-command recording socket exchanges while retaining one Submit2 control boundary. | After E076 visible-frame proof, compare `TOMB_RAIDER_BVB_COMMAND_STREAM=strict` (default) with `shared` in a cooled alternating native-resolution series. The launcher injects the effective switch only into Wine/DXVK, not Steam/CEF. |
 
 ## Changes not worth leading with
 

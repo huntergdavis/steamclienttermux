@@ -22,6 +22,7 @@ def main() -> None:
         (base / "run/native-runtime-dispatch").mkdir(parents=True)
         (base / "logs").mkdir()
         dispatcher = root / "dispatcher.py"
+        server_environment = root / "dispatcher-environment"
         executable(
             dispatcher,
             "#!/usr/bin/env python3\n"
@@ -31,6 +32,8 @@ def main() -> None:
             "parser.add_argument('--base')\n"
             "parser.add_argument('--mode')\n"
             "args = parser.parse_args()\n"
+            "names=('BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_COMMAND_STREAM')\n"
+            "pathlib.Path(os.environ['FIXTURE_SERVER_ENVIRONMENT']).write_text('\\n'.join(name+'='+os.environ.get(name,'<absent>') for name in names))\n"
             "path = pathlib.Path(args.base) / 'run/native-runtime-dispatch/dispatch.sock'\n"
             "with socket.socket(socket.AF_UNIX) as listener:\n"
             "    listener.bind(str(path))\n"
@@ -41,6 +44,7 @@ def main() -> None:
             "        time.sleep(1)\n",
         )
         result_file = root / "launcher-environment"
+        launcher_control_environment = root / "launcher-control-environment"
         prepare_result = root / "prepare-result"
         affinity_result = root / "affinity-result"
         topology_result = root / "topology-result"
@@ -57,6 +61,7 @@ def main() -> None:
             launcher,
             "#!/bin/bash\n"
             "printf '%s\\n' \"${STEAM_ARM64_BWRAP_DIRECT:-}\" \"$*\" >\"$FIXTURE_RESULT\"\n"
+            "for name in BVB_COMMAND_STREAM STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM TOMB_RAIDER_BVB_COMMAND_STREAM; do printf '%s=%s\\n' \"$name\" \"${!name-<absent>}\"; done >\"$FIXTURE_LAUNCHER_CONTROL_ENVIRONMENT\"\n"
             "python3 - <<'PY'\n"
             "import os, socket\n"
             "with socket.socket(socket.AF_UNIX) as connection:\n"
@@ -94,12 +99,20 @@ def main() -> None:
             "TOMB_RAIDER_DIRECT_AFFINITY": str(affinity),
             "TOMB_RAIDER_DIRECT_TOPOLOGY_CHECKER": str(topology_checker),
             "FIXTURE_RESULT": str(result_file),
+            "FIXTURE_SERVER_ENVIRONMENT": str(server_environment),
+            "FIXTURE_LAUNCHER_CONTROL_ENVIRONMENT": str(
+                launcher_control_environment
+            ),
             "FIXTURE_AFFINITY_RESULT": str(affinity_result),
             "FIXTURE_PREPARE_RESULT": str(prepare_result),
             "FIXTURE_TOPOLOGY_RESULT": str(topology_result),
             "FIXTURE_SOCKET": str(
                 base / "run/native-runtime-dispatch/dispatch.sock"
             ),
+            "STEAM_ARM64_BVB_VULKAN": "1",
+            "TOMB_RAIDER_BVB_COMMAND_STREAM": "shared",
+            "BVB_COMMAND_STREAM": "smuggled",
+            "STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM": "smuggled",
         }
         result = subprocess.run(
             ["bash", str(SCRIPT)],
@@ -114,6 +127,16 @@ def main() -> None:
         assert result_file.read_text().splitlines() == [
             "1",
             "--appid 203160 -- -nolauncher",
+        ]
+        assert server_environment.read_text().splitlines() == [
+            "BVB_COMMAND_STREAM=<absent>",
+            "STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM=shared",
+            "TOMB_RAIDER_BVB_COMMAND_STREAM=<absent>",
+        ]
+        assert launcher_control_environment.read_text().splitlines() == [
+            "BVB_COMMAND_STREAM=<absent>",
+            "STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM=<absent>",
+            "TOMB_RAIDER_BVB_COMMAND_STREAM=<absent>",
         ]
         state = (base / "run/tombraider-direct-dispatch.state").read_text()
         assert "mode=tombraider" in state
@@ -227,6 +250,30 @@ def main() -> None:
         )
         assert invalid_priority.returncode != 0
         assert "must be an integer from 0 through 19" in invalid_priority.stderr
+
+        invalid_stream = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env={**environment, "TOMB_RAIDER_BVB_COMMAND_STREAM": "invalid"},
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        assert invalid_stream.returncode != 0
+        assert "must be strict or shared" in invalid_stream.stderr
+
+        shared_without_bvb = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env={
+                **environment,
+                "TOMB_RAIDER_BVB_COMMAND_STREAM": "shared",
+                "STEAM_ARM64_BVB_VULKAN": "0",
+            },
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        assert shared_without_bvb.returncode != 0
+        assert "shared BVB command stream requires" in shared_without_bvb.stderr
 
         (base / "run/native-runtime-dispatch/dispatch.sock").unlink()
         exclusive = subprocess.run(

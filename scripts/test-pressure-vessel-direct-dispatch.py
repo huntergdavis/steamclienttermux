@@ -104,18 +104,54 @@ def main() -> None:
             os.environ.pop("STEAM_ARM64_BVB_VULKAN", None)
             assert MODULE.validated_host_vulkan_icd(base) == turnip
         with mock.patch.dict(
-            os.environ, {"STEAM_ARM64_BVB_VULKAN": "1"}, clear=False
+            os.environ,
+            {
+                "STEAM_ARM64_BVB_VULKAN": "1",
+                "STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM": "strict",
+            },
+            clear=False,
         ):
             assert MODULE.validated_host_vulkan_icd(base) == bvb
             os.environ["BVB_BRIDGE_SOCKET"] = "/private/bvb.sock"
             os.environ["BVB_ICD_DIAGNOSTICS"] = "1"
             os.environ["BVB_ICD_PROBE_WSI"] = "1"
+            os.environ["BVB_COMMAND_STREAM"] = "smuggled"
             assert MODULE.bvb_vulkan_environment() == {
                 "BVB_BRIDGE_SOCKET": "/private/bvb.sock",
                 "BVB_ICD_DIAGNOSTICS": "1",
                 "BVB_ICD_PROBE_WSI": "1",
                 "VK_LOADER_DEBUG": "error,warn,driver",
             }
+            assert "BVB_COMMAND_STREAM" not in MODULE.bvb_vulkan_environment()
+            os.environ["STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM"] = "shared"
+            assert MODULE.bvb_vulkan_environment() == {
+                "BVB_BRIDGE_SOCKET": "/private/bvb.sock",
+                "BVB_ICD_DIAGNOSTICS": "1",
+                "BVB_ICD_PROBE_WSI": "1",
+                "BVB_COMMAND_STREAM": "shared",
+                "VK_LOADER_DEBUG": "error,warn,driver",
+            }
+            os.environ["STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM"] = "invalid"
+            try:
+                MODULE.bvb_vulkan_environment()
+            except MODULE.DispatchError:
+                pass
+            else:
+                raise AssertionError("invalid BVB command-stream selector was accepted")
+        with mock.patch.dict(
+            os.environ,
+            {
+                "STEAM_ARM64_BVB_VULKAN": "0",
+                "STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM": "shared",
+            },
+            clear=False,
+        ):
+            try:
+                MODULE.bvb_vulkan_environment()
+            except MODULE.DispatchError:
+                pass
+            else:
+                raise AssertionError("shared command stream without BVB was accepted")
         with mock.patch.dict(
             os.environ, {"STEAM_ARM64_BVB_VULKAN": "invalid"}, clear=False
         ):
@@ -483,6 +519,9 @@ def main() -> None:
                 "BVB_VULKAN_TRACE_FILE=unsafe",
                 "STEAM_ARM64_VULKAN_TRACE_PRELOAD=unsafe",
                 "STEAM_ARM64_VULKAN_TRACE_FILE=unsafe",
+                "BVB_COMMAND_STREAM=shared",
+                "STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM=shared",
+                "TOMB_RAIDER_BVB_COMMAND_STREAM=shared",
             ]
         }
     ) == {"STEAM_COMPAT_APP_ID": "203160"}

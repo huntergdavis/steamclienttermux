@@ -102,7 +102,15 @@ def validated_host_vulkan_icd(base: Path) -> Path:
 
 
 def bvb_vulkan_environment() -> dict[str, str]:
-    if os.environ.get("STEAM_ARM64_BVB_VULKAN", "0") != "1":
+    bvb = os.environ.get("STEAM_ARM64_BVB_VULKAN", "0")
+    command_stream = os.environ.get(
+        "STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM", "strict"
+    )
+    if command_stream not in ("strict", "shared"):
+        fail("STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM must be strict or shared")
+    if bvb != "1":
+        if command_stream == "shared":
+            fail("shared BVB command stream requires STEAM_ARM64_BVB_VULKAN=1")
         return {}
     socket_path = os.environ.get("BVB_BRIDGE_SOCKET", "")
     if not socket_path.startswith("/"):
@@ -118,6 +126,8 @@ def bvb_vulkan_environment() -> dict[str, str]:
         "BVB_ICD_DIAGNOSTICS": diagnostics,
         "BVB_ICD_PROBE_WSI": probe_wsi,
     }
+    if command_stream == "shared":
+        environment["BVB_COMMAND_STREAM"] = "shared"
     if diagnostics == "1":
         environment["VK_LOADER_DEBUG"] = "error,warn,driver"
     return environment
@@ -694,6 +704,9 @@ def request_environment(payload: dict[str, object]) -> dict[str, str]:
         "BVB_VULKAN_TRACE_FILE",
         "STEAM_ARM64_VULKAN_TRACE_PRELOAD",
         "STEAM_ARM64_VULKAN_TRACE_FILE",
+        "BVB_COMMAND_STREAM",
+        "STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM",
+        "TOMB_RAIDER_BVB_COMMAND_STREAM",
     ):
         environment.pop(name, None)
     return environment
