@@ -139,9 +139,10 @@ def bvb_vulkan_environment() -> dict[str, str]:
         fail("BVB_ICD_PROBE_WSI must be 0 or 1")
     environment = {
         "BVB_BRIDGE_SOCKET": socket_path,
-        "BVB_ICD_DIAGNOSTICS": diagnostics,
         "BVB_ICD_PROBE_WSI": probe_wsi,
     }
+    if diagnostics == "1":
+        environment["BVB_ICD_DIAGNOSTICS"] = "1"
     if command_stream == "shared":
         environment["BVB_COMMAND_STREAM"] = "shared"
     if mapped_memory == "shared":

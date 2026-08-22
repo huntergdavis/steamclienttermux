@@ -7758,6 +7758,13 @@ identical image sequences performance first command poison diagnostic
 vkCreateDevice Zink masks"` query returned no indexed implementation. A paired
 quiet/noisy tablet A/B is required before claiming a speedup.
 
+The first nominally quiet run then exposed a legacy presence-vs-value mismatch:
+the launcher correctly selected `0`, but the ICD's diagnostic sites use
+`getenv`, so an exported string value of `0` still enabled every log. The final
+environment builder now omits `BVB_ICD_DIAGNOSTICS` entirely in quiet mode and
+exports only exact `1` in diagnostic mode. This preserves the installed ICD's
+established selector ABI while making the requested quiet A/B real.
+
 ## 2026-08-21: Tomb Raider frame helper loads the installed native host
 
 The first E097 Tomb Raider rerun proved the Vulkan image-view fix but its

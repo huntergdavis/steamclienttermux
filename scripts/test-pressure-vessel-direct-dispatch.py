@@ -161,6 +161,11 @@ def main() -> None:
                             ),
                             "VK_LOADER_DEBUG": "error,warn,driver",
                         }
+            os.environ["BVB_ICD_DIAGNOSTICS"] = "0"
+            quiet_environment = MODULE.bvb_vulkan_environment()
+            assert "BVB_ICD_DIAGNOSTICS" not in quiet_environment
+            assert "VK_LOADER_DEBUG" not in quiet_environment
+            os.environ["BVB_ICD_DIAGNOSTICS"] = "1"
             os.environ["STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM"] = "invalid"
             try:
                 MODULE.bvb_vulkan_environment()
