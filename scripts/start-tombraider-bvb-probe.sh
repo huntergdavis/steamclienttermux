@@ -38,6 +38,7 @@ helper_apk=
 activity_package=${activity_component%%/*}
 activity_version_code=
 direct_diagnostics=${TOMB_RAIDER_DIRECT_DIAGNOSTICS:-0}
+icd_diagnostics=${TOMB_RAIDER_BVB_ICD_DIAGNOSTICS:-0}
 command_stream=${TOMB_RAIDER_BVB_COMMAND_STREAM:-strict}
 mapped_memory=${TOMB_RAIDER_BVB_MAPPED_MEMORY:-strict}
 first_rejection_diagnostic=${TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC-0}
@@ -324,6 +325,8 @@ trap 'exit 143' TERM
     fail "Tomb Raider direct launcher is unavailable: $launcher"
 [[ $direct_diagnostics =~ ^[01]$ ]] ||
     fail 'TOMB_RAIDER_DIRECT_DIAGNOSTICS must be 0 or 1'
+[[ $icd_diagnostics =~ ^[01]$ ]] ||
+    fail 'TOMB_RAIDER_BVB_ICD_DIAGNOSTICS must be 0 or 1'
 [[ $command_stream == strict || $command_stream == shared ]] ||
     fail 'TOMB_RAIDER_BVB_COMMAND_STREAM must be strict or shared'
 [[ $mapped_memory == strict || $mapped_memory == shared ]] ||
@@ -336,6 +339,7 @@ trap 'exit 143' TERM
 unset BVB_COMMAND_STREAM STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
     TOMB_RAIDER_BVB_COMMAND_STREAM BVB_MAPPED_MEMORY \
     STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY TOMB_RAIDER_BVB_MAPPED_MEMORY \
+    BVB_ICD_DIAGNOSTICS TOMB_RAIDER_BVB_ICD_DIAGNOSTICS \
     BVB_FIRST_REJECTION_DIAGNOSTIC \
     STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC \
     TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC
@@ -416,7 +420,7 @@ printf 'Preparing Tomb Raider BVB foreground handoff: socket=%s service_log=%s l
     "$socket" "$service_log" "$launcher_log"
 STEAM_ARM64_BVB_VULKAN=1 \
 BVB_BRIDGE_SOCKET="$socket" \
-BVB_ICD_DIAGNOSTICS=1 \
+BVB_ICD_DIAGNOSTICS="$icd_diagnostics" \
 TOMB_RAIDER_DIRECT_DIAGNOSTICS="$direct_diagnostics" \
 TOMB_RAIDER_BVB_COMMAND_STREAM="$command_stream" \
 TOMB_RAIDER_BVB_MAPPED_MEMORY="$mapped_memory" \

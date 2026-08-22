@@ -7740,6 +7740,24 @@ fullscreen 2800x1752 adb am start task resize"` query returned no indexed
 implementation; this correction reuses the existing exact-task resize and
 event-11 extent checks without changing the non-ADB path.
 
+## 2026-08-22: BVB game runs default to quiet ICD diagnostics
+
+The first opaque E115 run presented 33 game frames but emitted 1,628 lines of
+per-call ICD diagnostics in roughly two minutes. The log repeatedly serialized
+complete graphics-pipeline structures and every dynamic-rendering begin; that
+instrumentation is useful for shape discovery but belongs outside a performance
+run. The launcher had hard-coded it on even when
+`TOMB_RAIDER_DIRECT_DIAGNOSTICS=0` was requested.
+
+`TOMB_RAIDER_BVB_ICD_DIAGNOSTICS` is now a strict `0`/`1` control with a quiet
+default. Caller-smuggled effective values are removed before the Bionic service
+and Activity are started, and the selected effective value reaches only the
+direct game launcher. The one-record first-rejection diagnostic remains an
+independent selector. The required `deja "BVB Tomb Raider 3 seconds per frame
+identical image sequences performance first command poison diagnostic
+vkCreateDevice Zink masks"` query returned no indexed implementation. A paired
+quiet/noisy tablet A/B is required before claiming a speedup.
+
 ## 2026-08-21: Tomb Raider frame helper loads the installed native host
 
 The first E097 Tomb Raider rerun proved the Vulkan image-view fix but its

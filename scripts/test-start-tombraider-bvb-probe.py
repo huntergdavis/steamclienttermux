@@ -273,7 +273,7 @@ def main() -> None:
             for line in environment_capture.read_text(encoding="utf-8").splitlines()
         )
         assert values["STEAM_ARM64_BVB_VULKAN"] == "1"
-        assert values["BVB_ICD_DIAGNOSTICS"] == "1"
+        assert values["BVB_ICD_DIAGNOSTICS"] == "0"
         assert values["TOMB_RAIDER_DIRECT_DIAGNOSTICS"] == "0"
         assert values["TOMB_RAIDER_BVB_COMMAND_STREAM"] == "strict"
         assert values["TOMB_RAIDER_BVB_MAPPED_MEMORY"] == "strict"
@@ -438,6 +438,15 @@ def main() -> None:
         paired_screenshots = list(logs.glob("tombraider-bvb-activity-*.png"))
         assert len(paired_screenshots) == 1
         assert paired_screenshots[0].read_bytes().startswith(bytes.fromhex("89504e470d0a1a0a"))
+
+        noisy_diagnostic, _ = run_case(TOMB_RAIDER_BVB_ICD_DIAGNOSTICS="1")
+        assert noisy_diagnostic.returncode == 0, noisy_diagnostic.stderr
+        diagnostic_values = dict(
+            line.split("=", 1)
+            for line in environment_capture.read_text(encoding="utf-8").splitlines()
+        )
+        assert diagnostic_values["BVB_ICD_DIAGNOSTICS"] == "1"
+        assert_activity_balanced(13)
 
 
 if __name__ == "__main__":
