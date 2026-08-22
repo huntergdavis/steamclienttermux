@@ -1,0 +1,175 @@
+{
+  "gate": "E129",
+  "date": "2026-08-22",
+  "target": {
+    "game": "Tomb Raider (2013)",
+    "appid": 203160,
+    "resolution": "2800x1752",
+    "refresh_hz": 60,
+    "quality": "Low",
+    "fullscreen": true,
+    "vsync": false,
+    "motion_blur": false
+  },
+  "runtime": {
+    "bridge_source_commit": "d3eaa16",
+    "steamclienttermux_source_commit": "e2d72a2",
+    "run_id": "20260822T203437Z-27851",
+    "command_stream": "shared",
+    "mapped_memory": "shared",
+    "descriptor_journal": "shared",
+    "descriptor_ring_setup_opcode": 124,
+    "frame_profile": true,
+    "first_rejection_diagnostic": false,
+    "activity_version_code": 40
+  },
+  "game_authored_result": {
+    "minimum_fps": 0.4,
+    "maximum_fps": 3.8,
+    "average_fps": 2.0,
+    "average_frame_time_ms": 500.0,
+    "source_path": "/data/data/com.termux/files/home/steam-arm64/removable-library/steamapps/common/Tomb Raider/benchmarkresults 2026-08-22 20-45-50.txt",
+    "source_sha256": "42f5efc809746e089da2d53f56c1487835edfdae956558e62ed1f46e5136aec0",
+    "retained_normalized_path": "docs/evidence/tombraider-bvb-e129-descriptor-worker-profile-result-20260822.txt",
+    "retained_normalized_sha256": "27971b5de1aea765957dc9553d3a007932329eec16c2a5079b6382cb4c8ad268",
+    "e128_average_fps": 2.0,
+    "average_fps_change_percent": 0.0
+  },
+  "client_profile": {
+    "summary_window_presents": 32,
+    "complete_windows": 51,
+    "profiled_presents": 1632,
+    "all_windows": {
+      "socket_calls_per_present": 34.49632352941176,
+      "socket_blocked_ms_per_present": 99.14214318933824,
+      "descriptor_ring_calls": 520498,
+      "descriptor_ring_calls_per_present": 318.9325980392157,
+      "descriptor_ring_blocked_ms_per_present": 85.91905453492647,
+      "descriptor_ring_mean_microseconds_per_call": 269.39572198164065
+    },
+    "comparable_final_30_windows": {
+      "windows": 30,
+      "presents": 960,
+      "socket_calls_per_present": 41.71145833333333,
+      "socket_blocked_ms_per_present": 129.82894416979167,
+      "descriptor_ring_calls_per_present": 529.30625,
+      "descriptor_ring_blocked_ms_per_present": 142.98055104,
+      "descriptor_ring_mean_microseconds_per_call": 270.1282122389769,
+      "descriptor_journal_flush_calls_per_present": 7.902083333333334,
+      "descriptor_journal_flush_ms_per_present": 2.078781171875,
+      "shared_queue_submit_2_ms_per_present": 52.66368233333333,
+      "semaphore_wait_ms_per_present": 49.36871759895833,
+      "queue_submit_2_ms_per_present": 10.258304573958334,
+      "socket_plus_ring_ms_per_present": 272.8094952097917
+    }
+  },
+  "worker_profile": {
+    "records": 129,
+    "completed_transactions": 527157,
+    "total_ms": 41241.938,
+    "mean_microseconds_per_transaction": 78.235,
+    "phase_coverage_percent": 99.505,
+    "phases": {
+      "context_mutex_wait": {
+        "total_ms": 333.059,
+        "mean_microseconds": 0.632,
+        "percent_of_worker_total": 0.808
+      },
+      "decode": {
+        "total_ms": 658.733,
+        "mean_microseconds": 1.25,
+        "percent_of_worker_total": 1.597
+      },
+      "snapshot_and_validation": {
+        "total_ms": 1420.954,
+        "mean_microseconds": 2.696,
+        "percent_of_worker_total": 3.445
+      },
+      "journal_replay": {
+        "total_ms": 4632.79,
+        "mean_microseconds": 8.788,
+        "percent_of_worker_total": 11.233
+      },
+      "native_descriptor_allocation": {
+        "total_ms": 20488.903,
+        "mean_microseconds": 38.867,
+        "percent_of_worker_total": 49.68
+      },
+      "response_encoding_and_unlock": {
+        "total_ms": 327.208,
+        "mean_microseconds": 0.621,
+        "percent_of_worker_total": 0.793
+      },
+      "completion_publish_and_futex_wake": {
+        "total_ms": 13176.339,
+        "mean_microseconds": 24.995,
+        "percent_of_worker_total": 31.949
+      }
+    },
+    "maximum_single_transaction_microseconds": 13691.198,
+    "maximum_single_native_allocation_microseconds": 13623.073
+  },
+  "boundary_comparison": {
+    "client_profiled_transactions": 520498,
+    "worker_profiled_transactions": 527157,
+    "count_windows_are_not_identical": true,
+    "client_mean_microseconds": 269.396,
+    "worker_mean_microseconds": 78.235,
+    "approximate_unaccounted_client_to_worker_and_worker_to_client_microseconds": 191.161,
+    "approximate_unaccounted_share_of_client_round_trip_percent": 70.959,
+    "interpretation": "The worker timer starts only after request wake/copy and ends after completion futex_wake. The approximate gap therefore contains client publication, both cross-process scheduling/wakeup boundaries, and client response consumption. It is not attributed to one syscall without a paired cross-process timestamp protocol."
+  },
+  "wsi_profile": {
+    "client_present_ms_per_present": 0.953644757353,
+    "client_acquire_ms_per_present": 0.553125012868,
+    "client_combined_ms_per_present": 1.506769770221,
+    "service_present_ms_per_present": 0.686791064338,
+    "service_acquire_ms_per_present": 0.251006588848,
+    "service_combined_ms_per_present": 0.937797653186
+  },
+  "build_and_install": {
+    "host_contracts": "91/91 passed",
+    "initial_termux_contracts": "88/89 passed; the unrelated wsi-frame-ring stress timed out once at frame 1418",
+    "isolated_wsi_frame_ring_repeat": "5/5 passed in 0.57 seconds",
+    "e129_architecture_contract": "passed",
+    "glibc_rebuild": false,
+    "glibc_reason": "E129 changes only the Bionic service profiler; the E128 glibc ICD is byte-identical.",
+    "source_archive_sha256": "babafcf66d7f8cd3a07d2582946d4b6c3e7d4cf69bbd1596ffb8f8065335bc0f",
+    "termux_build_log_sha256": "50be0d69b8c9816a330e453e4828727f0c6c9ddd1d7b4305321b916e107d347c",
+    "rollback_backup": "/data/data/com.termux/files/home/steam-arm64/bvb/backups/install-pre-J76StOtL"
+  },
+  "installed_artifacts": {
+    "glibc_icd_sha256": "3cc21d9028bb8ef6fd29976e7e9328096a8f98d85583f22163eaf09aff65512d",
+    "bionic_service_sha256": "e498b5b0d91efd7ffefc41ae347c7445072ff7ee036e1aa93e4bef6bc5ce72cd",
+    "normalized_manifest_sha256": "77f3395e3f657b6a7274c182afe994edacda2a4b38d49814ea84440520af33df",
+    "install_stamp_sha256": "a4721626ef2d3c355d6f7613c78a9040699deec054d376ee65438699bb2b5478"
+  },
+  "visual_evidence": {
+    "initial_activity_sha256": "28b7305067678da2bc88ffcb75bf49b49141cf49c27c59d79df332dcee89e9f8",
+    "loading_frame_sha256": "45ca5b6e790d344a65a02b7b8d0bbabbf5616f56c56dd16b3ab36fa6670b1c4f",
+    "lara_frame_1_sha256": "09a237af6e6a1528be056132fb63cab55aad335519e6c0ae198bdddc4a4063f2",
+    "lara_frame_2_sha256": "6d1f1abf422fbcbb5a54f7c20f0cbb6b7ced1be6ec99f8964d5db641b8ff2b6e",
+    "lara_frame_3_sha256": "7c790c8030f02c63e037adc49558b65c414aab7fc080b2e7475ed55203b47951",
+    "claim": "The fullscreen loading screen and three distinct Lara frames were visually inspected during the completed E129 benchmark."
+  },
+  "retained_hashes": {
+    "direct_profile_log_sha256": "91cf5155412e77126c7c168b9311a9022ca80701784179cd35025efd197685d8",
+    "service_profile_log_sha256": "433059836d04a5da9dffbfc690d73d238906b7d74e76b446b144e1bc7a2dc434",
+    "probe_launcher_log_sha256": "07142bf32301af1b7ea1b16d761a276d04dd260fadbeedfeaf4e49610e94cda6",
+    "direct_launcher_log_sha256": "b64c2633b3e86141be67027f9306db84c2f4e6af2c6270bdcb62531c740aa5b2",
+    "frame_setup_json_sha256": "e22d934315295cb2c5735088f04424faed11d5b6b84a6a5ad49449fbfd62a934"
+  },
+  "post_run": {
+    "probe_status": 0,
+    "steam_pid": 15575,
+    "steam_start_ticks": 128118834,
+    "x11_pid": 13643,
+    "x11_start_ticks": 121863492,
+    "protected_processes_unchanged": true,
+    "battery_temperature_c_after_teardown": 25.3
+  },
+  "diagnosis": "E129 rejects both a context-lock bottleneck and a native-allocation-only explanation. Native vkAllocateDescriptorSets consumes about half of measured worker time, but the worker accounts for only about 78 microseconds of a roughly 269-microsecond client transaction. The dominant remaining interval is the synchronous cross-process publication/wakeup/scheduling round trip. Journal replay is measurable but secondary, and WSI remains below 2 ms per present.",
+  "recommendation": "Remove the per-set round trip and the repeated native allocation together. Use DXVK descriptor-pool reset epochs to preallocate or recycle same-layout native descriptor sets in bounded service-owned batches, publish typed leases to the client without a per-allocation wake, and retain authoritative pool-reset invalidation plus a strict fallback. Do not spend the next gate tuning the context mutex or Activity presentation path.",
+  "claim_boundary": "This one complete profiling run identifies phase shares and preserves the 2.0-FPS baseline. Client and worker counters cover slightly different start/end windows, so the 191-microsecond cross-process gap is approximate and is not assigned to a specific scheduler or futex syscall without paired timestamps.",
+  "reuse": "The required deja query returned no indexed E129 implementation. E129 reused E116/E117 bounded summaries, E128's exact descriptor worker boundary, and the existing final-process BVB_FRAME_PROFILE selector."
+}

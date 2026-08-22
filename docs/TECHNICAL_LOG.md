@@ -8120,3 +8120,32 @@ allocation, and completion components, then remove the hundreds of native
 allocations through descriptor-pool reset-epoch reuse. Exact identities,
 profiles, screenshots, and the negative performance result are retained in
 `docs/evidence/tombraider-bvb-e128-descriptor-ring-profile-20260822.json`.
+
+## 2026-08-22: E129 separates descriptor work from wakeup latency
+
+E129 retained the E128 wire and runtime behavior and added bounded phase
+profiling inside the Bionic descriptor worker. The exact service-only update
+passed 91/91 host contracts. Its first Termux suite passed 88/89; the unrelated
+WSI ring stress timed out once at frame 1418, then passed five consecutive
+isolated repetitions in 0.57 seconds. The unchanged E128 glibc ICD and new
+service were installed transactionally without restarting Steam or X11.
+
+The same 2800x1752 Low benchmark rendered multiple distinct Lara frames,
+completed cleanly, and reported **0.4 minimum, 3.8 maximum, and 2.0 average
+FPS**. Across 527,157 descriptor transactions, the worker averaged 78.2
+microseconds: real native descriptor allocation consumed 38.9 microseconds
+(49.7%), completion publication/futex wake 25.0 microseconds (31.9%), journal
+replay 8.8 microseconds (11.2%), and context-mutex wait only 0.6 microseconds
+(0.8%). The matching client ring averaged about 269.4 microseconds per call.
+Because the two counters cover slightly different run boundaries, subtraction
+is approximate, but roughly 191 microseconds per transaction remains outside
+the timed worker body in publication, wakeup/scheduling, and client response
+consumption.
+
+This rejects both the context mutex and native allocation alone as sufficient
+explanations. The next gate must remove the synchronous per-set wakeup and the
+native allocation together: preallocate or recycle same-layout native sets in
+bounded descriptor-pool reset epochs, publish typed leases without a per-set
+worker round trip, and retain authoritative reset invalidation plus a strict
+fallback. Exact phase totals, hashes, screenshots, and caveats are retained in
+`docs/evidence/tombraider-bvb-e129-descriptor-worker-profile-20260822.json`.
