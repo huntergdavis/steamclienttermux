@@ -734,6 +734,9 @@ def request_environment(payload: dict[str, object]) -> dict[str, str]:
         "BVB_FIRST_REJECTION_DIAGNOSTIC",
         "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC",
         "TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC",
+        "BVB_ICD_DIAGNOSTICS",
+        "TOMB_RAIDER_BVB_ICD_DIAGNOSTICS",
+        "VK_LOADER_DEBUG",
     ):
         environment.pop(name, None)
     return environment

@@ -7765,6 +7765,15 @@ environment builder now omits `BVB_ICD_DIAGNOSTICS` entirely in quiet mode and
 exports only exact `1` in diagnostic mode. This preserves the installed ICD's
 established selector ABI while making the requested quiet A/B real.
 
+The next live check found a second inheritance route: the long-lived Steam
+process itself still carried `BVB_ICD_DIAGNOSTICS=1`, and Pressure Vessel sent
+that stale value back in the captured request after the quiet selector had
+omitted its replacement. The request sanitizer now removes the effective ICD
+diagnostic variable, its user-facing control, and `VK_LOADER_DEBUG`; only the
+validated server-side selection may add diagnostics to the final game process.
+The contract deliberately smuggles all three values and proves that a quiet
+request contains none of them.
+
 ## 2026-08-21: Tomb Raider frame helper loads the installed native host
 
 The first E097 Tomb Raider rerun proved the Vulkan image-view fix but its

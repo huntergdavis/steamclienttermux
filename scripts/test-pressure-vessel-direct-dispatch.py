@@ -617,6 +617,9 @@ def main() -> None:
                 "BVB_FIRST_REJECTION_DIAGNOSTIC=1",
                 "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC=1",
                 "TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC=1",
+                "BVB_ICD_DIAGNOSTICS=1",
+                "TOMB_RAIDER_BVB_ICD_DIAGNOSTICS=1",
+                "VK_LOADER_DEBUG=all",
             ]
         }
     ) == {"STEAM_COMPAT_APP_ID": "203160"}
