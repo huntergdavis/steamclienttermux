@@ -7804,6 +7804,17 @@ presents so work targets the measured submission/upload bottleneck rather than
 blindly expanding hundreds of APIs. This remains frame-timing evidence, not a
 Tomb Raider benchmark or FPS claim.
 
+E117 then ranked every synchronous bridge exchange in a post-startup
+32-present window. It found 491,762 calls totaling 92.795 seconds—15,367.6
+round trips and 2.900 seconds of blocked RPC time per present. Tiny opcode-48
+memory writes dominated: 481,200 calls and 89.533 seconds, or 96.484% of all
+measured RPC wait. The verified screenshot showed the real Nixxes/Eidos frame,
+not the bootstrap triangle. This answers the “hundreds of gates” question:
+Vulkan API breadth is not our immediate blocker; one upload fallback is. The
+next optimization gate is to collapse or eliminate roughly 15,038 synchronous
+memory-write calls per frame while preserving the existing shared-memory and
+GPU-visibility rules.
+
 ## 2026-08-21: Tomb Raider frame helper loads the installed native host
 
 The first E097 Tomb Raider rerun proved the Vulkan image-view fix but its
