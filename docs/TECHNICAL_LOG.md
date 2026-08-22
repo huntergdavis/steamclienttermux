@@ -7815,6 +7815,30 @@ next optimization gate is to collapse or eliminate roughly 15,038 synchronous
 memory-write calls per frame while preserving the existing shared-memory and
 GPU-visibility rules.
 
+E118 widened the existing opt-in memory mirror from GPU-read-only buffers to
+all buffer-only allocations while preserving Bionic ownership, typed binding,
+byte-exact host-divergence reconciliation, and explicit-invalidate readback.
+Images still use the strict path. The required `deja "E118 eliminate opcode 48
+MEMORY_WRITE synchronous 4KiB fanout mapped memory submit shared mirror Tomb
+Raider"` query returned no indexed implementation; the change reuses E077's
+sealed memfd and baseline design, targeted by E117's measurement.
+
+The exact `e3a974c` bridge archive passed 76/76 Termux tests and its glibc
+dispatch self-test before transactional installation. A matched
+native-resolution run reduced RPC calls from 491,762 to 4,827 per 32 presents
+(99.018%) and RPC blocking from 2.900 to 0.329 seconds per present (8.81x).
+Matched 46-present Activity logs reduced the full mean interval from 3.154 to
+0.618 seconds (5.10x), the post-first-two mean from 2.991 to 0.406 seconds
+(7.37x), and the median from 2.927 to 0.313 seconds. The screenshot was the
+same real Nixxes/Eidos frame, not a triangle.
+
+This is transport timing, not Tomb Raider's built-in benchmark or a final FPS
+claim. Both A/B runs stopped at present 46. The new measured bottleneck is the
+common submit path: shared-stream opcode 105 plus ordinary Submit2 opcode 85
+consume 81.840% of the remaining RPC time, and both perform the same full
+coherent-mirror baseline scan before native submission. Steam, X, and private
+Turnip remained unchanged; rollback is `install-pre-v7zk8ojY`.
+
 ## 2026-08-21: Tomb Raider frame helper loads the installed native host
 
 The first E097 Tomb Raider rerun proved the Vulkan image-view fix but its
