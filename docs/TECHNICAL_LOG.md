@@ -7916,3 +7916,29 @@ returned no indexed implementation. This correction reuses E092's successful
 three-AHardwareBuffer relay and the repeated E099/E100 helper-pass evidence; it
 does not claim a game frame, benchmark result, or FPS change before the bounded
 tablet rerun.
+
+## 2026-08-22: E122 renders the first real benchmark scene through BVB
+
+E122 completed DXVK's measured query-pool family and the exact tablet build,
+install, and `-nolauncher -benchmark` launch reached a real, game-authored Lara
+Croft scene at 2800x1752. The Activity imported the three-image transport once
+and presented 721 frames without a consumer failure or any per-frame Java or
+Binder work. The milestone screenshot and machine-readable artifact/log hashes
+are retained in
+`docs/evidence/tombraider-bvb-e122-first-real-benchmark-frame-20260822.*`.
+
+The same screenshot remained byte-identical for more than 35 minutes and no
+benchmark result was written. DXVK's submit/queue threads were idle while one
+translated game thread spun through `getcpu` and the known RakNet receive
+thread yielded. Android had placed the Termux-owned game in `/moderate` and
+`/background`, limiting every thread to CPUs 0-3; a live request for 4-7 was
+rejected with `EINVAL`. That cgroup restriction is a separate confirmed
+performance defect, not yet proof of the sequence-721 stall's root cause.
+
+The required exact `deja` query found no prior implementation for this freeze.
+A broader recall recovered the guarded CPU-topology work and the earlier proof
+that `WebService is not ready` can coexist with successful launches. This run
+did not contain that spam, so E123 will preserve the visible proof and trace
+the first non-recoverable post-frame Vulkan or synchronization failure rather
+than revive the discarded offline-service theory. No animation, completed
+benchmark, FPS, or performance gain is claimed by E122.

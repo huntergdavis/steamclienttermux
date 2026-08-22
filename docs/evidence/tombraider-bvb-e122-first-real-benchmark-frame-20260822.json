@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "date": "2026-08-22",
+  "gate": "E122",
+  "target": {
+    "game": "Tomb Raider (2013)",
+    "launch_arguments": [
+      "-nolauncher",
+      "-benchmark"
+    ],
+    "resolution": "2800x1752",
+    "graphics_profile": "Low",
+    "command_stream": "shared",
+    "mapped_memory": "shared"
+  },
+  "bridge": {
+    "source_commit": "757508b42adb3c2754d5f0e3eee08075359351c3",
+    "installed_glibc_icd_sha256": "a54054d96639870daddf46dd1a153d9890d87c07f1261d919ac93d22c3a95033",
+    "installed_service_sha256": "9b1754ca874ec738a0a51a86fb796a561f5515b6e1c4809fa86f7fc32bf3fddf",
+    "installed_manifest_sha256": "77f3395e3f657b6a7274c182afe994edacda2a4b38d49814ea84440520af33df",
+    "installed_stamp_sha256": "c9a4bf90882a839c4f36384b74245b2e1ac266abc7f466cc9e7b1e45aedf84d9"
+  },
+  "visible_proof": {
+    "path": "docs/evidence/tombraider-bvb-e122-first-real-benchmark-frame-20260822.png",
+    "sha256": "11c2116597eb6f98b22bcaa2018f22b2e46a1dbc48eff90a03bd59ff76e403ac",
+    "bytes": 3129837,
+    "width": 2800,
+    "height": 1752,
+    "description": "The real game-authored native-resolution Tomb Raider benchmark scene visibly shows Lara Croft and the TR watermark after rendering through BVB."
+  },
+  "frame_transport": {
+    "generation_uint64": 16167922662260080641,
+    "last_presented_sequence": 721,
+    "last_presented_slot": 0,
+    "consumer_failure_seen": false,
+    "per_frame_java_calls": 0,
+    "per_frame_binder_calls": 0
+  },
+  "freeze_boundary": {
+    "first_capture_local_time": "2026-08-22T08:42:34-07:00",
+    "final_capture_local_time": "2026-08-22T09:18:00-07:00",
+    "captures_byte_identical": true,
+    "benchmark_result_written": false,
+    "game_alive_after_freeze": true,
+    "service_alive_after_freeze": true,
+    "dxvk_submit_threads_idle": true,
+    "active_guest_thread_behavior": "FEX JIT thread repeatedly called getcpu while the known Raknet-RecvFrom thread repeatedly yielded",
+    "android_cpu_cgroup": {
+      "cpuset": "/moderate",
+      "cpu": "/background",
+      "allowed_cpu_list": "0-3",
+      "attempted_4-7_affinity_result": "EINVAL"
+    }
+  },
+  "retained_log_hashes": {
+    "service_sha256": "4448f2edebe1558c49bc2108c892a210037a6246e03b11a9a6a6acaee1e3189e",
+    "direct_runtime_sha256": "f583fd7ff80475e2cefdaecb4352d8acdba8b3dd2696a889a102a0981cd57252",
+    "game_log_sha256": "6ec76eb2a0235d7f5690247bc471e8158b412bd1f717fdbcef41e106e11687c5",
+    "raknet_strace_sha256": "5fb293719948edbb15223d1d4a5bc688680db387348f3cb68be2329270ebf3e5",
+    "guest_spin_strace_sha256": "c15f3054cd0a2be30c560e06114637ef0f16093335442fd4595429a9b1e3d20b"
+  },
+  "recall": "The required exact deja query found no prior indexed implementation for this E122 first-frame freeze. A broader Tomb Raider recall recovered the earlier CPU-topology equality fix and proved that WebService-is-not-ready spam had also appeared in successful runs; this E122 run did not contain that spam.",
+  "claim_boundary": "This proves real game-authored Tomb Raider benchmark pixels reached the Android display through BVB. It does not prove animation after sequence 721, benchmark completion, FPS, or a performance improvement."
+}

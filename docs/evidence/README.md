@@ -95,6 +95,11 @@ These screenshots capture milestones and failures from the original tablet.
   records process/thread CPU deltas, masks, memory, clocks, GPU busy, and
   thermal state without command lines or account data. Its FPS result is not
   part of any controlled aggregate.
+- `tombraider-bvb-e122-first-real-benchmark-frame-20260822.png` and matching
+  JSON: the first real game-authored Tomb Raider benchmark scene rendered
+  through BVB at 2800x1752. Activity presentation reached sequence 721 before
+  freezing; the evidence explicitly does not claim animation, benchmark
+  completion, FPS, or a performance improvement.
 - `bionic-vulkan-bridge-e001-e003-20260818.json`: non-visual, machine-readable
   evidence for the first three bridge gates: direct Android system-loader
   enumeration, a verified glibc-to-Bionic protocol handshake, and exact
