@@ -7774,6 +7774,17 @@ validated server-side selection may add diagnostics to the final game process.
 The contract deliberately smuggles all three values and proves that a quiet
 request contains none of them.
 
+The corrected live A/B confirmed zero selected per-call markers and reduced
+the first 20 presentation elapsed time from 82.555 to 71.116 seconds (13.9%).
+After excluding the first two startup intervals, mean frame interval fell from
+4.094 to 3.444 seconds (15.9%), while the median moved from 3.313 to 3.186
+seconds. That is a real improvement, but it also proves logging was not the
+dominant bottleneck. Six consecutive presentation samples produced six unique
+PNG hashes, and the retained sequence-45 image visibly shows the opaque
+Nixxes/Eidos intro at native resolution. Compact evidence is
+`docs/evidence/tombraider-bvb-quiet-diagnostics-ab-20260822.json`; this is a
+frame-transport timing sample, not a game benchmark or FPS claim.
+
 ## 2026-08-21: Tomb Raider frame helper loads the installed native host
 
 The first E097 Tomb Raider rerun proved the Vulkan image-view fix but its

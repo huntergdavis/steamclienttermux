@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "date": "2026-08-22",
+  "target": {
+    "game": "Tomb Raider (2013)",
+    "resolution": "2800x1752",
+    "command_stream": "shared",
+    "mapped_memory": "shared"
+  },
+  "noisy": {
+    "run_id": "20260822T084536Z-21560",
+    "activity_pid": 23843,
+    "first_20_elapsed_seconds": 82.555,
+    "steady_interval_mean_seconds": 4.094294117647059,
+    "steady_interval_median_seconds": 3.313,
+    "direct_log_sha256": "0ffa799fa9614d2b160ee6717659983299f4cf05f3847fc63063652456e284e5",
+    "direct_log_lines": 1499,
+    "direct_log_bytes": 124879,
+    "selected_marker_count": 271
+  },
+  "quiet": {
+    "run_id": "20260822T085549Z-29239",
+    "activity_pid": 31515,
+    "first_20_elapsed_seconds": 71.116,
+    "steady_interval_mean_seconds": 3.4438235294117647,
+    "steady_interval_median_seconds": 3.186,
+    "direct_log_sha256": "0f99aa6144a38179366bf990f4fc3c070950fed1c9862c9d14c8cd9d2a2d0bcd",
+    "direct_log_lines": 19,
+    "direct_log_bytes": 2501,
+    "selected_marker_count": 0
+  },
+  "comparison": {
+    "first_20_elapsed_reduction_percent": 13.856217067409613,
+    "steady_interval_mean_reduction_percent": 15.887246239386233,
+    "steady_interval_definition": "sequences 3 through 20; excludes the first two startup intervals",
+    "benchmark_or_fps_claim": false
+  },
+  "visible_proof": {
+    "path": "docs/evidence/tombraider-bvb-opaque-changing-frame-20260822.png",
+    "sha256": "0b219e1c185044270c091f097a7a89d19374cb5f4df8d9f065001937d2cfa12d",
+    "sequence": 45,
+    "slot": 2,
+    "description": "Opaque full-display Nixxes/Eidos intro frame; six consecutive captured presentations had six distinct PNG hashes."
+  },
+  "preservation": {
+    "steam_pid": 14565,
+    "steam_start_ticks": 121864440,
+    "x11_pid": 13643,
+    "x11_start_ticks": 121863492,
+    "probe_stopped_by_exact_pid": true
+  },
+  "interpretation": "Quiet logging measurably helps but leaves multi-second frame intervals; the next gate must profile bridge/WSI timing rather than guess or bulk-promote unrelated Vulkan entries."
+}
