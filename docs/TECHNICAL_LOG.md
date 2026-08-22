@@ -7793,6 +7793,17 @@ summary per 32 frames at each of those three boundaries; it does not add a
 per-frame logging stream or a wire opcode. This is a diagnosis gate for the
 remaining multi-second interval, not a speedup by itself.
 
+The first exact E116 tablet profile decisively moved that boundary inward.
+Across 32 native-resolution presents, client present and acquire RPCs averaged
+6.535 ms and 0.667 ms; the Bionic present and acquire paths averaged 5.517 ms
+and 0.356 ms; and the Activity copy/present path averaged 2.990 ms. Presentations
+were nevertheless still roughly three seconds apart. WSI, the Activity copy,
+and their synchronization therefore cannot explain the multi-second frame
+interval. The next gate will rank the synchronous Vulkan bridge opcodes between
+presents so work targets the measured submission/upload bottleneck rather than
+blindly expanding hundreds of APIs. This remains frame-timing evidence, not a
+Tomb Raider benchmark or FPS claim.
+
 ## 2026-08-21: Tomb Raider frame helper loads the installed native host
 
 The first E097 Tomb Raider rerun proved the Vulkan image-view fix but its
