@@ -7839,6 +7839,29 @@ consume 81.840% of the remaining RPC time, and both perform the same full
 coherent-mirror baseline scan before native submission. Steam, X, and private
 Turnip remained unchanged; rollback is `install-pre-v7zk8ojY`.
 
+E119 optimized that newly exposed common submit path without changing the
+wire or memory semantics. The Bionic mirror scanner now skips equal 64-KiB
+regions with optimized `memcmp`, narrows differences to 4-KiB blocks, then
+retains the exact byte-run copier so unchanged host bytes still cannot
+overwrite GPU-produced native bytes. The required `deja "E119 opcode 105
+QueueSubmit2 stream replay mapped mirror baseline scan Tomb Raider"` query
+returned no indexed implementation; this directly reuses E077/E118's baseline
+and explicit-invalidate rules.
+
+The exact `e342783` archive passed 77/77 Termux tests and the glibc dispatch
+self-test. In the same 32-present profile, RPC blocking fell from 0.329 to
+0.118 seconds per present (2.789x), making the total improvement from E117
+24.575x. Shared-stream Submit2 time fell 74.848% and ordinary Submit2 time fell
+84.606%. Across the matched 46-present Activity trace, the post-first-two mean
+interval fell from 0.406 to 0.202 seconds and the median from 0.313 to 0.089
+seconds—11.236 presented frames/s at the median.
+
+The real game image was again byte-identical and both runs stopped at exact
+present 46. That makes the next goal an exact correctness/lifecycle diagnosis,
+not another broad Vulkan-family implementation pass. These are frame-transport
+timings, not Tomb Raider's built-in benchmark or a final FPS result. Rollback
+is `install-pre-iH5GvzkE`; Steam, X, and private Turnip remained unchanged.
+
 ## 2026-08-21: Tomb Raider frame helper loads the installed native host
 
 The first E097 Tomb Raider rerun proved the Vulkan image-view fix but its
