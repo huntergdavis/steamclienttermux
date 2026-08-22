@@ -1,0 +1,85 @@
+{
+  "gate": "E132",
+  "date": "2026-08-22",
+  "result": "failed_runtime_gate",
+  "target": {
+    "device": "Samsung Galaxy Tab S8+ SM-X808U",
+    "game": "Tomb Raider (2013)",
+    "appid": 203160,
+    "resolution": "2800x1752",
+    "refresh_hz": 60,
+    "quality": "Low",
+    "fullscreen": true,
+    "vsync": false,
+    "motion_blur": false
+  },
+  "runtime": {
+    "bridge_commit": "03260cd9a14ad93f3f04e67d9d33fa4cc9f41cd5",
+    "steamclienttermux_commit": "c2be825e7a7131350909606741a19969a302269c",
+    "profile_run_id": "20260822T231953Z-29881",
+    "diagnostic_run_id": "20260822T233507Z-18084",
+    "command_stream": "shared",
+    "mapped_memory": "shared",
+    "descriptor_journal": "shared",
+    "descriptor_ring_abi": 4,
+    "activity_version_code": 40,
+    "paired_adb_serial": "192.168.0.215:45495"
+  },
+  "validation": {
+    "host_contracts": "94/94 passed",
+    "termux_contracts": "92/92 passed",
+    "glibc_icd_selftest": "passed",
+    "rollback_backup": "/data/data/com.termux/files/home/steam-arm64/bvb/backups/install-pre-QRR6N78Z"
+  },
+  "installed_artifacts": {
+    "glibc_icd_sha256": "d12e38069002d3b342ed38d2f6fcdeb34d60f6a693830502509f00707f876bc7",
+    "bionic_service_sha256": "7f27cad35ef2898f1f6c195a2d719592c03873a7b7e7a178624b59565219d77e",
+    "manifest_sha256": "77f3395e3f657b6a7274c182afe994edacda2a4b38d49814ea84440520af33df",
+    "install_stamp_sha256": "ee24fa0445e6dcbe3584e408070efedc711aecbd191932b5881357030a1528fa"
+  },
+  "observed_boundary": {
+    "first_rejection": {
+      "entry": "vkCreateDevice",
+      "result": -3,
+      "symbolic_result": "VK_ERROR_INITIALIZATION_FAILED",
+      "consumer": "Mesa Zink GLX bootstrap",
+      "fatal_to_tomb_raider": false
+    },
+    "fatal_rejection": {
+      "entry": "vkAllocateDescriptorSets",
+      "result": -1000069000,
+      "symbolic_result": "VK_ERROR_OUT_OF_POOL_MEMORY",
+      "reason": "negative_vkresult_after_retry",
+      "consumer": "Tomb Raider DXVK device initialization"
+    },
+    "game_process_mapped_exact_e132_icd": true,
+    "game_swapchain_created": false,
+    "game_frame_presented": false,
+    "game_authored_result_file_created": false,
+    "fps_claim": false
+  },
+  "visual_evidence": {
+    "unchanged_activity_triangle_sha256": "28b7305067678da2bc88ffcb75bf49b49141cf49c27c59d79df332dcee89e9f8",
+    "x11_tomb_raider_error_sha256": "6646b273faa87b84bcfc5160ab5893570545da278d27ecb5b88df3f5eb58eecf",
+    "screenshot_interpretation": "Screenshot inspection proved that the unchanged Activity triangle hid a real X11 Tomb Raider Error dialog. No game pixel is claimed."
+  },
+  "retained_log_hashes": {
+    "diagnostic_direct_log_sha256": "1bca670b245c2f467771699fe3d0b320d35b4790c4259e733e50516d9e48d748",
+    "diagnostic_service_log_sha256": "6c386b36e79cdb6c57b4f1696a8a7f38a4bb834e6c9986b57c525d5aa1b97a9a",
+    "diagnostic_controller_log_sha256": "5d57f7037f36b18e7d8e97ccac5c9021b71052fcc419021e30e77e70e9988d23",
+    "diagnostic_anr_watchdog_log_sha256": "17c14f7498a8f7cdd3ece83c3ca5b877b7d17e12e849ecd66e80cd87519faeff"
+  },
+  "post_run": {
+    "owned_game_bridge_and_watchdog_processes_remaining": 0,
+    "steam_pid": 15575,
+    "steam_start_ticks": 128118834,
+    "x11_pid": 13643,
+    "x11_start_ticks": 121863492,
+    "protected_processes_unchanged": true,
+    "maximum_thermal_zone_c_after_teardown": 39.0
+  },
+  "diagnosis": "E132 speculatively allocated up to sixteen sets for every cold pool/layout signature. Tomb Raider has enough distinct descriptor signatures that unused real extras consumed finite native pool descriptors. The later exact allocation retry could not recover capacity and DXVK device initialization failed with VK_ERROR_OUT_OF_POOL_MEMORY.",
+  "recommendation": "E133 should allocate only two repetitions for a cold signature. When the client drains that bank and a new live miss proves reuse, double the repetition count up to the bounded maximum. Remove reset-time maximum prefill, reset every signature to the cold state, and retain exact fallback plus typed reset/destroy invalidation.",
+  "claim_boundary": "E132 host and tablet contracts passed, but the exact runtime pair failed before a game swapchain or game frame. No E132 FPS, hit-rate, or speedup is claimed.",
+  "reuse": "The required E132 and E133 deja queries returned no indexed implementation. Runtime validation reused E131's paired-ADB Activity handoff, exact launcher, ANR-Wait watchdog, screenshot inspection, first-rejection diagnostic, and protected Steam/X checks."
+}

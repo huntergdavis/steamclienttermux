@@ -8231,3 +8231,31 @@ allocation contract makes a failed multi-set call atomic, allowing an exact
 request fallback without keeping partial descriptor sets. Exact metrics,
 hashes, teardown state, and the retained Lara frame are in
 `docs/evidence/tombraider-bvb-e131-reset-epoch-lease-failure-20260822.json`.
+
+## 2026-08-22: E132 rejects eager maximum batches for cold signatures
+
+E132's live-signature implementation passed 94/94 host and 92/92 Termux
+contracts, and the tablet-built glibc ICD self-test passed. Ring ABI version 4
+allowed 64 independent pool/layout-signature banks and a first live miss could
+allocate up to 16 real sets, return the requested prefix, and publish the
+extras. The exact pair was installed transactionally with rollback
+`install-pre-QRR6N78Z`; Steam PID 15575 and X11 PID 13643 retained their start
+ticks.
+
+The hardware run did not reach a game frame. Screenshot inspection showed the
+unchanged Activity triangle while a tiny hidden X11 window was titled **Tomb
+Raider Error**. A diagnostic rerun resolved the ambiguity. Zink first received
+`VK_ERROR_INITIALIZATION_FAILED` from `vkCreateDevice`, but Tomb Raider/DXVK
+continued past that incidental GLX path. The fatal record was
+`vkAllocateDescriptorSets` returning `VK_ERROR_OUT_OF_POOL_MEMORY` even after
+the normal retry. No game swapchain or result file was created.
+
+This identifies over-prefetch, not the bridge's online/offline path, as the
+regression. Allocating 16 sets for every cold signature consumed real finite
+pool descriptors on signatures that had not demonstrated reuse. E133 must
+start with only one speculative extra. A fully drained bank followed by a new
+live miss is proof that the signature is hot; only then should the batch double
+toward the existing cap. Reset must invalidate all banks and restore cold
+state rather than prefill a maximum batch. Exact hashes, diagnostics, visual
+boundaries, and teardown state are retained in
+`docs/evidence/tombraider-bvb-e132-live-batch-pool-exhaustion-20260822.json`.
