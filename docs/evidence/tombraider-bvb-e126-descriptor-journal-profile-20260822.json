@@ -1,0 +1,158 @@
+{
+  "gate": "E126",
+  "date": "2026-08-22",
+  "target": {
+    "game": "Tomb Raider (2013)",
+    "appid": 203160,
+    "resolution": "2800x1752",
+    "refresh_hz": 60,
+    "quality": "Low",
+    "fullscreen": true,
+    "vsync": false,
+    "motion_blur": false
+  },
+  "runtime": {
+    "bridge_source_commit": "5497d515de9516e265c0e2a5f0df2226ff496afc",
+    "steamclienttermux_source_commit": "385912363312ef9689cd68492834ca454e6f7b78",
+    "run_id": "20260822T183003Z-8040",
+    "game_pid": 12004,
+    "service_pid": 8065,
+    "activity_pid": 11290,
+    "command_stream": "shared",
+    "mapped_memory": "shared",
+    "descriptor_journal": "shared",
+    "frame_profile": true,
+    "first_rejection_diagnostic": false,
+    "proot_in_game_vulkan_path": false,
+    "activity_version_code": 40
+  },
+  "game_authored_result": {
+    "minimum_fps": 0.6,
+    "maximum_fps": 3.7,
+    "average_fps": 2.0,
+    "average_frame_time_ms": 500.0,
+    "source_path": "/data/data/com.termux/files/home/steam-arm64/removable-library/steamapps/common/Tomb Raider/benchmarkresults 2026-08-22 18-40-45.txt",
+    "source_sha256": "a45dca3b5424076f1e35b30822719c9d64eb0ae5a6f9ab526da42b3efb54d6b6",
+    "retained_normalized_path": "docs/evidence/tombraider-bvb-e126-descriptor-journal-result-20260822.txt",
+    "retained_normalized_sha256": "b7fb3ce0079bc4df301b3c5efb26e0696325b3c7ad29dc4a6ca0d3308b6efc7d",
+    "e125_average_fps": 2.0,
+    "average_fps_changed": false
+  },
+  "rpc_profile": {
+    "summary_window_presents": 32,
+    "complete_windows": 52,
+    "profiled_presents": 1664,
+    "all_windows": {
+      "blocked_ms_per_present": 179.61514321033653,
+      "calls_per_present": 550.3016826923077,
+      "descriptor_allocate_ms_per_present": 49.99502195973558,
+      "descriptor_journal_flush_ms_per_present": 33.31198194591346
+    },
+    "benchmark_scene_windows_23_through_52": {
+      "windows": 30,
+      "presents": 960,
+      "blocked_ms_per_present": 267.80239931770836,
+      "calls_per_present": 916.509375,
+      "descriptor_allocate": {
+        "opcode": 68,
+        "calls_per_present": 532.0447916666667,
+        "blocked_ms_per_present": 84.27027423854166
+      },
+      "descriptor_journal_flush": {
+        "opcode": 122,
+        "calls_per_present": 350.64375,
+        "blocked_ms_per_present": 55.67489816041667
+      },
+      "strict_descriptor_update_template": {
+        "opcode": 112,
+        "calls_per_present": 0.0,
+        "blocked_ms_per_present": 0.0
+      },
+      "shared_queue_submit_2": {
+        "opcode": 105,
+        "calls_per_present": 2.771875,
+        "blocked_ms_per_present": 52.65994089895833
+      },
+      "semaphore_wait": {
+        "opcode": 83,
+        "calls_per_present": 2.775,
+        "blocked_ms_per_present": 49.7125922625
+      },
+      "queue_submit_2": {
+        "opcode": 85,
+        "calls_per_present": 1.028125,
+        "blocked_ms_per_present": 10.246957738541667
+      },
+      "descriptor_combined_ms_per_present": 139.94517239895833,
+      "descriptor_share_of_rpc_percent": 52.2568813123318,
+      "descriptor_share_of_500ms_frame_percent": 27.989034479791666
+    },
+    "heavy_windows_30_through_52": {
+      "windows": 23,
+      "presents": 736,
+      "blocked_ms_per_present": 282.93050324048914,
+      "calls_per_present": 1020.1277173913044,
+      "descriptor_calls_per_present": 988.21875,
+      "descriptor_blocked_ms_per_present": 156.2173860285326,
+      "submit_and_wait_blocked_ms_per_present": 115.67240085326087
+    },
+    "peak_descriptor_window_34": {
+      "descriptor_calls_per_present": 1826.03125,
+      "descriptor_blocked_ms_per_present": 271.84675253125,
+      "rpc_blocked_ms_per_present": 424.36141409375
+    },
+    "e125_comparison": {
+      "scene_e125_descriptor_ms_per_present": 162.4265546375,
+      "scene_e126_descriptor_ms_per_present": 139.94517239895833,
+      "descriptor_ms_saved_per_present": 22.48138223854167,
+      "descriptor_blocking_reduction_percent": 13.841,
+      "scene_e125_total_rpc_ms_per_present": 286.0752816135417,
+      "scene_e126_total_rpc_ms_per_present": 267.80239931770836,
+      "total_rpc_ms_saved_per_present": 18.27288229583334,
+      "total_rpc_reduction_percent": 6.387,
+      "e125_update_rpc_calls_per_present": 529.0697916666667,
+      "e126_flush_rpc_calls_per_present": 350.64375,
+      "exchange_boundary_reduction_percent": 33.724,
+      "approximate_updates_per_flush": 1.509
+    }
+  },
+  "wsi_profile": {
+    "client_windows": 52,
+    "client_present_ms_per_present": 0.9631278485576923,
+    "client_acquire_ms_per_present": 0.5364048725961539,
+    "client_combined_ms_per_present": 1.4995327211538463,
+    "service_windows": 52,
+    "service_present_ms_per_present": 0.6907310925480769,
+    "service_acquire_ms_per_present": 0.24142018329326922,
+    "service_combined_ms_per_present": 0.9321512758413462
+  },
+  "installed_artifacts": {
+    "glibc_icd_sha256": "aa198300337fad28e8db36ed85d2b1d42076093630322133fa42d8d381f58c7d",
+    "bionic_service_sha256": "d7cd75c91babe5f44d3bbd6133b78fda5a27131ba913402e8a1470cb7d607420",
+    "normalized_manifest_sha256": "77f3395e3f657b6a7274c182afe994edacda2a4b38d49814ea84440520af33df"
+  },
+  "visual_evidence": {
+    "initial_activity_sha256": "28b7305067678da2bc88ffcb75bf49b49141cf49c27c59d79df332dcee89e9f8",
+    "lara_frame_183312z_sha256": "81bb3537a6803eb59a26a6405d75d8f090547ebd82c6a73acc98febe556da932",
+    "lara_frame_183459z_sha256": "82e49ee56def3257c8e3b44750860670c73c922098e4745a12e16b9b6aea0c91",
+    "different_lara_hashes_prove_animation": true
+  },
+  "retained_hashes": {
+    "direct_profile_log_sha256": "1ef816b0dc790b95a4e9cf9e4d5bd9c267dd1b7eb5d809f69667057ed1fffb3c",
+    "service_profile_log_sha256": "41bf5e7968064735ca7ef4caf5708dd5222f32dd8ff7c01c2ddacbeeab0751f9",
+    "launcher_log_sha256": "bb2bc308d88647bb365368bc4dd9b405f684f5c9c0374f53ab2e6c5a45e4991a",
+    "frame_setup_json_sha256": "e22d934315295cb2c5735088f04424faed11d5b6b84a6a5ad49449fbfd62a934"
+  },
+  "post_run": {
+    "probe_status": 0,
+    "steam_pid": 15575,
+    "steam_start_ticks": 128118834,
+    "x11_pid": 13643,
+    "x11_start_ticks": 121863492,
+    "protected_processes_unchanged": true,
+    "temperature_c_after_teardown": 37.0
+  },
+  "diagnosis": "E126 is correct and measurably reduces descriptor blocking, but it does not improve rounded game FPS. Allocation opcode 68 remains one synchronous exchange per allocation and interleaves with updates, forcing opcode 122 after only about 1.5 updates. The next gate must preserve ordered native allocation results while replacing both socket exchanges with a shared request/completion transport.",
+  "claim_boundary": "This is one complete profiled game-authored benchmark, not a thermally paired FPS comparison. The exact E125/E126 profile shape proves a transport reduction and the exact remaining descriptor boundary; it does not prove a final FPS gain.",
+  "reuse": "The required deja query for a descriptor allocation lease/cache implementation returned no indexed match. E126 runtime analysis reuses E116's 32-present WSI windows, E117's per-opcode histogram, E125's matched complete baseline, and E126's typed immutable descriptor-journal contract."
+}

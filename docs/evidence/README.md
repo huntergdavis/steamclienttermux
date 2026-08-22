@@ -104,6 +104,11 @@ These screenshots capture milestones and failures from the original tablet.
   retained result text: the first complete animated, game-authored Tomb Raider
   benchmark through BVB at 2800x1752 Low. It reached sequence 1655, exited
   cleanly, and reported 0.8 FPS minimum, 3.6 maximum, and 2.0 average.
+- `tombraider-bvb-e126-descriptor-journal-profile-20260822.json` and retained
+  result text: the complete E126 shared-descriptor-journal benchmark and its
+  52 bounded RPC-profile windows. Descriptor blocking fell 13.8%, but the
+  game remained at 2.0 FPS because synchronous allocations forced roughly
+  351 tiny journal drains per benchmark-scene frame.
 - `bionic-vulkan-bridge-e001-e003-20260818.json`: non-visual, machine-readable
   evidence for the first three bridge gates: direct Android system-loader
   enumeration, a verified glibc-to-Bionic protocol handshake, and exact

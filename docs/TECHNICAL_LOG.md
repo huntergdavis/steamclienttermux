@@ -8037,3 +8037,32 @@ or FPS change is claimed here. The immediate measurement gate is the exact
 native-resolution Low benchmark with the journal enabled and E117 profiling;
 opcode 68 descriptor-set allocation remains synchronous and is expected to be
 the next dominant family.
+
+## 2026-08-22: E126 runtime reduces descriptor waits but not FPS
+
+The exact E126 source and final-process-only selector passed 87/87 host and
+85/85 Termux contracts, then completed the same 2800x1752 Low game-authored
+benchmark with command stream, mapped memory, and descriptor journal all in
+shared mode. Two Lara screenshots have different hashes, all 52 bounded
+32-present profile windows completed, the game wrote its result, and the probe
+exited cleanly without changing the protected Steam or X11 process identities.
+
+The result was **0.6 FPS minimum, 3.7 maximum, and 2.0 average**. E126 therefore
+does not improve rounded FPS, but its intended transport change is real:
+opcode 112 disappeared, benchmark-scene descriptor blocking fell from 162.4
+to 139.9 ms per present (13.8%), and total measured RPC blocking fell from
+286.1 to 267.8 ms (6.4%). The remaining shape explains the small gain. Each
+synchronous opcode-68 allocation drains preceding updates, producing about
+532 allocations and 351 opcode-122 drains per present—only about 1.5 updates
+per drain. Allocation plus drain still consumes 139.9 ms of each roughly
+500-ms frame.
+
+E127 will therefore not enlarge the journal or guess at graphics settings. It
+will preserve ordered native descriptor-pool allocation results while moving
+both allocation requests/completions and updates onto a bounded shared-memory
+transport. This conclusion reuses E116's WSI timing, E117's opcode histogram,
+E125's matched complete profile, and E126's immutable typed journal. The
+required `deja "BVB descriptor allocation lease cache pool epoch batch
+vkAllocateDescriptorSets DXVK performance"` query returned no indexed
+implementation. Exact results and hashes are retained in
+`docs/evidence/tombraider-bvb-e126-descriptor-journal-profile-20260822.json`.
