@@ -7890,3 +7890,29 @@ The Tomb Raider launcher now uses that same rule. Its host contract exercises a
 negative generation through the complete successful handoff; no APK or frame
 transport ABI changed. The required `deja "BVB FrameTransportClient negative
 generation signed long JSON uint64"` query found no indexed implementation.
+
+## 2026-08-22: harden the standalone frame-helper native search path
+
+A cold direct-BVB benchmark run reached DXVK device creation, the native-size
+three-image virtual swapchain, dynamic rendering, graphics-pipeline creation,
+and low-32-bit mapped memory before the standalone `FrameTransportClient`
+reported `libbvb-visible-host.so` missing. The launcher's bounded failure path
+then stopped the game, so this run is not evidence of a Tomb Raider offline or
+DRM failure.
+
+The helper process retained both its exact installed-library environment value
+and APK class path. A same-UID synthetic AHardwareBuffer setup proved that the
+installed library is valid and loadable, and Android 16's native-loader trace
+showed the bare APK class-loader namespace searches only system library
+directories. The launcher therefore retains E092's explicit absolute
+`System.load` handoff and also sets `java.library.path` to the validated
+installed APK native-library directory before `app_process64` initializes the
+class loader. The helper contract proves the exact JVM argument and preserves
+the setup-only Java/Binder architecture.
+
+The required `deja "FrameTransportClient UnsatisfiedLinkError
+libbvb-visible-host.so BVB_VISIBLE_HOST_NATIVE_LIBRARY app_process"` query
+returned no indexed implementation. This correction reuses E092's successful
+three-AHardwareBuffer relay and the repeated E099/E100 helper-pass evidence; it
+does not claim a game frame, benchmark result, or FPS change before the bounded
+tablet rerun.

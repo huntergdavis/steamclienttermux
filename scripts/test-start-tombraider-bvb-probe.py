@@ -171,7 +171,7 @@ def main() -> None:
             "assert not any(name in os.environ for name in ('BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_COMMAND_STREAM','BVB_MAPPED_MEMORY','STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY','TOMB_RAIDER_BVB_MAPPED_MEMORY','BVB_FIRST_REJECTION_DIAGNOSTIC','STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC','TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC'))\n"
             f"assert os.environ['CLASSPATH'] == {str(helper_apk)!r}\n"
             f"assert os.environ['BVB_VISIBLE_HOST_NATIVE_LIBRARY'] == {str(helper_native_library)!r}\n"
-            "assert sys.argv[1:4] == ['-Xnoimage-dex2oat', '/', 'io.github.huntergdavis.bvb.visiblehost.FrameTransportClient']\n"
+            f"assert sys.argv[1:5] == ['-Xnoimage-dex2oat', '-Djava.library.path={helper_native_library.parent}', '/', 'io.github.huntergdavis.bvb.visiblehost.FrameTransportClient']\n"
             "result=pathlib.Path(sys.argv[-2]); name=sys.argv[-1]\n"
             "mode=os.environ.get('FAKE_HELPER_MODE','pass')\n"
             "if mode in ('hang','delayed_fail'): signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
