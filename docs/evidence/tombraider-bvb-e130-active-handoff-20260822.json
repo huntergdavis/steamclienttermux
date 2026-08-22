@@ -1,0 +1,200 @@
+{
+  "gate": "E130",
+  "date": "2026-08-22",
+  "target": {
+    "device": "Samsung Galaxy Tab S8+ SM-X808U",
+    "game": "Tomb Raider (2013)",
+    "appid": 203160,
+    "resolution": "2800x1752",
+    "refresh_hz": 60,
+    "quality": "Low",
+    "fullscreen": true,
+    "exclusive_fullscreen": true,
+    "vsync": false,
+    "motion_blur": false
+  },
+  "runtime": {
+    "bridge_runtime_commit": "61c1a4c444b18dcff329e684b15a490ece00c827",
+    "installer_fix_commit": "4e8f67367ed846fd1843fc07307fee8f8fd58e3c",
+    "steamclienttermux_source_commit": "874757df9621a4fb0ba2f4102568c7317bb34562",
+    "run_id": "20260822T212453Z-15163",
+    "command_stream": "shared",
+    "mapped_memory": "shared",
+    "descriptor_journal": "shared",
+    "descriptor_ring_abi": 2,
+    "descriptor_ring_spin_budget_ns": 250000,
+    "frame_profile": true,
+    "first_rejection_diagnostic": false,
+    "activity_version_code": 40
+  },
+  "game_authored_result": {
+    "minimum_fps": 1.0,
+    "maximum_fps": 4.4,
+    "average_fps": 2.4,
+    "average_frame_time_ms": 416.666667,
+    "source_path": "/data/data/com.termux/files/home/steam-arm64/removable-library/steamapps/common/Tomb Raider/benchmarkresults 2026-08-22 21-34-44.txt",
+    "source_sha256": "c1043d693203803206a750ef08c86db3cce135646ba2d9a892a7a92d2acff9ff",
+    "retained_normalized_path": "docs/evidence/tombraider-bvb-e130-active-handoff-result-20260822.txt",
+    "retained_normalized_sha256": "ec4dfc50b234dfe408ed0599ae315824e47e82e3dba1d0f2a10261d748ed30f6",
+    "e129_minimum_fps": 0.4,
+    "e129_maximum_fps": 3.8,
+    "e129_average_fps": 2.0,
+    "average_fps_change_percent": 20.0,
+    "launch_to_result_seconds": 591,
+    "e129_launch_to_result_seconds": 673,
+    "launch_to_result_change_percent": -12.184
+  },
+  "client_profile": {
+    "summary_window_presents": 32,
+    "complete_windows": 53,
+    "profiled_presents": 1696,
+    "all_windows": {
+      "socket_calls_per_present": 32.63974056603774,
+      "socket_blocked_ms_per_present": 97.07129824174528,
+      "descriptor_ring_calls": 525167,
+      "descriptor_ring_calls_per_present": 309.6503537735849,
+      "descriptor_ring_blocked_ms_per_present": 60.644501231132075,
+      "descriptor_ring_mean_microseconds_per_call": 195.84831889284743,
+      "e129_descriptor_ring_mean_microseconds_per_call": 269.39572198164065,
+      "descriptor_ring_mean_change_percent": -27.301
+    },
+    "comparable_final_30_windows": {
+      "windows": 30,
+      "presents": 960,
+      "socket_calls_per_present": 38.96666666666667,
+      "socket_blocked_ms_per_present": 125.03659178020834,
+      "e129_socket_blocked_ms_per_present": 129.82894416979167,
+      "socket_blocked_change_percent": -3.691,
+      "descriptor_ring_calls_per_present": 528.721875,
+      "descriptor_ring_blocked_ms_per_present": 103.63046465208333,
+      "descriptor_ring_mean_microseconds_per_call": 196.0018481400705,
+      "e129_descriptor_ring_blocked_ms_per_present": 142.98055104,
+      "e129_descriptor_ring_mean_microseconds_per_call": 270.1282122389769,
+      "descriptor_ring_blocked_change_percent": -27.521,
+      "descriptor_ring_mean_change_percent": -27.441,
+      "descriptor_journal_flush_calls_per_present": 7.886458333333334,
+      "descriptor_journal_flush_ms_per_present": 2.0738796791666667,
+      "shared_queue_submit_2_ms_per_present": 50.931123523958334,
+      "semaphore_wait_ms_per_present": 51.86999961666667,
+      "queue_submit_2_ms_per_present": 9.997726983333333,
+      "socket_plus_ring_ms_per_present": 228.66705643229167,
+      "e129_socket_plus_ring_ms_per_present": 272.8094952097917,
+      "socket_plus_ring_change_percent": -16.181
+    }
+  },
+  "worker_profile": {
+    "records": 129,
+    "completed_transactions": 526374,
+    "total_ms": 25341.283449,
+    "mean_microseconds_per_transaction": 48.143,
+    "e129_mean_microseconds_per_transaction": 78.235,
+    "mean_change_percent": -38.463,
+    "phase_coverage_percent": 99.293,
+    "phases": {
+      "context_mutex_wait": {
+        "total_ms": 324.264889,
+        "mean_microseconds": 0.616,
+        "percent_of_worker_total": 1.280
+      },
+      "decode": {
+        "total_ms": 542.376649,
+        "mean_microseconds": 1.030,
+        "percent_of_worker_total": 2.140
+      },
+      "snapshot_and_validation": {
+        "total_ms": 1186.380613,
+        "mean_microseconds": 2.254,
+        "percent_of_worker_total": 4.682
+      },
+      "journal_replay": {
+        "total_ms": 3543.683955,
+        "mean_microseconds": 6.732,
+        "percent_of_worker_total": 13.984
+      },
+      "native_descriptor_allocation": {
+        "total_ms": 17489.819622,
+        "mean_microseconds": 33.227,
+        "percent_of_worker_total": 69.017,
+        "e129_mean_microseconds": 38.867,
+        "change_percent": -14.511
+      },
+      "response_encoding_and_unlock": {
+        "total_ms": 240.418875,
+        "mean_microseconds": 0.457,
+        "percent_of_worker_total": 0.949
+      },
+      "completion_publish_and_futex_wake": {
+        "total_ms": 1835.132446,
+        "mean_microseconds": 3.486,
+        "percent_of_worker_total": 7.242,
+        "e129_mean_microseconds": 24.995,
+        "change_percent": -86.052
+      }
+    },
+    "maximum_single_transaction_microseconds": 12944.948,
+    "maximum_single_native_allocation_microseconds": 9421.094
+  },
+  "boundary_comparison": {
+    "client_profiled_transactions": 525167,
+    "worker_profiled_transactions": 526374,
+    "count_windows_are_not_identical": true,
+    "client_mean_microseconds": 195.848,
+    "worker_mean_microseconds": 48.143,
+    "approximate_unaccounted_client_to_worker_and_worker_to_client_microseconds": 147.705,
+    "approximate_unaccounted_share_of_client_round_trip_percent": 75.418,
+    "e129_approximate_unaccounted_microseconds": 191.161,
+    "interpretation": "Active handoff removes most completion futex cost and reduces the outside-worker interval, but the client still waits synchronously for every descriptor set. The counters begin and end at slightly different boundaries, so subtraction remains approximate and is not assigned to one syscall."
+  },
+  "wsi_profile": {
+    "client_present_ms_per_present": 0.959081325472,
+    "client_acquire_ms_per_present": 0.579753806604,
+    "client_combined_ms_per_present": 1.538835132075,
+    "service_present_ms_per_present": 0.679767162736,
+    "service_acquire_ms_per_present": 0.258090269458,
+    "service_combined_ms_per_present": 0.937857432193
+  },
+  "build_and_install": {
+    "runtime_host_contracts": "92/92 passed",
+    "termux_contracts": "90/90 passed",
+    "installer_fix_host_contracts": "92/92 passed",
+    "source_archive_sha256": "95eea8c250fc7cedbdeb7699cc6731980854eac2b22804ccccf40e6f3c0f799c",
+    "termux_build_log_sha256": "fdafa57443a1d15580d35bb61b98a8292d29b1d22e8df4c4c3047f4b8cf46970",
+    "glibc_build_log_sha256": "ba71adfc19899ca86391c6b726d7e1593c8c7de27fc533ca0889827f7babf165",
+    "installer_sha256": "eaac6aeed1c13f4b7012c2af8fb8d7d711e1a7d624496c49479c6ecbe1f3cb8e",
+    "installer_preflight_correction": "The original grep -q pipeline falsely rejected a real /system/bin/linker64 service under pipefail. Commit 4e8f673 makes ELF checks consume complete readelf output and adds a large trailing-output regression.",
+    "rollback_backup": "/data/data/com.termux/files/home/steam-arm64/bvb/backups/install-pre-kQuPHP5u"
+  },
+  "installed_artifacts": {
+    "glibc_icd_sha256": "fe8be79127899dcb0b1c71349a063fe4904178fa39abdb493da72401a93c351b",
+    "bionic_service_sha256": "1134c346ce7650d133422acf1d0250f6f00343581c5613fb1a6049788ecbae47",
+    "manifest_sha256": "77f3395e3f657b6a7274c182afe994edacda2a4b38d49814ea84440520af33df",
+    "install_stamp_sha256": "19bffa5ae80b61ae60f2e772f1d2bfc9e3663087f60038ab796e3056401a719b"
+  },
+  "visual_evidence": {
+    "initial_activity_sha256": "28b7305067678da2bc88ffcb75bf49b49141cf49c27c59d79df332dcee89e9f8",
+    "loading_frame_sha256": "bec41cdde1199a08165807b46f5750fa039846a4777356ad4b6d55c542cf7f4e",
+    "lara_frame_1_sha256": "64f59b3090300259f862222e777947aa4f18c7fb15274dafa220575bcb6d60a4",
+    "lara_frame_2_sha256": "21cddf9297580da739d2777fee63a0fcb547d52cb3ca2851147999e093c7f190",
+    "claim": "The fullscreen triangle, Tomb Raider loading screen, and two distinct Lara frames were visually inspected during the completed E130 benchmark."
+  },
+  "retained_hashes": {
+    "direct_profile_log_sha256": "c4a0d423998f5ee02e0f86ccbb3fa56e927b00d90175d1c7407a0a33db571b9f",
+    "service_profile_log_sha256": "f3049fd3a113e78c473f48b3f906d325ca31eac5a635a4f3b62e480aa8fec33d",
+    "probe_launcher_log_sha256": "10eb9ac3a466fa4594bf2cbc509a5ac0fb0f58528bf16cb7c1af31da79a6ef38",
+    "direct_launcher_log_sha256": "5c2099b38bd29e42f0b78b007f7dbefed5da0116d6ae050dda0f65d8bb365d9d",
+    "frame_setup_json_sha256": "e22d934315295cb2c5735088f04424faed11d5b6b84a6a5ad49449fbfd62a934"
+  },
+  "post_run": {
+    "probe_status": 0,
+    "steam_pid": 15575,
+    "steam_start_ticks": 128118834,
+    "x11_pid": 13643,
+    "x11_start_ticks": 121863492,
+    "protected_processes_unchanged": true,
+    "battery_temperature_c_after_teardown": 25.4
+  },
+  "diagnosis": "E130 validates the scheduling diagnosis: bounded active handoff sharply reduces completion wake and total ring latency, and 20 percent of that gain reaches game-authored average FPS. It does not remove the per-set synchronous boundary. In the comparable scene, roughly 529 descriptor transactions still block 103.6 ms per present. Native allocation is now 69 percent of worker time but only 33.2 microseconds of a 195.8-microsecond client call.",
+  "recommendation": "E131 should publish bounded service-created descriptor-set leases keyed by owning pool, layout, and reset epoch. The glibc client should claim a ready typed proxy locally with no request/completion wake, while the Bionic service refills leases in batches and authoritatively invalidates them on pool reset/destroy. Preserve native failure reporting, finite pool capacity, journal ordering, and strict synchronous fallback. Do not tune WSI or the context mutex next.",
+  "claim_boundary": "One matched complete E130 run proves a 20 percent game-authored average-FPS improvement and the measured phase deltas. It is not yet a cooled alternating statistical series, and active polling may have target-specific power or contention costs. The client/worker outside interval remains approximate because counters cover slightly different start and end windows.",
+  "reuse": "The required deja query returned no indexed active-handoff implementation. E130 reused E128's process-shared descriptor ring, E129's bounded worker/client profiling boundary, and the existing permanent peer-failure wake behavior."
+}

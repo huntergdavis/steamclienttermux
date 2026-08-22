@@ -8149,3 +8149,44 @@ bounded descriptor-pool reset epochs, publish typed leases without a per-set
 worker round trip, and retain authoritative reset invalidation plus a strict
 fallback. Exact phase totals, hashes, screenshots, and caveats are retained in
 `docs/evidence/tombraider-bvb-e129-descriptor-worker-profile-20260822.json`.
+
+## 2026-08-22: E130 converts the wakeup diagnosis into a 20% FPS gain
+
+E130 changed the descriptor ring handoff without changing its synchronous
+native result. Request and completion waiters now actively poll their sequence
+for at most 250 microseconds, explicitly publish spinning/sleeping state, and
+fall back to the original futex path when work is not ready. The exact client
+and service passed 92/92 host and 90/90 Termux contracts. Installation first
+exposed a real `readelf | grep -q` false negative under `pipefail`; the service
+was a genuine `/system/bin/linker64` Bionic executable. Bridge commit `4e8f673`
+makes those checks consume the complete stream and adds a large trailing-output
+regression. The corrected transaction retained rollback
+`install-pre-kQuPHP5u` and did not restart Steam or X11.
+
+The same 2800x1752 exclusive-fullscreen Low benchmark rendered the triangle,
+loading screen, and multiple distinct Lara frames, then completed cleanly with
+**1.0 minimum, 4.4 maximum, and 2.4 average FPS**. That is a **20% average-FPS
+gain** over E129's matched 2.0-FPS run. Launch-to-result time fell from about
+673 to 591 seconds (12.2%). Steam PID 15575 and X11 PID 13643 retained their
+original start ticks, and the tablet measured 25.4 C after teardown.
+
+The intended transport change is directly measurable. Across 526,374 worker
+transactions, mean worker time fell from 78.2 to 48.1 microseconds (38.5%),
+and completion publication/wake fell from 25.0 to 3.5 microseconds (86.1%).
+Client ring latency fell from 269.4 to 195.8 microseconds (27.3%). In the
+comparable final 30 windows, ring blocking fell from 143.0 to 103.6 ms per
+present and combined socket-plus-ring blocking fell from 272.8 to 228.7 ms
+(16.2%). WSI remained essentially unchanged at 1.54 ms client-side and 0.94 ms
+service-side per present.
+
+E130 therefore validates the scheduling diagnosis but also establishes the
+next limit. The scene still performs about 529 synchronous descriptor
+transactions per present. Native allocation is now the largest worker phase at
+33.2 microseconds and 69.0%, yet the complete client call still averages 195.8
+microseconds. E131 should create bounded service-owned descriptor-set leases
+keyed by pool, layout, and reset epoch, refill them in batches, and let the
+glibc client claim a ready typed proxy without a request/completion wake.
+Authoritative reset/destroy invalidation, finite pool capacity, native error
+reporting, journal ordering, and strict fallback remain mandatory. Exact
+metrics, identities, and claim boundaries are retained in
+`docs/evidence/tombraider-bvb-e130-active-handoff-20260822.json`.
