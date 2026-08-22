@@ -7969,3 +7969,42 @@ victory. The retained screenshot, result, identities, and log hashes are in
 `docs/evidence/tombraider-bvb-e124-complete-benchmark-20260822.*`. The next
 gate profiles this now-complete workload and attacks its measured dominant
 bridge cost before adding more unrelated Vulkan API breadth.
+
+## 2026-08-22: E125 identifies the full-benchmark descriptor RPC storm
+
+The first complete default-off E124 result was repeated with the existing
+bounded E116 frame and E117 RPC profilers enabled. The game again authored a
+2.0 FPS average result (0.9 minimum and 3.8 maximum), so the profiler did not
+create the slowdown. Fifty-two complete 32-present windows cover 1,664 real
+frames. During the benchmark scene, synchronous bridge exchanges block the
+game for 286.1 ms per present on average; the worst window reaches 469.9 ms.
+
+The dominant shape is now exact. The benchmark scene averages 529.7
+`vkAllocateDescriptorSets` RPCs and 529.1
+`vkUpdateDescriptorSetWithTemplate` RPCs per present. Together they cost
+162.4 ms per frame on average. The peak window exceeds 1,000 calls of each
+kind and spends 306.6 ms of its roughly 500-ms frame in those two operations.
+Shared command-stream submission, semaphore waits, and ordinary Submit2 add
+about 115.1 ms per present in the heavy windows. By contrast, the complete
+client acquire/present boundary is only 1.50 ms per present and the service
+portion is 0.97 ms. This rejects the Activity copy path, PRoot, storage
+page-in, and service CPU saturation as the primary 15–16x loss.
+
+There is also a separate scheduler defect: Android places both the
+Termux-owned game and bridge service in `/background` plus `/moderate`, with
+CPUs 0-3 as their entire allowed mask. The visible BVB Activity is a different
+UID in `/top-app`, so it does not promote those processes. A ten-second sample
+showed the game at about 246% CPU, the service at 31%, and `Raknet-RecvFrom`
+alone at about 109% of one efficiency core. No major faults occurred and over
+4.8 GiB of swap remained free.
+
+The optimization order is therefore descriptor updates first, descriptor-set
+allocation second, submission/completion batching third, and Activity-owned
+foreground scheduling fourth. The descriptor updates are void Vulkan calls
+and can be appended to a bounded pointer-free shared journal, then validated
+and replayed in order at the existing native submit boundary. Allocation
+returns handles and needs a bounded pool-epoch-aware arena or request/completion
+ring rather than a semantic shortcut. Only after those measured CPU/IPC costs
+fall should GPU timestamps decide whether graphics work itself is next. Full
+measurements, artifact hashes, caveats, and the ranked plan are retained in
+`docs/evidence/tombraider-bvb-e125-full-benchmark-profile-20260822.json`.

@@ -1,0 +1,216 @@
+{
+  "gate": "E125",
+  "date": "2026-08-22",
+  "target": {
+    "game": "Tomb Raider (2013)",
+    "appid": 203160,
+    "resolution": "2800x1752",
+    "refresh_hz": 60,
+    "quality": "Low",
+    "fullscreen": true,
+    "vsync": false,
+    "motion_blur": false
+  },
+  "runtime": {
+    "bridge_source_commit": "2588c515885963ae8016dd39008da615f1b05825",
+    "run_id": "20260822T172556Z-20121",
+    "game_pid": 23390,
+    "service_pid": 20158,
+    "activity_pid": 22821,
+    "command_stream": "shared",
+    "mapped_memory": "shared",
+    "frame_profile": true,
+    "first_rejection_diagnostic": false,
+    "proot_in_game_vulkan_path": false
+  },
+  "game_authored_result": {
+    "minimum_fps": 0.9,
+    "maximum_fps": 3.8,
+    "average_fps": 2.0,
+    "average_frame_time_ms": 500.0,
+    "source_path": "/data/data/com.termux/files/home/steam-arm64/removable-library/steamapps/common/Tomb Raider/benchmarkresults 2026-08-22 17-37-04.txt",
+    "source_sha256": "61c55dc4dcd927071721fddde29906b72a1d9f16cb0906244dd0e0c4c2831e40",
+    "unprofiled_e124_average_fps": 2.0,
+    "profiling_changed_average_fps": false
+  },
+  "matched_direct_reference": {
+    "source": "docs/benchmark-series/tombraider-direct-glibc-safe-60hz-40c-20260818.json",
+    "resolution": "2800x1752",
+    "refresh_hz": 59.97,
+    "recorded_average_fps_mean": 30.567,
+    "recorded_average_fps_median": 30.3,
+    "bvb_slowdown_vs_direct_mean": 15.2835,
+    "interpretation": "The observed deficit is approximately 15-16x on the matched panel-native direct target."
+  },
+  "rpc_profile": {
+    "summary_window_presents": 32,
+    "complete_windows": 52,
+    "profiled_presents": 1664,
+    "all_windows": {
+      "mean_blocked_ms_per_present": 193.63522830048078,
+      "median_window_blocked_ms_per_present": 216.530405953125,
+      "minimum_window_blocked_ms_per_present": 47.92346665625,
+      "maximum_window_blocked_ms_per_present": 469.86037040625,
+      "mean_calls_per_present": 655.0444711538462,
+      "median_window_calls_per_present": 667.84375,
+      "minimum_window_calls_per_present": 50.125,
+      "maximum_window_calls_per_present": 2078.34375
+    },
+    "benchmark_scene_windows_23_through_52": {
+      "windows": 30,
+      "presents": 960,
+      "blocked_ms_per_present": 286.0752816135417,
+      "calls_per_present": 1090.06875,
+      "share_of_500ms_frame_percent": 57.21505632270834,
+      "descriptor_allocate": {
+        "opcode": 68,
+        "calls_per_present": 529.6833333333333,
+        "blocked_ms_per_present": 89.50097008125
+      },
+      "descriptor_update_template": {
+        "opcode": 112,
+        "calls_per_present": 529.0697916666667,
+        "blocked_ms_per_present": 72.92558455625
+      },
+      "shared_queue_submit_2": {
+        "opcode": 105,
+        "calls_per_present": 2.7760416666666665,
+        "blocked_ms_per_present": 52.64316176875
+      },
+      "semaphore_wait": {
+        "opcode": 83,
+        "calls_per_present": 2.784375,
+        "blocked_ms_per_present": 49.74958257708334
+      },
+      "queue_submit_2": {
+        "opcode": 85,
+        "calls_per_present": 1.0083333333333333,
+        "blocked_ms_per_present": 10.236562133333333
+      },
+      "descriptor_combined_ms_per_present": 162.4265546375,
+      "descriptor_share_of_rpc_percent": 56.77756087088484,
+      "descriptor_share_of_500ms_frame_percent": 32.4853109275
+    },
+    "heavy_windows_30_through_52": {
+      "windows": 23,
+      "presents": 736,
+      "blocked_ms_per_present": 306.6003435353261,
+      "calls_per_present": 1210.9809782608695,
+      "descriptor_calls_per_present": 1179.001358695652,
+      "descriptor_blocked_ms_per_present": 179.94362155027174,
+      "descriptor_share_of_rpc_percent": 58.68996213657162,
+      "submit_and_wait_blocked_ms_per_present": 115.07715518478262
+    },
+    "peak_window_33": {
+      "calls_per_present": 2078.34375,
+      "blocked_ms_per_present": 469.86037040625,
+      "descriptor_allocate_calls_per_present": 1022.0625,
+      "descriptor_allocate_ms_per_present": 170.21131696875,
+      "descriptor_update_calls_per_present": 1020.875,
+      "descriptor_update_ms_per_present": 136.360875,
+      "descriptor_combined_ms_per_present": 306.57219196875,
+      "descriptor_share_of_rpc_percent": 65.24751291636512,
+      "descriptor_share_of_500ms_frame_percent": 61.31443839375
+    }
+  },
+  "wsi_profile": {
+    "client_windows": 52,
+    "client_present_ms_per_present": 0.9806011472355769,
+    "client_acquire_ms_per_present": 0.5145595216346154,
+    "client_combined_ms_per_present": 1.4951606688701922,
+    "service_windows": 52,
+    "service_present_ms_per_present": 0.7196499086538461,
+    "service_acquire_ms_per_present": 0.2486880751201923,
+    "service_combined_ms_per_present": 0.9683379837740385,
+    "interpretation": "Virtual WSI is below 2 ms per present at the client boundary and is not the 500 ms frame-time bottleneck. The earlier E116 Activity copy/present sample was 2.990 ms per frame and is corroborative rather than part of this run's totals."
+  },
+  "live_system_profile": {
+    "sample_seconds": 10,
+    "game_cpu_percent": 246.0,
+    "service_cpu_percent": 31.0,
+    "hot_game_threads_cpu_percent": {
+      "Raknet-RecvFrom": 109.4,
+      "dxvk-cs": 63.4,
+      "TombRaider": 47.0
+    },
+    "game_cpus_allowed": "0-3",
+    "service_cpus_allowed": "0-3",
+    "game_cpu_cgroup": "/background",
+    "game_cpuset_cgroup": "/moderate",
+    "service_cpu_cgroup": "/background",
+    "service_cpuset_cgroup": "/moderate",
+    "activity_cpu_cgroup": "/top-app",
+    "activity_uid": 10323,
+    "termux_uid": 10469,
+    "cpu_cluster_max_khz": {
+      "0-3": 1785600,
+      "4-6": 2496000,
+      "7": 2995200
+    },
+    "game_rss_kib": 322228,
+    "service_rss_kib": 117372,
+    "memory_available_gib_approx": 1.116,
+    "swap_free_gib_approx": 4.867,
+    "game_major_faults_during_sample": 0,
+    "service_major_faults_during_sample": 0,
+    "interpretation": "Android confines the Termux-owned game and Bionic service to the four efficiency cores while the separate visible Activity is top-app. This is a real secondary CPU defect, but it cannot explain the measured hundreds of milliseconds of synchronous bridge waits by itself."
+  },
+  "diagnosis": [
+    {
+      "rank": 1,
+      "cause": "descriptor RPC storm",
+      "confidence": "high",
+      "evidence": "The benchmark scene averages about 530 synchronous descriptor allocations and 529 synchronous update-template calls per present; the peak window exceeds 1,000 of each and spends 306.6 ms per 500 ms frame in those two calls alone."
+    },
+    {
+      "rank": 2,
+      "cause": "synchronous queue submission and semaphore waits",
+      "confidence": "high",
+      "evidence": "Heavy windows spend about 115.1 ms per present in opcodes 105, 83, and 85."
+    },
+    {
+      "rank": 3,
+      "cause": "Android background/moderate scheduling on efficiency cores",
+      "confidence": "high",
+      "evidence": "Both game and service are restricted to CPUs 0-3 while CPUs 4-7 are faster and the Activity is top-app."
+    },
+    {
+      "rank": 4,
+      "cause": "remaining game/FEX/DXVK CPU work and possible GPU work",
+      "confidence": "unresolved",
+      "evidence": "The measured bridge RPC budget does not cover the entire 500 ms frame. KGSL busy counters were unavailable, so this run does not assign the remainder to the GPU."
+    }
+  ],
+  "rejected_primary_causes": [
+    "PRoot in the game Vulkan path",
+    "virtual WSI copy/present",
+    "current memory pressure or storage page-in during the sample",
+    "service CPU saturation"
+  ],
+  "recommended_order": [
+    "E126: move vkUpdateDescriptorSetWithTemplate payloads into a bounded shared descriptor journal and replay them in sequence at the existing submit boundary, removing hundreds to thousands of socket round trips per frame",
+    "E127: replace per-set synchronous allocation with a bounded descriptor arena/lease protocol or shared request-completion ring; preserve descriptor-pool reset epochs and fail closed on exhaustion",
+    "E128: move QueueSubmit2 and semaphore completion traffic to a shared submission/completion ring while retaining native Bionic synchronization semantics",
+    "E129: launch the game/service from an Activity-owned foreground execution path or equivalent broker so the hot threads can use CPUs 4-7; isolate the busy RakNet thread from dxvk-cs",
+    "After the CPU/IPC gates, capture real Turnip GPU timestamps or Perfetto/KGSL counters before changing graphics work"
+  ],
+  "expected_near_term_ceiling": {
+    "statement": "Removing descriptor RPC time alone would reduce the measured heavy-scene blocking budget from about 307 ms to about 127 ms, but it does not guarantee the final frame time because CPU, submission, and GPU work can overlap or move.",
+    "honest_target_after_descriptor_and_submit_batching": "first recover into the high single digits, then measure; 20-30 FPS remains possible but is not yet supported by BVB data"
+  },
+  "retained_hashes": {
+    "direct_profile_log_sha256": "1f119a2f04bc6b14ea1ff50b3188ea7322d1a1882ddbc12151f7d90fb429a82f",
+    "service_profile_log_sha256": "bb80ef4768cee01b10d929300d0278cf119ba25813ce73239a36b893de493e83",
+    "control_log_sha256": "59bf1973766ca7da6e34d29731f100c8c2d3d8eca20581acbb7c6552338a5dd0",
+    "launcher_log_sha256": "79cf5b0fdefadde4657b9069c2d80cd322bc05a432cb9baba1fe58243ae4bfe1"
+  },
+  "post_run": {
+    "probe_status": 0,
+    "steam_pid": 15575,
+    "steam_start_ticks": 128118834,
+    "x11_pid": 13643,
+    "x11_start_ticks": 121863492,
+    "protected_processes_unchanged": true
+  },
+  "reuse": "The required deja queries for this exact completed-game descriptor storm returned no indexed implementation. The profile reuses E116's bounded 32-present WSI timing, E117's bounded per-opcode RPC histogram, and E124's first complete benchmark boundary; no invasive per-call logging was added for this run."
+}
