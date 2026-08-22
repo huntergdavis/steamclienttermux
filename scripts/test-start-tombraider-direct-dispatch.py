@@ -32,7 +32,7 @@ def main() -> None:
             "parser.add_argument('--base')\n"
             "parser.add_argument('--mode')\n"
             "args = parser.parse_args()\n"
-            "names=('BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_COMMAND_STREAM','BVB_MAPPED_MEMORY','STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY','TOMB_RAIDER_BVB_MAPPED_MEMORY','BVB_FIRST_REJECTION_DIAGNOSTIC','STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC','TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC')\n"
+            "names=('BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_COMMAND_STREAM','BVB_MAPPED_MEMORY','STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY','TOMB_RAIDER_BVB_MAPPED_MEMORY','BVB_DESCRIPTOR_JOURNAL','STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL','TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL','BVB_FIRST_REJECTION_DIAGNOSTIC','STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC','TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC')\n"
             "pathlib.Path(os.environ['FIXTURE_SERVER_ENVIRONMENT']).write_text('\\n'.join(name+'='+os.environ.get(name,'<absent>') for name in names))\n"
             "path = pathlib.Path(args.base) / 'run/native-runtime-dispatch/dispatch.sock'\n"
             "with socket.socket(socket.AF_UNIX) as listener:\n"
@@ -61,7 +61,7 @@ def main() -> None:
             launcher,
             "#!/bin/bash\n"
             "printf '%s\\n' \"${STEAM_ARM64_BWRAP_DIRECT:-}\" \"$*\" >\"$FIXTURE_RESULT\"\n"
-            "for name in BVB_COMMAND_STREAM STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM TOMB_RAIDER_BVB_COMMAND_STREAM BVB_MAPPED_MEMORY STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY TOMB_RAIDER_BVB_MAPPED_MEMORY BVB_FIRST_REJECTION_DIAGNOSTIC STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC; do printf '%s=%s\\n' \"$name\" \"${!name-<absent>}\"; done >\"$FIXTURE_LAUNCHER_CONTROL_ENVIRONMENT\"\n"
+            "for name in BVB_COMMAND_STREAM STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM TOMB_RAIDER_BVB_COMMAND_STREAM BVB_MAPPED_MEMORY STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY TOMB_RAIDER_BVB_MAPPED_MEMORY BVB_DESCRIPTOR_JOURNAL STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL BVB_FIRST_REJECTION_DIAGNOSTIC STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC; do printf '%s=%s\\n' \"$name\" \"${!name-<absent>}\"; done >\"$FIXTURE_LAUNCHER_CONTROL_ENVIRONMENT\"\n"
             "python3 - <<'PY'\n"
             "import os, socket\n"
             "with socket.socket(socket.AF_UNIX) as connection:\n"
@@ -112,11 +112,14 @@ def main() -> None:
             "STEAM_ARM64_BVB_VULKAN": "1",
             "TOMB_RAIDER_BVB_COMMAND_STREAM": "shared",
             "TOMB_RAIDER_BVB_MAPPED_MEMORY": "shared",
+            "TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL": "shared",
             "TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC": "1",
             "BVB_COMMAND_STREAM": "smuggled",
             "STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM": "smuggled",
             "BVB_MAPPED_MEMORY": "smuggled",
             "STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY": "smuggled",
+            "BVB_DESCRIPTOR_JOURNAL": "smuggled",
+            "STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL": "smuggled",
             "BVB_FIRST_REJECTION_DIAGNOSTIC": "smuggled",
             "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC": "smuggled",
         }
@@ -141,6 +144,9 @@ def main() -> None:
             "BVB_MAPPED_MEMORY=<absent>",
             "STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY=shared",
             "TOMB_RAIDER_BVB_MAPPED_MEMORY=<absent>",
+            "BVB_DESCRIPTOR_JOURNAL=<absent>",
+            "STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL=shared",
+            "TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL=<absent>",
             "BVB_FIRST_REJECTION_DIAGNOSTIC=<absent>",
             "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC=1",
             "TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC=<absent>",
@@ -152,6 +158,9 @@ def main() -> None:
             "BVB_MAPPED_MEMORY=<absent>",
             "STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY=<absent>",
             "TOMB_RAIDER_BVB_MAPPED_MEMORY=<absent>",
+            "BVB_DESCRIPTOR_JOURNAL=<absent>",
+            "STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL=<absent>",
+            "TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL=<absent>",
             "BVB_FIRST_REJECTION_DIAGNOSTIC=<absent>",
             "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC=<absent>",
             "TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC=<absent>",
@@ -306,6 +315,18 @@ def main() -> None:
             invalid_first_rejection_diagnostic.stderr
         )
 
+        invalid_descriptor_journal = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env={**environment, "TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL": "invalid"},
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        assert invalid_descriptor_journal.returncode != 0
+        assert "TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL must be strict or shared" in (
+            invalid_descriptor_journal.stderr
+        )
+
         empty_first_rejection_diagnostic = subprocess.run(
             ["bash", str(SCRIPT)],
             env={
@@ -352,12 +373,31 @@ def main() -> None:
             mapped_memory_without_bvb.stderr
         )
 
+        descriptor_journal_without_bvb = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env={
+                **environment,
+                "TOMB_RAIDER_BVB_COMMAND_STREAM": "strict",
+                "TOMB_RAIDER_BVB_MAPPED_MEMORY": "strict",
+                "TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL": "shared",
+                "STEAM_ARM64_BVB_VULKAN": "0",
+            },
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        assert descriptor_journal_without_bvb.returncode != 0
+        assert "shared BVB descriptor journal requires" in (
+            descriptor_journal_without_bvb.stderr
+        )
+
         diagnostic_without_bvb = subprocess.run(
             ["bash", str(SCRIPT)],
             env={
                 **environment,
                 "TOMB_RAIDER_BVB_COMMAND_STREAM": "strict",
                 "TOMB_RAIDER_BVB_MAPPED_MEMORY": "strict",
+                "TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL": "strict",
                 "TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC": "1",
                 "STEAM_ARM64_BVB_VULKAN": "0",
             },

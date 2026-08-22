@@ -8008,3 +8008,32 @@ ring rather than a semantic shortcut. Only after those measured CPU/IPC costs
 fall should GPU timestamps decide whether graphics work itself is next. Full
 measurements, artifact hashes, caveats, and the ranked plan are retained in
 `docs/evidence/tombraider-bvb-e125-full-benchmark-profile-20260822.json`.
+
+## 2026-08-22: E126 batches descriptor-template updates
+
+The required `deja "steamclienttermux BVB descriptor journal selector final
+Wine DXVK environment"` query returned no indexed implementation. The launcher
+therefore reuses the established E075/E077 containment model. The user-facing
+`TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL` selector accepts `strict` (default) or
+`shared`; the probe validates it and removes caller-supplied actual/internal
+copies before starting the service, Activity, helper, launcher, Steam, or CEF.
+The direct dispatcher receives only a validated internal control and injects
+`BVB_DESCRIPTOR_JOURNAL=shared` into the final reconstructed Wine/DXVK
+environment. Captured Pressure Vessel variables are stripped, so launch options
+cannot smuggle a different value.
+
+Bridge E126 uses a separate sealed-capacity 16-MiB memfd and setup/flush opcodes
+121/122. The client appends the existing canonical pointer-free
+`vkUpdateDescriptorSetWithTemplate` payload locally, and any following bridge
+exchange first drains the journal. The Bionic service copies the published
+range once, validates the complete record structure, and replays native updates
+in order. An uncertain drain permanently poisons the connection rather than
+risk repeating a void update. The strict opcode-112 path remains intact.
+
+The cross-process host proof applied 4,096 null updates plus one typed virtual
+image update with zero update-time exchanges; the following wait observed one
+journal drain plus its normal RPC. All 87 bridge tests passed. No tablet runtime
+or FPS change is claimed here. The immediate measurement gate is the exact
+native-resolution Low benchmark with the journal enabled and E117 profiling;
+opcode 68 descriptor-set allocation remains synchronous and is expected to be
+the next dominant family.

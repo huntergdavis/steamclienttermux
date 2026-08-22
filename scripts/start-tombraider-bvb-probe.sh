@@ -41,6 +41,7 @@ direct_diagnostics=${TOMB_RAIDER_DIRECT_DIAGNOSTICS:-0}
 icd_diagnostics=${TOMB_RAIDER_BVB_ICD_DIAGNOSTICS:-0}
 command_stream=${TOMB_RAIDER_BVB_COMMAND_STREAM:-strict}
 mapped_memory=${TOMB_RAIDER_BVB_MAPPED_MEMORY:-strict}
+descriptor_journal=${TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL:-strict}
 first_rejection_diagnostic=${TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC-0}
 frame_profile=${TOMB_RAIDER_BVB_FRAME_PROFILE:-0}
 child_stop_ticks=${BVB_CHILD_STOP_TICKS:-100}
@@ -332,6 +333,8 @@ trap 'exit 143' TERM
     fail 'TOMB_RAIDER_BVB_COMMAND_STREAM must be strict or shared'
 [[ $mapped_memory == strict || $mapped_memory == shared ]] ||
     fail 'TOMB_RAIDER_BVB_MAPPED_MEMORY must be strict or shared'
+[[ $descriptor_journal == strict || $descriptor_journal == shared ]] ||
+    fail 'TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL must be strict or shared'
 [[ $first_rejection_diagnostic == 0 || $first_rejection_diagnostic == 1 ]] ||
     fail 'TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC must be 0 or 1'
 [[ $frame_profile == 0 || $frame_profile == 1 ]] ||
@@ -342,6 +345,8 @@ trap 'exit 143' TERM
 unset BVB_COMMAND_STREAM STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
     TOMB_RAIDER_BVB_COMMAND_STREAM BVB_MAPPED_MEMORY \
     STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY TOMB_RAIDER_BVB_MAPPED_MEMORY \
+    BVB_DESCRIPTOR_JOURNAL STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL \
+    TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL \
     BVB_ICD_DIAGNOSTICS TOMB_RAIDER_BVB_ICD_DIAGNOSTICS \
     BVB_FRAME_PROFILE TOMB_RAIDER_BVB_FRAME_PROFILE \
     BVB_FIRST_REJECTION_DIAGNOSTIC \
@@ -429,6 +434,7 @@ BVB_ICD_DIAGNOSTICS="$icd_diagnostics" \
 TOMB_RAIDER_DIRECT_DIAGNOSTICS="$direct_diagnostics" \
 TOMB_RAIDER_BVB_COMMAND_STREAM="$command_stream" \
 TOMB_RAIDER_BVB_MAPPED_MEMORY="$mapped_memory" \
+TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL="$descriptor_journal" \
 TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC="$first_rejection_diagnostic" \
 BVB_FRAME_PROFILE="$frame_profile" \
 TOMB_RAIDER_BVB_FRAME_PROFILE="$frame_profile" \

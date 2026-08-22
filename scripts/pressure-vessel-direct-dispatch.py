@@ -109,6 +109,9 @@ def bvb_vulkan_environment() -> dict[str, str]:
     mapped_memory = os.environ.get(
         "STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY", "strict"
     )
+    descriptor_journal = os.environ.get(
+        "STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL", "strict"
+    )
     first_rejection_diagnostic = os.environ.get(
         "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC", "0"
     )
@@ -117,6 +120,8 @@ def bvb_vulkan_environment() -> dict[str, str]:
         fail("STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM must be strict or shared")
     if mapped_memory not in ("strict", "shared"):
         fail("STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY must be strict or shared")
+    if descriptor_journal not in ("strict", "shared"):
+        fail("STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL must be strict or shared")
     if first_rejection_diagnostic not in ("0", "1"):
         fail(
             "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC must be 0 or 1"
@@ -128,6 +133,8 @@ def bvb_vulkan_environment() -> dict[str, str]:
             fail("shared BVB command stream requires STEAM_ARM64_BVB_VULKAN=1")
         if mapped_memory == "shared":
             fail("shared BVB mapped memory requires STEAM_ARM64_BVB_VULKAN=1")
+        if descriptor_journal == "shared":
+            fail("shared BVB descriptor journal requires STEAM_ARM64_BVB_VULKAN=1")
         if first_rejection_diagnostic == "1":
             fail("BVB first-rejection diagnostic requires STEAM_ARM64_BVB_VULKAN=1")
         return {}
@@ -150,6 +157,8 @@ def bvb_vulkan_environment() -> dict[str, str]:
         environment["BVB_COMMAND_STREAM"] = "shared"
     if mapped_memory == "shared":
         environment["BVB_MAPPED_MEMORY"] = "shared"
+    if descriptor_journal == "shared":
+        environment["BVB_DESCRIPTOR_JOURNAL"] = "shared"
     if first_rejection_diagnostic == "1":
         environment["BVB_FIRST_REJECTION_DIAGNOSTIC"] = "1"
     if frame_profile == "1":
@@ -736,6 +745,9 @@ def request_environment(payload: dict[str, object]) -> dict[str, str]:
         "BVB_MAPPED_MEMORY",
         "STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY",
         "TOMB_RAIDER_BVB_MAPPED_MEMORY",
+        "BVB_DESCRIPTOR_JOURNAL",
+        "STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL",
+        "TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL",
         "BVB_FIRST_REJECTION_DIAGNOSTIC",
         "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC",
         "TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC",

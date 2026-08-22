@@ -15,6 +15,7 @@ mode=${TOMB_RAIDER_DIRECT_MODE:-tombraider}
 diagnostics=${TOMB_RAIDER_DIRECT_DIAGNOSTICS:-0}
 command_stream=${TOMB_RAIDER_BVB_COMMAND_STREAM:-strict}
 mapped_memory=${TOMB_RAIDER_BVB_MAPPED_MEMORY:-strict}
+descriptor_journal=${TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL:-strict}
 first_rejection_diagnostic=${TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC-0}
 child_preload=${TOMB_RAIDER_DIRECT_CHILD_PRELOAD:-full}
 vulkan_trace=${TOMB_RAIDER_VULKAN_TRACE:-0}
@@ -43,6 +44,8 @@ fail() {
     fail 'TOMB_RAIDER_BVB_COMMAND_STREAM must be strict or shared'
 [[ $mapped_memory == strict || $mapped_memory == shared ]] ||
     fail 'TOMB_RAIDER_BVB_MAPPED_MEMORY must be strict or shared'
+[[ $descriptor_journal == strict || $descriptor_journal == shared ]] ||
+    fail 'TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL must be strict or shared'
 [[ $first_rejection_diagnostic == 0 || $first_rejection_diagnostic == 1 ]] ||
     fail 'TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC must be 0 or 1'
 if [[ $command_stream == shared && ${STEAM_ARM64_BVB_VULKAN:-0} != 1 ]]; then
@@ -50,6 +53,9 @@ if [[ $command_stream == shared && ${STEAM_ARM64_BVB_VULKAN:-0} != 1 ]]; then
 fi
 if [[ $mapped_memory == shared && ${STEAM_ARM64_BVB_VULKAN:-0} != 1 ]]; then
     fail 'shared BVB mapped memory requires STEAM_ARM64_BVB_VULKAN=1'
+fi
+if [[ $descriptor_journal == shared && ${STEAM_ARM64_BVB_VULKAN:-0} != 1 ]]; then
+    fail 'shared BVB descriptor journal requires STEAM_ARM64_BVB_VULKAN=1'
 fi
 if [[ $first_rejection_diagnostic == 1 && ${STEAM_ARM64_BVB_VULKAN:-0} != 1 ]]; then
     fail 'BVB first-rejection diagnostic requires STEAM_ARM64_BVB_VULKAN=1'
@@ -59,6 +65,8 @@ fi
 unset BVB_COMMAND_STREAM STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
     TOMB_RAIDER_BVB_COMMAND_STREAM BVB_MAPPED_MEMORY \
     STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY TOMB_RAIDER_BVB_MAPPED_MEMORY \
+    BVB_DESCRIPTOR_JOURNAL STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL \
+    TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL \
     BVB_FIRST_REJECTION_DIAGNOSTIC \
     STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC \
     TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC
@@ -150,6 +158,7 @@ dispatcher_environment=(
     "STEAM_ARM64_DIRECT_CHILD_PRELOAD=$child_preload"
     "STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM=$command_stream"
     "STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY=$mapped_memory"
+    "STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL=$descriptor_journal"
     "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC=$first_rejection_diagnostic"
 )
 if [[ $vulkan_trace == 1 ]]; then
@@ -160,6 +169,7 @@ if [[ $vulkan_trace == 1 ]]; then
 fi
 env -u BVB_COMMAND_STREAM -u TOMB_RAIDER_BVB_COMMAND_STREAM \
     -u BVB_MAPPED_MEMORY -u TOMB_RAIDER_BVB_MAPPED_MEMORY \
+    -u BVB_DESCRIPTOR_JOURNAL -u TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL \
     -u BVB_FIRST_REJECTION_DIAGNOSTIC \
     -u TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC \
     "${dispatcher_environment[@]}" \
@@ -204,6 +214,9 @@ env -u BVB_COMMAND_STREAM -u STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
     -u TOMB_RAIDER_BVB_COMMAND_STREAM \
     -u BVB_MAPPED_MEMORY -u STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY \
     -u TOMB_RAIDER_BVB_MAPPED_MEMORY \
+    -u BVB_DESCRIPTOR_JOURNAL \
+    -u STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL \
+    -u TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL \
     -u BVB_FIRST_REJECTION_DIAGNOSTIC \
     -u STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC \
     -u TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC \

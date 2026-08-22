@@ -45,7 +45,7 @@ def main() -> None:
             service,
             "#!/usr/bin/env python3\n"
             "import os, signal, socket, struct, sys, time\n"
-            "assert not any(name in os.environ for name in ('BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_COMMAND_STREAM','BVB_MAPPED_MEMORY','STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY','TOMB_RAIDER_BVB_MAPPED_MEMORY','BVB_FIRST_REJECTION_DIAGNOSTIC','STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC','TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC'))\n"
+            "assert not any(name in os.environ for name in ('BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_COMMAND_STREAM','BVB_MAPPED_MEMORY','STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY','TOMB_RAIDER_BVB_MAPPED_MEMORY','BVB_DESCRIPTOR_JOURNAL','STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL','TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL','BVB_FIRST_REJECTION_DIAGNOSTIC','STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC','TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC'))\n"
             "path=sys.argv[sys.argv.index('--socket')+1]\n"
             "frame_name=sys.argv[sys.argv.index('--activity-frame-socket')+1]\n"
             f"assert sys.argv[sys.argv.index('--loader')+1] == {str(driver)!r}\n"
@@ -89,7 +89,7 @@ def main() -> None:
             activity_launcher,
             "#!/usr/bin/env python3\n"
             "import os, pathlib, socket, struct, sys\n"
-            "assert not any(name in os.environ for name in ('BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_COMMAND_STREAM','BVB_MAPPED_MEMORY','STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY','TOMB_RAIDER_BVB_MAPPED_MEMORY','BVB_FIRST_REJECTION_DIAGNOSTIC','STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC','TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC'))\n"
+            "assert not any(name in os.environ for name in ('BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_COMMAND_STREAM','BVB_MAPPED_MEMORY','STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY','TOMB_RAIDER_BVB_MAPPED_MEMORY','BVB_DESCRIPTOR_JOURNAL','STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL','TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL','BVB_FIRST_REJECTION_DIAGNOSTIC','STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC','TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC'))\n"
             f"log=pathlib.Path({str(activity_calls)!r})\n"
             "args=sys.argv[1:]\n"
             "with log.open('a', encoding='utf-8') as output: output.write(' '.join(args)+'\\n')\n"
@@ -121,7 +121,7 @@ def main() -> None:
             package_manager,
             "#!/usr/bin/env python3\n"
             "import os, pathlib, sys\n"
-            "assert not any(name in os.environ for name in ('BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_COMMAND_STREAM','BVB_MAPPED_MEMORY','STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY','TOMB_RAIDER_BVB_MAPPED_MEMORY','BVB_FIRST_REJECTION_DIAGNOSTIC','STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC','TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC'))\n"
+            "assert not any(name in os.environ for name in ('BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_COMMAND_STREAM','BVB_MAPPED_MEMORY','STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY','TOMB_RAIDER_BVB_MAPPED_MEMORY','BVB_DESCRIPTOR_JOURNAL','STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL','TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL','BVB_FIRST_REJECTION_DIAGNOSTIC','STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC','TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC'))\n"
             f"package={PACKAGE!r}\n"
             "if sys.argv[1:] == ['list', 'packages', '--show-versioncode', package]:\n"
             "    print('package:io.github.huntergdavis.bvb.visiblehost.decoy versionCode:999')\n"
@@ -137,7 +137,7 @@ def main() -> None:
             adb,
             "#!/usr/bin/env python3\n"
             "import os, pathlib, sys\n"
-            "assert not any(name in os.environ for name in ('BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_COMMAND_STREAM','BVB_MAPPED_MEMORY','STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY','TOMB_RAIDER_BVB_MAPPED_MEMORY','BVB_FIRST_REJECTION_DIAGNOSTIC','STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC','TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC'))\n"
+            "assert not any(name in os.environ for name in ('BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_COMMAND_STREAM','BVB_MAPPED_MEMORY','STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY','TOMB_RAIDER_BVB_MAPPED_MEMORY','BVB_DESCRIPTOR_JOURNAL','STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL','TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL','BVB_FIRST_REJECTION_DIAGNOSTIC','STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC','TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC'))\n"
             "args=sys.argv[1:]\n"
             "assert args[:2] == ['-s','test-device:5555']\n"
             "if args[2:] == ['get-state']:\n"
@@ -168,7 +168,7 @@ def main() -> None:
             app_process,
             "#!/usr/bin/env python3\n"
             "import json, os, pathlib, signal, socket, sys, time\n"
-            "assert not any(name in os.environ for name in ('BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_COMMAND_STREAM','BVB_MAPPED_MEMORY','STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY','TOMB_RAIDER_BVB_MAPPED_MEMORY','BVB_FIRST_REJECTION_DIAGNOSTIC','STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC','TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC'))\n"
+            "assert not any(name in os.environ for name in ('BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_COMMAND_STREAM','BVB_MAPPED_MEMORY','STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY','TOMB_RAIDER_BVB_MAPPED_MEMORY','BVB_DESCRIPTOR_JOURNAL','STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL','TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL','BVB_FIRST_REJECTION_DIAGNOSTIC','STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC','TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC'))\n"
             f"assert os.environ['CLASSPATH'] == {str(helper_apk)!r}\n"
             f"assert os.environ['BVB_VISIBLE_HOST_NATIVE_LIBRARY'] == {str(helper_native_library)!r}\n"
             f"assert sys.argv[1:5] == ['-Xnoimage-dex2oat', '-Djava.library.path={helper_native_library.parent}', '/', 'io.github.huntergdavis.bvb.visiblehost.FrameTransportClient']\n"
@@ -199,8 +199,8 @@ def main() -> None:
             "import os, pathlib, signal, socket, sys, time\n"
             "mode=os.environ.get('FAKE_LAUNCHER_MODE','pass')\n"
             "if mode == 'early17': raise SystemExit(17)\n"
-            "required=['STEAM_ARM64_BVB_VULKAN','BVB_BRIDGE_SOCKET','BVB_ICD_DIAGNOSTICS','TOMB_RAIDER_DIRECT_DIAGNOSTICS','TOMB_RAIDER_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_MAPPED_MEMORY','TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC','BVB_FRAME_PROFILE','TOMB_RAIDER_BVB_FRAME_PROFILE','STEAM_ARM64_DIRECT_START_GATE']\n"
-            "assert not any(name in os.environ for name in ('BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','BVB_MAPPED_MEMORY','STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY','BVB_FIRST_REJECTION_DIAGNOSTIC','STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC'))\n"
+            "required=['STEAM_ARM64_BVB_VULKAN','BVB_BRIDGE_SOCKET','BVB_ICD_DIAGNOSTICS','TOMB_RAIDER_DIRECT_DIAGNOSTICS','TOMB_RAIDER_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_MAPPED_MEMORY','TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL','TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC','BVB_FRAME_PROFILE','TOMB_RAIDER_BVB_FRAME_PROFILE','STEAM_ARM64_DIRECT_START_GATE']\n"
+            "assert not any(name in os.environ for name in ('BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','BVB_MAPPED_MEMORY','STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY','BVB_DESCRIPTOR_JOURNAL','STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL','BVB_FIRST_REJECTION_DIAGNOSTIC','STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC'))\n"
             "gate=pathlib.Path(os.environ['STEAM_ARM64_DIRECT_START_GATE'])\n"
             "waiting=pathlib.Path(str(gate)+'.waiting'); ready=pathlib.Path(str(gate)+'.launcher-ready')\n"
             "waiting.write_text('', encoding='ascii'); waiting.chmod(0o600)\n"
@@ -209,7 +209,7 @@ def main() -> None:
             "while not gate.exists() and time.monotonic()<deadline: time.sleep(0.01)\n"
             "assert gate.is_file() and not gate.is_symlink()\n"
             "gate.unlink(); waiting.unlink()\n"
-            f"pathlib.Path({str(environment_capture)!r}).write_text('\\n'.join([*(f'{{name}}={{os.environ[name]}}' for name in required),f\"BVB_ICD_PROBE_WSI={{os.environ.get('BVB_ICD_PROBE_WSI','')}}\",f\"BVB_COMMAND_STREAM={{os.environ.get('BVB_COMMAND_STREAM','')}}\",f\"STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM={{os.environ.get('STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','')}}\",f\"BVB_MAPPED_MEMORY={{os.environ.get('BVB_MAPPED_MEMORY','')}}\",f\"STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY={{os.environ.get('STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY','')}}\",f\"BVB_FIRST_REJECTION_DIAGNOSTIC={{os.environ.get('BVB_FIRST_REJECTION_DIAGNOSTIC','')}}\",f\"STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC={{os.environ.get('STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC','')}}\"]))\n"
+            f"pathlib.Path({str(environment_capture)!r}).write_text('\\n'.join([*(f'{{name}}={{os.environ[name]}}' for name in required),f\"BVB_ICD_PROBE_WSI={{os.environ.get('BVB_ICD_PROBE_WSI','')}}\",f\"BVB_COMMAND_STREAM={{os.environ.get('BVB_COMMAND_STREAM','')}}\",f\"STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM={{os.environ.get('STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','')}}\",f\"BVB_MAPPED_MEMORY={{os.environ.get('BVB_MAPPED_MEMORY','')}}\",f\"STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY={{os.environ.get('STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY','')}}\",f\"BVB_DESCRIPTOR_JOURNAL={{os.environ.get('BVB_DESCRIPTOR_JOURNAL','')}}\",f\"STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL={{os.environ.get('STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL','')}}\",f\"BVB_FIRST_REJECTION_DIAGNOSTIC={{os.environ.get('BVB_FIRST_REJECTION_DIAGNOSTIC','')}}\",f\"STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC={{os.environ.get('STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC','')}}\"]))\n"
             "client=socket.socket(socket.AF_UNIX); client.connect(os.environ['BVB_BRIDGE_SOCKET']); client.close()\n"
             "if mode == 'post17': raise SystemExit(17)\n"
             "if mode == 'ignore_term': signal.signal(signal.SIGTERM, signal.SIG_IGN); time.sleep(60)\n"
@@ -231,6 +231,8 @@ def main() -> None:
                 "STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM": "smuggled",
                 "BVB_MAPPED_MEMORY": "smuggled",
                 "STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY": "smuggled",
+                "BVB_DESCRIPTOR_JOURNAL": "smuggled",
+                "STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL": "smuggled",
                 "BVB_FIRST_REJECTION_DIAGNOSTIC": "smuggled",
                 "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC": "smuggled",
                 "BVB_FRAME_PROFILE": "smuggled",
@@ -278,6 +280,7 @@ def main() -> None:
         assert values["TOMB_RAIDER_DIRECT_DIAGNOSTICS"] == "0"
         assert values["TOMB_RAIDER_BVB_COMMAND_STREAM"] == "strict"
         assert values["TOMB_RAIDER_BVB_MAPPED_MEMORY"] == "strict"
+        assert values["TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL"] == "strict"
         assert values["TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC"] == "0"
         assert values["BVB_FRAME_PROFILE"] == "0"
         assert values["TOMB_RAIDER_BVB_FRAME_PROFILE"] == "0"
@@ -285,6 +288,8 @@ def main() -> None:
         assert values["STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM"] == ""
         assert values["BVB_MAPPED_MEMORY"] == ""
         assert values["STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY"] == ""
+        assert values["BVB_DESCRIPTOR_JOURNAL"] == ""
+        assert values["STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL"] == ""
         assert values["BVB_FIRST_REJECTION_DIAGNOSTIC"] == ""
         assert values["STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC"] == ""
         assert values["BVB_ICD_PROBE_WSI"] == ""
@@ -305,15 +310,16 @@ def main() -> None:
         assert '"generation": -7' in frame_results[0].read_text()
 
         expected_activity_count = 1
-        for command_stream, mapped_memory, first_rejection_diagnostic, frame_profile in (
-            ("shared", "strict", "0", "1"),
-            ("strict", "shared", "0", "0"),
-            ("shared", "shared", "0", "0"),
-            ("strict", "strict", "1", "0"),
+        for command_stream, mapped_memory, descriptor_journal, first_rejection_diagnostic, frame_profile in (
+            ("shared", "strict", "strict", "0", "1"),
+            ("strict", "shared", "strict", "0", "0"),
+            ("shared", "shared", "shared", "0", "0"),
+            ("strict", "strict", "strict", "1", "0"),
         ):
             selected, _ = run_case(
                 TOMB_RAIDER_BVB_COMMAND_STREAM=command_stream,
                 TOMB_RAIDER_BVB_MAPPED_MEMORY=mapped_memory,
+                TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL=descriptor_journal,
                 TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC=(
                     first_rejection_diagnostic
                 ),
@@ -326,6 +332,7 @@ def main() -> None:
             )
             assert selected_values["TOMB_RAIDER_BVB_COMMAND_STREAM"] == command_stream
             assert selected_values["TOMB_RAIDER_BVB_MAPPED_MEMORY"] == mapped_memory
+            assert selected_values["TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL"] == descriptor_journal
             assert selected_values[
                 "TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC"
             ] == first_rejection_diagnostic
@@ -335,6 +342,8 @@ def main() -> None:
             assert selected_values["STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM"] == ""
             assert selected_values["BVB_MAPPED_MEMORY"] == ""
             assert selected_values["STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY"] == ""
+            assert selected_values["BVB_DESCRIPTOR_JOURNAL"] == ""
+            assert selected_values["STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL"] == ""
             assert selected_values["BVB_FIRST_REJECTION_DIAGNOSTIC"] == ""
             assert selected_values[
                 "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC"
@@ -375,6 +384,15 @@ def main() -> None:
         assert invalid_mapped_memory.returncode == 1
         assert "TOMB_RAIDER_BVB_MAPPED_MEMORY must be strict or shared" in (
             invalid_mapped_memory.stderr
+        )
+        assert_activity_balanced(5)
+
+        invalid_descriptor_journal, _ = run_case(
+            TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL="invalid"
+        )
+        assert invalid_descriptor_journal.returncode == 1
+        assert "TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL must be strict or shared" in (
+            invalid_descriptor_journal.stderr
         )
         assert_activity_balanced(5)
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import importlib.util
+from itertools import product
 import inspect
 import json
 import os
@@ -113,6 +114,7 @@ def main() -> None:
                 "BVB_ICD_PROBE_WSI": "1",
                 "BVB_COMMAND_STREAM": "smuggled",
                 "BVB_MAPPED_MEMORY": "smuggled",
+                "BVB_DESCRIPTOR_JOURNAL": "smuggled",
                 "BVB_FIRST_REJECTION_DIAGNOSTIC": "smuggled",
                 "TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC": "smuggled",
             },
@@ -121,22 +123,31 @@ def main() -> None:
             assert MODULE.validated_host_vulkan_icd(base) == bvb
             os.environ.pop("STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM", None)
             os.environ.pop("STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY", None)
+            os.environ.pop("STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL", None)
             os.environ.pop(
                 "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC", None
             )
             default_environment = MODULE.bvb_vulkan_environment()
             assert "BVB_COMMAND_STREAM" not in default_environment
             assert "BVB_MAPPED_MEMORY" not in default_environment
+            assert "BVB_DESCRIPTOR_JOURNAL" not in default_environment
             assert "BVB_FIRST_REJECTION_DIAGNOSTIC" not in default_environment
-            for command_stream in ("strict", "shared"):
-                for mapped_memory in ("strict", "shared"):
-                    for first_rejection_diagnostic in ("0", "1"):
+            for (
+                command_stream,
+                mapped_memory,
+                descriptor_journal,
+                first_rejection_diagnostic,
+            ) in product(("strict", "shared"), ("strict", "shared"),
+                         ("strict", "shared"), ("0", "1")):
                         os.environ["STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM"] = (
                             command_stream
                         )
                         os.environ["STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY"] = (
                             mapped_memory
                         )
+                        os.environ[
+                            "STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL"
+                        ] = descriptor_journal
                         os.environ[
                             "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC"
                         ] = first_rejection_diagnostic
@@ -153,6 +164,11 @@ def main() -> None:
                             **(
                                 {"BVB_MAPPED_MEMORY": "shared"}
                                 if mapped_memory == "shared"
+                                else {}
+                            ),
+                            **(
+                                {"BVB_DESCRIPTOR_JOURNAL": "shared"}
+                                if descriptor_journal == "shared"
                                 else {}
                             ),
                             **(
@@ -186,6 +202,16 @@ def main() -> None:
             else:
                 raise AssertionError("invalid BVB mapped-memory selector was accepted")
             os.environ["STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY"] = "strict"
+            os.environ["STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL"] = "invalid"
+            try:
+                MODULE.bvb_vulkan_environment()
+            except MODULE.DispatchError:
+                pass
+            else:
+                raise AssertionError(
+                    "invalid BVB descriptor-journal selector was accepted"
+                )
+            os.environ["STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL"] = "strict"
             os.environ[
                 "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC"
             ] = "invalid"
@@ -218,6 +244,7 @@ def main() -> None:
                 "STEAM_ARM64_BVB_VULKAN": "0",
                 "STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM": "strict",
                 "STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY": "shared",
+                "STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL": "strict",
             },
             clear=False,
         ):
@@ -233,6 +260,23 @@ def main() -> None:
                 "STEAM_ARM64_BVB_VULKAN": "0",
                 "STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM": "strict",
                 "STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY": "strict",
+                "STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL": "shared",
+            },
+            clear=False,
+        ):
+            try:
+                MODULE.bvb_vulkan_environment()
+            except MODULE.DispatchError:
+                pass
+            else:
+                raise AssertionError("shared descriptor journal without BVB was accepted")
+        with mock.patch.dict(
+            os.environ,
+            {
+                "STEAM_ARM64_BVB_VULKAN": "0",
+                "STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM": "strict",
+                "STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY": "strict",
+                "STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL": "strict",
                 "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC": "1",
             },
             clear=False,
@@ -618,6 +662,9 @@ def main() -> None:
                 "BVB_MAPPED_MEMORY=shared",
                 "STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY=shared",
                 "TOMB_RAIDER_BVB_MAPPED_MEMORY=shared",
+                "BVB_DESCRIPTOR_JOURNAL=shared",
+                "STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL=shared",
+                "TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL=shared",
                 "BVB_FIRST_REJECTION_DIAGNOSTIC=1",
                 "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC=1",
                 "TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC=1",
