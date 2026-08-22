@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "date": "2026-08-22",
+  "gate": "E124",
+  "target": {
+    "game": "Tomb Raider (2013)",
+    "launch_arguments": [
+      "-nolauncher",
+      "-benchmark"
+    ],
+    "resolution": "2800x1752",
+    "refresh_hz": 60,
+    "graphics_profile": "Low",
+    "command_stream": "shared",
+    "mapped_memory": "shared",
+    "frame_profiler": false
+  },
+  "bridge": {
+    "source_commit": "2588c515885963ae8016dd39008da615f1b05825",
+    "source_archive_sha256": "9dcf1ca199c0febdc2e0729c188a900a6fe2d2f0c099812a7baff5b5a7b24cca",
+    "installed_glibc_icd_sha256": "5dda66191a6e3166c9a64cbe654fed8b92268c404794bb1fdc508fb7876e148d",
+    "installed_service_sha256": "200095035166d9be938c9b068916cab8ab7a6381954c79dfcbd25d1b03adbb32",
+    "installed_manifest_sha256": "77f3395e3f657b6a7274c182afe994edacda2a4b38d49814ea84440520af33df",
+    "installed_stamp_sha256": "bb26f647c949b60a2679181e6a36fd6df25dafd16406bf372b18d9bf658cebf6",
+    "rollback_directory": "install-pre-1Z3XFWvz",
+    "host_contracts": "84/84",
+    "tablet_contracts": "82/82"
+  },
+  "visible_proof": {
+    "path": "docs/evidence/tombraider-bvb-e124-complete-benchmark-20260822.png",
+    "sha256": "2db6fcd98d626cfbb6c65be67f8aadf72f0d3124458f183952abad9fc005bd64",
+    "bytes": 4746526,
+    "width": 2800,
+    "height": 1752,
+    "captured_local_time": "2026-08-22T10:11:47-07:00",
+    "description": "A real animated Tomb Raider benchmark frame showing Lara Croft and the coastal scene after E124 advanced beyond E123's frozen-frame boundary."
+  },
+  "game_authored_result": {
+    "path": "docs/evidence/tombraider-bvb-e124-complete-benchmark-result-20260822.txt",
+    "source_path": "/data/data/com.termux/files/home/steam-arm64/removable-library/steamapps/common/Tomb Raider/benchmarkresults 2026-08-22 17-14-42.txt",
+    "source_sha256": "cf8ab2d440bca9d21ad3187a4fb1636ef4f6b213a45174308f2393bcdd81de86",
+    "source_bytes": 744,
+    "retained_text_sha256": "7a6704e73e05699b7ce394336847ccc78ea1faf1af62400db2d3c9cc5d8717a7",
+    "retained_text_bytes": 698,
+    "retained_text_normalization": "CRLF converted to LF and trailing blank lines removed",
+    "minimum_fps": 0.8,
+    "maximum_fps": 3.6,
+    "average_fps": 2.0
+  },
+  "frame_transport": {
+    "generation_uint64": 16167922662260080641,
+    "last_presented_sequence": 1655,
+    "last_presented_slot": 1,
+    "consumer_failure_seen": false,
+    "per_frame_java_calls": 0,
+    "per_frame_binder_calls": 0
+  },
+  "completion": {
+    "probe_status": 0,
+    "benchmark_result_written": true,
+    "game_exited": true,
+    "bridge_service_exited": true,
+    "activity_exited": true,
+    "steam_pid": 15575,
+    "steam_start_ticks_before_after": 128118834,
+    "x11_pid": 13643,
+    "x11_start_ticks_before_after": 121863492
+  },
+  "retained_log_hashes": {
+    "service_sha256": "43089417a1354df0a6a32ebed7df0fd104ea485f4f1624a4cf350354a1438092",
+    "launcher_sha256": "be60e45a9f943a63f82f48cdaf29f87f11300876e8930a952936e6e23f79fbd9",
+    "direct_runtime_sha256": "c77db37e0c4e82a5a3e3a89c7a38e3513da2c96e37344a648993ecb778f71a35",
+    "frame_setup_json_sha256": "e22d934315295cb2c5735088f04424faed11d5b6b84a6a5ad49449fbfd62a934",
+    "probe_control_sha256": "0f605d36917fe4c637ea6c394fccd25c739ba099c68e3b821d4098eacc7f87b1"
+  },
+  "recall": "The required E124 deja query found no reusable indexed implementation. E124 reused the E075/E075a immutable command stream, E080 typed ownership cache, E105/E111 transfer records, E112 capacity contract, and E123's exact live command-stream exhaustion diagnostic.",
+  "claim_boundary": "This proves a complete, animated, game-authored Tomb Raider benchmark through BVB at native resolution, including a result file and clean teardown. It does not claim competitive performance: the measured 2.0 FPS average establishes the next optimization baseline."
+}

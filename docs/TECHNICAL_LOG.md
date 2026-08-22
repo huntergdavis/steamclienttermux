@@ -7942,3 +7942,30 @@ did not contain that spam, so E123 will preserve the visible proof and trace
 the first non-recoverable post-frame Vulkan or synchronization failure rather
 than revive the discarded offline-service theory. No animation, completed
 benchmark, FPS, or performance gain is claimed by E122.
+
+## 2026-08-22: E124 completes the first Tomb Raider benchmark through BVB
+
+E123 preserved the first active-game failure after Lara appeared: an otherwise
+supported `vkCmdCopyImage2` record exhausted the fixed 256-KiB shared command
+slot. E124 expanded each of the 64 sparse slots to 2 MiB while preserving the
+pointer-free transfer wire, zero recording RPCs, immutable service snapshot,
+and bounded 128-MiB one-time mapping. The new 10,000-copy regression fills and
+validates a 1,760,032-byte command stream. The required exact `deja` query found
+no reusable implementation; the fix reuses E075/E075a's command stream,
+E080's typed ownership cache, E105/E111's transfer family, E112's capacity
+contract, and E123's live failure record.
+
+The exact `2588c51` source passed 84/84 host and 82/82 Termux contracts plus
+the glibc dispatch self-test. After transactional installation, the real
+`TombRaider.exe -nolauncher -benchmark` run advanced through multiple visibly
+different Lara Croft frames, completed at 2800x1752 Low, wrote the game's own
+result file, and exited cleanly. The Activity presented through sequence 1655
+with no consumer failure and no per-frame Java or Binder calls. Steam PID 15575
+and X11 PID 13643 retained their original start ticks.
+
+The game-authored result is **0.8 FPS minimum, 3.6 maximum, and 2.0 average**.
+That is the first truthful complete BVB benchmark baseline, not a performance
+victory. The retained screenshot, result, identities, and log hashes are in
+`docs/evidence/tombraider-bvb-e124-complete-benchmark-20260822.*`. The next
+gate profiles this now-complete workload and attacks its measured dominant
+bridge cost before adding more unrelated Vulkan API breadth.

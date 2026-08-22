@@ -100,6 +100,10 @@ These screenshots capture milestones and failures from the original tablet.
   through BVB at 2800x1752. Activity presentation reached sequence 721 before
   freezing; the evidence explicitly does not claim animation, benchmark
   completion, FPS, or a performance improvement.
+- `tombraider-bvb-e124-complete-benchmark-20260822.png`, matching JSON, and
+  retained result text: the first complete animated, game-authored Tomb Raider
+  benchmark through BVB at 2800x1752 Low. It reached sequence 1655, exited
+  cleanly, and reported 0.8 FPS minimum, 3.6 maximum, and 2.0 average.
 - `bionic-vulkan-bridge-e001-e003-20260818.json`: non-visual, machine-readable
   evidence for the first three bridge gates: direct Android system-loader
   enumeration, a verified glibc-to-Bionic protocol handshake, and exact
