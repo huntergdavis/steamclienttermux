@@ -8092,3 +8092,31 @@ socket-side fusion cannot close the gap. The required `deja` query for such a
 descriptor allocation cache returned no indexed implementation. Exact metrics,
 artifact identities, and the game-authored result are retained in
 `docs/evidence/tombraider-bvb-e127-descriptor-transaction-profile-20260822.json`.
+
+## 2026-08-22: E128 proves transport alone is not enough
+
+E128 replaced each opcode-123 socket request/reply with a fixed shared
+request/completion ring and a dedicated Bionic worker. Host validation passed
+90/90, the ring's ThreadSanitizer contract passed, and the exact source passed
+88/88 Termux contracts before transactional installation. The implementation
+is correct: steady-state descriptor allocation emits no socket exchange, while
+the worker still validates the immutable journal snapshot, replays updates,
+performs the real native allocation, and returns typed set IDs.
+
+The matched complete benchmark reported **0.8 minimum, 3.8 maximum, and 2.0
+average FPS**, down from E127's 2.3 average. In the comparable final 30 windows,
+socket blocking fell from 224.79 to 128.93 ms per present, but 531 synchronous
+ring transactions added 139.00 ms. Combined measured bridge wait therefore
+rose to 267.93 ms, essentially the E126 level. Per-allocation latency increased
+from 190.7 to 261.7 microseconds. The ring moved the boundary; it did not remove
+the boundary or the native work.
+
+The live game process ancestry was also captured. PRoot remained present only
+while Steam/Pressure Vessel formed the launch request; the final Tomb Raider
+process was re-launched under the direct glibc loader/dispatcher and had no
+PRoot ancestor. PRoot is therefore not the per-frame cause in this run. The
+next gate must split the worker wait into scheduling, journal replay, native
+allocation, and completion components, then remove the hundreds of native
+allocations through descriptor-pool reset-epoch reuse. Exact identities,
+profiles, screenshots, and the negative performance result are retained in
+`docs/evidence/tombraider-bvb-e128-descriptor-ring-profile-20260822.json`.

@@ -126,6 +126,12 @@ These screenshots capture milestones and failures from the original tablet.
   Both paths filled and verified a 4 KiB host-visible buffer with zero
   mismatches. It inventories WSI/interoperability extensions and preserves the
   still-unproven visible-surface and game-integration boundary.
+- `tombraider-bvb-e128-descriptor-ring-profile-20260822.json`: matched
+  native-resolution runtime evidence showing that the shared descriptor ring
+  removes opcode-123 socket traffic but regresses the game-authored average
+  from 2.3 to 2.0 FPS because one synchronous worker/native allocation remains
+  per set. It also records the live process ancestry proving PRoot is not in
+  the game hot path.
 - `bionic-vulkan-bridge-e006-20260818.json`: non-visual, machine-readable
   evidence for a separately owned `AImageReader`/`ANativeWindow` Android Vulkan
   surface. It records four stable surface-query passes, formats, presentation

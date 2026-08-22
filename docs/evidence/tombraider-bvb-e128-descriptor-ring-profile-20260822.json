@@ -1,0 +1,155 @@
+{
+  "gate": "E128",
+  "date": "2026-08-22",
+  "target": {
+    "game": "Tomb Raider (2013)",
+    "appid": 203160,
+    "resolution": "2800x1752",
+    "refresh_hz": 60,
+    "quality": "Low",
+    "fullscreen": true,
+    "vsync": false,
+    "motion_blur": false
+  },
+  "runtime": {
+    "bridge_source_commit": "f2e5544",
+    "steamclienttermux_source_commit": "1fe5e9e",
+    "run_id": "20260822T195924Z-12647",
+    "game_pid": 15550,
+    "service_pid": 12673,
+    "activity_pid": 15113,
+    "command_stream": "shared",
+    "mapped_memory": "shared",
+    "descriptor_journal": "shared",
+    "descriptor_ring_setup_opcode": 124,
+    "legacy_descriptor_transaction_opcode": 123,
+    "frame_profile": true,
+    "first_rejection_diagnostic": false,
+    "proot_process_observed_during_pressure_vessel_setup": true,
+    "proot_in_live_game_parent_chain": false,
+    "live_game_parent_chain": [15550, 15362, 12733, 12693, 12647],
+    "activity_version_code": 40
+  },
+  "game_authored_result": {
+    "minimum_fps": 0.8,
+    "maximum_fps": 3.8,
+    "average_fps": 2.0,
+    "average_frame_time_ms": 500.0,
+    "source_path": "/data/data/com.termux/files/home/steam-arm64/removable-library/steamapps/common/Tomb Raider/benchmarkresults 2026-08-22 20-10-09.txt",
+    "source_sha256": "4e92ad2db4b12dfb12db6dfb1d6e69f195d508ed28fc22ee19420553f487d146",
+    "retained_normalized_path": "docs/evidence/tombraider-bvb-e128-descriptor-ring-result-20260822.txt",
+    "retained_normalized_sha256": "2f0c1d9e8eb9431b0af86514db34ac63559698b264494d1994d6e566bb5063b6",
+    "e127_average_fps": 2.3,
+    "average_fps_change_percent": -13.043478260869556
+  },
+  "profile": {
+    "summary_window_presents": 32,
+    "complete_windows": 51,
+    "profiled_presents": 1632,
+    "all_windows": {
+      "socket_calls_per_present": 34.450367647058826,
+      "socket_blocked_ms_per_present": 98.56968231372548,
+      "descriptor_ring_calls_per_present": 319.9638480392157,
+      "descriptor_ring_blocked_ms_per_present": 83.51892051899509
+    },
+    "comparable_final_30_windows": {
+      "windows": 30,
+      "presents": 960,
+      "socket_calls_per_present": 41.54270833333333,
+      "socket_blocked_ms_per_present": 128.9296309625,
+      "descriptor_ring": {
+        "calls_per_present": 531.065625,
+        "blocked_ms_per_present": 139.00381068854168,
+        "mean_microseconds_per_call": 261.74507282135176
+      },
+      "descriptor_journal_flush": {
+        "opcode": 122,
+        "calls_per_present": 7.757291666666666,
+        "blocked_ms_per_present": 1.9870800333333334
+      },
+      "shared_queue_submit_2": {
+        "opcode": 105,
+        "calls_per_present": 2.763541666666667,
+        "blocked_ms_per_present": 51.74186368645834
+      },
+      "semaphore_wait": {
+        "opcode": 83,
+        "calls_per_present": 2.7666666666666666,
+        "blocked_ms_per_present": 50.271621876041664
+      },
+      "queue_submit_2": {
+        "opcode": 85,
+        "calls_per_present": 1.0291666666666666,
+        "blocked_ms_per_present": 10.252079
+      },
+      "descriptor_combined_ms_per_present": 140.99089072187502,
+      "socket_plus_ring_ms_per_present": 267.9334416510417
+    },
+    "e127_comparison": {
+      "e127_socket_including_descriptor_ms_per_present": 224.79033955416668,
+      "e128_socket_excluding_descriptor_ring_ms_per_present": 128.9296309625,
+      "socket_blocking_reduction_percent": 42.644496548112365,
+      "e127_socket_plus_descriptor_ms_per_present": 224.79033955416668,
+      "e128_socket_plus_descriptor_ring_ms_per_present": 267.9334416510417,
+      "combined_blocking_change_percent": 19.192596168697463,
+      "e127_descriptor_ms_per_present": 102.08115292708334,
+      "e128_descriptor_ms_per_present": 140.99089072187502,
+      "descriptor_blocking_change_percent": 38.11647564618019,
+      "e127_descriptor_transaction_mean_microseconds": 190.66629409272926,
+      "e128_descriptor_ring_mean_microseconds": 261.74507282135176,
+      "per_transaction_latency_change_percent": 37.27915259844187
+    }
+  },
+  "wsi_profile": {
+    "client_windows": 51,
+    "client_present_ms_per_present": 0.9833240526960785,
+    "client_acquire_ms_per_present": 0.5389777591911765,
+    "client_combined_ms_per_present": 1.522301811887255,
+    "service_windows": 51,
+    "service_present_ms_per_present": 0.688750006127451,
+    "service_acquire_ms_per_present": 0.24603975551470586,
+    "service_combined_ms_per_present": 0.9347897616421569
+  },
+  "build_and_install": {
+    "host_contracts": "90/90 passed",
+    "ring_thread_sanitizer": "1/1 passed",
+    "termux_contracts": "88/88 passed",
+    "source_archive_sha256": "34eb0284a1ba95eeb66eba53d07fbfed55ae0cf38d94ee06d9b244f69e599c87",
+    "termux_build_log_sha256": "0e109e7980995ef4fa886fd0f8c2721c9b7f2eec476b28501eaab7e9bdcc5e18",
+    "glibc_build_log_sha256": "adac2e55735a227533962301d2ac4f7cde63fc1022695bfc1199f9b0253a223f",
+    "install_log_sha256": "8fe238f4d7f72578a3c7ee6e840d5466e7931d8775bc57fb9fb3e22fe8edbbe1",
+    "rollback_backup": "/data/data/com.termux/files/home/steam-arm64/bvb/backups/install-pre-4nwU5QYc"
+  },
+  "installed_artifacts": {
+    "glibc_icd_sha256": "3cc21d9028bb8ef6fd29976e7e9328096a8f98d85583f22163eaf09aff65512d",
+    "bionic_service_sha256": "c8018813fc8b4357e4093d83cd604122b7f6e4928693f72f8e8a942a85430aaf",
+    "normalized_manifest_sha256": "77f3395e3f657b6a7274c182afe994edacda2a4b38d49814ea84440520af33df",
+    "install_stamp_sha256": "d74603ce3c596ed92f2007e0469166cae4f17a8ac0c128c7f3ec47e7b69944d6"
+  },
+  "visual_evidence": {
+    "initial_activity_sha256": "28b7305067678da2bc88ffcb75bf49b49141cf49c27c59d79df332dcee89e9f8",
+    "loading_frame_sha256": "9b43b77739b98d249863e1b6077f9b381e5566073396997105ff985c6c285511",
+    "lara_frame_1_sha256": "b4d7842ef14c36b4f5658eaaddb22e205b78cd3dc5d9ab65b7c0db861ef49d67",
+    "lara_frame_2_sha256": "df32470094e41f096dcb240cb4c51e9d5f03e8a7d30dea6b6906338f03f7c4a7",
+    "claim": "Two different full-resolution Lara frames were captured during the completed benchmark, in addition to the game-authored result."
+  },
+  "retained_hashes": {
+    "direct_profile_log_sha256": "7927b4e94157f8fb03cccaf641b3a3a47a5daa1e9cb2aadc4f035d948c4f6f7f",
+    "service_profile_log_sha256": "c7190635394ee078aad18eb53f4669fed60949ecaef96119b8cc8144f5bb9c5f",
+    "launcher_log_sha256": "ba98cf6a5253364a23d1a5407d0e1205663ea23a4fe952813cc73e9fd801e9e9",
+    "frame_setup_json_sha256": "e22d934315295cb2c5735088f04424faed11d5b6b84a6a5ad49449fbfd62a934"
+  },
+  "post_run": {
+    "probe_status": 0,
+    "steam_pid": 15575,
+    "steam_start_ticks": 128118834,
+    "x11_pid": 13643,
+    "x11_start_ticks": 121863492,
+    "protected_processes_unchanged": true,
+    "temperature_c_after_teardown": 27.291
+  },
+  "diagnosis": "E128 correctly removes opcode-123 socket exchanges, but it retains one synchronous descriptor handoff for each allocation. The dedicated Bionic worker and futex completion path averaged 261.7 microseconds per transaction versus E127's 190.7-microsecond socket transaction. With roughly 531 allocations per present, descriptor blocking rose to 141.0 ms and total measured bridge wait returned to 267.9 ms. The game-authored average consequently regressed from 2.3 to 2.0 FPS. Transport substitution alone is rejected as a performance solution.",
+  "recommendation": "Instrument the Bionic worker to split context-mutex wait, journal replay, native vkAllocateDescriptorSets, response encoding, and completion wake. Then virtualize descriptor-pool reset epochs so already-created native descriptor sets can be safely recycled after reset instead of invoking hundreds of real native allocations per frame. Keep E128 available as a diagnostic A/B path, but do not claim it as a speed improvement.",
+  "claim_boundary": "This is one complete, thermally cool, matched E128 benchmark. It proves the transport replacement, the regression, and the absence of PRoot from the live game's parent chain. It is not a repeated paired series and does not yet separate native allocation time from worker scheduling time.",
+  "reuse": "The required deja query returned no prior descriptor completion-ring implementation. E128 reused E014/E042 shared-memory setup, E075/E075a immutable sequence/failure semantics, E126 canonical journal records, E127 typed allocation outcomes, and the matched 32-present E125-E127 profiling method."
+}
