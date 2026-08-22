@@ -457,18 +457,25 @@ activity_start_arguments+=(-n "$activity_component"
     --es bvb_activity_token "$activity_token")
 activity_manager "${activity_start_arguments[@]}" >/dev/null
 activity_started=1
-for _ in $(seq 1 200); do
+if [[ -n $activity_adb_serial ]]; then
+    # Samsung DeX can ignore the requested fullscreen launch mode and create a
+    # small freeform surface. Resize the new task before waiting for renderer
+    # readiness: the bootstrap batch itself is sized for the native extent and
+    # can fail before event 11 when initialized against that small surface.
+    prepare_adb_activity_fullscreen
+else
+    for _ in $(seq 1 200); do
+        grep -Eq 'activity_event=11 .*width=[1-9][0-9]* height=[1-9][0-9]*' \
+            "$service_log" && break
+        kill -0 "$service_pid" 2>/dev/null || break
+        sleep 0.05
+    done
     grep -Eq 'activity_event=11 .*width=[1-9][0-9]* height=[1-9][0-9]*' \
-        "$service_log" && break
-    kill -0 "$service_pid" 2>/dev/null || break
-    sleep 0.05
-done
-grep -Eq 'activity_event=11 .*width=[1-9][0-9]* height=[1-9][0-9]*' \
-    "$service_log" || {
-    sed -n '1,120p' "$service_log" >&2 || true
-    fail 'installed BVB Activity did not report a ready Vulkan renderer'
-}
-prepare_adb_activity_fullscreen
+        "$service_log" || {
+        sed -n '1,120p' "$service_log" >&2 || true
+        fail 'installed BVB Activity did not report a ready Vulkan renderer'
+    }
+fi
 helper_apk=$(package_manager_call path "$activity_package" 2>/dev/null |
     sed -n 's/^package://p' | sed -n '1p')
 [[ $helper_apk == /* && -f $helper_apk && -r $helper_apk && ! -L $helper_apk ]] ||

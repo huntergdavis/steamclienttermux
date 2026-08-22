@@ -18,6 +18,14 @@ def executable(path: Path, body: str) -> None:
 
 
 def main() -> None:
+    source = SCRIPT.read_text(encoding="utf-8")
+    post_launch = source.split(
+        'activity_manager "${activity_start_arguments[@]}" >/dev/null', 1
+    )[1]
+    assert post_launch.index("prepare_adb_activity_fullscreen") < post_launch.index(
+        "for _ in $(seq 1 200)"
+    ), "paired ADB must resize a Samsung freeform task before renderer-ready wait"
+
     with tempfile.TemporaryDirectory(prefix="tombraider-bvb-probe.") as root_text:
         root = Path(root_text)
         base = root / "steam-arm64"

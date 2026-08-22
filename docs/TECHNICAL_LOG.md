@@ -7729,6 +7729,17 @@ Raider launcher"` query found no indexed implementation. This reuses the
 existing bounded child cleanup and exact-package Activity ownership rules; it
 does not claim a Tomb Raider frame or FPS result.
 
+The first E115 rerun exposed an ordering bug in that handoff: Samsung ignored
+the requested fullscreen launch mode and initially supplied a `1514x1138`
+freeform surface. The launcher waited for renderer-ready before resizing, but
+the native-resolution bootstrap batch could not be built at that small extent,
+so renderer-ready could never arrive. Paired-ADB runs now resize the exact new
+task first and only then require the authenticated `2800x1752` renderer event.
+The required `deja "BVB Samsung Activity launches window freeform instead
+fullscreen 2800x1752 adb am start task resize"` query returned no indexed
+implementation; this correction reuses the existing exact-task resize and
+event-11 extent checks without changing the non-ADB path.
+
 ## 2026-08-21: Tomb Raider frame helper loads the installed native host
 
 The first E097 Tomb Raider rerun proved the Vulkan image-view fix but its
