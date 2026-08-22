@@ -199,7 +199,7 @@ def main() -> None:
             "import os, pathlib, signal, socket, sys, time\n"
             "mode=os.environ.get('FAKE_LAUNCHER_MODE','pass')\n"
             "if mode == 'early17': raise SystemExit(17)\n"
-            "required=['STEAM_ARM64_BVB_VULKAN','BVB_BRIDGE_SOCKET','BVB_ICD_DIAGNOSTICS','TOMB_RAIDER_DIRECT_DIAGNOSTICS','TOMB_RAIDER_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_MAPPED_MEMORY','TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC','STEAM_ARM64_DIRECT_START_GATE']\n"
+            "required=['STEAM_ARM64_BVB_VULKAN','BVB_BRIDGE_SOCKET','BVB_ICD_DIAGNOSTICS','TOMB_RAIDER_DIRECT_DIAGNOSTICS','TOMB_RAIDER_BVB_COMMAND_STREAM','TOMB_RAIDER_BVB_MAPPED_MEMORY','TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC','BVB_FRAME_PROFILE','TOMB_RAIDER_BVB_FRAME_PROFILE','STEAM_ARM64_DIRECT_START_GATE']\n"
             "assert not any(name in os.environ for name in ('BVB_COMMAND_STREAM','STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM','BVB_MAPPED_MEMORY','STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY','BVB_FIRST_REJECTION_DIAGNOSTIC','STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC'))\n"
             "gate=pathlib.Path(os.environ['STEAM_ARM64_DIRECT_START_GATE'])\n"
             "waiting=pathlib.Path(str(gate)+'.waiting'); ready=pathlib.Path(str(gate)+'.launcher-ready')\n"
@@ -233,6 +233,7 @@ def main() -> None:
                 "STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY": "smuggled",
                 "BVB_FIRST_REJECTION_DIAGNOSTIC": "smuggled",
                 "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC": "smuggled",
+                "BVB_FRAME_PROFILE": "smuggled",
             }
         )
 
@@ -278,6 +279,8 @@ def main() -> None:
         assert values["TOMB_RAIDER_BVB_COMMAND_STREAM"] == "strict"
         assert values["TOMB_RAIDER_BVB_MAPPED_MEMORY"] == "strict"
         assert values["TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC"] == "0"
+        assert values["BVB_FRAME_PROFILE"] == "0"
+        assert values["TOMB_RAIDER_BVB_FRAME_PROFILE"] == "0"
         assert values["BVB_COMMAND_STREAM"] == ""
         assert values["STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM"] == ""
         assert values["BVB_MAPPED_MEMORY"] == ""
@@ -295,17 +298,18 @@ def main() -> None:
         start_record = next(record for record in calls() if record.startswith("start "))
         assert "--es bvb_activity_token " in start_record
         assert "--ei bvb_retain_external_renderer 1" in start_record
+        assert "--ei bvb_frame_profile 0" in start_record
         frame_results = list(logs.glob("tombraider-bvb-frame-*.json"))
         assert len(frame_results) == 1
         assert '"image_count": 3' in frame_results[0].read_text()
         assert '"generation": -7' in frame_results[0].read_text()
 
         expected_activity_count = 1
-        for command_stream, mapped_memory, first_rejection_diagnostic in (
-            ("shared", "strict", "0"),
-            ("strict", "shared", "0"),
-            ("shared", "shared", "0"),
-            ("strict", "strict", "1"),
+        for command_stream, mapped_memory, first_rejection_diagnostic, frame_profile in (
+            ("shared", "strict", "0", "1"),
+            ("strict", "shared", "0", "0"),
+            ("shared", "shared", "0", "0"),
+            ("strict", "strict", "1", "0"),
         ):
             selected, _ = run_case(
                 TOMB_RAIDER_BVB_COMMAND_STREAM=command_stream,
@@ -313,6 +317,7 @@ def main() -> None:
                 TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC=(
                     first_rejection_diagnostic
                 ),
+                TOMB_RAIDER_BVB_FRAME_PROFILE=frame_profile,
             )
             assert selected.returncode == 0, selected.stderr
             selected_values = dict(
@@ -324,6 +329,8 @@ def main() -> None:
             assert selected_values[
                 "TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC"
             ] == first_rejection_diagnostic
+            assert selected_values["BVB_FRAME_PROFILE"] == frame_profile
+            assert selected_values["TOMB_RAIDER_BVB_FRAME_PROFILE"] == frame_profile
             assert selected_values["BVB_COMMAND_STREAM"] == ""
             assert selected_values["STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM"] == ""
             assert selected_values["BVB_MAPPED_MEMORY"] == ""
@@ -334,6 +341,10 @@ def main() -> None:
             ] == ""
             expected_activity_count += 1
             assert_activity_balanced(expected_activity_count)
+            selected_start = [
+                record for record in calls() if record.startswith("start ")
+            ][-1]
+            assert f"--ei bvb_frame_profile {frame_profile}" in selected_start
 
         invalid_stream, _ = run_case(TOMB_RAIDER_BVB_COMMAND_STREAM="invalid")
         assert invalid_stream.returncode == 1
@@ -364,6 +375,15 @@ def main() -> None:
         assert invalid_mapped_memory.returncode == 1
         assert "TOMB_RAIDER_BVB_MAPPED_MEMORY must be strict or shared" in (
             invalid_mapped_memory.stderr
+        )
+        assert_activity_balanced(5)
+
+        invalid_frame_profile, _ = run_case(
+            TOMB_RAIDER_BVB_FRAME_PROFILE="invalid"
+        )
+        assert invalid_frame_profile.returncode == 1
+        assert "TOMB_RAIDER_BVB_FRAME_PROFILE must be 0 or 1" in (
+            invalid_frame_profile.stderr
         )
         assert_activity_balanced(5)
 

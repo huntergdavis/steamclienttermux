@@ -7785,6 +7785,14 @@ Nixxes/Eidos intro at native resolution. Compact evidence is
 `docs/evidence/tombraider-bvb-quiet-diagnostics-ab-20260822.json`; this is a
 frame-transport timing sample, not a game benchmark or FPS claim.
 
+E116 adds `TOMB_RAIDER_BVB_FRAME_PROFILE=1` as an independent, strict,
+default-off control. The launcher passes the validated selection to the Bionic
+service, the final Wine/DXVK environment, and the exact Activity Intent while
+removing caller-smuggled effective values. The bridge then emits one aggregate
+summary per 32 frames at each of those three boundaries; it does not add a
+per-frame logging stream or a wire opcode. This is a diagnosis gate for the
+remaining multi-second interval, not a speedup by itself.
+
 ## 2026-08-21: Tomb Raider frame helper loads the installed native host
 
 The first E097 Tomb Raider rerun proved the Vulkan image-view fix but its

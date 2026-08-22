@@ -42,6 +42,7 @@ icd_diagnostics=${TOMB_RAIDER_BVB_ICD_DIAGNOSTICS:-0}
 command_stream=${TOMB_RAIDER_BVB_COMMAND_STREAM:-strict}
 mapped_memory=${TOMB_RAIDER_BVB_MAPPED_MEMORY:-strict}
 first_rejection_diagnostic=${TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC-0}
+frame_profile=${TOMB_RAIDER_BVB_FRAME_PROFILE:-0}
 child_stop_ticks=${BVB_CHILD_STOP_TICKS:-100}
 child_kill_ticks=${BVB_CHILD_KILL_TICKS:-20}
 frame_finish_ticks=${BVB_FRAME_FINISH_TICKS:-200}
@@ -333,6 +334,8 @@ trap 'exit 143' TERM
     fail 'TOMB_RAIDER_BVB_MAPPED_MEMORY must be strict or shared'
 [[ $first_rejection_diagnostic == 0 || $first_rejection_diagnostic == 1 ]] ||
     fail 'TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC must be 0 or 1'
+[[ $frame_profile == 0 || $frame_profile == 1 ]] ||
+    fail 'TOMB_RAIDER_BVB_FRAME_PROFILE must be 0 or 1'
 # The effective ICD switch belongs only to the reconstructed Wine/DXVK
 # environment. Do not let caller-supplied copies reach the Bionic service,
 # Activity helper, direct launcher, Steam, or CEF.
@@ -340,6 +343,7 @@ unset BVB_COMMAND_STREAM STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
     TOMB_RAIDER_BVB_COMMAND_STREAM BVB_MAPPED_MEMORY \
     STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY TOMB_RAIDER_BVB_MAPPED_MEMORY \
     BVB_ICD_DIAGNOSTICS TOMB_RAIDER_BVB_ICD_DIAGNOSTICS \
+    BVB_FRAME_PROFILE TOMB_RAIDER_BVB_FRAME_PROFILE \
     BVB_FIRST_REJECTION_DIAGNOSTIC \
     STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC \
     TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC
@@ -395,6 +399,7 @@ done <<<"$activity_package_output"
 activity_token=$(od -An -N32 -tx1 /dev/urandom | tr -d ' \n')
 [[ $activity_token =~ ^[0-9a-f]{64}$ ]] ||
     fail 'could not generate a 256-bit Activity capability'
+BVB_FRAME_PROFILE="$frame_profile" \
 "$service" --socket "$socket" --loader "$driver" --activity-port 0 \
     --activity-token "$activity_token" \
     --activity-frame-socket "$frame_setup_socket" >"$service_log" 2>&1 &
@@ -425,6 +430,8 @@ TOMB_RAIDER_DIRECT_DIAGNOSTICS="$direct_diagnostics" \
 TOMB_RAIDER_BVB_COMMAND_STREAM="$command_stream" \
 TOMB_RAIDER_BVB_MAPPED_MEMORY="$mapped_memory" \
 TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC="$first_rejection_diagnostic" \
+BVB_FRAME_PROFILE="$frame_profile" \
+TOMB_RAIDER_BVB_FRAME_PROFILE="$frame_profile" \
 STEAM_ARM64_DIRECT_START_GATE="$start_gate" \
 "$launcher" "$@" >"$launcher_log" 2>&1 &
 launcher_pid=$!
@@ -458,6 +465,7 @@ fi
 activity_start_arguments+=(-n "$activity_component"
     --ei bvb_activity_port "$activity_port"
     --ei bvb_retain_external_renderer 1
+    --ei bvb_frame_profile "$frame_profile"
     --es bvb_activity_token "$activity_token")
 activity_manager "${activity_start_arguments[@]}" >/dev/null
 activity_started=1

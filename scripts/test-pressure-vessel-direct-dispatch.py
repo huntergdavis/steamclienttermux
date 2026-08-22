@@ -109,6 +109,7 @@ def main() -> None:
                 "STEAM_ARM64_BVB_VULKAN": "1",
                 "BVB_BRIDGE_SOCKET": "/private/bvb.sock",
                 "BVB_ICD_DIAGNOSTICS": "1",
+                "BVB_FRAME_PROFILE": "1",
                 "BVB_ICD_PROBE_WSI": "1",
                 "BVB_COMMAND_STREAM": "smuggled",
                 "BVB_MAPPED_MEMORY": "smuggled",
@@ -159,11 +160,14 @@ def main() -> None:
                                 if first_rejection_diagnostic == "1"
                                 else {}
                             ),
+                            "BVB_FRAME_PROFILE": "1",
                             "VK_LOADER_DEBUG": "error,warn,driver",
                         }
             os.environ["BVB_ICD_DIAGNOSTICS"] = "0"
+            os.environ["BVB_FRAME_PROFILE"] = "0"
             quiet_environment = MODULE.bvb_vulkan_environment()
             assert "BVB_ICD_DIAGNOSTICS" not in quiet_environment
+            assert "BVB_FRAME_PROFILE" not in quiet_environment
             assert "VK_LOADER_DEBUG" not in quiet_environment
             os.environ["BVB_ICD_DIAGNOSTICS"] = "1"
             os.environ["STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM"] = "invalid"
@@ -620,6 +624,8 @@ def main() -> None:
                 "BVB_ICD_DIAGNOSTICS=1",
                 "TOMB_RAIDER_BVB_ICD_DIAGNOSTICS=1",
                 "VK_LOADER_DEBUG=all",
+                "BVB_FRAME_PROFILE=1",
+                "TOMB_RAIDER_BVB_FRAME_PROFILE=1",
             ]
         }
     ) == {"STEAM_COMPAT_APP_ID": "203160"}

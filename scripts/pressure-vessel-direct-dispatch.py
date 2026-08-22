@@ -112,6 +112,7 @@ def bvb_vulkan_environment() -> dict[str, str]:
     first_rejection_diagnostic = os.environ.get(
         "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC", "0"
     )
+    frame_profile = os.environ.get("BVB_FRAME_PROFILE", "0")
     if command_stream not in ("strict", "shared"):
         fail("STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM must be strict or shared")
     if mapped_memory not in ("strict", "shared"):
@@ -120,6 +121,8 @@ def bvb_vulkan_environment() -> dict[str, str]:
         fail(
             "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC must be 0 or 1"
         )
+    if frame_profile not in ("0", "1"):
+        fail("BVB_FRAME_PROFILE must be 0 or 1")
     if bvb != "1":
         if command_stream == "shared":
             fail("shared BVB command stream requires STEAM_ARM64_BVB_VULKAN=1")
@@ -149,6 +152,8 @@ def bvb_vulkan_environment() -> dict[str, str]:
         environment["BVB_MAPPED_MEMORY"] = "shared"
     if first_rejection_diagnostic == "1":
         environment["BVB_FIRST_REJECTION_DIAGNOSTIC"] = "1"
+    if frame_profile == "1":
+        environment["BVB_FRAME_PROFILE"] = "1"
     if diagnostics == "1":
         environment["VK_LOADER_DEBUG"] = "error,warn,driver"
     return environment
@@ -737,6 +742,8 @@ def request_environment(payload: dict[str, object]) -> dict[str, str]:
         "BVB_ICD_DIAGNOSTICS",
         "TOMB_RAIDER_BVB_ICD_DIAGNOSTICS",
         "VK_LOADER_DEBUG",
+        "BVB_FRAME_PROFILE",
+        "TOMB_RAIDER_BVB_FRAME_PROFILE",
     ):
         environment.pop(name, None)
     return environment
