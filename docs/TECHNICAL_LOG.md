@@ -8190,3 +8190,44 @@ Authoritative reset/destroy invalidation, finite pool capacity, native error
 reporting, journal ordering, and strict fallback remain mandatory. Exact
 metrics, identities, and claim boundaries are retained in
 `docs/evidence/tombraider-bvb-e130-active-handoff-20260822.json`.
+
+## 2026-08-22: E131 rejects reset-epoch sequence prediction
+
+E131's 64-KiB ring ABI and bounded reset-epoch lease implementation passed
+93/93 host and 91/91 Termux contracts, and its glibc ICD passed the tablet
+self-test. The verified client/service pair was installed transactionally with
+rollback `install-pre-qJXarbUn`; Steam PID 15575 and X11 PID 13643 retained
+their original start ticks. The first launch failed closed before Wine because
+Android 16 denied Termux access to `/proc/net/unix`. Reusing the already-paired
+ADB device `192.168.0.215:45495` crossed that known Activity-socket boundary.
+
+The second attempt rendered the loading screen and multiple clean, real
+2800x1752 Tomb Raider frames. Screenshot inspection also caught that Samsung
+still labelled the resized task `freeform`; its window bounds and output were
+nevertheless the complete 2800x1752 display. Android repeatedly raised the
+known Activity ANR dialog, so a bounded watchdog selected only **Wait** when
+the exact `Application Not Responding: io.github.huntergdavis.bvb.visiblehost`
+window was present. It never selected **Close app**.
+
+The optimization itself did not engage. Across 33 complete 32-present profile
+windows, only 36 of 159,843 allocation attempts used a lease: **0.0225%**.
+The remaining 159,807 calls still blocked in the E130 ring for 35.315 seconds,
+or 221.0 microseconds per call. Descriptor-pool reset appeared at least 221
+times in the top-eight RPC summaries, but the learned whole-epoch pool/layout
+sequence almost never repeated exactly. The client stopped emitting new frame
+summaries, the camera stopped making observable progress, and no game-authored
+benchmark file appeared even after the run exceeded E130's complete runtime.
+The owning controller was terminated cleanly; no Wine, bridge, or watchdog
+child remained, Steam/X survived, and the tablet cooled from a measured 54.4 C
+peak back to 37.0 C.
+
+E131 is therefore a negative runtime gate: real-frame rendering passed, but
+there is no FPS result or speedup claim. E132 must predict only what the
+current request proves. On a ring miss, Bionic can allocate a bounded repeated
+pool/layout-signature batch in one native call, return the requested prefix,
+and publish only the extra real typed sets. Multiple signature banks must be
+searched per pool and all must be invalidated on reset/destroy. Khronos'
+allocation contract makes a failed multi-set call atomic, allowing an exact
+request fallback without keeping partial descriptor sets. Exact metrics,
+hashes, teardown state, and the retained Lara frame are in
+`docs/evidence/tombraider-bvb-e131-reset-epoch-lease-failure-20260822.json`.

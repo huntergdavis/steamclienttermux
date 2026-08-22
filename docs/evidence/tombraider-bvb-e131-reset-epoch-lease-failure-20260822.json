@@ -1,0 +1,98 @@
+{
+  "gate": "E131",
+  "date": "2026-08-22",
+  "result": "failed_runtime_gate",
+  "target": {
+    "device": "Samsung Galaxy Tab S8+ SM-X808U",
+    "game": "Tomb Raider (2013)",
+    "appid": 203160,
+    "resolution": "2800x1752",
+    "refresh_hz": 60,
+    "quality": "Low",
+    "fullscreen": true,
+    "vsync": false,
+    "motion_blur": false
+  },
+  "runtime": {
+    "bridge_commit": "261e953479edb11f73bd0cbd0522e3935eda8339",
+    "steamclienttermux_commit": "ceadc3b",
+    "run_id": "20260822T222723Z-3849",
+    "command_stream": "shared",
+    "mapped_memory": "shared",
+    "descriptor_journal": "shared",
+    "descriptor_ring_abi": 3,
+    "frame_profile": true,
+    "activity_version_code": 40,
+    "paired_adb_serial": "192.168.0.215:45495"
+  },
+  "build_and_install": {
+    "host_contracts": "93/93 passed",
+    "termux_contracts": "91/91 passed",
+    "glibc_icd_selftest": "passed",
+    "source_archive_sha256": "26f83c1363b3383d06d4222382b53b236bee0670c84ae15cfc45996bb5eea34e",
+    "termux_build_log_sha256": "ef414478c4a55c1bc74d2bbeec343add9ab66d2ee8d3600a7f992a6f84713d6f",
+    "glibc_build_log_sha256": "4c6038b1cb87c321b373cb8442eacc54e798a7862e804076f79138a45f37095e",
+    "rollback_backup": "/data/data/com.termux/files/home/steam-arm64/bvb/backups/install-pre-qJXarbUn"
+  },
+  "installed_artifacts": {
+    "glibc_icd_sha256": "dfb539136bc7e2867ce7d2ac9f03c5c17f45c39414e5141a57ce391be526cee1",
+    "bionic_service_sha256": "2b68ff3439f9ab861e49a1bc0d8ea146cac0d4b4f4e1d8de52394bcb002e1df7",
+    "manifest_sha256": "77f3395e3f657b6a7274c182afe994edacda2a4b38d49814ea84440520af33df",
+    "install_stamp_sha256": "b8fef3246ea961acb904d8d81c2ace57650ff9ae38ceb0f1924eb24f753b58ea"
+  },
+  "observed_profile": {
+    "complete_32_present_windows": 33,
+    "profiled_presents": 1056,
+    "descriptor_allocation_attempts": 159843,
+    "lease_hits": 36,
+    "leased_sets": 36,
+    "lease_misses": 159807,
+    "lease_hit_percent": 0.022522,
+    "descriptor_ring_calls": 159807,
+    "descriptor_ring_calls_per_present": 151.332386,
+    "descriptor_ring_total_ns": 35315329723,
+    "descriptor_ring_ms_per_present": 33.442547,
+    "descriptor_ring_mean_microseconds_per_call": 220.987,
+    "descriptor_ring_max_ns": 42690052,
+    "profiled_reset_calls_lower_bound": 221,
+    "profiled_reset_total_ns_lower_bound": 2041922172,
+    "profiled_reset_mean_microseconds": 9239.467,
+    "reset_count_is_lower_bound_because_rpc_summary_retains_only_top_eight": true
+  },
+  "completion": {
+    "game_authored_result_file_created": false,
+    "controller_was_still_alive_at_bounded_stop": true,
+    "last_client_profile_timestamp_local": "2026-08-22 15:32:14 PDT",
+    "bounded_stop_timestamp_local": "2026-08-22 15:44 PDT",
+    "anr_watchdog_wait_selections": 16,
+    "anr_watchdog_interval_seconds": 2,
+    "final_camera_pose_advanced_after_watchdog": false,
+    "outcome": "The run rendered multiple real full-screen Tomb Raider frames, then stopped making observable game-frame progress and never wrote benchmark results. It was terminated through the owning probe controller after exceeding the complete E130 runtime."
+  },
+  "visual_evidence": {
+    "retained_fullscreen_frame": "docs/evidence/tombraider-bvb-e131-fullscreen-frame-20260822.png",
+    "retained_fullscreen_frame_sha256": "7ec6724007597d0d36a8509b1365a422963406b0e7e1ac6ae92d8a711e55d6d2",
+    "activity_milestone_sha256": "28b7305067678da2bc88ffcb75bf49b49141cf49c27c59d79df332dcee89e9f8",
+    "later_camera_frame_sha256": "293d42a7f9ed837b84e019a6599949551bf3c9b27c6e29d36b35db4108a43228",
+    "claim": "The retained image proves a real full-screen Tomb Raider frame through E131. It does not prove a completed benchmark or FPS."
+  },
+  "retained_log_hashes": {
+    "direct_profile_log_sha256": "7353b070d56ed7b01f3d4d0a88d909c1b7ec903ad98a8f08d4fb25d105450a9f",
+    "service_profile_log_sha256": "959b27fc2944099b3076f10d4e97bf71db9ca598f2536e49441e515089e07fb7",
+    "controller_log_sha256": "972b6f7eec3a1a69b24c23e1a093e77a542d96011fe390f5816120da419eb2c8"
+  },
+  "post_run": {
+    "owned_game_bridge_and_watchdog_processes_remaining": 0,
+    "steam_pid": 15575,
+    "steam_start_ticks": 128118834,
+    "x11_pid": 13643,
+    "x11_start_ticks": 121863492,
+    "protected_processes_unchanged": true,
+    "peak_observed_temperature_c": 54.4,
+    "temperature_c_after_teardown": 37.0
+  },
+  "diagnosis": "Reset-epoch sequence replay was the wrong predictor. Tomb Raider reset descriptor pools frequently enough for opcode 116 to enter the top RPC set, but allocation layout sequences did not repeat exactly. Only 36 of 159843 allocation attempts matched a published lease, so E131 retained effectively all E130 ring traffic and failed to finish this run.",
+  "recommendation": "E132 should create bounded live leases from the allocation request currently known to be needed: batch repeated identical pool/layout signatures in one native vkAllocateDescriptorSets call, return the requested prefix, and publish only the extra real typed sets. Search multiple signature banks per pool, invalidate all pool banks on reset/destroy, and fall back to the exact request after a spec-defined atomic batch-allocation failure.",
+  "claim_boundary": "E131 host/device contracts and real-frame rendering passed, but its optimization did not engage materially and this runtime attempt did not complete. No E131 FPS value or performance improvement is claimed.",
+  "reuse": "The required deja query returned no indexed implementation. E131 runtime validation reused E130's exact launcher, native-resolution Low profile, bounded frame summaries, protected Steam/X checks, and screenshot evidence boundary."
+}

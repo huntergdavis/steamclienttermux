@@ -162,6 +162,13 @@ These screenshots capture milestones and failures from the original tablet.
   panel-native Low pass after the user explicitly selected Game Booster's
   Performance policy, visibly reporting 13.7/29.0/20.2 FPS. Affinity and both
   `/top-app` placements verified before and after the timed scene.
+- `tombraider-bvb-e131-reset-epoch-lease-failure-20260822.json`: negative
+  native-resolution runtime evidence for reset-epoch descriptor leases. It
+  records 36 hits in 159,843 attempts, real full-screen Lara frames, no
+  benchmark result, bounded teardown, and the live-signature E132 direction.
+- `tombraider-bvb-e131-fullscreen-frame-20260822.png`: the retained clean Lara
+  frame from E131. It proves real game pixels through that build, not a
+  completed benchmark or FPS result.
 - `burnout-after-install-confirm.png`: Burnout installation confirmation.
 - `steam-relaunched-installed.png`: client relaunched with completed installs.
 - `2026-08-08-live-debugging-compat-timeout.png`: live debugging session with
