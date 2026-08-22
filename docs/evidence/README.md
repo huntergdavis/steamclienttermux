@@ -109,6 +109,12 @@ These screenshots capture milestones and failures from the original tablet.
   52 bounded RPC-profile windows. Descriptor blocking fell 13.8%, but the
   game remained at 2.0 FPS because synchronous allocations forced roughly
   351 tiny journal drains per benchmark-scene frame.
+- `tombraider-bvb-e127-descriptor-transaction-profile-20260822.json` and
+  retained result text: the complete E127 transaction benchmark. Ordered
+  update/allocation fusion raised the game-authored average from 2.0 to 2.3
+  FPS and cut scene RPC blocking 16.1%; the remaining 526 synchronous
+  descriptor transactions per present identify the shared completion ring as
+  the next measured gate.
 - `bionic-vulkan-bridge-e001-e003-20260818.json`: non-visual, machine-readable
   evidence for the first three bridge gates: direct Android system-loader
   enumeration, a verified glibc-to-Bionic protocol handshake, and exact

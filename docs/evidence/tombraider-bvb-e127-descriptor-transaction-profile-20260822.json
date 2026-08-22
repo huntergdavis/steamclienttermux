@@ -1,0 +1,162 @@
+{
+  "gate": "E127",
+  "date": "2026-08-22",
+  "target": {
+    "game": "Tomb Raider (2013)",
+    "appid": 203160,
+    "resolution": "2800x1752",
+    "refresh_hz": 60,
+    "quality": "Low",
+    "fullscreen": true,
+    "vsync": false,
+    "motion_blur": false
+  },
+  "runtime": {
+    "bridge_source_commit": "376b8be752cce550ea588ae924ce00e229a3fe3a",
+    "steamclienttermux_source_commit": "c5d450642643b43571d5a97dfd5066e6b5936723",
+    "run_id": "20260822T191104Z-25808",
+    "game_pid": 29353,
+    "service_pid": 25831,
+    "activity_pid": 28186,
+    "command_stream": "shared",
+    "mapped_memory": "shared",
+    "descriptor_journal": "shared",
+    "descriptor_transaction_opcode": 123,
+    "frame_profile": true,
+    "first_rejection_diagnostic": false,
+    "proot_in_game_vulkan_path": false,
+    "activity_version_code": 40
+  },
+  "game_authored_result": {
+    "minimum_fps": 0.7,
+    "maximum_fps": 4.1,
+    "average_fps": 2.3,
+    "average_frame_time_ms": 434.7826086956522,
+    "source_path": "/data/data/com.termux/files/home/steam-arm64/removable-library/steamapps/common/Tomb Raider/benchmarkresults 2026-08-22 19-21-05.txt",
+    "source_sha256": "07ea589922d453afef8b966510e8161923190ebe1661985a980374642a99c8cc",
+    "retained_normalized_path": "docs/evidence/tombraider-bvb-e127-descriptor-transaction-result-20260822.txt",
+    "retained_normalized_sha256": "64e1f146c0c92a636e342e5b81480a78b40bd293971fb1876b7a8577e96bf299",
+    "e126_average_fps": 2.0,
+    "average_fps_increase_percent": 15.0
+  },
+  "rpc_profile": {
+    "summary_window_presents": 32,
+    "complete_windows": 53,
+    "profiled_presents": 1696,
+    "all_windows": {
+      "blocked_ms_per_present": 155.85590833903302,
+      "calls_per_present": 341.9581367924528,
+      "descriptor_transaction_calls_per_present": 308.24587264150944,
+      "descriptor_transaction_ms_per_present": 58.948660898584905,
+      "descriptor_journal_flush_calls_per_present": 5.882075471698113,
+      "descriptor_journal_flush_ms_per_present": 1.4990434156839623
+    },
+    "comparable_final_30_windows": {
+      "windows": 30,
+      "presents": 960,
+      "blocked_ms_per_present": 224.79033955416668,
+      "calls_per_present": 565.4489583333333,
+      "descriptor_transaction": {
+        "opcode": 123,
+        "calls_per_present": 526.240625,
+        "blocked_ms_per_present": 100.33634976979167,
+        "mean_microseconds_per_call": 190.6662940927293
+      },
+      "descriptor_journal_flush": {
+        "opcode": 122,
+        "calls_per_present": 7.436458333333333,
+        "blocked_ms_per_present": 1.7448031572916667
+      },
+      "strict_descriptor_allocation": {
+        "opcode": 68,
+        "calls_per_present": 0.0,
+        "blocked_ms_per_present": 0.0
+      },
+      "shared_queue_submit_2": {
+        "opcode": 105,
+        "calls_per_present": 2.7645833333333334,
+        "blocked_ms_per_present": 51.51781523645833
+      },
+      "semaphore_wait": {
+        "opcode": 83,
+        "calls_per_present": 2.767708333333333,
+        "blocked_ms_per_present": 50.05784271458333
+      },
+      "queue_submit_2": {
+        "opcode": 85,
+        "calls_per_present": 1.0125,
+        "blocked_ms_per_present": 10.105567791666665
+      },
+      "descriptor_combined_ms_per_present": 102.08115292708334,
+      "descriptor_share_of_rpc_percent": 45.4117308554022,
+      "descriptor_share_of_average_frame_percent": 23.478665173229167
+    },
+    "heavy_final_23_windows": {
+      "windows": 23,
+      "presents": 736,
+      "blocked_ms_per_present": 238.56584447146741,
+      "calls_per_present": 623.5910326086956,
+      "descriptor_transaction_calls_per_present": 584.2975543478261,
+      "descriptor_transaction_ms_per_present": 111.61438333016305,
+      "descriptor_journal_flush_calls_per_present": 7.667119565217392,
+      "descriptor_journal_flush_ms_per_present": 1.7942463342391304,
+      "submit_and_wait_blocked_ms_per_present": 114.19733099592391
+    },
+    "e126_comparison": {
+      "e126_scene_descriptor_ms_per_present": 139.94517239895833,
+      "e127_scene_descriptor_ms_per_present": 102.08115292708334,
+      "descriptor_ms_saved_per_present": 37.864019471875,
+      "descriptor_blocking_reduction_percent": 27.05632414666762,
+      "e126_scene_total_rpc_ms_per_present": 267.80239931770836,
+      "e127_scene_total_rpc_ms_per_present": 224.79033955416668,
+      "total_rpc_ms_saved_per_present": 43.012059763541686,
+      "total_rpc_reduction_percent": 16.061118150220217,
+      "e126_scene_total_calls_per_present": 916.509375,
+      "e127_scene_total_calls_per_present": 565.4489583333333,
+      "total_call_reduction_percent": 38.30407263064458,
+      "e126_descriptor_boundaries_per_present": 882.6885416666667,
+      "e127_descriptor_boundaries_per_present": 533.6770833333334,
+      "descriptor_boundary_reduction_percent": 39.53959317001443
+    }
+  },
+  "wsi_profile": {
+    "client_windows": 53,
+    "client_present_ms_per_present": 1.0179324628537736,
+    "client_acquire_ms_per_present": 0.525422556014151,
+    "client_combined_ms_per_present": 1.5433550188679246,
+    "service_windows": 53,
+    "service_present_ms_per_present": 0.7067065636792453,
+    "service_acquire_ms_per_present": 0.24873139445754716,
+    "service_combined_ms_per_present": 0.9554379581367924
+  },
+  "installed_artifacts": {
+    "glibc_icd_sha256": "64b0ab0833bbe8ee449f0f740c057e43057d4de1c3faecb62f217f31db8b6ba5",
+    "bionic_service_sha256": "7193e6ceea2633952a4c0c3dbae70103621a77194c696d3ba64d1508fa690fe7",
+    "normalized_manifest_sha256": "77f3395e3f657b6a7274c182afe994edacda2a4b38d49814ea84440520af33df",
+    "install_stamp_sha256": "edfdbae8eee1d142e1feeafb044cdd5a0c454d478f72c70b7a1b8fdc985162e7",
+    "rollback_backup": "/data/data/com.termux/files/home/steam-arm64/bvb/backups/install-pre-Po27PY5d"
+  },
+  "visual_evidence": {
+    "initial_activity_sha256": "28b7305067678da2bc88ffcb75bf49b49141cf49c27c59d79df332dcee89e9f8",
+    "real_game_loading_frame_sha256": "d8eb357322b8594c1e2b450961793a1e4d65ee0a162d484bc12f6d0f03e34d4e",
+    "claim": "The retained runtime screenshot shows Tomb Raider's own loading screen. The game-authored result and 1,696 profiled presents prove benchmark completion; this run did not retain a Lara-scene screenshot."
+  },
+  "retained_hashes": {
+    "direct_profile_log_sha256": "d45c7890f36ae0bf5dfcdd761abf8f8652a85b2b838b93bccb341ff25414f5aa",
+    "service_profile_log_sha256": "57cc3008b751104456a15c85a8a9f9eb4be32a5dc49f92fe6079e20bf903d8cf",
+    "launcher_log_sha256": "d796f8d8c0b2ea4d328958f4b2c7dbc6f53a31babef51241a1974fecabee4766",
+    "frame_setup_json_sha256": "e22d934315295cb2c5735088f04424faed11d5b6b84a6a5ad49449fbfd62a934"
+  },
+  "post_run": {
+    "probe_status": 0,
+    "steam_pid": 15575,
+    "steam_start_ticks": 128118834,
+    "x11_pid": 13643,
+    "x11_start_ticks": 121863492,
+    "protected_processes_unchanged": true,
+    "temperature_c_after_teardown": 23.6
+  },
+  "diagnosis": "E127 truthfully fuses ordered descriptor updates with each native allocation result and produces a 15% game-authored FPS gain. It also proves that one synchronous request/reply per allocation is still the dominant bridge cost: the comparable scene issues 526 opcode-123 calls and blocks 100.3 ms per present in that operation alone. The next gate must replace per-allocation socket exchanges with a bounded shared request/completion ring or a pool-epoch-aware descriptor lease cache while preserving real native allocation outcomes.",
+  "claim_boundary": "This is one complete, thermally cool E127 benchmark compared with the immediately preceding complete E126 run at identical settings. It proves a real improvement and an exact remaining transport bottleneck, but it is not yet a repeated paired thermal series or evidence of parity with the older native path.",
+  "reuse": "The required deja query for a descriptor allocation lease/cache implementation returned no indexed match. E127 reuses E075/E075a immutable transaction semantics, E126's canonical pointer-free journal records, the existing opcode-68 typed allocation lifecycle, and E125/E126's matched 32-present profile methodology."
+}

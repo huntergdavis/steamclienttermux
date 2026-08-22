@@ -8066,3 +8066,29 @@ required `deja "BVB descriptor allocation lease cache pool epoch batch
 vkAllocateDescriptorSets DXVK performance"` query returned no indexed
 implementation. Exact results and hashes are retained in
 `docs/evidence/tombraider-bvb-e126-descriptor-journal-profile-20260822.json`.
+
+## 2026-08-22: E127 fuses descriptor updates with allocation
+
+E127 replaced the E126 update-drain-plus-allocation pair with one ordered
+descriptor transaction. In shared mode, the Bionic service snapshots and
+validates the pending canonical update records, replays them in order, performs
+the real native `vkAllocateDescriptorSets`, and returns typed bridge-owned set
+IDs in the same response. Strict opcode 68 and standalone opcode 122 remain
+available, and uncertain transport state still poisons the connection.
+
+The exact 2800x1752 Low benchmark completed cleanly and improved from E126's
+**2.0 FPS average to 2.3 FPS**: **0.7 minimum, 4.1 maximum, 2.3 average**. In
+the comparable final 30 profile windows, descriptor blocking fell from 139.95
+to 102.08 ms per present (27.1%), total RPC blocking fell from 267.80 to
+224.79 ms (16.1%), and total RPC calls fell 38.3%. The complete client WSI
+boundary remained only 1.54 ms per present. Steam and X11 retained their exact
+process identities, and the tablet ended at 23.6 C.
+
+The remaining bottleneck is equally concrete: the scene still performs about
+526 synchronous opcode-123 transactions per present, costing 100.34 ms. E128
+must therefore move descriptor requests and completions to a bounded shared
+ring, or introduce an equivalently strict pool-epoch-aware lease cache; another
+socket-side fusion cannot close the gap. The required `deja` query for such a
+descriptor allocation cache returned no indexed implementation. Exact metrics,
+artifact identities, and the game-authored result are retained in
+`docs/evidence/tombraider-bvb-e127-descriptor-transaction-profile-20260822.json`.
