@@ -17,6 +17,7 @@ command_stream=${TOMB_RAIDER_BVB_COMMAND_STREAM:-strict}
 mapped_memory=${TOMB_RAIDER_BVB_MAPPED_MEMORY:-strict}
 descriptor_journal=${TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL:-strict}
 first_rejection_diagnostic=${TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC-0}
+raknet_recv_sleep_us=${TOMB_RAIDER_RAKNET_RECV_SLEEP_US:-0}
 child_preload=${TOMB_RAIDER_DIRECT_CHILD_PRELOAD:-full}
 vulkan_trace=${TOMB_RAIDER_VULKAN_TRACE:-0}
 vulkan_trace_preload=${TOMB_RAIDER_VULKAN_TRACE_PRELOAD:-$HOME/bionic-vulkan-bridge/out/glibc/libbvb-vulkan-resolve-trace.so}
@@ -49,6 +50,8 @@ fail() {
     fail 'TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL must be strict or shared'
 [[ $first_rejection_diagnostic == 0 || $first_rejection_diagnostic == 1 ]] ||
     fail 'TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC must be 0 or 1'
+[[ $raknet_recv_sleep_us == 0 || $raknet_recv_sleep_us == 1000 ]] ||
+    fail 'TOMB_RAIDER_RAKNET_RECV_SLEEP_US must be 0 or 1000'
 if [[ $command_stream == shared && ${STEAM_ARM64_BVB_VULKAN:-0} != 1 ]]; then
     fail 'shared BVB command stream requires STEAM_ARM64_BVB_VULKAN=1'
 fi
@@ -70,12 +73,19 @@ unset BVB_COMMAND_STREAM STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
     TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL \
     BVB_FIRST_REJECTION_DIAGNOSTIC \
     STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC \
-    TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC
+    TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC \
+    TGCOMPAT_RAKNET_RECV_SLEEP_US \
+    STEAM_ARM64_DIRECT_RAKNET_RECV_SLEEP_US \
+    TOMB_RAIDER_RAKNET_RECV_SLEEP_US
 [[ $vulkan_trace == 0 || $vulkan_trace == 1 ]] ||
     fail 'TOMB_RAIDER_VULKAN_TRACE must be 0 or 1'
 [[ $child_preload == full || $child_preload == lean ||
     $child_preload == lean-tmp-only || $child_preload == lean-debug-wait ]] ||
     fail 'TOMB_RAIDER_DIRECT_CHILD_PRELOAD must be full, lean, lean-tmp-only, or lean-debug-wait'
+if [[ $raknet_recv_sleep_us == 1000 && $child_preload != lean &&
+      $child_preload != lean-debug-wait ]]; then
+    fail 'RakNet receive backoff requires a lean final-process preload'
+fi
 if [[ -n $raknet_nice ]]; then
     [[ $raknet_nice =~ ^[0-9]+$ ]] && (( raknet_nice <= 19 )) ||
         fail 'TOMB_RAIDER_RAKNET_NICE must be an integer from 0 through 19'
@@ -161,6 +171,7 @@ dispatcher_environment=(
     "STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY=$mapped_memory"
     "STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL=$descriptor_journal"
     "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC=$first_rejection_diagnostic"
+    "STEAM_ARM64_DIRECT_RAKNET_RECV_SLEEP_US=$raknet_recv_sleep_us"
 )
 if [[ $vulkan_trace == 1 ]]; then
     dispatcher_environment+=(
@@ -173,6 +184,9 @@ env -u BVB_COMMAND_STREAM -u TOMB_RAIDER_BVB_COMMAND_STREAM \
     -u BVB_DESCRIPTOR_JOURNAL -u TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL \
     -u BVB_FIRST_REJECTION_DIAGNOSTIC \
     -u TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC \
+    -u TGCOMPAT_RAKNET_RECV_SLEEP_US \
+    -u STEAM_ARM64_DIRECT_RAKNET_RECV_SLEEP_US \
+    -u TOMB_RAIDER_RAKNET_RECV_SLEEP_US \
     "${dispatcher_environment[@]}" \
     "$python" "$dispatcher" serve --base "$base" --mode "$mode" \
     >"$server_log" 2>&1 &
@@ -202,8 +216,8 @@ if [[ $mode == tombraider || $mode == tombraider-benchmark ||
     affinity_pid=$!
 fi
 
-printf 'pid=%s\nmode=%s\nchild_preload=%s\ngame_cpus=%s\nvulkan_trace_file=%s\nserver_pid=%s\nserver_log=%s\nlauncher_log=%s\naffinity_log=%s\nstatus=launching\n' \
-    "$$" "$mode" "$child_preload" "$game_cpus" "$vulkan_trace_file" \
+printf 'pid=%s\nmode=%s\nchild_preload=%s\nraknet_recv_sleep_us=%s\ngame_cpus=%s\nvulkan_trace_file=%s\nserver_pid=%s\nserver_log=%s\nlauncher_log=%s\naffinity_log=%s\nstatus=launching\n' \
+    "$$" "$mode" "$child_preload" "$raknet_recv_sleep_us" "$game_cpus" "$vulkan_trace_file" \
     "$server_pid" "$server_log" "$launcher_log" "$affinity_log" >"$state"
 
 set +e
@@ -221,6 +235,9 @@ env -u BVB_COMMAND_STREAM -u STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
     -u BVB_FIRST_REJECTION_DIAGNOSTIC \
     -u STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC \
     -u TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC \
+    -u TGCOMPAT_RAKNET_RECV_SLEEP_US \
+    -u STEAM_ARM64_DIRECT_RAKNET_RECV_SLEEP_US \
+    -u TOMB_RAIDER_RAKNET_RECV_SLEEP_US \
     STEAM_ARM64_BWRAP_DIRECT=1 \
     STEAM_BACKGROUND=1 \
     STEAM_PROCESS_TIMEOUT=${STEAM_PROCESS_TIMEOUT:-180} \
@@ -257,8 +274,8 @@ if [[ -n ${affinity_pid:-} ]] && kill -0 "$affinity_pid" 2>/dev/null; then
 fi
 affinity_pid=
 
-printf 'pid=%s\nmode=%s\nchild_preload=%s\ngame_cpus=%s\nvulkan_trace_file=%s\nserver_log=%s\nlauncher_log=%s\naffinity_log=%s\nstatus=complete\nlauncher_status=%s\nserver_status=%s\n' \
-    "$$" "$mode" "$child_preload" "$game_cpus" "$vulkan_trace_file" \
+printf 'pid=%s\nmode=%s\nchild_preload=%s\nraknet_recv_sleep_us=%s\ngame_cpus=%s\nvulkan_trace_file=%s\nserver_log=%s\nlauncher_log=%s\naffinity_log=%s\nstatus=complete\nlauncher_status=%s\nserver_status=%s\n' \
+    "$$" "$mode" "$child_preload" "$raknet_recv_sleep_us" "$game_cpus" "$vulkan_trace_file" \
     "$server_log" "$launcher_log" "$affinity_log" "$launcher_status" \
     "$server_status" >"$state"
 printf 'Tomb Raider direct dispatch completed: mode=%s child_preload=%s launcher=%s server=%s trace=%s server_log=%s launcher_log=%s\n' \

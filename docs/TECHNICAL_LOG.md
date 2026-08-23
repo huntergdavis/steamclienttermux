@@ -8455,3 +8455,39 @@ default remains `strict`; `shared` remains the mirror A/B control; any
 non-strict mode without BVB fails closed. The required exact `deja` query found
 no indexed prior implementation, so this change reuses the existing E077
 selector-containment design.
+
+## 2026-08-22: exact RakNet empty-receive backoff
+
+The clean direct-glibc profile already identified the next actionable host
+consumer: Tomb Raider used 313% CPU and its single `Raknet-RecvFrom` thread
+used 99%. The retained raw trace repeatedly records `getrusage`,
+`sched_yield`, and `getrusage`; the captured stack is Wine
+`NtDelayExecution`/`NtYieldExecution`. This is not a network-compatibility
+failure and the socket receive must not be removed.
+
+Upstream RakNet's `RNS2_Berkley::RecvFromLoopInt` calls `RakSleep(0)` only
+after an empty receive. Its Windows implementation calls `Sleep(0)`. Microsoft
+documents zero as yielding the remainder of the time slice while the thread
+stays runnable; Wine implements the zero-delay path with `NtYieldExecution`,
+whose Unix implementation surrounds `sched_yield()` with the two `getrusage`
+calls seen on the tablet. A no-op would therefore tighten the busy loop rather
+than fix it.
+
+The bounded experiment follows that established remedy without patching the
+game: `libtgcompat-raknet-recv.so` interposes public `sched_yield()` and
+substitutes an EINTR-safe 1 ms `nanosleep` only when the Linux thread name is
+exactly `Raknet-RecvFrom`. Disabled mode and every other thread retain the real
+call. The launch selector accepts only `0` or `1000`, requires the lean final-
+process preload path, strips smuggled values, and loads the shim only into the
+final Tomb Raider Wine process—not Steam, CEF, or the Pressure Vessel entry
+process. Host tests prove exact-thread selection, disabled behavior, launcher
+containment, and a measurable delay. No CPU or FPS improvement is claimed
+until the AArch64 artifact runs on the tablet.
+
+Sources: [RakNet receive loop](https://github.com/facebookarchive/RakNet/blob/master/Source/RakNetSocket2.cpp#L346-L368),
+[RakNet Windows sleep](https://github.com/facebookarchive/RakNet/blob/master/Source/RakSleep.cpp),
+[Wine zero-delay implementation](https://github.com/wine-mirror/wine/blob/master/dlls/ntdll/unix/sync.c#L2392-L2452),
+and [Microsoft `Sleep` semantics](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-sleep).
+The required `deja` query returned no indexed implementation. This gate reuses
+the repository's retained direct-glibc profile, exact thread identity, private
+final-preload boundary, and 40 C game-authored benchmark contract.

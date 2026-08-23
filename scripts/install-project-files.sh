@@ -8,8 +8,16 @@ backup="$base/backups/repo-install-$stamp"
 proot_patch_stamp="$base/src/proot-production/.steamclienttermux-patchset"
 proot_binary="$base/src/proot-production/src/proot"
 required_proot_patch="proot-runtime-directory-bind-target.patch"
+raknet_recv_shim=${TGCOMPAT_RAKNET_RECV_SHIM:-$HOME/workspace/termux-glibc-compat/build/libtgcompat-raknet-recv.so}
 
 command -v sha256sum >/dev/null || { echo 'sha256sum is required' >&2; exit 1; }
+if [[ ! -f $raknet_recv_shim || -L $raknet_recv_shim ]] ||
+        ! grep -aFq 'Raknet-RecvFrom' "$raknet_recv_shim" ||
+        ! grep -aFq 'TGCOMPAT_RAKNET_RECV_SLEEP_US' "$raknet_recv_shim"; then
+    printf 'Refusing install: RakNet receive backoff shim is unavailable or invalid: %s\n' \
+        "$raknet_recv_shim" >&2
+    exit 1
+fi
 
 if [[ ! -f "$proot_patch_stamp" ]] ||
         ! sed -n 's/^patches=//p' "$proot_patch_stamp" |
@@ -123,6 +131,8 @@ install_one "$tmp_shim_stage" \
     "$base/compat-bin/steam-arm64-native-tmp.so" 700
 install_one "$debug_wait_shim_stage" \
     "$base/compat-bin/steam-arm64-debug-wait.so" 700
+install_one "$raknet_recv_shim" \
+    "$base/compat-bin/libtgcompat-raknet-recv.so" 700
 install_one "$native_lsof_stage" \
     "$base/compat-bin/steam-arm64-native-lsof" 700
 install_one "$repo_root/scripts/start-steam.sh" "$HOME/start-steam.sh" 700
@@ -144,6 +154,10 @@ install_one "$repo_root/scripts/start-tombraider-direct-lean.sh" \
     "$HOME/start-tombraider-direct-lean" 700
 install_one "$repo_root/scripts/start-tombraider-direct-benchmark.sh" \
     "$HOME/start-tombraider-direct-benchmark" 700
+install_one "$repo_root/scripts/start-tombraider-direct-raknet-backoff.sh" \
+    "$HOME/start-tombraider-direct-raknet-backoff" 700
+install_one "$repo_root/scripts/start-tombraider-direct-raknet-backoff-benchmark.sh" \
+    "$HOME/start-tombraider-direct-raknet-backoff-benchmark" 700
 install_one "$repo_root/scripts/start-tombraider-direct-tmp-only.sh" \
     "$HOME/start-tombraider-direct-tmp-only" 700
 install_one "$repo_root/scripts/start-tombraider-direct-debug-wait.sh" \
@@ -182,6 +196,8 @@ install_one "$repo_root/scripts/test-tomb-raider-direct-fast-full-topology-40c-c
     "$HOME/test-tomb-raider-direct-fast-full-topology-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/test-tomb-raider-direct-safe-full-topology-raknet-nice19-40c-ceiling.sh" \
     "$HOME/test-tomb-raider-direct-safe-full-topology-raknet-nice19-40c-ceiling.sh" 700
+install_one "$repo_root/scripts/test-tomb-raider-direct-raknet-backoff-40c-ceiling.sh" \
+    "$HOME/test-tomb-raider-direct-raknet-backoff-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/test-tomb-raider-direct-safe-full-topology-cef-hold-40c-ceiling.sh" \
     "$HOME/test-tomb-raider-direct-safe-full-topology-cef-hold-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/test-tomb-raider-direct-safe-full-topology-cef-hold-alternating-40c-ceiling.sh" \

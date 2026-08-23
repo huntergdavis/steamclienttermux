@@ -173,6 +173,38 @@ def bvb_vulkan_environment() -> dict[str, str]:
     return environment
 
 
+def validated_raknet_recv_backoff(
+    base: Path, command_mode: str
+) -> tuple[Path, dict[str, str]] | None:
+    sleep_us = os.environ.get("STEAM_ARM64_DIRECT_RAKNET_RECV_SLEEP_US", "0")
+    if sleep_us not in ("0", "1000"):
+        fail("STEAM_ARM64_DIRECT_RAKNET_RECV_SLEEP_US must be 0 or 1000")
+    if sleep_us == "0":
+        return None
+    if command_mode not in ("tombraider", "tombraider-benchmark"):
+        fail("RakNet receive backoff is valid only for Tomb Raider")
+    shim = base / "compat-bin/libtgcompat-raknet-recv.so"
+    try:
+        metadata = shim.lstat()
+        contents = shim.read_bytes()
+    except OSError as error:
+        fail(f"RakNet receive backoff shim is unavailable: {error}")
+    required_markers = (
+        b"Raknet-RecvFrom",
+        b"TGCOMPAT_RAKNET_RECV_SLEEP_US",
+        b"sched_yield",
+    )
+    if (
+        not stat.S_ISREG(metadata.st_mode)
+        or shim.is_symlink()
+        or metadata.st_uid != os.geteuid()
+        or metadata.st_mode & 0o077
+        or not all(marker in contents for marker in required_markers)
+    ):
+        fail(f"RakNet receive backoff shim is not a private validated file: {shim}")
+    return shim, {"TGCOMPAT_RAKNET_RECV_SLEEP_US": sleep_us}
+
+
 def validated_vulkan_trace(base: Path) -> tuple[Path, Path] | None:
     preload_value = os.environ.get("STEAM_ARM64_VULKAN_TRACE_PRELOAD")
     trace_value = os.environ.get("STEAM_ARM64_VULKAN_TRACE_FILE")
@@ -761,6 +793,9 @@ def request_environment(payload: dict[str, object]) -> dict[str, str]:
         "VK_LOADER_DEBUG",
         "BVB_FRAME_PROFILE",
         "TOMB_RAIDER_BVB_FRAME_PROFILE",
+        "TGCOMPAT_RAKNET_RECV_SLEEP_US",
+        "STEAM_ARM64_DIRECT_RAKNET_RECV_SLEEP_US",
+        "TOMB_RAIDER_RAKNET_RECV_SLEEP_US",
     ):
         environment.pop(name, None)
     return environment
@@ -1255,6 +1290,7 @@ def pv_smoke_invocation(
         "STEAM_ARM64_DIRECT_CHILD_PRELOAD", "full"
     )
     vulkan_trace = validated_vulkan_trace(base)
+    raknet_recv_backoff = validated_raknet_recv_backoff(base, command_mode)
     if child_preload_profile == "full":
         child_preloads = entry_preloads
         final_preloads = None
@@ -1289,6 +1325,10 @@ def pv_smoke_invocation(
         if final_preloads is None:
             fail("Vulkan tracing requires a lean final-process preload profile")
         final_preloads.append(vulkan_trace[0])
+    if raknet_recv_backoff is not None:
+        if final_preloads is None:
+            fail("RakNet receive backoff requires a lean final-process preload")
+        final_preloads.append(raknet_recv_backoff[0])
     entry_preload = ":".join(str(path) for path in entry_preloads)
     child_preload = ":".join(str(path) for path in child_preloads)
     final_preload = (
@@ -1346,6 +1386,8 @@ def pv_smoke_invocation(
         }
     )
     environment.update(bvb_vulkan_environment())
+    if raknet_recv_backoff is not None:
+        environment.update(raknet_recv_backoff[1])
     if final_preload is not None and final_path_prefix is not None:
         environment.update(
             {
