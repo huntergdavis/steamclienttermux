@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "date": "2026-08-23",
+  "goal": "Build an ARM64EC FEX offline compiler that produces code caches accepted by Proton 11.0-1b's exact FEX-2605 runtime",
+  "result": "host_build_pass",
+  "runtime_identity": {
+    "proton_source_commit": "0745bfbc4cf4365e8cf048b003990c59def29948",
+    "proton_tag": "proton-11.0-1b",
+    "fex_submodule_commit": "a04b0241c2fe3911729842205cd8643981108aad",
+    "fex_tag": "FEX-2605",
+    "installed_libwow64fex_sha256": "69849e054b8c6677d44767ca7d89fcd87606ba05a57a97cafdde49bf0f2601da"
+  },
+  "format_boundary": {
+    "exact_git_hash_checked_by_runtime": true,
+    "fex_2607_cache_layout_changed": true,
+    "mixed_2607_compiler_2605_runtime_rejected": true,
+    "compiler_override_hash": "a04b0241c2fe3911729842205cd8643981108aad",
+    "compiler_override_version": "FEX-2605"
+  },
+  "upstream_backport": {
+    "process_all_commit": "329e561effcdc751f860d289ffc13aa5e1a66df1",
+    "windows_backend_commit": "6d1cd6790071884dce058e223c3cacf3a0db43f7",
+    "windows_integration_commit": "6cb73adfd509597e58918832c1a42dad56c62538",
+    "local_compatibility_patch": "patches/fex-2605-arm64ec-offline-compiler-compat.patch",
+    "core_codegen_base_remains_fex_2605": true
+  },
+  "toolchain": {
+    "repository": "https://github.com/bylaws/llvm-mingw",
+    "release": "20250920",
+    "archive": "llvm-mingw-20250920-ucrt-ubuntu-22.04-x86_64.tar.xz",
+    "archive_size_bytes": 79928928,
+    "archive_sha256": "8dd8c34fc051a50c2fae86015f35057f8aae93fe1e19b34537ef1269a8b4c772",
+    "clang_version": "21.1.0",
+    "target": "arm64ec-w64-windows-gnu"
+  },
+  "artifact": {
+    "name": "FEXOfflineCompiler.exe",
+    "size_bytes": 3346432,
+    "sha256": "fff9bd81049d250eb26554887b3b3df7db9d934e3969023101c887b655bc7644",
+    "format": "COFF-ARM64EC",
+    "machine": "IMAGE_FILE_MACHINE_ARM64EC",
+    "subsystem": "IMAGE_SUBSYSTEM_WINDOWS_CUI",
+    "contains_process_all": true,
+    "imports_ldr_process_relocation_block": true
+  },
+  "host_validation": {
+    "cmake_configure": "pass",
+    "ninja_target": "FEXOfflineCompiler",
+    "ninja_result": "pass",
+    "compatibility_patch_apply_contract": "pass",
+    "shell_syntax": "pass",
+    "source_contract": "pass",
+    "diff_check": "pass"
+  },
+  "recorded_input_inventory": {
+    "tablet_tombraider_code_maps": 15,
+    "minimum_map_size_bytes": 482796,
+    "maximum_map_size_bytes": 486936,
+    "location": "$HOME/steam-arm64/cache/fex-code-cache/tombraider-203160/codemap/new"
+  },
+  "not_claimed": [
+    "compiler_execution under Proton",
+    "generated cache acceptance by the installed runtime",
+    "cache hit or reduced JIT work",
+    "FPS gain",
+    "promotion"
+  ],
+  "recall": {
+    "query": "Tomb Raider FEXOfflineCompiler ARM64EC code map compiled cache Proton 11 version matched",
+    "result": "no indexed implementation",
+    "reused": [
+      "final-game-only environment containment",
+      "cooled native-resolution benchmark protocol",
+      "no-clobber candidate and rollback discipline"
+    ]
+  }
+}

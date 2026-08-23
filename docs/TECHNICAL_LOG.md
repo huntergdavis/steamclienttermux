@@ -8845,3 +8845,45 @@ for the excluded pass and
 for the full series. Structured interpretation is in
 `docs/evidence/tombraider-direct-fex-smc-none-20260823.json`. Steam and
 Termux:X11 identities survived unchanged, and login state was not touched.
+
+## 2026-08-23: build an exact FEX-2605 ARM64EC offline compiler
+
+The next optimization turns the code maps retained by the accepted 34.0-FPS
+maximal-buffer mode into reusable compiled ARM64 code. This cannot safely use
+an arbitrary current compiler: FEX embeds the exact 20-byte Git hash in each
+cache and rejects a mismatch, and the cache layout changed between FEX-2605
+and FEX-2607. Proton 11.0-1b pins FEX commit
+`a04b0241c2fe3911729842205cd8643981108aad`, so a 2607-generated file is not a
+valid input to the installed runtime.
+
+The new reproducible builder starts from that exact 2605 commit and applies
+the three upstream commits that added `process-all`, the Windows/ARM64EC
+backend, and Windows integration. Its small reviewed compatibility patch uses
+the 2605 Windows feature-query API and adds the required ntdll relocation
+declaration; FEXCore code generation remains on the 2605 base. CMake receives
+both `OVERRIDE_HASH` with the exact Proton-pinned hash and
+`OVERRIDE_VERSION=FEX-2605`. The toolchain is the pinned bylaws LLVM-MinGW
+20250920 lineage used by FEX's PPA workflow, verified before extraction by
+SHA-256 `8dd8c34fc051a50c2fae86015f35057f8aae93fe1e19b34537ef1269a8b4c772`.
+
+The first host build completed. `llvm-readobj` identifies the 3,346,432-byte
+artifact as `COFF-ARM64EC`, machine `IMAGE_FILE_MACHINE_ARM64EC`, with a
+console subsystem and the expected `LdrProcessRelocationBlock` import. Its
+SHA-256 is
+`fff9bd81049d250eb26554887b3b3df7db9d934e3969023101c887b655bc7644`.
+The tablet currently retains fifteen non-empty Tomb Raider maps between
+482,796 and 486,936 bytes under the private `codemap/new` directory.
+
+This is a host build boundary only: the compiler has not yet run under Proton,
+no compiled cache has been accepted by the installed runtime, and there is no
+FPS claim. The next exact gate stages the compiler and copies of those maps,
+runs `process-all` in an isolated cache root, verifies the emitted cache header
+and runtime load, then uses the existing cooled native-resolution series.
+
+The required `deja` query for a prior Tomb Raider ARM64EC offline-cache
+implementation returned no indexed result. The work reuses the existing
+final-game containment, cooled benchmark protocol, and no-clobber/rollback
+discipline. Primary references are the
+[FEX-2607 release](https://github.com/FEX-Emu/FEX/releases/tag/FEX-2607),
+[FEX source](https://github.com/FEX-Emu/FEX), and
+[FEX PPA build repository](https://github.com/FEX-Emu/FEX-ppa).

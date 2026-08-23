@@ -1,0 +1,48 @@
+diff --git a/Source/Tools/FEXOfflineCompiler/Main.cpp b/Source/Tools/FEXOfflineCompiler/Main.cpp
+index 2f98e7b2c..294809838 100644
+--- a/Source/Tools/FEXOfflineCompiler/Main.cpp
++++ b/Source/Tools/FEXOfflineCompiler/Main.cpp
+@@ -114,10 +114,6 @@ public:
+     return munmap(addr, length);
+   }
+ 
+-  void AddVirtualPage(FEXCore::Core::InternalThreadState* Thread, uint64_t addr, size_t length, int prot) override {
+-    LogMan::Msg::AFmt("Can't Track mmap through here");
+-    FEX_UNREACHABLE;
+-  }
+ #else
+   void MarkOvercommitRange(uint64_t Start, uint64_t Length) override {
+     OvercommitTracker->MarkRange(Start, Length);
+@@ -404,14 +400,18 @@ static std::optional<std::string> GenerateSingleCache(FEXCore::ExecutableFileInf
+   FEXCore::Config::Set(FEXCore::Config::CONFIG_IS64BIT_MODE, Is64Bit ? "1" : "0");
+ 
+   // Load HostFeatures
++#ifndef _WIN32
+   auto HostFeatures = FEX::FetchHostFeatures();
++#else
++  const auto NtDll = GetModuleHandle("ntdll.dll");
++  const bool IsWine = !!GetProcAddress(NtDll, "wine_get_version");
++  auto HostFeatures = FEX::Windows::CPUFeatures::FetchHostFeatures(IsWine);
++#endif
+ 
+   auto CTX = FEXCore::Context::Context::CreateNewContext(HostFeatures);
+   CTX->GetCodeCache().InitiateCacheGeneration();
+ 
+ #ifdef _WIN32
+-  const auto NtDll = GetModuleHandle("ntdll.dll");
+-  const bool IsWine = !!GetProcAddress(NtDll, "wine_get_version");
+   OvercommitTracker = std::make_unique<FEX::Windows::OvercommitTracker>(IsWine);
+ 
+   auto SyscallOSABI = Is64Bit ? FEXCore::HLE::SyscallOSABI::OS_LINUX64 : FEXCore::HLE::SyscallOSABI::OS_LINUX32;
+diff --git a/Source/Windows/include/winternl.h b/Source/Windows/include/winternl.h
+index 03f3c4497..3173f92fe 100644
+--- a/Source/Windows/include/winternl.h
++++ b/Source/Windows/include/winternl.h
+@@ -505,6 +505,7 @@ NTSTATUS WINAPI LdrDisableThreadCalloutsForDll(HMODULE);
+ NTSTATUS WINAPI LdrGetDllFullName(HMODULE, UNICODE_STRING*);
+ NTSTATUS WINAPI LdrGetDllHandle(LPCWSTR, ULONG, const UNICODE_STRING*, HMODULE*);
+ NTSTATUS WINAPI LdrGetProcedureAddress(HMODULE, const ANSI_STRING*, ULONG, void**);
++IMAGE_BASE_RELOCATION* WINAPI LdrProcessRelocationBlock(ULONG_PTR, ULONG, USHORT*, INT_PTR);
+ NTSTATUS WINAPI NtAllocateVirtualMemoryEx(HANDLE, PVOID*, SIZE_T*, ULONG, ULONG, MEM_EXTENDED_PARAMETER*, ULONG);
+ NTSTATUS WINAPI NtAllocateVirtualMemory(HANDLE, PVOID*, ULONG_PTR, SIZE_T*, ULONG, ULONG);
+ NTSTATUS WINAPI NtContinue(PCONTEXT, BOOLEAN);
