@@ -27,6 +27,7 @@ RUN_COMMAND_COMPONENT = "com.termux/.app.RunCommandService"
 RUN_COMMAND_ACTION = "com.termux.RUN_COMMAND"
 X11_COMPONENT = "com.termux.x11/.MainActivity"
 TOP_APP = "/top-app"
+PROBE_HANDOFF_MARKER = b"Starting Tomb Raider BVB probe:"
 ENV_PREFIXES = ("BVB_", "STEAM_", "TOMB_RAIDER_")
 ENV_NAMES = {"DISPLAY", "PULSE_SERVER", "XDG_RUNTIME_DIR", "TMPDIR"}
 
@@ -348,20 +349,32 @@ def child_main(request_directory: Path) -> int:
             start_new_session=True,
         )
 
+        termination_signal: int | None = None
+        termination_deadline = 0.0
+
         def stop_probe(signum: int, _frame: object) -> None:
+            nonlocal termination_signal, termination_deadline
+            if termination_signal is None:
+                termination_signal = signum
+                termination_deadline = time.monotonic() + 10
             with contextlib.suppress(ProcessLookupError):
                 os.killpg(process.pid, signal.SIGTERM)
-            try:
-                process.wait(timeout=10)
-            except subprocess.TimeoutExpired:
-                with contextlib.suppress(ProcessLookupError):
-                    os.killpg(process.pid, signal.SIGKILL)
-                process.wait()
-            raise SystemExit(128 + signum)
 
         signal.signal(signal.SIGINT, stop_probe)
         signal.signal(signal.SIGTERM, stop_probe)
-        return_code = process.wait()
+        while True:
+            try:
+                return_code = process.wait(timeout=0.2)
+                break
+            except subprocess.TimeoutExpired:
+                if termination_signal is None or time.monotonic() < termination_deadline:
+                    continue
+                with contextlib.suppress(ProcessLookupError):
+                    os.killpg(process.pid, signal.SIGKILL)
+                return_code = process.wait()
+                break
+        if termination_signal is not None:
+            return_code = 128 + termination_signal
     atomic_json(
         result_path,
         {
@@ -478,6 +491,19 @@ def wait_for_result(
             fail("Activity-owned BVB controller identity changed before its result")
         time.sleep(0.1)
     fail(f"timed out waiting for the foreground BVB result: {path}")
+
+
+def probe_handoff_ready(path: Path) -> bool:
+    try:
+        metadata = path.lstat()
+    except FileNotFoundError:
+        return False
+    if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
+        fail(f"foreground log became unsafe: {path}")
+    with path.open("rb") as stream:
+        if metadata.st_size > 1024 * 1024:
+            stream.seek(-(1024 * 1024), os.SEEK_END)
+        return PROBE_HANDOFF_MARKER in stream.read()
 
 
 def promote_x11(adb: Path, serial: str, bounds: tuple[int, int, int, int]) -> int:
@@ -624,7 +650,9 @@ def controller_main(arguments: argparse.Namespace) -> int:
             while time.monotonic() < deadline:
                 if result_path.exists():
                     fail("BVB probe exited before Android foreground promotion")
-                if not process_still_top_app(proc_root, child_pid):
+                if probe_handoff_ready(log) or not process_still_top_app(
+                    proc_root, child_pid
+                ):
                     task_id = promote_x11(adb, serial, arguments.x11_bounds)
                     promoted = True
                     top_deadline = time.monotonic() + 10

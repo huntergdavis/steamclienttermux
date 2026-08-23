@@ -8379,3 +8379,23 @@ complete project suite passes. The required exact `deja` query returned no
 indexed implementation; this launcher reuses the repository's earlier guarded
 RunCommandService race fix, the E135 top-app evidence, and the existing paired
 ADB/same-task discipline from the BVB probe.
+
+### E136 follow-up: accept an already-visible X11 keeper
+
+The first reusable-controller E136 run exposed a valid state the original
+promotion loop did not model: Termux:X11 was already visible before BVB
+started, so the Activity-owned controller correctly remained in `/top-app`.
+The old loop waited only for it to leave `/top-app`, timed out after 180
+seconds, and interrupted an otherwise rendering benchmark. The controller now
+also treats the probe's exact `Starting Tomb Raider BVB probe:` handoff record
+as proof that the BVB Activity and frame transport are ready, then explicitly
+reorders/resizes the existing X11 task and stops Android polling before the
+timed scene. The child signal path was also made non-reentrant: a signal handler
+requests group termination while the ordinary wait loop performs bounded reap
+and always writes the structured result.
+
+The required `deja "E135 E136 foreground controller X11 already visible
+top-app Activity never displaced controller timeout benchmark completes"`
+query returned no indexed implementation. This fix reuses the E135 exact
+top-app validation, paired-ADB X11 task identity, and property-restoration
+contract; it changes no game, bridge, Steam, or Vulkan behavior.

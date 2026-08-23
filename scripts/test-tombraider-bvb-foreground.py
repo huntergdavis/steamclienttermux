@@ -122,6 +122,14 @@ def main() -> None:
         else:
             raise AssertionError("background child was accepted")
 
+        foreground_log = root / "foreground.log"
+        assert not module.probe_handoff_ready(foreground_log)
+        foreground_log.write_bytes(
+            b"BVB Activity fullscreen ready\n"
+            b"Starting Tomb Raider BVB probe: socket=/tmp/bvb.sock\n"
+        )
+        assert module.probe_handoff_ready(foreground_log)
+
     command = module.runcommand_arguments(
         Path("/termux/am"),
         Path("/termux/python3"),
@@ -163,6 +171,9 @@ def main() -> None:
         "result = wait_for_result("
     )
     assert "Android polling stopped before the timed scene" in source
+    assert "probe_handoff_ready(log) or not process_still_top_app" in source
+    assert "raise SystemExit(128 + signum)" not in source
+    assert "process.wait(timeout=0.2)" in source
     assert '"--windowingMode",\n        "1"' in source
     installer = INSTALLER.read_text(encoding="utf-8")
     assert (
