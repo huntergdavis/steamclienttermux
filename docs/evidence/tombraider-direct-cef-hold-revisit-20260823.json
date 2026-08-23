@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-23",
+  "game": "Tomb Raider (2013)",
+  "appid": 203160,
+  "stack": "native glibc Steam host; direct Runtime 4/Proton game execution",
+  "target": {
+    "resolution": "2800x1752",
+    "graphics": "Low",
+    "vsync": "off",
+    "motion_blur": "off",
+    "fex_profile": "safe",
+    "refresh_hz": 59.97,
+    "start_temperature_ceiling_c": 40,
+    "raknet_empty_receive_backoff_us": 1000
+  },
+  "order": [
+    "warmup-control",
+    "recorded-control",
+    "recorded-cef-hold",
+    "recorded-control",
+    "recorded-cef-hold",
+    "recorded-control",
+    "recorded-cef-hold"
+  ],
+  "warmup": {
+    "minimum_fps": 21.7,
+    "maximum_fps": 45.5,
+    "average_fps": 33.4,
+    "start_max_millidegrees_c": 37000
+  },
+  "recorded_runs": [
+    {"number": 1, "condition": "control", "minimum_fps": 22.1, "maximum_fps": 46.6, "average_fps": 32.0, "start_max_millidegrees_c": 37000, "end_max_millidegrees_c": 70100},
+    {"number": 2, "condition": "cef-hold", "minimum_fps": 24.3, "maximum_fps": 44.7, "average_fps": 33.3, "start_max_millidegrees_c": 38300, "end_max_millidegrees_c": 72800},
+    {"number": 3, "condition": "control", "minimum_fps": 22.7, "maximum_fps": 46.4, "average_fps": 33.0, "start_max_millidegrees_c": 37000, "end_max_millidegrees_c": 65000},
+    {"number": 4, "condition": "cef-hold", "minimum_fps": 12.9, "maximum_fps": 47.2, "average_fps": 32.5, "start_max_millidegrees_c": 37000, "end_max_millidegrees_c": 74200},
+    {"number": 5, "condition": "control", "minimum_fps": 15.5, "maximum_fps": 47.0, "average_fps": 33.0, "start_max_millidegrees_c": 37000, "end_max_millidegrees_c": 72800},
+    {"number": 6, "condition": "cef-hold", "minimum_fps": 23.3, "maximum_fps": 44.7, "average_fps": 32.8, "start_max_millidegrees_c": 37000, "end_max_millidegrees_c": 73200}
+  ],
+  "condition_means": {
+    "control": {"minimum_fps": 20.1, "maximum_fps": 46.667, "average_fps": 32.667, "end_max_millidegrees_c": 69300},
+    "cef_hold": {"minimum_fps": 20.167, "maximum_fps": 45.533, "average_fps": 32.867, "end_max_millidegrees_c": 73400}
+  },
+  "cef_hold_relative_change_percent": {
+    "minimum_fps": 0.332,
+    "maximum_fps": -2.429,
+    "average_fps": 0.612,
+    "end_max_temperature": 5.916
+  },
+  "paired_average_fps_delta": [1.3, -0.5, -0.2],
+  "correctness": {
+    "game_authored_results": 7,
+    "normal_exits": 7,
+    "held_passes": 3,
+    "held_processes_each_pass": 9,
+    "held_pid_set": [15650, 15684, 15685, 15765, 15770, 15780, 16246, 22115, 22185],
+    "held_passes_with_exact_active_and_resume_evidence": 3,
+    "steam_pid": 15575,
+    "steam_start_ticks": 128118834,
+    "x11_pid": 13643,
+    "x11_start_ticks": 121863492,
+    "steam_identity_unchanged": true,
+    "x11_identity_unchanged": true,
+    "termux_properties_restored_byte_identical": true,
+    "post_series_cef_state": "sleeping"
+  },
+  "artifacts": {
+    "tablet_series_path": "/data/data/com.termux/files/home/steam-arm64/logs/tombraider-benchmarks/20260823T142607Z-safe/series.json",
+    "tablet_series_sha256": "28c791759ffbad078199c6423e30f1fb7e4be431aabdd02ec4ef57ae968f9d8d",
+    "recorded_result_sha256": [
+      "60e623e96df97e41657295909302033ae1d59aaa6c7d5f61969a8565665e7253",
+      "0be7e983243e3445767071df01f59a277e06cb465cc7c10744a47b002c04cab2",
+      "992c6a3e0a84416aab3bc7e8198a5a8583301b2995591deffbf3ec32fdfe46a3",
+      "822d6f66acfc5f842ef8aea94142f211ae08ff03191d3ef47abe70a2715399c7",
+      "a415d47679a478652117ea86097398fc944d48c8f72cf42b9f1ee70730a2ddca",
+      "964260a4ef15738eb6ce640dcc8e8e7b10738b09f565fa6e99b6c5b004101b6b"
+    ],
+    "cef_hold_log_sha256": "e4c59397d6c8855e30a6e88d07e59d48e58345a396ae4e35246333f6764ad187",
+    "termux_properties_sha256": "89094537f49531dc9b380a0dec3a441b2fb92577e0a4f1db505790eb8b7025b0"
+  },
+  "decision": "Reject native CEF hold as a production optimization. The three-pair mean average gain was only 0.2 FPS (0.61%), two pairs regressed, minimum was unchanged, maximum fell, and the apparent quick-pair thermal gain did not repeat.",
+  "revisit_when": "Only revisit if a new clean profile again ranks CEF as a leading consumer after a causal game, Wine, or Steam workload reduction; do not infer a win from one pair.",
+  "reuse": "The required post-RakNet deja query returned no indexed implementation. This rerun reused the existing exact native CEF descendant identity/hold/resume guard, the guarded Android top-app controller, and the cooled alternating game-authored benchmark methodology."
+}

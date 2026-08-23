@@ -8613,3 +8613,35 @@ next investigation should reduce an identified Steam/X11/Wine workload or
 change a more scalable boundary, not merely move the same work. Full numbers
 and hashes are retained in
 `docs/evidence/tombraider-direct-steam-service-cpu0-abba-20260823.json`.
+
+## 2026-08-23: post-RakNet CEF hold remains a near-miss
+
+The Steam-service feasibility profile also ranked one native
+`steamwebhelper --type=zygote` process at 58.5% CPU, satisfying the ledger's
+explicit trigger to revisit the already proven native CEF hold after a causal
+game workload reduction. The unchanged holder stopped the same nine exact
+native descendants only while Tomb Raider was alive, continuously rejected
+identity changes or respawns, and resumed every identical PID after exit.
+
+A quick control/held pair looked promising: 32.4 versus 32.5 average FPS,
+17.3 versus 24.8 minimum FPS, and a 6.5 C lower ending temperature. The
+required six-pass alternating replication did not preserve that signal.
+Controls averaged **20.100/46.667/32.667 FPS**; held passes averaged
+**20.167/45.533/32.867 FPS**. That is only +0.07 minimum, -1.13 maximum, and
++0.20 average FPS, or **+0.61% average**. Pairwise average deltas were +1.3,
+-0.5, and -0.2 FPS. Mean ending temperature was 69.3 C for controls and 73.4 C
+for held passes, so the quick pair's thermal result also did not repeat.
+
+All seven game-authored runs exited normally. Every held pass named and
+resumed the same nine PIDs; Steam PID/start tick 15575/128118834 and X11
+13643/121863492 survived unchanged, and `termux.properties` returned
+byte-identically. Native CEF hold remains off by default. This independent
+post-RakNet result agrees with the earlier +0.55% alternating series and
+closes the candidate unless a future causal change again makes CEF dominant.
+Exact run, result, holder, identity, and temperature evidence is retained in
+`docs/evidence/tombraider-direct-cef-hold-revisit-20260823.json`.
+
+The required post-RakNet `deja` query returned no indexed implementation. This
+run reused the repository's exact native-descendant hold/resume guard, guarded
+Android foreground controller, and cooled alternating game-authored benchmark
+methodology.

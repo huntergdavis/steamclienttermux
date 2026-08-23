@@ -59,6 +59,8 @@ minimum/maximum/average FPS.
 | `safe` (direct game) | 2800×1752 | 59.97 Hz | 31.1 / 30.3 / 30.3 | 18.900 / 47.733 / **30.567** | Fixed 40 °C ceiling; all starts 37.0 °C | [JSON](docs/benchmark-series/tombraider-direct-glibc-safe-60hz-40c-20260818.json) |
 | `safe` (direct game, topology fix) | 2800×1752 | 59.97 Hz | 30.6 / 30.2 / 30.4 | 21.000 / 46.133 / **30.400** | Fixed 40 °C ceiling; starts 37.0–37.9 °C | [JSON](docs/benchmark-series/tombraider-direct-glibc-safe-topology-fix-60hz-40c-20260818.json) |
 | `safe` (direct game, RakNet backoff) | 2800×1752 | 59.97 Hz | 32.9 / 31.3 / 30.7 | 20.300 / 46.767 / **31.633** | Fixed 40 °C ceiling; all starts 37.0 °C; promoted | [JSON](docs/benchmark-series/tombraider-direct-glibc-safe-raknet-backoff-60hz-40c-20260822.json) |
+| `safe` (post-RakNet CEF controls) | 2800×1752 | 59.97 Hz | 32.0 / 33.0 / 33.0 | 20.100 / 46.667 / **32.667** | Alternating 40 °C gate; current default control | [JSON](docs/evidence/tombraider-direct-cef-hold-revisit-20260823.json) |
+| `safe` (post-RakNet CEF hold) | 2800×1752 | 59.97 Hz | 33.3 / 32.5 / 32.8 | 20.167 / 45.533 / **32.867** | Alternating 40 °C gate; +0.61%; rejected | [JSON](docs/evidence/tombraider-direct-cef-hold-revisit-20260823.json) |
 | `proton` (direct game, topology fix) | 2800×1752 | 59.97 Hz | 32.1 / 31.2 / 30.6 | 20.400 / 45.567 / **31.300** | Fixed 40 °C ceiling; starts 37.0–37.2 °C; candidate | [JSON](docs/benchmark-series/tombraider-direct-glibc-proton-topology-fix-60hz-40c-20260818.json) |
 | `safe` (immediate reverse control) | 2800×1752 | 59.97 Hz | 30.9 / 31.2 / 30.6 | 19.233 / 47.367 / **30.900** | Fixed 40 °C ceiling; all starts 37.0 °C | [JSON](docs/benchmark-series/tombraider-direct-glibc-safe-topology-fix-reverse-control-60hz-40c-20260818.json) |
 | `safe` (RakNet pair controls) | 2800×1752 | 59.97 Hz | 30.9 / 31.2 / 30.7 | 20.967 / 45.433 / **30.933** | Fixed 40 °C ceiling; paired control | [JSON](docs/benchmark-series/tombraider-direct-glibc-safe-topology-fix-raknet-exclusive-alternating-60hz-40c-20260818.json) |
@@ -90,6 +92,9 @@ directional +6.69% comparison is not treated as a complete series. The CPU
 efficiency and correctness result is strong enough to make backoff the lean
 Tomb Raider default; set `TOMB_RAIDER_RAKNET_RECV_SLEEP_US=0` for an explicit
 control.
+The later post-RakNet CEF revisit measured three current-default controls at
+32.667 FPS and three held passes at 32.867 FPS. Its +0.61% change and paired
+deltas of +1.3/-0.5/-0.2 FPS are noise-sized, so CEF hold remains off.
 The first topology-fixed direct `proton` series averages 31.300 FPS. Against
 the immediate reverse-order Safe control at 30.900 FPS, that is only +1.29%;
 the per-position average changes are +1.2, 0.0, and 0.0 FPS. Proton raises
