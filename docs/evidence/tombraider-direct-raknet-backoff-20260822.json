@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "claim": "The exact Raknet-RecvFrom backoff reduced that thread from 98.2% CPU to 3.0% CPU and completed a guarded three-pass native-resolution series at 31.633 FPS mean.",
+  "claim_limits": [
+    "The CPU samples are matched launch/configuration diagnostics, not samples from the recorded FPS scenes.",
+    "The 2.372% FPS comparison uses the retained immediate reverse-control series from 2026-08-18; the same-session reverse control was still running when this evidence was first committed.",
+    "The backoff remains opt-in until the same-session reverse control completes."
+  ],
+  "source": {
+    "termux_glibc_compat_commit": "f1b4889b73967adfe1e30c00ca291aa2c36329a1",
+    "steamclienttermux_commit": "9e4edb827fd0a470d58d94d5f347b67f1c670429",
+    "deja_query_result": "no indexed implementation",
+    "reused_contracts": [
+      "retained direct-glibc hot-thread profile",
+      "exact final-process preload containment",
+      "native full-topology affinity guard",
+      "40 C game-authored benchmark runner",
+      "RunCommandService top-app foreground controller"
+    ]
+  },
+  "artifact": {
+    "path": "/data/data/com.termux/files/home/steam-arm64/compat-bin/libtgcompat-raknet-recv.so",
+    "sha256": "e4901f3f1702d69ac2458bf8b1a683d8d2826d49cc50876dfc4849b4089c00b0",
+    "elf": "AArch64 glibc shared object",
+    "mode": "0700",
+    "policy": "TGCOMPAT_RAKNET_RECV_SLEEP_US=1000",
+    "thread_name": "Raknet-RecvFrom"
+  },
+  "host_validation": {
+    "termux_glibc_compat_full_suite": "pass",
+    "steamclienttermux_full_suite": "pass",
+    "optimized_release_build": "pass"
+  },
+  "tablet_validation": {
+    "aarch64_enabled_shim_contract": "pass",
+    "aarch64_disabled_shim_contract": "pass",
+    "network_and_game_startup": "pass",
+    "diagnostic_game_exit": "normal",
+    "steam_pid_and_start_ticks": [15575, 128118834],
+    "x11_pid_and_start_ticks": [13643, 121863492],
+    "termux_properties_sha256": "89094537f49531dc9b380a0dec3a441b2fb92577e0a4f1db505790eb8b7025b0"
+  },
+  "cpu_samples": {
+    "backoff": {
+      "game_pid": 28881,
+      "raknet_tid": 29196,
+      "elapsed_seconds": 10.15,
+      "game_cpu_percent": 168.4,
+      "raknet_cpu_percent": 3.0,
+      "game_ticks": 1710,
+      "raknet_ticks": 30,
+      "shim_mapped": true,
+      "policy_present": true
+    },
+    "no_backoff": {
+      "game_pid": 32264,
+      "raknet_tid": 32531,
+      "elapsed_seconds": 10.18,
+      "game_cpu_percent": 287.0,
+      "raknet_cpu_percent": 98.2,
+      "game_ticks": 2922,
+      "raknet_ticks": 1000,
+      "shim_mapped": false,
+      "policy_present": false
+    },
+    "raknet_absolute_cpu_point_reduction": 95.2,
+    "raknet_relative_cpu_reduction_percent": 96.945
+  },
+  "backoff_series": {
+    "series_id": "20260823T053018Z-safe",
+    "tablet_path": "/data/data/com.termux/files/home/steam-arm64/logs/tombraider-benchmarks/20260823T053018Z-safe/series.json",
+    "sha256": "a25e6892d81c6e58693549decb32c961eed669c57e283d427340a917d92f3c0f",
+    "resolution": "2800x1752",
+    "refresh_hz": 60,
+    "graphics": "Low",
+    "vsync": false,
+    "motion_blur": false,
+    "profile": "safe",
+    "startup_topology": "full",
+    "recorded_start_temperatures_c": [37.0, 37.0, 37.0],
+    "recorded": [
+      {"minimum_fps": 25.8, "maximum_fps": 46.5, "average_fps": 32.9},
+      {"minimum_fps": 17.9, "maximum_fps": 48.5, "average_fps": 31.3},
+      {"minimum_fps": 17.2, "maximum_fps": 45.3, "average_fps": 30.7}
+    ],
+    "means": {
+      "minimum_fps": 20.3,
+      "maximum_fps": 46.767,
+      "average_fps": 31.633
+    },
+    "average_fps_median": 31.3
+  },
+  "retained_reverse_control": {
+    "artifact": "docs/benchmark-series/tombraider-direct-glibc-safe-topology-fix-reverse-control-60hz-40c-20260818.json",
+    "recorded_average_fps": [30.9, 31.2, 30.6],
+    "means": {
+      "minimum_fps": 19.233,
+      "maximum_fps": 47.367,
+      "average_fps": 30.9
+    }
+  },
+  "comparison_to_retained_control_percent": {
+    "minimum_fps": 5.548,
+    "maximum_fps": -1.267,
+    "average_fps": 2.372
+  },
+  "upstream_basis": [
+    "https://github.com/facebookarchive/RakNet/blob/master/Source/RakNetSocket2.cpp#L346-L368",
+    "https://github.com/facebookarchive/RakNet/blob/master/Source/RakSleep.cpp",
+    "https://github.com/wine-mirror/wine/blob/master/dlls/ntdll/unix/sync.c#L2392-L2452",
+    "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-sleep"
+  ]
+}

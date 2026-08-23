@@ -8491,3 +8491,23 @@ and [Microsoft `Sleep` semantics](https://learn.microsoft.com/en-us/windows/win3
 The required `deja` query returned no indexed implementation. This gate reuses
 the repository's retained direct-glibc profile, exact thread identity, private
 final-preload boundary, and 40 C game-authored benchmark contract.
+
+### Tablet result
+
+The AArch64 glibc artifact passed its enabled and disabled contracts on the
+tablet, then loaded only into the direct Tomb Raider process. A 10.15-second
+diagnostic measured the exact `Raknet-RecvFrom` thread at **3.0% CPU**. The
+matched no-backoff warmup measured **98.2% CPU** over 10.18 seconds with no
+shim mapping or policy variable. This is a 95.2-point, 96.9% relative reduction
+and the game still initialized networking, rendered, wrote its benchmark, and
+exited normally.
+
+The guarded native-resolution series scored 32.9, 31.3, and 30.7 average FPS:
+**31.633 mean / 31.3 median**, with all passes beginning at 37 C. Mean
+minimum/maximum/average was 20.300/46.767/31.633 FPS. Against the retained
+immediate reverse control's 19.233/47.367/30.900 FPS this is
++5.55%/-1.27%/**+2.37%**. That is a small FPS gain and a large CPU-efficiency
+gain, not yet proof of a new default; the same-session reverse control remains
+the final variance check. Exact paths, hashes, process identities, raw-series
+hash, and claim limits are retained in
+`docs/evidence/tombraider-direct-raknet-backoff-20260822.json`.
