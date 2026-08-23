@@ -47,9 +47,29 @@ the bridge repository.
 
 ## Tomb Raider benchmark snapshot
 
-These are the committed controlled native-glibc series for the current target:
-2800x1752, Low, motion blur off, V-Sync off, one warm-up, and three recorded
-runs. “Mean” is the mean of the three game-authored results, shown as
+### 720p Normal apples-to-apples target
+
+The first validated pass at the new comparison target is complete. Tomb Raider
+rendered internally at 1280x720 Normal in exclusive fullscreen while
+Termux:X11 occupied the full 2800x1752 tablet panel at 59.97 Hz. V-Sync and
+motion blur were off. This is one game-authored sample, not yet a promoted
+multi-run mean.
+
+| FEX profile | Game resolution/profile | X11 surface | Min/max/average FPS | Start condition | Raw data |
+| --- | --- | --- | ---: | --- | --- |
+| `safe`, offline-compiled cache generation 5 | 1280x720 Normal, exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 33.7 / 61.6 / **52.0** | Fixed 40 °C gate; observed 37.0 °C; first valid sample | [JSON](docs/benchmark-series/tombraider-direct-glibc-safe-offline-compiled-720p-normal-fullscreen-60hz-40c-first-20260823.json) |
+
+The earlier 34.1 and 29.7 FPS 720p attempts are excluded because the Android
+controller left Termux:X11 in a 520x320 floating window. The 52.0 FPS sample is
+the first pass whose retained window proof shows exact full-panel bounds and
+zero decoration/insets. The next experiment keeps this topology and swaps only
+the Tomb Raider-local DXVK payload.
+
+### Historical panel-native Low target
+
+These are the committed controlled native-glibc series for the previous
+2800x1752 Low target: motion blur off, V-Sync off, one warm-up, and three
+recorded runs. “Mean” is the mean of the three game-authored results, shown as
 minimum/maximum/average FPS.
 
 | FEX profile | Resolution | X11 refresh | Recorded average FPS | Mean min/max/avg | Start condition | Raw data |

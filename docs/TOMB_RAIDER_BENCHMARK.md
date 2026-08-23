@@ -1245,3 +1245,59 @@ produced no loadable cache file. The promoted claim is therefore maximal JIT
 buffer plus code-map recording. The full raw artifacts are
 [`candidate`](benchmark-series/tombraider-direct-glibc-safe-fex-max-buffer-60hz-40c-20260823.json)
 and [`reverse control`](benchmark-series/tombraider-direct-glibc-safe-fex-max-buffer-reverse-control-60hz-40c-20260823.json).
+
+## First valid 720p Normal fullscreen sample (2026-08-23)
+
+The apples-to-apples target is now 1280x720 Normal, not the earlier
+panel-native Low profile. The first valid built-in benchmark completed with
+the following game-authored result:
+
+| Pass | Minimum | Maximum | Average | Elapsed |
+| --- | ---: | ---: | ---: | ---: |
+| first valid sample | **33.7** | **61.6** | **52.0** | 122.618 s |
+
+The game registry contained exact 1280x720, Normal-equivalent graphics,
+exclusive fullscreen, 60 Hz, V-Sync off, and motion blur off. Termux:X11
+remained a separate borderless 2800x1752 surface at 59.97 Hz so Android did
+not shrink or decorate the presentation path. The foreground gate verified
+requested size, task bounds, frame bounds, and content bounds as the full
+panel with zero insets. The retained ready-screen screenshot SHA-256 is
+`a5714549246e0a0f7b72ad9df83225aa7dc547fb74438447f832b16e17c46710`.
+
+The run used direct native-glibc dispatch, Safe FEX, verified offline cache
+generation 5, `mtrack`, game CPUs 1-7, `Raknet-RecvFrom` on CPU1, and Steam
+helpers on CPU0. The Android controller remained in `/top-app` and stopped
+polling before the timed scene. The fixed 40 C gate admitted the pass at 37.0
+C with full CPU/GPU policy and GPU thermal power level zero. The affinity log
+SHA-256 is
+`8848d81a8df6779c1e326f9b6ddf6930c5ccc2d4bb3dac080a83e2df0623b213`.
+
+The exact series is
+[`tombraider-direct-glibc-safe-offline-compiled-720p-normal-fullscreen-60hz-40c-first-20260823.json`](benchmark-series/tombraider-direct-glibc-safe-offline-compiled-720p-normal-fullscreen-60hz-40c-first-20260823.json),
+SHA-256 `38ebe9404a9f7bbde53442cb49e2f7d126708d7abe494519f9f83d9be641a67b`.
+The raw game result SHA-256 is
+`f714af27da24e56c63dffb10a988c3442d0c64eb71eef01a7249bdbb268dc35c`,
+and the foreground log SHA-256 is
+`8ae8b86b26e7f71722c39086cef0af459fc27a27eb476c2afc1180bdbc97be68`.
+The process exited normally with `DISPATCH_STATUS=0`; the game is therefore
+not expected to remain visible after the benchmark result is collected.
+
+This is one valid sample, not a promoted multi-run mean. Two earlier nominal
+720p results, 34.1 and 29.7 FPS, are excluded because their controller left
+Termux:X11 as a decorated 520x320 floating window.
+
+Launch attempts v5-v11 remain diagnostic evidence. v5-v8 used an invalid
+Android `#!/bin/bash` wrapper and produced zero-byte logs; v9 reached the
+wrapper but failed its `/usr/bin/env` interpreter; v10 rejected Termux's
+legitimate `python3` symlink; and v11 passed the fullscreen gate but the
+installed dispatcher selected stale cache
+`tombraider-203160-offline-fff9bd81`, yielding no game or affinity guard. v12
+used the no-clobber current dispatcher, selected verified generation-5 cache
+`tombraider-203160-offline-7efb8f8e`, and produced the result above.
+
+Required recall queries for prior 720p fullscreen automation, controller
+handoff, zero-result output, and compiled-cache generation selection returned
+no indexed implementation. This work reuses the repository's 2026-08-14
+backup-first Tomb Raider profile controls, E135/E136 foreground-controller
+rules, and verified generation-5 cache. The next gate changes only the
+Tomb Raider-local DXVK version while preserving this profile and topology.

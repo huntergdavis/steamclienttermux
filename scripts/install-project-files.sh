@@ -208,6 +208,10 @@ install_one "$repo_root/scripts/start-tombraider-fex-offline-compile.sh" \
     "$HOME/start-tombraider-fex-offline-compile.sh" 700
 install_one "$repo_root/scripts/test-tomb-raider-direct-fex-offline-compiled-40c-ceiling.sh" \
     "$HOME/test-tomb-raider-direct-fex-offline-compiled-40c-ceiling.sh" 700
+install_one "$repo_root/scripts/test-tomb-raider-direct-fex-offline-compiled-single-40c-ceiling.sh" \
+    "$HOME/test-tomb-raider-direct-fex-offline-compiled-single-40c-ceiling.sh" 700
+install_one "$repo_root/scripts/test-tomb-raider-direct-fex-offline-compiled-720p-normal-single-40c-ceiling.sh" \
+    "$HOME/test-tomb-raider-direct-fex-offline-compiled-720p-normal-single-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/test-tomb-raider-direct-fex-max-buffer-profile-excluded-40c-ceiling.sh" \
     "$HOME/test-tomb-raider-direct-fex-max-buffer-profile-excluded-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/test-tomb-raider-direct-dxvk-relaxed-graphics-excluded-40c-ceiling.sh" \

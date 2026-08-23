@@ -47,9 +47,13 @@ BIND_OPTIONS = {
     "--ro-bind-try",
 }
 FEX_2605_OFFLINE_COMPILER_SHA256 = (
-    "fff9bd81049d250eb26554887b3b3df7db9d934e3969023101c887b655bc7644"
+    "7efb8f8e51e74a33f9633cac25031247d888c74c5f3ac5bce21597fd9954879b"
 )
-FEX_OFFLINE_CACHE_NAME = "tombraider-203160-offline-fff9bd81"
+FEX_2605_OFFLINE_COMPILER_DLL_SHA256 = {
+    "libc++.dll": "ed9edb58ea9f8ed633082e3636e130bac5b05b5d5c1aa4ed05f53780725b6126",
+    "libunwind.dll": "535c6c8626c75f2b57cba17e0b550131d5fd699119d274290116fbe31e5b6046",
+}
+FEX_OFFLINE_CACHE_NAME = "tombraider-203160-offline-7efb8f8e"
 
 
 class DispatchError(RuntimeError):
@@ -259,7 +263,9 @@ def validated_fex_offline_root(base: Path, before_compile: bool) -> Path:
     ready_files = sorted(ready.iterdir())
     cache_files = sorted(cache.iterdir())
 
-    def validate_files(paths: list[Path], description: str) -> None:
+    def validate_files(
+        paths: list[Path], description: str, *, allow_zero: bool = False
+    ) -> None:
         if len(paths) > 128:
             fail(f"{description} contains too many files")
         for path in paths:
@@ -269,25 +275,18 @@ def validated_fex_offline_root(base: Path, before_compile: bool) -> Path:
                 or path.is_symlink()
                 or metadata.st_uid != os.geteuid()
                 or metadata.st_mode & 0o022
-                or metadata.st_size <= 0
+                or (metadata.st_size <= 0 and not allow_zero)
                 or metadata.st_size > 64 * 1024 * 1024
             ):
                 fail(f"{description} contains an unsafe file: {path}")
 
-    validate_files(new_files, "pending FEX code maps")
+    validate_files(new_files, "pending FEX code maps", allow_zero=before_compile)
     validate_files(ready_files, "aggregated FEX code maps")
     validate_files(cache_files, "compiled FEX cache files")
-    if before_compile:
-        if not 1 <= len(new_files) <= 128 or ready_files or cache_files:
-            fail("FEX offline candidate is not in its pristine pre-compile state")
-        for path in new_files:
-            if not re.fullmatch(
-                r"tombraider\.exe-[0-9a-f]{16}\.[0-9]+\.bin", path.name
-            ):
-                fail(f"pending FEX code map has an unexpected name: {path.name}")
-    elif new_files or not ready_files or not cache_files:
-        fail("FEX offline candidate has no complete compiled-cache result")
-    else:
+
+    def validate_compiled_identity() -> tuple[Path, dict]:
+        if not ready_files or not cache_files:
+            fail("FEX offline candidate has no complete compiled-cache result")
         expected_hash = bytes.fromhex(
             "a04b0241c2fe3911729842205cd8643981108aad"
         )
@@ -324,13 +323,69 @@ def validated_fex_offline_root(base: Path, before_compile: bool) -> Path:
             != FEX_2605_OFFLINE_COMPILER_SHA256
         ):
             fail("compiled FEX cache result failed identity validation")
+        return result_path, result
+
+    if before_compile:
+        if not 1 <= len(new_files) <= 128:
+            fail("FEX offline candidate has no runtime maps to compile")
+        refreshing = bool(ready_files or cache_files)
+        if refreshing:
+            if not ready_files or not cache_files:
+                fail("FEX offline refresh has incomplete compiled state")
+            result_path, result = validate_compiled_identity()
+            refresh_path = root / "refresh.json"
+            try:
+                refresh_metadata = refresh_path.lstat()
+                refresh = json.loads(refresh_path.read_text(encoding="utf-8"))
+            except (FileNotFoundError, OSError, UnicodeError, json.JSONDecodeError) as error:
+                fail(f"FEX offline refresh manifest is unavailable: {error}")
+            generation = result.get("generation", 1)
+            if (
+                not stat.S_ISREG(refresh_metadata.st_mode)
+                or refresh_path.is_symlink()
+                or refresh_metadata.st_uid != os.geteuid()
+                or refresh_metadata.st_mode & 0o022
+                or refresh.get("status") != "refresh-prepared"
+                or refresh.get("generation") != generation + 1
+                or refresh.get("previous_result_sha256")
+                != sha256_file(result_path)
+            ):
+                fail("FEX offline refresh manifest failed identity validation")
+            pending_manifest = refresh.get("pending_maps")
+            observed_pending = [
+                {
+                    "name": path.name,
+                    "size_bytes": path.stat().st_size,
+                    "sha256": sha256_file(path),
+                }
+                for path in new_files
+            ]
+            if pending_manifest != observed_pending:
+                fail("FEX offline refresh maps changed after preparation")
+        else:
+            result_path = root / "result.json"
+            if result_path.exists() or result_path.is_symlink():
+                fail("pristine FEX offline candidate unexpectedly has a result")
+        for path in new_files:
+            match = re.fullmatch(
+                r"(steam|tombraider)\.exe-[0-9a-f]{16}\.[0-9]+\.bin",
+                path.name,
+            )
+            if match is None or (path.stat().st_size == 0 and match.group(1) != "steam"):
+                fail(f"pending FEX code map has an unexpected shape: {path.name}")
+            if not refreshing and match.group(1) != "tombraider":
+                fail(f"pristine FEX code map has an unexpected name: {path.name}")
+    elif new_files:
+        fail("FEX offline candidate has uncompiled runtime maps")
+    else:
+        validate_compiled_identity()
     return root
 
 
 def validated_fex_offline_compiler(base: Path) -> Path:
     compiler = (
         base
-        / "compat-bin/fex-2605-offline-compiler/FEXOfflineCompiler.exe"
+        / "compat-bin/fex-2605-offline-compiler-native-arm64/FEXOfflineCompiler.exe"
     )
     try:
         metadata = compiler.lstat()
@@ -345,6 +400,21 @@ def validated_fex_offline_compiler(base: Path) -> Path:
         or sha256_file(compiler) != FEX_2605_OFFLINE_COMPILER_SHA256
     ):
         fail(f"FEX offline compiler failed identity validation: {compiler}")
+    for name, expected_sha256 in FEX_2605_OFFLINE_COMPILER_DLL_SHA256.items():
+        runtime = compiler.parent / name
+        try:
+            runtime_metadata = runtime.lstat()
+        except FileNotFoundError:
+            fail(f"FEX offline compiler runtime is unavailable: {runtime}")
+        if (
+            not stat.S_ISREG(runtime_metadata.st_mode)
+            or runtime.is_symlink()
+            or runtime_metadata.st_uid != os.geteuid()
+            or runtime_metadata.st_mode & 0o022
+            or not 32 * 1024 <= runtime_metadata.st_size <= 4 * 1024 * 1024
+            or sha256_file(runtime) != expected_sha256
+        ):
+            fail(f"FEX offline compiler runtime failed identity validation: {runtime}")
     return compiler
 
 

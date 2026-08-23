@@ -8936,3 +8936,72 @@ map into `codemap/new`. The compile path now supplies only
 while the compiler process cannot record itself into that input. The failed
 zero-byte file is retained separately as attempt evidence rather than deleted.
 The required focused recall query found no prior implementation of this fix.
+
+## 2026-08-23: first valid fullscreen 720p Normal baseline
+
+The new apples-to-apples benchmark target is Tomb Raider's 1280x720 Normal
+profile, exclusive fullscreen, 60 Hz, V-Sync off, and motion blur off. The
+Termux:X11 Activity remains borderless at the Galaxy Tab S8+ panel's
+2800x1752/59.97 Hz geometry; the 720p game image is scaled inside that surface.
+This distinction matters because two earlier 720p readings, 34.1 and 29.7
+FPS, left X11 as a decorated 520x320 floating window and are excluded.
+
+The foreground controller now starts in a small freeform task only long enough
+to establish the launch handoff, applies Samsung DeX's titlebar expand action,
+and requires requested, task, frame, and content bounds of
+`0,0,2800,1752` with zero decoration/insets. It remains Android `/top-app`
+and stops Android polling before the timed scene. Cleanup never shrinks an
+already expanded task. The retained fullscreen-ready screenshot is
+`~/steam-arm64/candidates/tomb-v12-fullscreen-ready.png`, SHA-256
+`a5714549246e0a0f7b72ad9df83225aa7dc547fb74438447f832b16e17c46710`.
+
+The first valid pass used Safe FEX, `mtrack`, direct native-glibc dispatch,
+and the verified offline-compiled generation-5 candidate
+`tombraider-203160-offline-7efb8f8e`. The fixed 40 C gate observed 37.0 C,
+full CPU/GPU policies, and GPU thermal power level zero before launch. The
+affinity guard proved 59 game threads on CPUs1-7, `Raknet-RecvFrom` on CPU1,
+and Steam helpers on CPU0. It then completed in 122.618 seconds and wrote
+**33.7 minimum, 61.6 maximum, and 52.0 average FPS**. The direct dispatcher
+returned zero. The benchmark then exited normally, so an observer looking
+after 14:48:56 PDT correctly sees no Tomb Raider process or window.
+
+Exact retained identities:
+
+- committed series:
+  `docs/benchmark-series/tombraider-direct-glibc-safe-offline-compiled-720p-normal-fullscreen-60hz-40c-first-20260823.json`,
+  SHA-256 `38ebe9404a9f7bbde53442cb49e2f7d126708d7abe494519f9f83d9be641a67b`;
+- tablet foreground log:
+  `~/steam-arm64/logs/tombraider-bvb-foreground-20260823T214538Z-6152.log`,
+  SHA-256 `8ae8b86b26e7f71722c39086cef0af459fc27a27eb476c2afc1180bdbc97be68`;
+- raw game result:
+  `~/steam-arm64/removable-library/steamapps/common/Tomb Raider/benchmarkresults 2026-08-23 21-48-54.txt`,
+  SHA-256 `f714af27da24e56c63dffb10a988c3442d0c64eb71eef01a7249bdbb268dc35c`;
+- affinity log:
+  `~/steam-arm64/logs/tombraider-direct-affinity-20260823T214654Z.log`,
+  SHA-256 `8848d81a8df6779c1e326f9b6ddf6930c5ccc2d4bb3dac080a83e2df0623b213`.
+
+This is one valid sample, not a promoted multi-run mean. It establishes the
+fullscreen topology and supplies the control point for contained DXVK swaps.
+
+The failed attempts remain part of the experiment record. v5-v8 produced
+zero-byte logs because the new wrapper used Android's nonexistent
+`#!/bin/bash`; v9 then exposed an invalid `/usr/bin/env` interpreter; v10
+incorrectly rejected Termux's legitimate `python3` symlink; and v11 passed the
+fullscreen gate but the installed direct dispatcher hardcoded stale cache
+`tombraider-203160-offline-fff9bd81`, so no game or affinity guard appeared.
+The v12 no-clobber candidate selected verified generation 5 and succeeded.
+One validation import created a single Python bytecode cache; it was enumerated
+and explicitly removed, and the candidate was revalidated with bytecode writes
+disabled. No production install or Steam-login state changed.
+
+The attempted offline-cache refresh is generation 6 but did not finish: Proton
+failed its `amdxcffx64.dll` copy before compiler output was accepted. Generation
+5 remains the only verified compiled result; both generation-6 runtime-delta
+directories are retained for later diagnosis rather than discarded.
+
+Required recall queries for prior fullscreen automation, foreground handoff,
+zero benchmark output, and cache-generation selection returned no indexed
+implementation. The solution reuses the 2026-08-14 backup-first profile data,
+E135/E136 foreground-controller behavior, direct final-game containment, and
+the generation-5 verifier. The next experiment preserves every variable above
+and swaps only a private Tomb Raider-local DXVK payload.

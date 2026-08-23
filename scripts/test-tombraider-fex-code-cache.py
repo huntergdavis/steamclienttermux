@@ -20,6 +20,10 @@ PROFILE_WRAPPER = (
     ROOT
     / "scripts/test-tomb-raider-direct-fex-max-buffer-profile-excluded-40c-ceiling.sh"
 )
+NORMAL_720P_WRAPPER = (
+    ROOT
+    / "scripts/test-tomb-raider-direct-fex-offline-compiled-720p-normal-single-40c-ceiling.sh"
+)
 
 
 def load_dispatcher():
@@ -64,7 +68,7 @@ def main() -> None:
 
         compiled = (
             base
-            / "cache/fex-code-cache/tombraider-203160-offline-fff9bd81"
+            / "cache/fex-code-cache/tombraider-203160-offline-7efb8f8e"
         )
         compiled.mkdir(mode=0o700, parents=True)
         (compiled / "codemap/new").mkdir(mode=0o700, parents=True)
@@ -186,6 +190,20 @@ def main() -> None:
         "test-tomb-raider-direct-fex-max-buffer-profile-excluded-40c-ceiling.sh"
         in (ROOT / "scripts/install-project-files.sh").read_text(encoding="utf-8")
     )
+    normal_wrapper = NORMAL_720P_WRAPPER.read_text(encoding="utf-8")
+    assert normal_wrapper.startswith("#!/data/data/com.termux/files/usr/bin/bash\n")
+    assert "TOMB_RAIDER_BENCHMARK_PYTHON" in normal_wrapper
+    assert 'benchmark_python=$(readlink -f -- "$benchmark_python")' in normal_wrapper
+    assert 'exec "$benchmark_python" "$benchmark_runner"' in normal_wrapper
+    assert "--game-profile 720p-normal" in normal_wrapper
+    assert "--fex-code-cache compiled" in normal_wrapper
+    assert "--startup-topology full" in normal_wrapper
+    assert "--start-temperature-ceiling-c 40" in normal_wrapper
+    assert "--warmups 0" in normal_wrapper and "--runs 1" in normal_wrapper
+    assert "Starting Tomb Raider BVB probe:" in normal_wrapper
+    assert NORMAL_720P_WRAPPER.name in (
+        ROOT / "scripts/install-project-files.sh"
+    ).read_text(encoding="utf-8")
 
     print("Tomb Raider final-game FEX code-cache tests: PASS")
 

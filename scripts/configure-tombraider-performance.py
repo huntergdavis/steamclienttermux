@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Apply the measured Tomb Raider panel-native Low benchmark profile safely."""
+"""Apply a measured Tomb Raider benchmark profile safely."""
 
 import argparse
 import datetime
@@ -39,6 +39,23 @@ TARGET_DWORDS = {
     b"TextureQuality": b"00000002",
     b"VSyncMode": b"00000000",
 }
+NORMAL_720P_DWORDS = {
+    **TARGET_DWORDS,
+    b"AntiAliasingMode": b"00000001",
+    b"DOFQuality": b"00000001",
+    b"EnablePostProcess": b"00000001",
+    b"FullscreenHeight": b"000002d0",
+    b"FullscreenWidth": b"00000500",
+    b"LODScale": b"00000002",
+    b"ReflectionQuality": b"00000001",
+    b"ShadowMode": b"00000001",
+    b"ShadowResolution": b"00000001",
+    b"SSAOMode": b"00000001",
+}
+PROFILES = {
+    "native-low": TARGET_DWORDS,
+    "720p-normal": NORMAL_720P_DWORDS,
+}
 RUNNING_COMMS = {
     "fexinterpreter",
     "fexloader",
@@ -74,7 +91,7 @@ def inspect_registry(path):
     return metadata
 
 
-def render_profile(original):
+def render_profile(original, targets=TARGET_DWORDS):
     if not original.startswith(b"WINE REGISTRY Version 2"):
         raise RuntimeError("user.reg does not have the expected Wine registry header")
     lines = original.splitlines(keepends=True)
@@ -96,7 +113,7 @@ def render_profile(original):
             break
 
     changed = []
-    for key, target in TARGET_DWORDS.items():
+    for key, target in targets.items():
         pattern = re.compile(
             rb'^"' + re.escape(key) + rb'"=dword:([0-9a-fA-F]{8})(\r?\n)?$'
         )
@@ -161,17 +178,19 @@ def fsync_directory(path):
         os.close(descriptor)
 
 
-def apply_profile(registry, backups_dir):
+def apply_profile(registry, backups_dir, targets=TARGET_DWORDS, profile="native-low"):
     metadata = inspect_registry(registry)
     original = registry.read_bytes()
-    rendered, changed = render_profile(original)
+    rendered, changed = render_profile(original, targets)
     if not changed:
         return None, changed, sha256_bytes(original)
 
     backups_dir.mkdir(parents=True, exist_ok=True)
     stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     backup = Path(
-        tempfile.mkdtemp(prefix=f"tombraider-performance-{stamp}-", dir=backups_dir)
+        tempfile.mkdtemp(
+            prefix=f"tombraider-{profile}-{stamp}-", dir=backups_dir
+        )
     )
     backup_registry = backup / "user.reg"
     shutil.copy2(registry, backup_registry, follow_symlinks=False)
@@ -210,6 +229,7 @@ def build_parser():
     parser.add_argument("--base", default=str(Path.home() / "steam-arm64"))
     parser.add_argument("--registry")
     parser.add_argument("--backups-dir")
+    parser.add_argument("--profile", choices=tuple(PROFILES), default="native-low")
     parser.add_argument(
         "--check",
         action="store_true",
@@ -228,13 +248,17 @@ def main():
     try:
         inspect_registry(registry)
         original = registry.read_bytes()
-        _rendered, pending = render_profile(original)
+        targets = PROFILES[args.profile]
+        _rendered, pending = render_profile(original, targets)
         if args.check:
             if pending:
                 for key, previous, target in pending:
                     print(f"pending: {key}: {previous} -> {target}")
                 return 1
-            print(f"Tomb Raider performance profile: current ({sha256_bytes(original)})")
+            print(
+                f"Tomb Raider performance profile {args.profile}: current "
+                f"({sha256_bytes(original)})"
+            )
             return 0
 
         running = find_running_prefix_processes()
@@ -244,7 +268,9 @@ def main():
                 "refusing to edit the Wine registry while Wine/game translation "
                 f"processes are active: {details}"
             )
-        backup, changed, digest = apply_profile(registry, backups_dir)
+        backup, changed, digest = apply_profile(
+            registry, backups_dir, targets, args.profile
+        )
         if not changed:
             print(f"Tomb Raider performance profile already current ({digest})")
             return 0

@@ -46,6 +46,15 @@ fi
     printf 'start-steam: STEAM_BACKGROUND must be 0 or 1\n' >&2
     exit 1
 }
+skip_game_affinity_guard=${STEAM_ARM64_SKIP_GAME_AFFINITY_GUARD:-0}
+[[ $skip_game_affinity_guard == 0 || $skip_game_affinity_guard == 1 ]] || {
+    printf 'start-steam: STEAM_ARM64_SKIP_GAME_AFFINITY_GUARD must be 0 or 1\n' >&2
+    exit 1
+}
+if [[ $skip_game_affinity_guard == 1 && $requested_appid != 203160 ]]; then
+    printf 'start-steam: affinity-guard suppression is valid only for AppID 203160\n' >&2
+    exit 1
+fi
 if [[ "$background_mode" == 1 ]]; then
     has_silent=0
     for argument in "${steam_arguments[@]}"; do
@@ -463,6 +472,10 @@ start_gtaiv_affinity_guard() {
 }
 
 maybe_start_game_affinity_guard() {
+    if [[ $skip_game_affinity_guard == 1 ]]; then
+        printf 'start-steam: Tomb Raider affinity guard suppressed for the validated non-game AppID handoff\n'
+        return
+    fi
     case "$requested_appid" in
         203160) start_tomb_raider_affinity_guard ;;
         12210) start_gtaiv_affinity_guard ;;

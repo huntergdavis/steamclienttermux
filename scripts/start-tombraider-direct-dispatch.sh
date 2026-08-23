@@ -249,8 +249,11 @@ printf 'pid=%s\nmode=%s\nchild_preload=%s\nraknet_recv_sleep_us=%s\nfex_code_cac
 
 set +e
 game_arguments=(-nolauncher)
+skip_outer_affinity_guard=0
 if [[ $mode == tombraider-benchmark ]]; then
     game_arguments+=(-benchmark)
+elif [[ $mode == fex-offline-compile ]]; then
+    skip_outer_affinity_guard=1
 fi
 env -u BVB_COMMAND_STREAM -u STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
     -u TOMB_RAIDER_BVB_COMMAND_STREAM \
@@ -274,6 +277,7 @@ env -u BVB_COMMAND_STREAM -u STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
     -u STEAM_ARM64_DIRECT_DXVK_RELAXED_GRAPHICS_BARRIERS \
     -u TOMB_RAIDER_DXVK_RELAXED_GRAPHICS_BARRIERS \
     STEAM_ARM64_BWRAP_DIRECT=1 \
+    STEAM_ARM64_SKIP_GAME_AFFINITY_GUARD=$skip_outer_affinity_guard \
     STEAM_BACKGROUND=1 \
     STEAM_PROCESS_TIMEOUT=${STEAM_PROCESS_TIMEOUT:-180} \
     STEAM_WINDOW_TIMEOUT=${STEAM_WINDOW_TIMEOUT:-300} \

@@ -1,11 +1,12 @@
 # Source patch provenance
 
-`fex-2605-arm64ec-offline-compiler-compat.patch` is the narrow compatibility
-layer applied after three pinned upstream FEX offline-compiler commits. It
-keeps code generation on Proton's exact FEX-2605 core, uses that release's
-Windows feature-query API, and adds the relocation declaration required by
-the ARM64EC compiler build. The companion build script always stamps caches
-with Proton's exact pinned FEX Git hash.
+`fex-2605-native-arm64-offline-compiler-compat.patch` is the narrow
+compatibility layer applied after six pinned upstream FEX offline-compiler and
+Windows-on-ARM correctness commits. The resulting tool is a native ARM64
+Windows executable, avoiding Wine's failing ARM64EC entry thunk, while an
+explicit build definition keeps generated game code on the ARM64EC host type.
+The companion build script uses Proton's exact FEX-2605 Git hash in cache
+headers and disables PE timestamps for reproducible artifact identity.
 
 `proot-steam-android.patch` is the exact uncommitted diff extracted from the
 working tablet source tree on 2026-08-08. It applies cleanly to Termux PRoot

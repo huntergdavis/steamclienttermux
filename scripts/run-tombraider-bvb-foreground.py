@@ -527,6 +527,55 @@ def promote_x11(adb: Path, serial: str, bounds: tuple[int, int, int, int]) -> in
     return task_id
 
 
+def expand_x11_full_display(
+    adb: Path,
+    serial: str,
+    task_id: int,
+    bounds: tuple[int, int, int, int],
+) -> tuple[int, int]:
+    left, top, right, bottom = bounds
+    width = right - left
+    height = bottom - top
+    adb_shell(
+        adb,
+        serial,
+        "am",
+        "task",
+        "resize",
+        str(task_id),
+        *(str(value) for value in bounds),
+    )
+    # Samsung DeX keeps the performance cgroup only while this task remains
+    # freeform. Its title-bar expand control removes every decoration without
+    # converting the task to Android's demoting fullscreen mode.
+    toggle_x = right - round(width * 0.061)
+    toggle_y = top + round(height * 0.060)
+    adb_shell(adb, serial, "input", "tap", str(toggle_x), str(toggle_y))
+    time.sleep(1.0)
+    window_dump = adb_shell(adb, serial, "dumpsys", "window", "windows")
+    marker = f"taskId={task_id} "
+    start = window_dump.find(marker)
+    if start < 0:
+        fail("Termux:X11 full-display window is absent")
+    block_start = window_dump.rfind("  Window #", 0, start)
+    block_end = window_dump.find("\n  Window #", start)
+    block = window_dump[block_start : block_end if block_end >= 0 else None]
+    expected = (
+        f"Requested w={width} h={height}",
+        f"mBounds=Rect({left}, {top} - {right}, {bottom})",
+        f"frame=[{left},{top}][{right},{bottom}]",
+        "mGivenContentInsets=[0,0][0,0]",
+        "mSystemDecorRect=[0,0][0,0]",
+    )
+    missing = [item for item in expected if item not in block]
+    if missing:
+        fail(
+            "Termux:X11 did not enter verified borderless full-display mode: "
+            + ", ".join(missing)
+        )
+    return toggle_x, toggle_y
+
+
 def restore_x11(adb: Path, serial: str) -> None:
     adb_shell(
         adb,
@@ -550,6 +599,20 @@ def controller_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--x11-bounds", type=parse_bounds, default=parse_bounds("40,40,520,360")
+    )
+    parser.add_argument(
+        "--x11-fullscreen",
+        action="store_true",
+        help=(
+            "bootstrap Termux:X11 in freeform top-app, then expand it to a "
+            "verified borderless full-display surface"
+        ),
+    )
+    parser.add_argument(
+        "--x11-fullscreen-bounds",
+        type=parse_bounds,
+        default=parse_bounds("0,0,2800,1752"),
+        help="full-display bounds used after the top-app bootstrap",
     )
     parser.add_argument("--service-settle-seconds", type=float, default=5.0)
     parser.add_argument("--promotion-timeout-seconds", type=float, default=180.0)
@@ -623,6 +686,7 @@ def controller_main(arguments: argparse.Namespace) -> int:
     guard = PropertyGuard(properties, reload_command)
     original_sha = ""
     promoted = False
+    full_display_ready = False
     child_pid: int | None = None
     child_start_ticks: int | None = None
     try:
@@ -634,6 +698,14 @@ def controller_main(arguments: argparse.Namespace) -> int:
         readiness = wait_for_document(probe_state, 15)
         if readiness.get("cpuset") != TOP_APP or readiness.get("cpu") != TOP_APP:
             fail("RunCommandService readiness probe did not enter top-app")
+        task_id: int | None = None
+        if arguments.x11_fullscreen and not allow_no_x11:
+            # A child created while Android considers X11 a normal fullscreen
+            # task is immediately demoted. Bootstrap the Activity as a small
+            # freeform task first so the new controller is born in top-app;
+            # expand it only after the explicit workload handoff marker.
+            task_id = promote_x11(adb, serial, arguments.x11_bounds)
+            promoted = True
         launch_runcommand(
             runcommand_arguments(am, python, tool, "--child", request_directory, home)
         )
@@ -645,7 +717,34 @@ def controller_main(arguments: argparse.Namespace) -> int:
         if restored_sha != original_sha:
             fail("Termux property hash changed after restoration")
         print(f"Termux external-command property restored: sha256={restored_sha}", flush=True)
-        if not allow_no_x11:
+        if arguments.x11_fullscreen and not allow_no_x11:
+            deadline = time.monotonic() + arguments.promotion_timeout_seconds
+            while time.monotonic() < deadline:
+                if result_path.exists():
+                    fail("benchmark exited before full-display expansion")
+                if probe_handoff_ready(log):
+                    break
+                if not process_still_top_app(proc_root, child_pid):
+                    fail("benchmark controller left top-app before its handoff marker")
+                time.sleep(0.1)
+            else:
+                fail("benchmark did not emit its full-display handoff marker")
+            assert task_id is not None
+            toggle = expand_x11_full_display(
+                adb, serial, task_id, arguments.x11_fullscreen_bounds
+            )
+            full_display_ready = True
+            if not process_still_top_app(proc_root, child_pid):
+                fail("full-display X11 expansion moved the controller out of top-app")
+            print(
+                "Termux:X11 borderless full-display ready: "
+                f"task={task_id} bounds="
+                f"{','.join(str(value) for value in arguments.x11_fullscreen_bounds)} "
+                f"toggle={toggle[0]},{toggle[1]}; controller remains top-app; "
+                "Android polling stopped before the timed scene",
+                flush=True,
+            )
+        elif not allow_no_x11:
             deadline = time.monotonic() + arguments.promotion_timeout_seconds
             while time.monotonic() < deadline:
                 if result_path.exists():
@@ -706,7 +805,13 @@ def controller_main(arguments: argparse.Namespace) -> int:
                 )
         if promoted:
             try:
-                restore_x11(adb, serial)
+                if arguments.x11_fullscreen and not full_display_ready:
+                    task_id = promote_x11(adb, serial, arguments.x11_bounds)
+                    expand_x11_full_display(
+                        adb, serial, task_id, arguments.x11_fullscreen_bounds
+                    )
+                elif not arguments.x11_fullscreen:
+                    restore_x11(adb, serial)
             except Exception as error:
                 print(
                     "run-tombraider-bvb-foreground: X11 fullscreen restoration failed: "

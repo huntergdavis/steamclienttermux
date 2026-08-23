@@ -80,6 +80,30 @@ def main():
     )
     assert invalid.returncode != 0
     assert "positive numeric Steam AppID" in invalid.stderr
+    invalid_suppression = subprocess.run(
+        ["bash", str(SCRIPT), "--appid", "203160"],
+        env={
+            **os.environ,
+            "START_STEAM_PARSE_ONLY": "1",
+            "STEAM_ARM64_SKIP_GAME_AFFINITY_GUARD": "invalid",
+        },
+        text=True,
+        capture_output=True,
+    )
+    assert invalid_suppression.returncode != 0
+    assert "STEAM_ARM64_SKIP_GAME_AFFINITY_GUARD must be 0 or 1" in invalid_suppression.stderr
+    wrong_app_suppression = subprocess.run(
+        ["bash", str(SCRIPT), "--appid", "12210"],
+        env={
+            **os.environ,
+            "START_STEAM_PARSE_ONLY": "1",
+            "STEAM_ARM64_SKIP_GAME_AFFINITY_GUARD": "1",
+        },
+        text=True,
+        capture_output=True,
+    )
+    assert wrong_app_suppression.returncode != 0
+    assert "valid only for AppID 203160" in wrong_app_suppression.stderr
     print("start-steam argument tests: ok")
 
 

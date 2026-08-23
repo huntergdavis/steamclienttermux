@@ -21,7 +21,12 @@ launcher=${TOMB_RAIDER_FEX_OFFLINE_LAUNCHER:-$HOME/start-tombraider-direct-dispa
     exit 1
 }
 
-"$python" "$prepare" prepare --base "$base"
+if [[ -f $base/cache/fex-code-cache/tombraider-203160-offline-7efb8f8e/result.json &&
+      ! -L $base/cache/fex-code-cache/tombraider-203160-offline-7efb8f8e/result.json ]]; then
+    "$python" "$prepare" refresh --base "$base"
+else
+    "$python" "$prepare" prepare --base "$base"
+fi
 set +e
 TOMB_RAIDER_DIRECT_MODE=fex-offline-compile \
 TOMB_RAIDER_DIRECT_CHILD_PRELOAD=full \

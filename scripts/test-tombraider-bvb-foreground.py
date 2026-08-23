@@ -47,6 +47,34 @@ def main() -> None:
     realActivity={com.termux.x11/com.termux.x11.MainActivity}
 """
     assert module.find_x11_task_id(task_dump) == 2852
+    commands = []
+    original_adb_shell = module.adb_shell
+    original_sleep = module.time.sleep
+    window_dump = """\
+  Window #10 Window{abc u0 com.termux.x11/com.termux.x11.MainActivity}:
+    mDisplayId=0 taskId=2852 mSession=Session{abc}
+    mGivenContentInsets=[0,0][0,0]
+    mFullConfiguration={winConfig={ mBounds=Rect(0, 0 - 2800, 1752) }}
+    Requested w=2800 h=1752 mLayoutSeq=1
+    Frames: parent=[0,0][2800,1752] display=[0,0][2800,1752] frame=[0,0][2800,1752]
+      mSystemDecorRect=[0,0][0,0]
+  Window #11 Window{def u0 other/other.Activity}:
+"""
+    module.adb_shell = lambda _adb, _serial, *parts: (
+        commands.append(parts) or window_dump
+        if parts == ("dumpsys", "window", "windows")
+        else commands.append(parts) or ""
+    )
+    module.time.sleep = lambda _seconds: None
+    try:
+        assert module.expand_x11_full_display(
+            Path("/adb"), "serial", 2852, (0, 0, 2800, 1752)
+        ) == (2629, 105)
+    finally:
+        module.adb_shell = original_adb_shell
+        module.time.sleep = original_sleep
+    assert commands[0] == ("am", "task", "resize", "2852", "0", "0", "2800", "1752")
+    assert commands[1] == ("input", "tap", "2629", "105")
     assert module.find_x11_task_id(
         task_dump.replace(
             "realActivity={com.termux.x11/com.termux.x11.MainActivity}",
@@ -171,6 +199,10 @@ def main() -> None:
         "result = wait_for_result("
     )
     assert "Android polling stopped before the timed scene" in source
+    assert "Termux:X11 borderless full-display ready" in source
+    assert "expand_x11_full_display(" in source
+    assert "if arguments.x11_fullscreen and not full_display_ready:" in source
+    assert "elif not arguments.x11_fullscreen:" in source
     assert "probe_handoff_ready(log) or not process_still_top_app" in source
     assert "raise SystemExit(128 + signum)" not in source
     assert "process.wait(timeout=0.2)" in source

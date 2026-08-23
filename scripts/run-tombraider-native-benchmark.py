@@ -19,6 +19,10 @@ import time
 
 
 PANEL_GEOMETRY = "2800x1752"
+GAME_PROFILES = {
+    "native-low": {"resolution": PANEL_GEOMETRY, "graphics": "Low"},
+    "720p-normal": {"resolution": "1280x720", "graphics": "Normal"},
+}
 RESULT_GLOB = "benchmarkresults*.txt"
 PROOT_GUARD_GLOB = "tomb-raider-affinity-*.log"
 DIRECT_GUARD_GLOB = "tombraider-direct-affinity-*.log"
@@ -927,6 +931,12 @@ def build_parser() -> argparse.ArgumentParser:
         description="Run one warm-up and a controlled native-host Tomb Raider series"
     )
     parser.add_argument("--profile", choices=("safe", "proton", "fast"), default="safe")
+    parser.add_argument(
+        "--game-profile",
+        choices=tuple(GAME_PROFILES),
+        default="native-low",
+        help="validated Tomb Raider resolution and graphics preset",
+    )
     parser.add_argument("--backend", choices=("proot", "direct"), default="proot")
     parser.add_argument(
         "--fex-code-cache",
@@ -1170,7 +1180,12 @@ def main() -> int:
     ).resolve()
     game_directory = base / "removable-library/steamapps/common/Tomb Raider"
     guard_directory = base / "logs"
-    profile_checker = base / "compat-bin/configure-tombraider-performance.py"
+    profile_checker = Path(
+        os.environ.get(
+            "TOMB_RAIDER_PROFILE_CHECKER",
+            base / "compat-bin/configure-tombraider-performance.py",
+        )
+    ).resolve()
     topology_checker = base / "compat-bin/configure-tombraider-cpu-topology.py"
     cef_holder = base / "compat-bin/hold-tombraider-steam-cef.py"
     x11_isolator = base / "compat-bin/isolate-tombraider-x11.py"
@@ -1258,6 +1273,7 @@ def main() -> int:
             )
         if arguments.raknet_nice is not None:
             environment["TOMB_RAIDER_RAKNET_NICE"] = str(arguments.raknet_nice)
+        game_profile = GAME_PROFILES[arguments.game_profile]
         series = {
             "schema_version": 1,
             "status": "initializing",
@@ -1270,8 +1286,9 @@ def main() -> int:
                 else "native glibc Steam host; Runtime 4/PRoot/Proton game boundary"
             ),
             "target": {
-                "resolution": PANEL_GEOMETRY,
-                "graphics": "Low",
+                "resolution": game_profile["resolution"],
+                "graphics": game_profile["graphics"],
+                "game_profile": arguments.game_profile,
                 "vsync": "off",
                 "motion_blur": "off",
                 "fex_profile": arguments.profile,
@@ -1321,7 +1338,9 @@ def main() -> int:
         # preload, so a child cannot resolve this tool's /usr/bin/env shebang.
         # Reuse the already-resolved absolute Python interpreter instead.
         run_logged(
-            python_tool_command(profile_checker, "--check"),
+            python_tool_command(
+                profile_checker, "--check", "--profile", arguments.game_profile
+            ),
             environment,
             profile_log,
         )

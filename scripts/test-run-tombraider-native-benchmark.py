@@ -162,6 +162,13 @@ def main():
         checker,
         "--check",
     ]
+    normal = module.build_parser().parse_args(["--game-profile", "720p-normal"])
+    assert normal.game_profile == "720p-normal"
+    assert module.GAME_PROFILES[normal.game_profile] == {
+        "resolution": "1280x720",
+        "graphics": "Normal",
+    }
+    assert "TOMB_RAIDER_PROFILE_CHECKER" in TOOL.read_text(encoding="utf-8")
     fixed = module.build_parser().parse_args(
         ["--profile", "proton", "--start-temperature-ceiling-c", "40"]
     )

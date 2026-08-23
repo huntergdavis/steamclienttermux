@@ -17,7 +17,8 @@ def load_tool():
     return module
 
 
-def fixture(module):
+def fixture(module, targets=None):
+    targets = targets or module.TARGET_DWORDS
     lines = [
         b"WINE REGISTRY Version 2\r\n",
         b"\r\n",
@@ -26,15 +27,16 @@ def fixture(module):
         b"\r\n",
         module.SECTION + b" 2\r\n",
     ]
-    for key, target in module.TARGET_DWORDS.items():
+    for key, target in targets.items():
         value = b"00000001" if target == b"00000000" else b"00000000"
         lines.append(b'"' + key + b'"=dword:' + value + b"\r\n")
     lines.extend((b"\r\n", b"[Software\\\\After] 3\r\n", b'"preserve"="also"\r\n'))
     return b"".join(lines)
 
 
-def assert_targets(module, rendered):
-    for key, value in module.TARGET_DWORDS.items():
+def assert_targets(module, rendered, targets=None):
+    targets = targets or module.TARGET_DWORDS
+    for key, value in targets.items():
         expected = b'"' + key + b'"=dword:' + value + b"\r\n"
         assert rendered.count(expected) == 1
 
@@ -49,6 +51,16 @@ def test_render(module):
     again, pending = module.render_profile(rendered)
     assert again == rendered
     assert pending == []
+
+    normal = module.NORMAL_720P_DWORDS
+    normal_rendered, normal_changed = module.render_profile(original, normal)
+    assert normal_changed
+    assert_targets(module, normal_rendered, normal)
+    assert normal[b"FullscreenWidth"] == b"00000500"
+    assert normal[b"FullscreenHeight"] == b"000002d0"
+    assert normal[b"LODScale"] == b"00000002"
+    assert normal[b"EnableMotionBlur"] == b"00000000"
+    assert normal[b"VSyncMode"] == b"00000000"
 
 
 def test_refusals(module):

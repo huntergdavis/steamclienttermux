@@ -1,0 +1,83 @@
+diff --git a/Source/Tools/FEXOfflineCompiler/CMakeLists.txt b/Source/Tools/FEXOfflineCompiler/CMakeLists.txt
+index 33f337043..38c62a75a 100644
+--- a/Source/Tools/FEXOfflineCompiler/CMakeLists.txt
++++ b/Source/Tools/FEXOfflineCompiler/CMakeLists.txt
+@@ -1,5 +1,9 @@
+ add_executable(FEXOfflineCompiler Main.cpp)
+ 
++if (MINGW AND FEX_OFFLINE_COMPILER_ARM64EC_TARGET)
++  target_compile_definitions(FEXOfflineCompiler PRIVATE FEX_OFFLINE_COMPILER_ARM64EC_TARGET=1)
++endif()
++
+ target_link_libraries(FEXOfflineCompiler PRIVATE
+   Common
+   CommonTools
+diff --git a/Source/Tools/FEXOfflineCompiler/Main.cpp b/Source/Tools/FEXOfflineCompiler/Main.cpp
+index a8681c877..7b5502faf 100644
+--- a/Source/Tools/FEXOfflineCompiler/Main.cpp
++++ b/Source/Tools/FEXOfflineCompiler/Main.cpp
+@@ -114,10 +114,6 @@ public:
+     return munmap(addr, length);
+   }
+ 
+-  void AddVirtualPage(FEXCore::Core::InternalThreadState* Thread, uint64_t addr, size_t length, int prot) override {
+-    LogMan::Msg::AFmt("Can't Track mmap through here");
+-    FEX_UNREACHABLE;
+-  }
+ #else
+   void MarkOvercommitRange(uint64_t Start, uint64_t Length) override {
+     OvercommitTracker->MarkRange(Start, Length);
+@@ -156,7 +152,7 @@ struct std::hash<FEXCore::ExecutableFileInfo> {
+ 
+ // Placeholder data to ensure the compile thread doesn't de-reference nullptr data
+ static FEXCore::Core::CPUState::gdt_segment gdt[32] {};
+-#if !defined(_WIN32) || defined(_M_ARM64EC)
++#if !defined(_WIN32) || defined(_M_ARM64EC) || defined(FEX_OFFLINE_COMPILER_ARM64EC_TARGET)
+ static constexpr size_t DefaultCS {FEXCore::Core::CPUState::DEFAULT_USER_CS};
+ #else
+ static constexpr size_t DefaultCS {4};
+@@ -277,7 +273,7 @@ static bool RelocateMappedImage(HMODULE Module) {
+   return true;
+ }
+ 
+-#ifdef ARCHITECTURE_arm64ec
++#if defined(ARCHITECTURE_arm64ec) || defined(FEX_OFFLINE_COMPILER_ARM64EC_TARGET)
+ static void* MapView(HANDLE SectionHandle) {
+   return MapViewOfFile(SectionHandle, FILE_MAP_EXECUTE | FILE_MAP_READ, 0, 0, 0);
+ }
+@@ -396,7 +392,7 @@ static std::optional<std::string> GenerateSingleCache(FEXCore::ExecutableFileInf
+     return std::nullopt;
+   }
+   const bool Is64Bit = Loader.Is64BitMode();
+-#elif defined(_M_ARM64EC)
++#elif defined(_M_ARM64EC) || defined(FEX_OFFLINE_COMPILER_ARM64EC_TARGET)
+   const bool Is64Bit = true;
+ #else
+   const bool Is64Bit = false;
+@@ -817,11 +813,13 @@ static int ProcessAll() {
+   return 0;
+ }
+ 
+-int main(int argc, char** argv) {
++int main(int argc, char** argv, char** envp) {
+ #ifndef _WIN32
+   LogMan::Throw::InstallHandler(AssertHandler);
+   LogMan::Msg::InstallHandler(MsgHandler);
+ #else
++  FEX::Config::LoadConfig("", envp, FEX::ReadPortabilityInformation());
++  FEXCore::Config::ReloadMetaLayer();
+   FEX::Windows::Logging::Init();
+ #endif
+ 
+diff --git a/Source/Windows/include/winternl.h b/Source/Windows/include/winternl.h
+index 03f3c4497..3173f92fe 100644
+--- a/Source/Windows/include/winternl.h
++++ b/Source/Windows/include/winternl.h
+@@ -505,6 +505,7 @@ NTSTATUS WINAPI LdrDisableThreadCalloutsForDll(HMODULE);
+ NTSTATUS WINAPI LdrGetDllFullName(HMODULE, UNICODE_STRING*);
+ NTSTATUS WINAPI LdrGetDllHandle(LPCWSTR, ULONG, const UNICODE_STRING*, HMODULE*);
+ NTSTATUS WINAPI LdrGetProcedureAddress(HMODULE, const ANSI_STRING*, ULONG, void**);
++IMAGE_BASE_RELOCATION* WINAPI LdrProcessRelocationBlock(ULONG_PTR, ULONG, USHORT*, INT_PTR);
+ NTSTATUS WINAPI NtAllocateVirtualMemoryEx(HANDLE, PVOID*, SIZE_T*, ULONG, ULONG, MEM_EXTENDED_PARAMETER*, ULONG);
+ NTSTATUS WINAPI NtAllocateVirtualMemory(HANDLE, PVOID*, ULONG_PTR, SIZE_T*, ULONG, ULONG);
+ NTSTATUS WINAPI NtContinue(PCONTEXT, BOOLEAN);
