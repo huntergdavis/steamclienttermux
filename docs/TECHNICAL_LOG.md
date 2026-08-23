@@ -8804,3 +8804,19 @@ anti-smuggling, FEX maximal-buffer default, full-topology guard, and 40 C
 game-authored benchmark protocol. Upstream references:
 [FEX configuration](https://github.com/FEX-Emu/FEX/blob/main/FEXCore/Source/Interface/Config/Config.json.in)
 and [invalidation performance issue](https://github.com/FEX-Emu/FEX/issues/4999).
+
+After commit `315120d` reached `origin/main`, only the exact SMC experiment
+files were promoted on the tablet. Installed SHA-256 values are dispatcher
+`ed5bc5dfe2b0328f2c18541c7ad86107d415abc913e09ac3fb3400047022d3a0`,
+benchmark runner
+`d809b3b096e406f4ef4d672dfd21b335e74a06cffc507530b72c7b1631ea35d4`,
+launcher
+`fb4c3720a8d848e0c9061fc52887ba2eacf9a0c1b9a565fb9f0888e9bd1f8e9e`,
+excluded wrapper
+`215a664f33a6ad9f7f830c0c1b7b35138eac76518ae4b30de8834a316ba2da72`,
+and cooled-series wrapper
+`9b87e39460d20e2b42927a0b0705de8a7011baed3145188e51ba6937620b3541`.
+The three replaced files are retained under
+`~/steam-arm64/backups/pre-315120d-fex-smc-none`; the five exact sources are
+under `~/steam-arm64/candidates/315120d-fex-smc-none`. Steam and Termux:X11
+kept PID/start-tick identities 15575/128118834 and 13643/121863492.
