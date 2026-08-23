@@ -1,0 +1,153 @@
+{
+  "gate": "E135",
+  "date": "2026-08-22",
+  "result": "foreground_scheduling_speedup_confirmed",
+  "target": {
+    "device": "Samsung Galaxy Tab S8+ SM-X808U",
+    "game": "Tomb Raider (2013)",
+    "appid": 203160,
+    "resolution": "2800x1752",
+    "refresh_hz": 60,
+    "quality": "Low",
+    "exclusive_fullscreen": true,
+    "vsync": false,
+    "motion_blur": false
+  },
+  "unchanged_runtime": {
+    "bridge_commit": "5a0cc335dbebec4b9ae8a19ba7eac5103e554d43",
+    "steamclienttermux_commit": "ca40d8b6878ced6c231cc56bd3455a808e92c714",
+    "glibc_icd_sha256": "d12e38069002d3b342ed38d2f6fcdeb34d60f6a693830502509f00707f876bc7",
+    "bionic_service_sha256": "6aeacb849177a85b865d7ed7ae4d638a248691bb46810d7c1d2e5a4df31e86b9",
+    "command_stream": "shared",
+    "mapped_memory": "shared",
+    "descriptor_journal": "shared",
+    "frame_profile": true,
+    "first_rejection_diagnostic": true,
+    "activity_version_code": 40,
+    "frame_setup_image_count": 3,
+    "frame_setup_generation_unsigned": 16167922662260080641,
+    "per_frame_java_calls": 0,
+    "per_frame_binder_calls": 0
+  },
+  "method": {
+    "deja_query": "E135 Tomb Raider BVB separate UID Activity Termux background moderate CPUs 0-3 top-app foreground scheduling A/B floating Termux window performance",
+    "deja_result": "no indexed implementation",
+    "runcommand_probe": "A harmless 20-second child proved parent Termux Activity process 11485, CPUs 0-7, and both cpuset and cpu controllers at /top-app before the game launch.",
+    "property_guard": "allow-external-apps was enabled only until the exact RunCommand controller existed in /top-app, then termux.properties was restored byte-for-byte to SHA-256 89094537f49531dc9b380a0dec3a441b2fb92577e0a4f1db505790eb8b7025b0.",
+    "foreground_lifetime": "The shared-UID Termux:X11 Activity remained a small visible freeform window above the fullscreen BVB Activity, keeping the Activity-owned controller, game, and bridge service in /top-app.",
+    "clean_run_mid_scene_capture": false
+  },
+  "diagnostic_activation_pass": {
+    "run_id": "20260823T004449Z-31384",
+    "minimum_fps": 3.1,
+    "maximum_fps": 12.1,
+    "average_fps": 7.1,
+    "source_result_sha256": "df08fb776e69d7a9193e5b384f4688246eefab06a24fcb2acbb892dec42bd0da",
+    "mid_scene_screenshot": true,
+    "maximum_observed_thermal_zone_c": 64.3,
+    "classification": "activation proof excluded from the clean primary result"
+  },
+  "clean_game_authored_result": {
+    "run_id": "20260823T005021Z-7119",
+    "minimum_fps": 3.6,
+    "maximum_fps": 13.9,
+    "average_fps": 7.0,
+    "average_frame_time_ms": 142.857143,
+    "source_path": "/data/data/com.termux/files/home/steam-arm64/removable-library/steamapps/common/Tomb Raider/benchmarkresults 2026-08-23 00-53-50.txt",
+    "source_sha256": "1ff56b0faf1b927e974d42c1f0225d4c658c6d2375a191db0081241ffea7f716",
+    "retained_normalized_path": "docs/evidence/tombraider-bvb-e135-top-app-result-20260822.txt",
+    "retained_normalized_sha256": "16faf602bfca1840145334bc9c714b0e527023494b8fe68be8659802dc44daaa",
+    "start_maximum_thermal_zone_c": 39.3,
+    "after_teardown_maximum_thermal_zone_c": 37.2,
+    "e134_average_fps": 2.2,
+    "average_fps_change_percent": 218.182,
+    "average_frame_time_change_percent": -68.571,
+    "diagnostic_average_fps": 7.1,
+    "clean_vs_diagnostic_change_percent": -1.408,
+    "prior_direct_path_typical_average_fps_approx": 31.0,
+    "remaining_average_fps_gap_percent": -77.419
+  },
+  "foreground_placement": {
+    "runcommand_controller_parent_pid": 11485,
+    "controller_cpuset": "/top-app",
+    "controller_cpu": "/top-app",
+    "bridge_service_cpuset": "/top-app",
+    "bridge_service_cpu": "/top-app",
+    "startup_topology": "logical=5 cores=5 physical=5",
+    "game_ready_threads": 39,
+    "game_ready_cpus": "1-7",
+    "raknet_cpu": 1,
+    "steam_helpers_cpu": 0,
+    "affinity_log_sha256": "65c5c4845bf68d13bc146e329bffec0aa4c8baed755ae12f2e5d4a1a57911b00"
+  },
+  "clean_client_profile": {
+    "complete_windows": 49,
+    "profiled_presents": 1568,
+    "comparable_final_30_windows": {
+      "presents": 960,
+      "socket_calls_per_present": 41.861458,
+      "socket_blocked_ms_per_present": 69.035008,
+      "descriptor_ring_calls_per_present": 371.229167,
+      "descriptor_ring_blocked_ms_per_present": 12.15363,
+      "descriptor_ring_mean_microseconds_per_call": 32.739,
+      "descriptor_lease_hits_per_present": 155.360417,
+      "descriptor_lease_misses_per_present": 34.976042,
+      "descriptor_lease_hit_rate_percent": 81.624098,
+      "socket_plus_ring_ms_per_present": 81.188638,
+      "shared_stream_submit_ms_per_present": 18.12451,
+      "semaphore_wait_ms_per_present": 36.687503,
+      "queue_submit_2_ms_per_present": 4.62025,
+      "descriptor_journal_flush_ms_per_present": 2.036904,
+      "query_pool_results_ms_per_present": 1.107231,
+      "query_pool_reset_ms_per_present": 0.460211
+    }
+  },
+  "clean_worker_profile": {
+    "records": 90,
+    "completed_transactions": 367738,
+    "total_ms": 7330.734,
+    "mean_microseconds_per_transaction": 19.935,
+    "native_allocation_ms": 5680.654,
+    "batch_attempts": 37535,
+    "batch_successes": 36402,
+    "batch_prefetched_sets": 200244,
+    "batch_fallbacks": 1133,
+    "batch_growths": 16143,
+    "batch_cold_exact": 33773,
+    "e134_mean_microseconds_per_transaction": 74.336,
+    "mean_change_percent": -73.182
+  },
+  "clean_wsi_profile_final_30_windows": {
+    "present_ms_per_present": 1.006372,
+    "acquire_ms_per_present": 0.532704,
+    "combined_ms_per_present": 1.539076
+  },
+  "visual_evidence": {
+    "retained_activation_frame_path": "docs/evidence/tombraider-bvb-e135-top-app-frame-20260822.png",
+    "retained_activation_frame_sha256": "16855c3f52282ac9b2b2b1ccde610fb3a42538ef0bc95453fdc61cab6bcd8e19",
+    "interpretation": "The inspected screenshot shows a real Lara frame behind the intentionally small Termux:X11 foreground window. It proves the BVB consumer continues rendering during foreground promotion; it belongs to the excluded diagnostic pass, not the clean timed pass."
+  },
+  "clean_retained_log_hashes": {
+    "direct_sha256": "9f4d1a1d7b9d567e258627c1321d9e46fe25c33c188df310eaef5390714ee97c",
+    "service_sha256": "6481a4724b9e4463ef12bd7cb198a2d724410906202e293b1e4adf73d8c9dae8",
+    "launcher_sha256": "49a4d315385550c0082385c7230f088a69c4e17709e959a3e18b570ef10f0c0e",
+    "direct_launcher_sha256": "4ff6b4a939ff93d1640f5e58703645df61e822ce38e642cc835d7cbec495332c",
+    "affinity_sha256": "65c5c4845bf68d13bc146e329bffec0aa4c8baed755ae12f2e5d4a1a57911b00",
+    "promoter_sha256": "4cfef087af01ab556f207ce04839a4b90ca0dac8be66302dbff31b49aa9dd5aa",
+    "anr_watchdog_sha256": "2c3e41f44ba5865d40118cfa84bec14a965af6768794168a65c0e6b2d1839ca2",
+    "frame_setup_json_sha256": "e22d934315295cb2c5735088f04424faed11d5b6b84a6a5ad49449fbfd62a934"
+  },
+  "post_run": {
+    "owned_children_remaining": 0,
+    "termux_properties_restored": true,
+    "steam_pid": 15575,
+    "steam_start_ticks": 128118834,
+    "x11_pid": 13643,
+    "x11_start_ticks": 121863492,
+    "protected_processes_unchanged": true
+  },
+  "diagnosis": "Android scheduling was not a minor fourth-order issue after E134; it multiplied both translated game throughput and Bionic bridge throughput. Foreground placement reduced final-window socket waiting from 126.1 to 69.0 ms per present, descriptor-ring waiting from 116.6 to 12.2 ms, and descriptor-worker mean time from 74.3 to 19.9 microseconds. Average FPS rose from 2.2 to 7.0 without changing the bridge binary.",
+  "recommendation": "Make the Activity-owned RunCommand launch and foreground lifetime a hardened default for BVB games. Reduce the visible X11 foreground surface without losing top-app placement. The next measured bridge bottleneck is semaphore wait plus shared stream/Submit2 at 59.4 ms per present; descriptor-ring waiting is now 12.2 ms and WSI is 1.54 ms.",
+  "claim_boundary": "The clean 7.0-FPS result and the excluded 7.1-FPS activation pass agree, proving a target-specific scheduling gain. The clean run is one pass rather than an alternating cooled series, and the small foreground window is a temporary usability compromise, not the final architecture.",
+  "reuse": "The exact E135 deja query returned no indexed implementation. The launch reused the repository's guarded RunCommandService property restoration, top-app validation, CPU-topology/affinity guard, paired-ADB Activity handoff, Wait-only ANR handling, and protected Steam/X identity checks."
+}

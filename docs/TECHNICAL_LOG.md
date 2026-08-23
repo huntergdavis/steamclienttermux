@@ -8316,3 +8316,37 @@ bridge code, while the next bridge transport design should target submission
 completion and the remaining descriptor misses—not WSI or more API breadth.
 Exact results, profiles, screenshots, hashes, and claim boundaries are in
 `docs/evidence/tombraider-bvb-e134-zero-speculation-profile-20260822.json`.
+
+## 2026-08-22: E135 foreground scheduling raises BVB from 2.2 to 7.0 FPS
+
+E135 changed no bridge binary, Vulkan policy, Proton build, Steam process,
+resolution, or graphics setting. It changed only Android launch lineage and
+foreground lifetime. A harmless RunCommandService child first proved parent
+Termux Activity PID 11485, CPUs 0-7, and both CPU controllers at `/top-app`.
+The guarded launch then started the BVB controller through that lineage and
+restored `termux.properties` byte-for-byte as soon as the exact controller was
+verified. A small shared-UID Termux:X11 freeform window remained above the BVB
+surface, keeping the controller, service, and game foregrounded.
+
+The activation pass rendered a visually inspected Lara frame and scored
+3.1/12.1/**7.1 FPS**, but is excluded because a screenshot ran during its
+scene. A cooled clean repeat started at 39.3 C, performed no mid-scene capture
+or window operation, completed 6/6/6-equivalent multi-core startup, attached
+the affinity guard to 39 game threads on CPUs 1-7, and produced a new
+game-authored **3.6 minimum, 13.9 maximum, and 7.0 average FPS** result. The
+two averages agree within 1.4%.
+
+The clean gain over E134 is **218.2%** and average frame time falls from 454.5
+to 142.9 ms. Foreground placement accelerates the bridge as well as the game:
+final-window socket waiting falls from 126.1 to 69.0 ms per present,
+descriptor-ring waiting from 116.6 to 12.2 ms, and descriptor-worker mean time
+from 74.3 to 19.9 microseconds. WSI remains only 1.54 ms. The now-dominant
+measured bridge boundary is semaphore wait plus stream/ordinary Submit2 at
+about 59.4 ms per present.
+
+This proves the earlier `/background`/`/moderate` placement was a major cause,
+not a footnote. The temporary X11 foreground window is not the desired user
+experience, so the launcher must be hardened and the visible foreground
+surface minimized without losing `/top-app`. Exact results, placement proof,
+profiles, screenshot, property restoration, hashes, and caveats are retained
+in `docs/evidence/tombraider-bvb-e135-top-app-profile-20260822.json`.
