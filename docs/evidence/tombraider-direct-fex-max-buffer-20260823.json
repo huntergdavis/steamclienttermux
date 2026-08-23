@@ -101,6 +101,14 @@
     "control": "TOMB_RAIDER_FEX_CODE_CACHE=off",
     "reason": "The candidate won all three same-position recorded average-FPS comparisons and improved the mean by 3.03%. The minimum-FPS mean regressed 3.87%, so this remains separately reversible and must be rechecked after future translator changes."
   },
+  "deployment": {
+    "source_commit": "6aea0fa8a29cda615fa4ca6afe46d85ac720f174",
+    "installed_launcher": "$HOME/start-tombraider-direct-dispatch",
+    "installed_launcher_sha256": "68f7a401a1ee706e8ec5787fcedbe66f7939dbdc4f566f497104535bd994ddf8",
+    "rollback_directory": "$HOME/steam-arm64/backups/pre-6aea0fa-fex-max-buffer",
+    "rollback_launcher_sha256": "7b3c717ca32a93a08e0f6e9654b19be81d8d3ecb8927317f4a5af4c0be3ad50c",
+    "scope": "Only the Tomb Raider direct launcher was atomically replaced after exact candidate/current hash validation. The broad installer was not run."
+  },
   "preservation": {
     "steam_pid": 15575,
     "steam_start_ticks": 128118834,

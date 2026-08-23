@@ -8718,3 +8718,12 @@ control. Steam PID 15575/start tick 128118834 and Termux:X11 PID 13643/start
 tick 121863492 survived both series unchanged. Full raw series and artifact
 identity are retained in
 `docs/evidence/tombraider-direct-fex-max-buffer-20260823.json`.
+
+After the repository checks passed and commit `6aea0fa` reached
+`origin/main`, only the exact launcher was promoted on the tablet. Its
+installed SHA-256 is
+`68f7a401a1ee706e8ec5787fcedbe66f7939dbdc4f566f497104535bd994ddf8`;
+the previous exact file is retained under
+`~/steam-arm64/backups/pre-6aea0fa-fex-max-buffer`. The broad installer was
+not used. Steam/X11 identities and the Termux properties hash remained
+unchanged after the atomic replacement.
