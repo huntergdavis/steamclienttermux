@@ -930,11 +930,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--backend", choices=("proot", "direct"), default="proot")
     parser.add_argument(
         "--fex-code-cache",
-        choices=("off", "on"),
+        choices=("off", "on", "compiled"),
         default="off",
         help=(
-            "enable the final-game-only FEX 128 MiB JIT buffer and code-map "
-            "recording mode"
+            "select the final-game-only FEX code-map mode or the validated "
+            "offline-compiled cache"
         ),
     )
     parser.add_argument(

@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "date": "2026-08-23",
+  "goal": "Prepare, compile, validate, and select an exact-version FEX-2605 offline cache without modifying the accepted Tomb Raider cache",
+  "source_base_commit": "e0e058f",
+  "accepted_baseline": {
+    "resolution": "2800x1752",
+    "graphics": "Low",
+    "refresh_hz": 59.97,
+    "average_fps": 34.0
+  },
+  "fixed_identity": {
+    "fex_commit": "a04b0241c2fe3911729842205cd8643981108aad",
+    "cache_format_version": 1,
+    "compiler_sha256": "fff9bd81049d250eb26554887b3b3df7db9d934e3969023101c887b655bc7644",
+    "candidate_name": "tombraider-203160-offline-fff9bd81"
+  },
+  "implementation": {
+    "prepare_tool": {
+      "path": "scripts/prepare-tombraider-fex-offline-cache.py",
+      "sha256": "4f07231b261e580fa644c6cb3a1f7cb03f4fb57888beab59140d3047fcddb7a9"
+    },
+    "compile_wrapper": {
+      "path": "scripts/start-tombraider-fex-offline-compile.sh",
+      "sha256": "79bfec544ca1dfe306436304831acb27e6e434a3e87c6c465726dce66cc58018"
+    },
+    "benchmark_wrapper": {
+      "path": "scripts/test-tomb-raider-direct-fex-offline-compiled-40c-ceiling.sh",
+      "sha256": "7120c69b88b1e6bc4cadc5415888752924949ee7c453973d8cbfd67357495cb6"
+    },
+    "dispatcher": {
+      "path": "scripts/pressure-vessel-direct-dispatch.py",
+      "sha256": "b8479a03a8ddbe2d62fcabc32d801f6cb8d813627920c6e0bb8022c5c842fec2"
+    }
+  },
+  "safety": {
+    "original_code_maps_modified": false,
+    "candidate_creation": "private and no-clobber",
+    "compiler_identity_required": true,
+    "cache_header_identity_required": true,
+    "result_manifest_required_before_game_selection": true,
+    "compiled_selector_scope": "final Tomb Raider Wine/FEX process only"
+  },
+  "host_validation": [
+    "prepare copies and hashes only Tomb Raider code maps",
+    "duplicate candidate preparation is rejected",
+    "original map hashes remain unchanged",
+    "format/version/FEX-hash/block-count cache headers are validated",
+    "compiled selector rejects incomplete or unverified roots",
+    "compiler mode uses Proton waitforexitandrun plus process-all",
+    "cooled benchmark wrapper selects Safe/full/compiled/40C",
+    "focused Python and shell tests pass"
+  ],
+  "recall": {
+    "query": "FEXOfflineCompiler process-all Proton direct dispatcher isolated code map cache Tomb Raider",
+    "result": "no indexed implementation",
+    "reused": [
+      "final-game environment containment",
+      "cooled native-resolution benchmark protocol",
+      "private no-clobber and rollback discipline"
+    ]
+  },
+  "claim_boundary": {
+    "host_pipeline_ready": true,
+    "tablet_compiler_run": false,
+    "runtime_cache_load_proven": false,
+    "benchmark_run": false,
+    "performance_improvement_claimed": false
+  },
+  "next_gate": "Stage exact artifacts, run process-all once in the isolated tablet root, verify emitted cache identity and runtime loading, then execute the cooled native-resolution A/B series."
+}

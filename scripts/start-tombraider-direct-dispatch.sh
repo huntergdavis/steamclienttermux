@@ -39,7 +39,8 @@ fail() {
 }
 
 [[ $mode == proton-entry-smoke || $mode == proton-cmd-smoke ||
-    $mode == proton-arm64-cmd-smoke || $mode == tombraider ||
+    $mode == proton-arm64-cmd-smoke || $mode == fex-offline-compile ||
+    $mode == tombraider ||
     $mode == tombraider-benchmark || $mode == tombraider-diagnostic ]] ||
     fail "unsupported direct-dispatch mode: $mode"
 [[ $diagnostics == 0 || $diagnostics == 1 ]] ||
@@ -55,8 +56,9 @@ fail() {
     fail 'TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC must be 0 or 1'
 [[ $raknet_recv_sleep_us == 0 || $raknet_recv_sleep_us == 1000 ]] ||
     fail 'TOMB_RAIDER_RAKNET_RECV_SLEEP_US must be 0 or 1000'
-[[ $fex_code_cache == off || $fex_code_cache == on ]] ||
-    fail 'TOMB_RAIDER_FEX_CODE_CACHE must be off or on'
+[[ $fex_code_cache == off || $fex_code_cache == on ||
+    $fex_code_cache == compiled ]] ||
+    fail 'TOMB_RAIDER_FEX_CODE_CACHE must be off, on, or compiled'
 [[ $fex_smc_checks == mtrack || $fex_smc_checks == none ]] ||
     fail 'TOMB_RAIDER_FEX_SMC_CHECKS must be mtrack or none'
 [[ $dxvk_relaxed_graphics_barriers == off ||

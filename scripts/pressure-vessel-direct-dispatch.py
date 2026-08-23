@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import array
 import fcntl
+import hashlib
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -45,6 +46,10 @@ BIND_OPTIONS = {
     "--ro-bind",
     "--ro-bind-try",
 }
+FEX_2605_OFFLINE_COMPILER_SHA256 = (
+    "fff9bd81049d250eb26554887b3b3df7db9d934e3969023101c887b655bc7644"
+)
+FEX_OFFLINE_CACHE_NAME = "tombraider-203160-offline-fff9bd81"
 
 
 class DispatchError(RuntimeError):
@@ -209,19 +214,22 @@ def apply_fex_code_cache(
     environment: dict[str, str], base: Path, command_mode: str
 ) -> None:
     selector = os.environ.get("STEAM_ARM64_DIRECT_FEX_CODE_CACHE", "off")
-    if selector not in ("off", "on"):
-        fail("STEAM_ARM64_DIRECT_FEX_CODE_CACHE must be off or on")
+    if selector not in ("off", "on", "compiled"):
+        fail("STEAM_ARM64_DIRECT_FEX_CODE_CACHE must be off, on, or compiled")
     environment.pop("FEX_ENABLECODECACHINGWIP", None)
     environment.pop("FEX_APP_CACHE_LOCATION", None)
     if selector == "off":
         return
     if command_mode not in ("tombraider", "tombraider-benchmark"):
         fail("FEX code cache is valid only for Tomb Raider")
-    cache = private_directory(
-        base / "cache/fex-code-cache/tombraider-203160",
-        "Tomb Raider FEX code cache",
-        create=True,
-    )
+    if selector == "compiled":
+        cache = validated_fex_compiled_cache(base)
+    else:
+        cache = private_directory(
+            base / "cache/fex-code-cache/tombraider-203160",
+            "Tomb Raider FEX code cache",
+            create=True,
+        )
     environment.update(
         {
             "FEX_ENABLECODECACHINGWIP": "1",
@@ -229,6 +237,119 @@ def apply_fex_code_cache(
             "FEX_APP_CACHE_LOCATION": f"{cache}/",
         }
     )
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def validated_fex_offline_root(base: Path, before_compile: bool) -> Path:
+    root = private_directory(
+        base / "cache/fex-code-cache" / FEX_OFFLINE_CACHE_NAME,
+        "Tomb Raider compiled FEX cache candidate",
+    )
+    new = private_directory(root / "codemap/new", "pending FEX code maps")
+    ready = private_directory(root / "codemap/ready", "aggregated FEX code maps")
+    cache = private_directory(root / "cache", "compiled FEX cache files")
+    new_files = sorted(new.iterdir())
+    ready_files = sorted(ready.iterdir())
+    cache_files = sorted(cache.iterdir())
+
+    def validate_files(paths: list[Path], description: str) -> None:
+        if len(paths) > 128:
+            fail(f"{description} contains too many files")
+        for path in paths:
+            metadata = path.lstat()
+            if (
+                not stat.S_ISREG(metadata.st_mode)
+                or path.is_symlink()
+                or metadata.st_uid != os.geteuid()
+                or metadata.st_mode & 0o022
+                or metadata.st_size <= 0
+                or metadata.st_size > 64 * 1024 * 1024
+            ):
+                fail(f"{description} contains an unsafe file: {path}")
+
+    validate_files(new_files, "pending FEX code maps")
+    validate_files(ready_files, "aggregated FEX code maps")
+    validate_files(cache_files, "compiled FEX cache files")
+    if before_compile:
+        if not 1 <= len(new_files) <= 128 or ready_files or cache_files:
+            fail("FEX offline candidate is not in its pristine pre-compile state")
+        for path in new_files:
+            if not re.fullmatch(
+                r"tombraider\.exe-[0-9a-f]{16}\.[0-9]+\.bin", path.name
+            ):
+                fail(f"pending FEX code map has an unexpected name: {path.name}")
+    elif new_files or not ready_files or not cache_files:
+        fail("FEX offline candidate has no complete compiled-cache result")
+    else:
+        expected_hash = bytes.fromhex(
+            "a04b0241c2fe3911729842205cd8643981108aad"
+        )
+        for path in cache_files:
+            with path.open("rb") as stream:
+                header = stream.read(32)
+            if len(header) != 32:
+                fail(f"compiled FEX cache has a truncated header: {path}")
+            magic, version, fex_hash, blocks = struct.unpack(
+                "<4sI20sI", header
+            )
+            if (
+                magic != b"FXCC"
+                or version != 1
+                or fex_hash != expected_hash
+                or blocks == 0
+            ):
+                fail(f"compiled FEX cache has an incompatible header: {path}")
+        result_path = root / "result.json"
+        try:
+            result_metadata = result_path.lstat()
+            result = json.loads(result_path.read_text(encoding="utf-8"))
+        except (FileNotFoundError, OSError, UnicodeError, json.JSONDecodeError) as error:
+            fail(f"compiled FEX cache result is unavailable: {error}")
+        if (
+            not stat.S_ISREG(result_metadata.st_mode)
+            or result_path.is_symlink()
+            or result_metadata.st_uid != os.geteuid()
+            or result_metadata.st_mode & 0o022
+            or result.get("status") != "verified"
+            or result.get("fex_commit")
+            != "a04b0241c2fe3911729842205cd8643981108aad"
+            or result.get("compiler_sha256")
+            != FEX_2605_OFFLINE_COMPILER_SHA256
+        ):
+            fail("compiled FEX cache result failed identity validation")
+    return root
+
+
+def validated_fex_offline_compiler(base: Path) -> Path:
+    compiler = (
+        base
+        / "compat-bin/fex-2605-offline-compiler/FEXOfflineCompiler.exe"
+    )
+    try:
+        metadata = compiler.lstat()
+    except FileNotFoundError:
+        fail(f"FEX offline compiler is unavailable: {compiler}")
+    if (
+        not stat.S_ISREG(metadata.st_mode)
+        or compiler.is_symlink()
+        or metadata.st_uid != os.geteuid()
+        or metadata.st_mode & 0o022
+        or not 1024 * 1024 <= metadata.st_size <= 16 * 1024 * 1024
+        or sha256_file(compiler) != FEX_2605_OFFLINE_COMPILER_SHA256
+    ):
+        fail(f"FEX offline compiler failed identity validation: {compiler}")
+    return compiler
+
+
+def validated_fex_compiled_cache(base: Path) -> Path:
+    return validated_fex_offline_root(base, before_compile=False)
 
 
 def apply_fex_smc_checks(
@@ -986,6 +1107,7 @@ def proton_smoke_environment(
     if command_mode in (
         "proton-cmd",
         "proton-arm64-cmd",
+        "fex-offline-compile",
         "tombraider",
         "tombraider-benchmark",
     ):
@@ -1250,6 +1372,7 @@ def pv_smoke_invocation(
     diagnostics: bool = False,
 ) -> tuple[Path, list[str], dict[str, str]]:
     final_path_prefix: Path | None = None
+    fex_offline_root: Path | None = None
     runtime_root, loader, runtime_libraries = selected_runtime(base)
     proc_net_shadow = validated_proc_net_shadow(base)
     proc_stat_shadow = validated_proc_stat_shadow(base)
@@ -1311,6 +1434,7 @@ def pv_smoke_invocation(
         "proton-entry",
         "proton-cmd",
         "proton-arm64-cmd",
+        "fex-offline-compile",
         "tombraider",
         "tombraider-benchmark",
     ):
@@ -1333,6 +1457,24 @@ def pv_smoke_invocation(
                 str(game),
                 "-nolauncher",
                 *(["-benchmark"] if benchmark else []),
+            ]
+            preserve_assignments = True
+        elif command_mode == "fex-offline-compile":
+            runtime_python = runtime_root / "usr/bin/python3"
+            validate_runtime_executable(
+                runtime_python, runtime_root, "Runtime Python"
+            )
+            validate_owned_executable(proton, "Proton entry point")
+            compiler = validated_fex_offline_compiler(base)
+            fex_offline_root = validated_fex_offline_root(
+                base, before_compile=True
+            )
+            command = [
+                str(runtime_python),
+                str(proton),
+                "waitforexitandrun",
+                str(compiler),
+                "process-all",
             ]
             preserve_assignments = True
         else:
@@ -1412,10 +1554,20 @@ def pv_smoke_invocation(
         "proton-entry",
         "proton-cmd",
         "proton-arm64-cmd",
+        "fex-offline-compile",
         "tombraider",
         "tombraider-benchmark",
     ):
         environment.update(proton_smoke_environment(command_mode, diagnostics))
+    if command_mode == "fex-offline-compile":
+        assert fex_offline_root is not None
+        apply_direct_fex_profile(environment, "safe")
+        environment.update(
+            {
+                "FEX_ENABLECODECACHINGWIP": "1",
+                "FEX_APP_CACHE_LOCATION": f"{fex_offline_root}/",
+            }
+        )
     if command_mode in ("tombraider", "tombraider-benchmark"):
         environment.update(
             direct_game_environment(base, runtime_root, diagnostics)
@@ -1552,6 +1704,19 @@ def run_proton_arm64_cmd_smoke(
     )
 
 
+def run_fex_offline_compile(
+    base: Path,
+    payload: dict[str, object],
+    descriptors: list[int],
+) -> tuple[int, int]:
+    loader, arguments, environment = pv_smoke_invocation(
+        base, payload, "fex-offline-compile"
+    )
+    return run_loader_child(
+        loader, arguments, environment, descriptors, payload["fd_numbers"]
+    )
+
+
 def run_tombraider(
     base: Path,
     payload: dict[str, object],
@@ -1677,6 +1842,10 @@ def serve(base: Path, mode: str) -> int:
                     status, observed_tracer = run_proton_arm64_cmd_smoke(
                         base, payload, descriptors
                     )
+                elif mode == "fex-offline-compile":
+                    status, observed_tracer = run_fex_offline_compile(
+                        base, payload, descriptors
+                    )
                 elif mode == "tombraider":
                     status, observed_tracer = run_tombraider(
                         base, payload, descriptors
@@ -1772,6 +1941,7 @@ def main() -> int:
                     "proton-entry-smoke",
                     "proton-cmd-smoke",
                     "proton-arm64-cmd-smoke",
+                    "fex-offline-compile",
                     "tombraider",
                     "tombraider-benchmark",
                     "tombraider-diagnostic",

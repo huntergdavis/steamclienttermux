@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 
 import importlib.util
+import json
 import os
 from pathlib import Path
 import stat
+import struct
 import subprocess
 import tempfile
 from unittest import mock
@@ -60,13 +62,65 @@ def main() -> None:
         assert metadata.st_uid == os.geteuid()
         assert metadata.st_mode & 0o077 == 0
 
+        compiled = (
+            base
+            / "cache/fex-code-cache/tombraider-203160-offline-fff9bd81"
+        )
+        compiled.mkdir(mode=0o700, parents=True)
+        (compiled / "codemap/new").mkdir(mode=0o700, parents=True)
+        (compiled / "codemap/ready").mkdir(mode=0o700)
+        (compiled / "cache").mkdir(mode=0o700)
+        ready = compiled / "codemap/ready/tombraider.exe-4cb3720654f045ff"
+        ready.write_bytes(b"ready")
+        ready.chmod(0o600)
+        cache_file = (
+            compiled
+            / "cache/tombraider.exe-4cb3720654f045ff-0000000000000000"
+        )
+        cache_file.write_bytes(
+            struct.pack(
+                "<4sI20sI",
+                b"FXCC",
+                1,
+                bytes.fromhex("a04b0241c2fe3911729842205cd8643981108aad"),
+                7,
+            )
+            + b"code"
+        )
+        cache_file.chmod(0o600)
+        result = compiled / "result.json"
+        result.write_text(
+            json.dumps(
+                {
+                    "status": "verified",
+                    "fex_commit": "a04b0241c2fe3911729842205cd8643981108aad",
+                    "compiler_sha256": module.FEX_2605_OFFLINE_COMPILER_SHA256,
+                }
+            ),
+            encoding="utf-8",
+        )
+        result.chmod(0o600)
+        compiled_environment = {}
+        with mock.patch.dict(
+            os.environ,
+            {"STEAM_ARM64_DIRECT_FEX_CODE_CACHE": "compiled"},
+            clear=True,
+        ):
+            module.apply_fex_code_cache(
+                compiled_environment, base, "tombraider-benchmark"
+            )
+        assert compiled_environment == {
+            "FEX_ENABLECODECACHINGWIP": "1",
+            "FEX_APP_CACHE_LOCATION": f"{compiled}/",
+        }
+
         with mock.patch.dict(
             os.environ, {"STEAM_ARM64_DIRECT_FEX_CODE_CACHE": "invalid"}, clear=True
         ):
             try:
                 module.apply_fex_code_cache({}, base, "tombraider-benchmark")
             except module.DispatchError as error:
-                assert "must be off or on" in str(error)
+                assert "must be off, on, or compiled" in str(error)
             else:
                 raise AssertionError("invalid FEX code-cache selector was accepted")
 
@@ -95,6 +149,7 @@ def main() -> None:
 
     launcher_source = LAUNCHER.read_text(encoding="utf-8")
     assert "fex_code_cache=${TOMB_RAIDER_FEX_CODE_CACHE:-on}" in launcher_source
+    assert "$fex_code_cache == compiled" in launcher_source
     assert '"STEAM_ARM64_DIRECT_FEX_CODE_CACHE=$fex_code_cache"' in launcher_source
     assert launcher_source.count("-u FEX_ENABLECODECACHINGWIP") == 2
     assert launcher_source.count("-u FEX_APP_CACHE_LOCATION") == 2
@@ -109,10 +164,11 @@ def main() -> None:
         check=False,
     )
     assert rejected.returncode == 1
-    assert "TOMB_RAIDER_FEX_CODE_CACHE must be off or on" in rejected.stderr
+    assert "TOMB_RAIDER_FEX_CODE_CACHE must be off, on, or compiled" in rejected.stderr
 
     runner_source = RUNNER.read_text(encoding="utf-8")
     assert '"--fex-code-cache"' in runner_source
+    assert 'choices=("off", "on", "compiled")' in runner_source
     assert '"fex_code_cache": arguments.fex_code_cache' in runner_source
     wrapper_source = WRAPPER.read_text(encoding="utf-8")
     assert "TOMB_RAIDER_BENCHMARK_COMMAND" in wrapper_source

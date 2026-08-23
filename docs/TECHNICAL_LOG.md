@@ -8887,3 +8887,34 @@ discipline. Primary references are the
 [FEX-2607 release](https://github.com/FEX-Emu/FEX/releases/tag/FEX-2607),
 [FEX source](https://github.com/FEX-Emu/FEX), and
 [FEX PPA build repository](https://github.com/FEX-Emu/FEX-ppa).
+
+## 2026-08-23: isolate and validate the offline-compiled FEX cache
+
+The version-matched compiler now has a fail-closed execution path. The new
+preparation tool copies only the retained Tomb Raider code maps into a private,
+no-clobber candidate root; it never consumes or modifies the accepted 34.0-FPS
+cache. The direct dispatcher validates the compiler's exact SHA-256, executes
+its `process-all` command through the same Proton/FEX payload used by the game,
+and confines the operation to that candidate root.
+
+The post-compile verifier requires an empty pending directory, non-empty ready
+maps and compiled files, cache format version 1, the exact embedded FEX-2605
+Git hash, and a nonzero block count. It then writes one exclusive result
+manifest. The final-game selector accepts `compiled` only after repeating
+those checks; malformed, mixed-version, writable, foreign-owner, incomplete,
+or already-used candidates fail before game launch. The cooled benchmark
+wrapper keeps the established Safe profile, full startup topology, native
+2800x1752 resolution, and 40 C start ceiling.
+
+Host contracts pass for prepare, duplicate rejection, source-map preservation,
+cache-header rejection/acceptance, final selector containment, dispatcher
+mode selection, benchmark parsing, and shell syntax. This remains a host gate:
+the compiler has not yet run on the tablet, the installed runtime has not
+loaded the resulting files, and 34.0 FPS remains the accepted result.
+
+The required `deja` query for a prior FEX offline-cache pipeline returned no
+indexed implementation. This gate reuses the final-game environment
+containment, cooled native-resolution benchmark protocol, and private
+no-clobber/rollback discipline established by earlier Tomb Raider work.
+Structured host evidence is retained in
+`docs/evidence/tombraider-fex-offline-cache-pipeline-host-20260823.json`.

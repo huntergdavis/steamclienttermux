@@ -472,6 +472,9 @@ def main() -> None:
         assert MODULE.proton_smoke_environment("proton-arm64-cmd") == {
             "WINEDEBUG": "-all"
         }
+        assert MODULE.proton_smoke_environment("fex-offline-compile") == {
+            "WINEDEBUG": "-all"
+        }
         assert MODULE.proton_smoke_environment("tombraider") == {
             "WINEDEBUG": "-all"
         }
