@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-23",
+  "game": "Tomb Raider (2013)",
+  "appid": 203160,
+  "stack": "native glibc Steam host; direct Runtime 4/Proton game execution",
+  "target": {
+    "resolution": "2800x1752",
+    "graphics": "Low",
+    "vsync": "off",
+    "motion_blur": "off",
+    "fex_profile": "safe",
+    "raknet_empty_receive_backoff_us": 1000
+  },
+  "candidate": {
+    "source_commit": "5a112a1",
+    "wrapper_commit": "fb3147f",
+    "thread_name": "IPC:CServiceEng",
+    "steam_pid": 15575,
+    "steam_start_ticks": 128118834,
+    "thread_id": 15688,
+    "original_cpu_mask": "0-3",
+    "experimental_cpu_mask": "0",
+    "restored_cpu_mask": "0-3",
+    "priority_changed": false
+  },
+  "game_authored_result": {
+    "minimum_fps": 15.4,
+    "maximum_fps": 44.4,
+    "average_fps": 33.7,
+    "elapsed_seconds": 151.304,
+    "accepted_as_promoted_baseline": false,
+    "exclusion_reason": "A 10-second live /proc profiler ran during the timed scene."
+  },
+  "thermal": {
+    "start_max_millidegrees_c": 37000,
+    "profile_max_millidegrees_c": 84100,
+    "end_max_millidegrees_c": 75900,
+    "profile_cpu_policy_throttled": true,
+    "profile_gpu_thermal_pwrlevel": 0
+  },
+  "profile": {
+    "sample_seconds": 10.0,
+    "raw_sha256": "f4f8a5e3d51aa5e0a4544ddaa74bc03c6243977d510f6c2d10441b7cc4e021c1",
+    "tomb_raider_cpu_percent": 210.0,
+    "steam_process_cpu_percent": 85.9,
+    "x11_process_cpu_percent": 51.2,
+    "wineserver_cpu_percent": 44.9,
+    "raknet_recvfrom_cpu_percent": 3.2,
+    "steam_csteamengine_thread_cpu_percent": 48.3,
+    "steam_csteamengine_thread_cpu_mask": "0-3",
+    "interpretation": "The targeted CServiceEng thread remained pinned to CPU0 but a distinct IPC:CSteamEngin thread became Steam's leading sampled thread. This diagnostic does not prove a total-CPU or FPS gain."
+  },
+  "artifacts": {
+    "tablet_series_path": "/data/data/com.termux/files/home/steam-arm64/logs/tombraider-benchmarks/20260823T134813Z-safe/series.json",
+    "tablet_series_sha256": "1968a62728f89ad75af69badc123d436541ec13279ded7140742ba2925bdaee5",
+    "benchmark_result_sha256": "ee7f3be76d6b66a33792008053b4b11f4d946cf0f71670f134cd95cc167e38c0",
+    "isolation_log_sha256": "80c92e6052f052be612c2f35188ccc780c1e8101f23bd06d46f8e1791a68a021"
+  },
+  "preservation": {
+    "steam_identity_unchanged": true,
+    "x11_pid": 13643,
+    "x11_start_ticks": 121863492,
+    "x11_identity_unchanged": true,
+    "termux_properties_sha256_after": "89094537f49531dc9b380a0dec3a441b2fb92577e0a4f1db505790eb8b7025b0",
+    "service_mask_restored": true
+  },
+  "decision": "Feasibility passed. Run a profiler-free cooled ABBA series before promotion or rejection.",
+  "reuse": "The exact deja query returned no indexed implementation. The candidate reuses the existing CEF holder's exact Steam/game identity, bounded sidecar lifecycle, signal cleanup, and restore-validation contract, plus the hardened RunCommandService foreground/property guard."
+}

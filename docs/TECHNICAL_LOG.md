@@ -8573,3 +8573,23 @@ FPS improvement, or promotion is claimed yet. The required exact `deja` query
 returned no indexed implementation. This gate reuses the existing CEF holder's
 exact Steam/game identity, bounded sidecar lifecycle, signal cleanup, and
 restore-validation contract.
+
+### Excluded tablet feasibility result
+
+The hardened Android foreground controller started the argument-free wrapper
+at 37 C and restored `termux.properties` before the game. The holder moved the
+exact Steam TID 15688 from CPUs0-3 to CPU0, Tomb Raider completed normally,
+and the holder restored CPUs0-3. Steam PID/start tick 15575/128118834 and X11
+13643/121863492 survived unchanged. The game-authored result was **15.4
+minimum, 44.4 maximum, and 33.7 average FPS**.
+
+That number is encouraging but excluded: a 10-second live profiler ran during
+the scene, the sampled CPU sensors reached 84.1 C, and CPU frequency policy was
+already thermally capped. The diagnostic still provided useful ordering.
+Tomb Raider used 210.0% CPU, Steam 85.9%, X11 51.2%, and wineserver 44.9%.
+The targeted thread remained on CPU0, but a distinct `IPC:CSteamEngin` thread
+became Steam's leading sampled thread at 48.3% on CPUs0-3. RakNet remained at
+3.2%. This proves feasibility and a new follow-up target, not causality or an
+FPS gain. Exact hashes, paths, placement, and preservation evidence are in
+`docs/evidence/tombraider-direct-steam-service-cpu0-excluded-20260823.json`.
+The next acceptance gate is the profiler-free cooled ABBA series.
