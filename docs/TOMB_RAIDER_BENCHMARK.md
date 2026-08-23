@@ -1219,3 +1219,29 @@ PulseAudio, authentication, topology patch, and disabled property survived.
 The exact artifact is
 [`tombraider-direct-glibc-safe-topology-fix-reverse-control-60hz-40c-20260818.json`](benchmark-series/tombraider-direct-glibc-safe-topology-fix-reverse-control-60hz-40c-20260818.json),
 SHA-256 `40052514627a9eda68ef0fe93c8364d12073c7cb211b3a2abe47e65d45bf3103`.
+
+## FEX maximal-buffer/code-map promotion (2026-08-23)
+
+The Tomb Raider-only FEX WIP-cache switch completed a corrected candidate and
+an immediate reverse control without restarting Steam or Termux:X11. Both used
+the direct Safe path, full topology guard, 2800x1752 Low, 59.97 Hz, V-Sync and
+motion blur off, the promoted 1 ms RakNet empty-receive backoff, one excluded
+warm-up, three cooled recorded passes, and the fixed 40 C start ceiling.
+
+| Condition | Recorded minimum FPS | Recorded maximum FPS | Recorded average FPS | Mean min/max/avg |
+| --- | --- | --- | --- | --- |
+| 128 MiB JIT buffer/code maps | 26.9 / 25.4 / 9.7 | 45.7 / 47.0 / 46.6 | 35.3 / 34.6 / 32.1 | **20.667 / 46.433 / 34.000** |
+| immediate reverse control | 23.3 / 23.2 / 18.0 | 45.3 / 47.1 / 48.0 | 33.3 / 33.8 / 31.9 | **21.500 / 46.800 / 33.000** |
+
+The candidate's average-FPS mean improves 1.0 FPS / 3.03%, and each
+same-position delta is positive (+2.0/+0.8/+0.2 FPS). Its minimum-FPS mean
+falls 0.833 FPS / 3.87%, so the result is an accepted throughput improvement
+with an explicit pacing caveat—not a universal win.
+
+Upstream FEX source explains the mechanism: the enabled path starts with a
+128 MiB code buffer rather than the ordinary 16 MiB initial buffer. The
+installed Proton payload writes code maps but lacks `FEXOfflineCompiler` and
+produced no loadable cache file. The promoted claim is therefore maximal JIT
+buffer plus code-map recording. The full raw artifacts are
+[`candidate`](benchmark-series/tombraider-direct-glibc-safe-fex-max-buffer-60hz-40c-20260823.json)
+and [`reverse control`](benchmark-series/tombraider-direct-glibc-safe-fex-max-buffer-reverse-control-60hz-40c-20260823.json).

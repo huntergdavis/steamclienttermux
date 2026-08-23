@@ -1,0 +1,1106 @@
+{
+  "active_pass": null,
+  "aggregate": {
+    "average_fps": {
+      "mean": 33.0,
+      "median": 33.3,
+      "values": [
+        33.3,
+        33.8,
+        31.9
+      ]
+    },
+    "maximum_fps": {
+      "mean": 46.8,
+      "median": 47.1,
+      "values": [
+        45.3,
+        47.1,
+        48.0
+      ]
+    },
+    "minimum_fps": {
+      "mean": 21.5,
+      "median": 23.2,
+      "values": [
+        23.3,
+        23.2,
+        18.0
+      ]
+    }
+  },
+  "appid": 203160,
+  "direct_game_fex_profile": "safe",
+  "display": {
+    "active_refresh_hz": [
+      59.97
+    ],
+    "geometry": "2800x1752"
+  },
+  "finished_at": "2026-08-23T15:56:12.793276+00:00",
+  "game": "Tomb Raider (2013)",
+  "method": "Game command-line -benchmark mode; no profiler, capture, or window switch runs during the timed scene",
+  "phase": "complete",
+  "phase_updated_at": "2026-08-23T15:56:12.793363+00:00",
+  "runs": [
+    {
+      "accepted_post_result_exit": null,
+      "after": {
+        "captured_at": "2026-08-23T15:43:59.082995+00:00",
+        "cpu": [
+          {
+            "cpu": 0,
+            "current_khz": 1363200,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1363200
+          },
+          {
+            "cpu": 1,
+            "current_khz": 1363200,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1363200
+          },
+          {
+            "cpu": 2,
+            "current_khz": 1363200,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1363200
+          },
+          {
+            "cpu": 3,
+            "current_khz": 1363200,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1363200
+          },
+          {
+            "cpu": 4,
+            "current_khz": 1209600,
+            "hardware_max_khz": 2496000,
+            "policy_max_khz": 1209600
+          },
+          {
+            "cpu": 5,
+            "current_khz": 1209600,
+            "hardware_max_khz": 2496000,
+            "policy_max_khz": 1209600
+          },
+          {
+            "cpu": 6,
+            "current_khz": 1209600,
+            "hardware_max_khz": 2496000,
+            "policy_max_khz": 1209600
+          },
+          {
+            "cpu": 7,
+            "current_khz": 806400,
+            "hardware_max_khz": 2995200,
+            "policy_max_khz": 1497600
+          }
+        ],
+        "gpu": {
+          "available_frequencies_hz": "818000000 791000000 734000000 640000000 599000000 545000000 492000000 421000000 350000000 317000000 285000000 220000000 124800000",
+          "busy_percent": "0 %",
+          "current_hz": 285000000,
+          "hardware_max_hz": 818000000,
+          "policy_max_hz": 492000000,
+          "thermal_pwrlevel": 6
+        },
+        "memory": {
+          "MemAvailable_kib": 2433564,
+          "SwapFree_kib": 4547160,
+          "SwapTotal_kib": 8388604
+        },
+        "thermal": [
+          {
+            "millidegrees_c": 70800,
+            "zone": "cpu-0-1"
+          },
+          {
+            "millidegrees_c": 70400,
+            "zone": "cpuss-1"
+          },
+          {
+            "millidegrees_c": 70100,
+            "zone": "cpu-0-2"
+          },
+          {
+            "millidegrees_c": 69800,
+            "zone": "cpuss-0"
+          },
+          {
+            "millidegrees_c": 69400,
+            "zone": "cpu-0-3"
+          },
+          {
+            "millidegrees_c": 68700,
+            "zone": "cpuss-2"
+          },
+          {
+            "millidegrees_c": 68400,
+            "zone": "cpu-1-5"
+          },
+          {
+            "millidegrees_c": 68000,
+            "zone": "cpu-0-0"
+          },
+          {
+            "millidegrees_c": 68000,
+            "zone": "cpuss-3"
+          },
+          {
+            "millidegrees_c": 67700,
+            "zone": "cpu-1-6"
+          },
+          {
+            "millidegrees_c": 67700,
+            "zone": "cpu-1-4"
+          },
+          {
+            "millidegrees_c": 67400,
+            "zone": "cpu-1-3"
+          }
+        ]
+      },
+      "before": {
+        "captured_at": "2026-08-23T15:41:48.679822+00:00",
+        "cpu": [
+          {
+            "cpu": 0,
+            "current_khz": 1075200,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1785600
+          },
+          {
+            "cpu": 1,
+            "current_khz": 1075200,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1785600
+          },
+          {
+            "cpu": 2,
+            "current_khz": 1075200,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1785600
+          },
+          {
+            "cpu": 3,
+            "current_khz": 1075200,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1785600
+          },
+          {
+            "cpu": 4,
+            "current_khz": 633600,
+            "hardware_max_khz": 2496000,
+            "policy_max_khz": 2496000
+          },
+          {
+            "cpu": 5,
+            "current_khz": 633600,
+            "hardware_max_khz": 2496000,
+            "policy_max_khz": 2496000
+          },
+          {
+            "cpu": 6,
+            "current_khz": 633600,
+            "hardware_max_khz": 2496000,
+            "policy_max_khz": 2496000
+          },
+          {
+            "cpu": 7,
+            "current_khz": 806400,
+            "hardware_max_khz": 2995200,
+            "policy_max_khz": 2995200
+          }
+        ],
+        "gpu": {
+          "available_frequencies_hz": "818000000 791000000 734000000 640000000 599000000 545000000 492000000 421000000 350000000 317000000 285000000 220000000 124800000",
+          "busy_percent": "0 %",
+          "current_hz": 285000000,
+          "hardware_max_hz": 818000000,
+          "policy_max_hz": 818000000,
+          "thermal_pwrlevel": 0
+        },
+        "memory": {
+          "MemAvailable_kib": 1374556,
+          "SwapFree_kib": 4756196,
+          "SwapTotal_kib": 8388604
+        },
+        "thermal": [
+          {
+            "millidegrees_c": 37000,
+            "zone": "pm8450_tz"
+          },
+          {
+            "millidegrees_c": 37000,
+            "zone": "pm8350c_tz"
+          },
+          {
+            "millidegrees_c": 33500,
+            "zone": "cpu-0-1"
+          },
+          {
+            "millidegrees_c": 33500,
+            "zone": "cpu-1-1"
+          },
+          {
+            "millidegrees_c": 33100,
+            "zone": "cpuss-1"
+          },
+          {
+            "millidegrees_c": 33100,
+            "zone": "cpu-0-3"
+          },
+          {
+            "millidegrees_c": 33100,
+            "zone": "cpuss-2"
+          },
+          {
+            "millidegrees_c": 33100,
+            "zone": "cpuss-0"
+          },
+          {
+            "millidegrees_c": 33100,
+            "zone": "cpu-0-2"
+          },
+          {
+            "millidegrees_c": 32500,
+            "zone": "cpu-1-5"
+          },
+          {
+            "millidegrees_c": 32500,
+            "zone": "cpu-1-0"
+          },
+          {
+            "millidegrees_c": 32500,
+            "zone": "cpu-1-6"
+          }
+        ]
+      },
+      "cooldown_seconds": 30.352,
+      "elapsed_seconds": 128.901,
+      "game_cpus": "1-7",
+      "kind": "warmup",
+      "launch_return_code": 0,
+      "metrics": {
+        "average_fps": 33.8,
+        "maximum_fps": 44.8,
+        "minimum_fps": 25.5
+      },
+      "number": 1,
+      "raknet_exclusive": false,
+      "source_affinity_log": "/data/data/com.termux/files/home/steam-arm64/logs/tombraider-direct-affinity-20260823T154150Z.log",
+      "source_result": "/data/data/com.termux/files/home/steam-arm64/removable-library/steamapps/common/Tomb Raider/benchmarkresults 2026-08-23 15-43-56.txt",
+      "steam_cef_hold": false,
+      "steam_cef_hold_pids": null,
+      "steam_service_isolation": false,
+      "steam_service_isolation_evidence": null,
+      "x11_isolation": false,
+      "x11_isolation_evidence": null
+    },
+    {
+      "accepted_post_result_exit": null,
+      "after": {
+        "captured_at": "2026-08-23T15:48:21.578032+00:00",
+        "cpu": [
+          {
+            "cpu": 0,
+            "current_khz": 1363200,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1363200
+          },
+          {
+            "cpu": 1,
+            "current_khz": 1363200,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1363200
+          },
+          {
+            "cpu": 2,
+            "current_khz": 1363200,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1363200
+          },
+          {
+            "cpu": 3,
+            "current_khz": 1363200,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1363200
+          },
+          {
+            "cpu": 4,
+            "current_khz": 633600,
+            "hardware_max_khz": 2496000,
+            "policy_max_khz": 1209600
+          },
+          {
+            "cpu": 5,
+            "current_khz": 633600,
+            "hardware_max_khz": 2496000,
+            "policy_max_khz": 1209600
+          },
+          {
+            "cpu": 6,
+            "current_khz": 633600,
+            "hardware_max_khz": 2496000,
+            "policy_max_khz": 1209600
+          },
+          {
+            "cpu": 7,
+            "current_khz": 1401600,
+            "hardware_max_khz": 2995200,
+            "policy_max_khz": 1497600
+          }
+        ],
+        "gpu": {
+          "available_frequencies_hz": "818000000 791000000 734000000 640000000 599000000 545000000 492000000 421000000 350000000 317000000 285000000 220000000 124800000",
+          "busy_percent": "0 %",
+          "current_hz": 492000000,
+          "hardware_max_hz": 818000000,
+          "policy_max_hz": 492000000,
+          "thermal_pwrlevel": 6
+        },
+        "memory": {
+          "MemAvailable_kib": 2300208,
+          "SwapFree_kib": 4418616,
+          "SwapTotal_kib": 8388604
+        },
+        "thermal": [
+          {
+            "millidegrees_c": 70100,
+            "zone": "cpuss-1"
+          },
+          {
+            "millidegrees_c": 69800,
+            "zone": "cpu-1-7"
+          },
+          {
+            "millidegrees_c": 69800,
+            "zone": "cpu-0-1"
+          },
+          {
+            "millidegrees_c": 69800,
+            "zone": "cpu-0-2"
+          },
+          {
+            "millidegrees_c": 69400,
+            "zone": "cpu-0-3"
+          },
+          {
+            "millidegrees_c": 69100,
+            "zone": "cpuss-0"
+          },
+          {
+            "millidegrees_c": 68700,
+            "zone": "cpu-1-5"
+          },
+          {
+            "millidegrees_c": 68400,
+            "zone": "cpuss-2"
+          },
+          {
+            "millidegrees_c": 68400,
+            "zone": "cpu-1-6"
+          },
+          {
+            "millidegrees_c": 68000,
+            "zone": "cpu-0-0"
+          },
+          {
+            "millidegrees_c": 68000,
+            "zone": "cpuss-3"
+          },
+          {
+            "millidegrees_c": 67700,
+            "zone": "cpu-1-3"
+          }
+        ]
+      },
+      "before": {
+        "captured_at": "2026-08-23T15:45:39.965947+00:00",
+        "cpu": [
+          {
+            "cpu": 0,
+            "current_khz": 614400,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1785600
+          },
+          {
+            "cpu": 1,
+            "current_khz": 614400,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1785600
+          },
+          {
+            "cpu": 2,
+            "current_khz": 614400,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1785600
+          },
+          {
+            "cpu": 3,
+            "current_khz": 614400,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1785600
+          },
+          {
+            "cpu": 4,
+            "current_khz": 633600,
+            "hardware_max_khz": 2496000,
+            "policy_max_khz": 2496000
+          },
+          {
+            "cpu": 5,
+            "current_khz": 633600,
+            "hardware_max_khz": 2496000,
+            "policy_max_khz": 2496000
+          },
+          {
+            "cpu": 6,
+            "current_khz": 633600,
+            "hardware_max_khz": 2496000,
+            "policy_max_khz": 2496000
+          },
+          {
+            "cpu": 7,
+            "current_khz": 806400,
+            "hardware_max_khz": 2995200,
+            "policy_max_khz": 2995200
+          }
+        ],
+        "gpu": {
+          "available_frequencies_hz": "818000000 791000000 734000000 640000000 599000000 545000000 492000000 421000000 350000000 317000000 285000000 220000000 124800000",
+          "busy_percent": "0 %",
+          "current_hz": 285000000,
+          "hardware_max_hz": 818000000,
+          "policy_max_hz": 818000000,
+          "thermal_pwrlevel": 0
+        },
+        "memory": {
+          "MemAvailable_kib": 2155560,
+          "SwapFree_kib": 4685400,
+          "SwapTotal_kib": 8388604
+        },
+        "thermal": [
+          {
+            "millidegrees_c": 37000,
+            "zone": "pm8450_tz"
+          },
+          {
+            "millidegrees_c": 37000,
+            "zone": "pm8350c_tz"
+          },
+          {
+            "millidegrees_c": 33800,
+            "zone": "cpu-1-1"
+          },
+          {
+            "millidegrees_c": 33500,
+            "zone": "cpuss-1"
+          },
+          {
+            "millidegrees_c": 33100,
+            "zone": "cpu-0-1"
+          },
+          {
+            "millidegrees_c": 33100,
+            "zone": "cpu-1-0"
+          },
+          {
+            "millidegrees_c": 33100,
+            "zone": "cpu-0-2"
+          },
+          {
+            "millidegrees_c": 32800,
+            "zone": "camera-1"
+          },
+          {
+            "millidegrees_c": 32800,
+            "zone": "cpuss-0"
+          },
+          {
+            "millidegrees_c": 32800,
+            "zone": "cpu-1-2"
+          },
+          {
+            "millidegrees_c": 32800,
+            "zone": "cpuss-3"
+          },
+          {
+            "millidegrees_c": 32500,
+            "zone": "cpu-1-7"
+          }
+        ]
+      },
+      "cooldown_seconds": 100.89,
+      "elapsed_seconds": 159.898,
+      "game_cpus": "1-7",
+      "kind": "recorded",
+      "launch_return_code": 0,
+      "metrics": {
+        "average_fps": 33.3,
+        "maximum_fps": 45.3,
+        "minimum_fps": 23.3
+      },
+      "number": 1,
+      "raknet_exclusive": false,
+      "source_affinity_log": "/data/data/com.termux/files/home/steam-arm64/logs/tombraider-direct-affinity-20260823T154541Z.log",
+      "source_result": "/data/data/com.termux/files/home/steam-arm64/removable-library/steamapps/common/Tomb Raider/benchmarkresults 2026-08-23 15-48-19.txt",
+      "steam_cef_hold": false,
+      "steam_cef_hold_pids": null,
+      "steam_service_isolation": false,
+      "steam_service_isolation_evidence": null,
+      "x11_isolation": false,
+      "x11_isolation_evidence": null
+    },
+    {
+      "accepted_post_result_exit": null,
+      "after": {
+        "captured_at": "2026-08-23T15:52:10.348915+00:00",
+        "cpu": [
+          {
+            "cpu": 0,
+            "current_khz": 1363200,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1363200
+          },
+          {
+            "cpu": 1,
+            "current_khz": 1363200,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1363200
+          },
+          {
+            "cpu": 2,
+            "current_khz": 1363200,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1363200
+          },
+          {
+            "cpu": 3,
+            "current_khz": 1363200,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1363200
+          },
+          {
+            "cpu": 4,
+            "current_khz": 633600,
+            "hardware_max_khz": 2496000,
+            "policy_max_khz": 1209600
+          },
+          {
+            "cpu": 5,
+            "current_khz": 633600,
+            "hardware_max_khz": 2496000,
+            "policy_max_khz": 1209600
+          },
+          {
+            "cpu": 6,
+            "current_khz": 633600,
+            "hardware_max_khz": 2496000,
+            "policy_max_khz": 1209600
+          },
+          {
+            "cpu": 7,
+            "current_khz": 1497600,
+            "hardware_max_khz": 2995200,
+            "policy_max_khz": 1497600
+          }
+        ],
+        "gpu": {
+          "available_frequencies_hz": "818000000 791000000 734000000 640000000 599000000 545000000 492000000 421000000 350000000 317000000 285000000 220000000 124800000",
+          "busy_percent": "0 %",
+          "current_hz": 492000000,
+          "hardware_max_hz": 818000000,
+          "policy_max_hz": 492000000,
+          "thermal_pwrlevel": 6
+        },
+        "memory": {
+          "MemAvailable_kib": 2510448,
+          "SwapFree_kib": 4474184,
+          "SwapTotal_kib": 8388604
+        },
+        "thermal": [
+          {
+            "millidegrees_c": 70100,
+            "zone": "cpu-1-7"
+          },
+          {
+            "millidegrees_c": 69800,
+            "zone": "cpuss-1"
+          },
+          {
+            "millidegrees_c": 69800,
+            "zone": "cpu-0-1"
+          },
+          {
+            "millidegrees_c": 69400,
+            "zone": "cpu-0-3"
+          },
+          {
+            "millidegrees_c": 69400,
+            "zone": "cpuss-0"
+          },
+          {
+            "millidegrees_c": 69400,
+            "zone": "cpu-0-2"
+          },
+          {
+            "millidegrees_c": 69100,
+            "zone": "cpuss-2"
+          },
+          {
+            "millidegrees_c": 68700,
+            "zone": "cpu-1-3"
+          },
+          {
+            "millidegrees_c": 68700,
+            "zone": "cpu-1-6"
+          },
+          {
+            "millidegrees_c": 68400,
+            "zone": "cpu-1-5"
+          },
+          {
+            "millidegrees_c": 67700,
+            "zone": "cpu-1-4"
+          },
+          {
+            "millidegrees_c": 67700,
+            "zone": "cpu-0-0"
+          }
+        ]
+      },
+      "before": {
+        "captured_at": "2026-08-23T15:50:02.453557+00:00",
+        "cpu": [
+          {
+            "cpu": 0,
+            "current_khz": 614400,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1785600
+          },
+          {
+            "cpu": 1,
+            "current_khz": 614400,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1785600
+          },
+          {
+            "cpu": 2,
+            "current_khz": 614400,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1785600
+          },
+          {
+            "cpu": 3,
+            "current_khz": 614400,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1785600
+          },
+          {
+            "cpu": 4,
+            "current_khz": 633600,
+            "hardware_max_khz": 2496000,
+            "policy_max_khz": 2496000
+          },
+          {
+            "cpu": 5,
+            "current_khz": 633600,
+            "hardware_max_khz": 2496000,
+            "policy_max_khz": 2496000
+          },
+          {
+            "cpu": 6,
+            "current_khz": 633600,
+            "hardware_max_khz": 2496000,
+            "policy_max_khz": 2496000
+          },
+          {
+            "cpu": 7,
+            "current_khz": 806400,
+            "hardware_max_khz": 2995200,
+            "policy_max_khz": 2995200
+          }
+        ],
+        "gpu": {
+          "available_frequencies_hz": "818000000 791000000 734000000 640000000 599000000 545000000 492000000 421000000 350000000 317000000 285000000 220000000 124800000",
+          "busy_percent": "0 %",
+          "current_hz": 285000000,
+          "hardware_max_hz": 818000000,
+          "policy_max_hz": 818000000,
+          "thermal_pwrlevel": 0
+        },
+        "memory": {
+          "MemAvailable_kib": 2104968,
+          "SwapFree_kib": 4467512,
+          "SwapTotal_kib": 8388604
+        },
+        "thermal": [
+          {
+            "millidegrees_c": 37000,
+            "zone": "pm8450_tz"
+          },
+          {
+            "millidegrees_c": 37000,
+            "zone": "pm8350c_tz"
+          },
+          {
+            "millidegrees_c": 33100,
+            "zone": "cpuss-1"
+          },
+          {
+            "millidegrees_c": 33100,
+            "zone": "cpu-0-1"
+          },
+          {
+            "millidegrees_c": 33100,
+            "zone": "cpu-1-3"
+          },
+          {
+            "millidegrees_c": 33100,
+            "zone": "cpuss-2"
+          },
+          {
+            "millidegrees_c": 33100,
+            "zone": "cpu-0-2"
+          },
+          {
+            "millidegrees_c": 33100,
+            "zone": "cpu-1-2"
+          },
+          {
+            "millidegrees_c": 32800,
+            "zone": "camera-1"
+          },
+          {
+            "millidegrees_c": 32800,
+            "zone": "cpuss-0"
+          },
+          {
+            "millidegrees_c": 32800,
+            "zone": "cpu-1-4"
+          },
+          {
+            "millidegrees_c": 32800,
+            "zone": "cpu-0-0"
+          }
+        ]
+      },
+      "cooldown_seconds": 100.895,
+      "elapsed_seconds": 126.139,
+      "game_cpus": "1-7",
+      "kind": "recorded",
+      "launch_return_code": 0,
+      "metrics": {
+        "average_fps": 33.8,
+        "maximum_fps": 47.1,
+        "minimum_fps": 23.2
+      },
+      "number": 2,
+      "raknet_exclusive": false,
+      "source_affinity_log": "/data/data/com.termux/files/home/steam-arm64/logs/tombraider-direct-affinity-20260823T155004Z.log",
+      "source_result": "/data/data/com.termux/files/home/steam-arm64/removable-library/steamapps/common/Tomb Raider/benchmarkresults 2026-08-23 15-52-08.txt",
+      "steam_cef_hold": false,
+      "steam_cef_hold_pids": null,
+      "steam_service_isolation": false,
+      "steam_service_isolation_evidence": null,
+      "x11_isolation": false,
+      "x11_isolation_evidence": null
+    },
+    {
+      "accepted_post_result_exit": null,
+      "after": {
+        "captured_at": "2026-08-23T15:56:12.712717+00:00",
+        "cpu": [
+          {
+            "cpu": 0,
+            "current_khz": 1363200,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1363200
+          },
+          {
+            "cpu": 1,
+            "current_khz": 1363200,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1363200
+          },
+          {
+            "cpu": 2,
+            "current_khz": 1363200,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1363200
+          },
+          {
+            "cpu": 3,
+            "current_khz": 1363200,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1363200
+          },
+          {
+            "cpu": 4,
+            "current_khz": 633600,
+            "hardware_max_khz": 2496000,
+            "policy_max_khz": 1324800
+          },
+          {
+            "cpu": 5,
+            "current_khz": 633600,
+            "hardware_max_khz": 2496000,
+            "policy_max_khz": 1324800
+          },
+          {
+            "cpu": 6,
+            "current_khz": 633600,
+            "hardware_max_khz": 2496000,
+            "policy_max_khz": 1324800
+          },
+          {
+            "cpu": 7,
+            "current_khz": 1612800,
+            "hardware_max_khz": 2995200,
+            "policy_max_khz": 1612800
+          }
+        ],
+        "gpu": {
+          "available_frequencies_hz": "818000000 791000000 734000000 640000000 599000000 545000000 492000000 421000000 350000000 317000000 285000000 220000000 124800000",
+          "busy_percent": "0 %",
+          "current_hz": 492000000,
+          "hardware_max_hz": 818000000,
+          "policy_max_hz": 492000000,
+          "thermal_pwrlevel": 6
+        },
+        "memory": {
+          "MemAvailable_kib": 2561524,
+          "SwapFree_kib": 4326488,
+          "SwapTotal_kib": 8388604
+        },
+        "thermal": [
+          {
+            "millidegrees_c": 66300,
+            "zone": "cpu-0-1"
+          },
+          {
+            "millidegrees_c": 65700,
+            "zone": "cpuss-1"
+          },
+          {
+            "millidegrees_c": 65300,
+            "zone": "cpu-1-7"
+          },
+          {
+            "millidegrees_c": 65300,
+            "zone": "cpu-0-3"
+          },
+          {
+            "millidegrees_c": 65300,
+            "zone": "cpu-0-2"
+          },
+          {
+            "millidegrees_c": 65000,
+            "zone": "cpu-1-5"
+          },
+          {
+            "millidegrees_c": 64600,
+            "zone": "cpuss-2"
+          },
+          {
+            "millidegrees_c": 64600,
+            "zone": "cpuss-0"
+          },
+          {
+            "millidegrees_c": 63600,
+            "zone": "cpu-1-4"
+          },
+          {
+            "millidegrees_c": 63600,
+            "zone": "cpu-0-0"
+          },
+          {
+            "millidegrees_c": 63600,
+            "zone": "cpuss-3"
+          },
+          {
+            "millidegrees_c": 63300,
+            "zone": "cpu-1-3"
+          }
+        ]
+      },
+      "before": {
+        "captured_at": "2026-08-23T15:54:01.314986+00:00",
+        "cpu": [
+          {
+            "cpu": 0,
+            "current_khz": 1785600,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1785600
+          },
+          {
+            "cpu": 1,
+            "current_khz": 1785600,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1785600
+          },
+          {
+            "cpu": 2,
+            "current_khz": 1785600,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1785600
+          },
+          {
+            "cpu": 3,
+            "current_khz": 1785600,
+            "hardware_max_khz": 1785600,
+            "policy_max_khz": 1785600
+          },
+          {
+            "cpu": 4,
+            "current_khz": 633600,
+            "hardware_max_khz": 2496000,
+            "policy_max_khz": 2496000
+          },
+          {
+            "cpu": 5,
+            "current_khz": 633600,
+            "hardware_max_khz": 2496000,
+            "policy_max_khz": 2496000
+          },
+          {
+            "cpu": 6,
+            "current_khz": 633600,
+            "hardware_max_khz": 2496000,
+            "policy_max_khz": 2496000
+          },
+          {
+            "cpu": 7,
+            "current_khz": 806400,
+            "hardware_max_khz": 2995200,
+            "policy_max_khz": 2995200
+          }
+        ],
+        "gpu": {
+          "available_frequencies_hz": "818000000 791000000 734000000 640000000 599000000 545000000 492000000 421000000 350000000 317000000 285000000 220000000 124800000",
+          "busy_percent": "0 %",
+          "current_hz": 285000000,
+          "hardware_max_hz": 818000000,
+          "policy_max_hz": 818000000,
+          "thermal_pwrlevel": 0
+        },
+        "memory": {
+          "MemAvailable_kib": 2078076,
+          "SwapFree_kib": 4407936,
+          "SwapTotal_kib": 8388604
+        },
+        "thermal": [
+          {
+            "millidegrees_c": 39600,
+            "zone": "cpu-0-2"
+          },
+          {
+            "millidegrees_c": 39300,
+            "zone": "cpu-0-1"
+          },
+          {
+            "millidegrees_c": 38300,
+            "zone": "cpuss-1"
+          },
+          {
+            "millidegrees_c": 37900,
+            "zone": "cpu-0-3"
+          },
+          {
+            "millidegrees_c": 37600,
+            "zone": "cpuss-0"
+          },
+          {
+            "millidegrees_c": 37200,
+            "zone": "cpu-1-5"
+          },
+          {
+            "millidegrees_c": 37200,
+            "zone": "cpuss-2"
+          },
+          {
+            "millidegrees_c": 37000,
+            "zone": "pm8450_tz"
+          },
+          {
+            "millidegrees_c": 37000,
+            "zone": "pm8350c_tz"
+          },
+          {
+            "millidegrees_c": 36900,
+            "zone": "cpu-1-3"
+          },
+          {
+            "millidegrees_c": 36900,
+            "zone": "cpu-0-0"
+          },
+          {
+            "millidegrees_c": 36900,
+            "zone": "video"
+          }
+        ]
+      },
+      "cooldown_seconds": 110.967,
+      "elapsed_seconds": 129.819,
+      "game_cpus": "1-7",
+      "kind": "recorded",
+      "launch_return_code": 0,
+      "metrics": {
+        "average_fps": 31.9,
+        "maximum_fps": 48.0,
+        "minimum_fps": 18.0
+      },
+      "number": 3,
+      "raknet_exclusive": false,
+      "source_affinity_log": "/data/data/com.termux/files/home/steam-arm64/logs/tombraider-direct-affinity-20260823T155403Z.log",
+      "source_result": "/data/data/com.termux/files/home/steam-arm64/removable-library/steamapps/common/Tomb Raider/benchmarkresults 2026-08-23 15-56-10.txt",
+      "steam_cef_hold": false,
+      "steam_cef_hold_pids": null,
+      "steam_service_isolation": false,
+      "steam_service_isolation_evidence": null,
+      "x11_isolation": false,
+      "x11_isolation_evidence": null
+    }
+  ],
+  "schema_version": 1,
+  "series_id": "20260823T154117Z-safe",
+  "stack": "native glibc Steam host; direct Runtime 4/Proton game execution",
+  "started_at": "2026-08-23T15:41:17.978120+00:00",
+  "status": "complete",
+  "steam_fex_profile": "safe",
+  "steam_pid": 15575,
+  "steam_reused": true,
+  "target": {
+    "backend": "direct",
+    "configured_start_temperature_ceiling_millidegrees_c": 40000,
+    "cooldown_poll_seconds": 10,
+    "cooldown_stable_samples": 3,
+    "cooldown_timeout_seconds": 1800,
+    "cpu_topology_fix_sha256": "4f311ecb46d6eb8f781d0c6a5e2fac6ee6a6224d19f23a79e7173b8f260807ad",
+    "fex_code_cache": "off",
+    "fex_profile": "safe",
+    "graphics": "Low",
+    "initial_max_temperature_millidegrees_c": 37000,
+    "motion_blur": "off",
+    "raknet_exclusive_recorded_passes": [],
+    "raknet_nice": null,
+    "recorded_runs": 3,
+    "resolution": "2800x1752",
+    "start_temperature_ceiling_millidegrees_c": 40000,
+    "start_temperature_margin_c": 2.0,
+    "startup_topology": "full",
+    "steam_cef_hold": false,
+    "steam_cef_hold_recorded_passes": [],
+    "steam_service_isolation": false,
+    "steam_service_isolation_recorded_passes": [],
+    "vsync": "off",
+    "warmups": 1,
+    "x11_isolation": false,
+    "x11_isolation_cpus": [
+      0
+    ],
+    "x11_isolation_recorded_passes": []
+  }
+}

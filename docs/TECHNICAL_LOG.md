@@ -8689,3 +8689,32 @@ post-RakNet `deja` query returned no indexed MaxInst/DynamicL1/code-cache
 experiment. This implementation reuses the direct launcher's final-process
 environment containment, the BVB selector anti-smuggling pattern, and the
 existing cooled game-authored benchmark protocol.
+
+## 2026-08-23: promote FEX maximal-buffer/code-map mode
+
+The corrected, panel-native Low candidate completed one excluded warm-up and
+three cooled recorded passes at 35.3, 34.6, and 32.1 average FPS: **34.000 FPS
+mean**. Its immediate reverse control completed 33.3, 33.8, and 31.9 FPS:
+**33.000 FPS mean**. The paired candidate changes are +2.0, +0.8, and +0.2
+FPS, so every recorded position moved in the same direction and the aggregate
+gain is **+1.0 FPS / +3.03%**. Candidate minimum-FPS mean fell from 21.500 to
+20.667 (-3.87%), while maximum mean changed from 46.800 to 46.433 (-0.78%).
+That pacing caveat is retained rather than hidden.
+
+The mechanism is narrower than the original name implied. At upstream FEX
+commit `af9b438`, `ENABLECODECACHINGWIP` calls
+`StartMaximalCodeBuffer()`; the ordinary buffer starts at 16 MiB and grows,
+while the maximal buffer allocates 128 MiB immediately. No independent runtime
+switch for this buffer exists. The installed Proton ARM64EC module records
+four roughly 0.48 MiB Tomb Raider code maps, but the Proton payload contains no
+`FEXOfflineCompiler32/64.exe` and produced zero files under `cache/`.
+Therefore this result proves a maximal JIT-buffer/code-map mode—not a loaded
+persistent compiled cache.
+
+The final-game-only selector is promoted to default-on for Tomb Raider. It is
+still excluded from Steam, CEF, the captured Pressure Vessel request, and
+unrelated games; `TOMB_RAIDER_FEX_CODE_CACHE=off` remains the exact reverse
+control. Steam PID 15575/start tick 128118834 and Termux:X11 PID 13643/start
+tick 121863492 survived both series unchanged. Full raw series and artifact
+identity are retained in
+`docs/evidence/tombraider-direct-fex-max-buffer-20260823.json`.

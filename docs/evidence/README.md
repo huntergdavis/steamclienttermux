@@ -1,5 +1,14 @@
 # Visual evidence
 
+Non-image performance evidence:
+
+- `tombraider-direct-fex-max-buffer-20260823.json`: a cooled panel-native
+  final-game FEX A/B. The 128 MiB JIT-buffer/code-map mode averaged 34.000 FPS
+  versus a 33.000 immediate reverse control (+3.03%) and won all three paired
+  average-FPS positions. It also records the -3.87% minimum-FPS caveat and
+  proves that the installed Proton payload has no offline compiler/loadable
+  cache artifact.
+
 These screenshots capture milestones and failures from the original tablet.
 
 - `steam-visible-now.png`: conventional ARM64 Steam client visibly running.

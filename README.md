@@ -54,6 +54,8 @@ minimum/maximum/average FPS.
 
 | FEX profile | Resolution | X11 refresh | Recorded average FPS | Mean min/max/avg | Start condition | Raw data |
 | --- | ---: | ---: | --- | ---: | --- | --- |
+| `safe` (FEX 128 MiB JIT buffer/code maps) | 2800×1752 | 59.97 Hz | 35.3 / 34.6 / 32.1 | 20.667 / 46.433 / **34.000** | Fixed 40 °C ceiling; promoted | [JSON](docs/benchmark-series/tombraider-direct-glibc-safe-fex-max-buffer-60hz-40c-20260823.json) |
+| `safe` (immediate FEX reverse control) | 2800×1752 | 59.97 Hz | 33.3 / 33.8 / 31.9 | 21.500 / 46.800 / **33.000** | Fixed 40 °C ceiling | [JSON](docs/benchmark-series/tombraider-direct-glibc-safe-fex-max-buffer-reverse-control-60hz-40c-20260823.json) |
 | `safe` | 2800×1752 | 119.92 Hz | 24.8 / 22.7 / 22.7 | 15.767 / 32.567 / **23.400** | 37.0–40.7 °C observed | [JSON](docs/benchmark-series/tombraider-native-glibc-safe-119hz-20260817.json) |
 | `safe` | 2800×1752 | 59.97 Hz | 25.3 / 24.9 / 25.3 | 16.200 / 34.500 / **25.167** | 37.0 °C observed | [JSON](docs/benchmark-series/tombraider-native-glibc-safe-60hz-20260817.json) |
 | `safe` (direct game) | 2800×1752 | 59.97 Hz | 31.1 / 30.3 / 30.3 | 18.900 / 47.733 / **30.567** | Fixed 40 °C ceiling; all starts 37.0 °C | [JSON](docs/benchmark-series/tombraider-direct-glibc-safe-60hz-40c-20260818.json) |
@@ -71,8 +73,8 @@ minimum/maximum/average FPS.
 | bundled Proton | 2800×1752 | 59.97 Hz | 22.8 / 22.7 / 25.2 | 12.500 / 32.967 / **23.567** | Fixed 40 °C ceiling; starts 37.0–37.6 °C | [JSON](docs/benchmark-series/tombraider-native-glibc-proton-60hz-40c-20260817.json) |
 | `fast` | 2800×1752 | 59.97 Hz | 25.5 / 23.0 / 22.9 | 16.367 / 32.300 / **23.800** | Fixed 40 °C ceiling; all starts 37.0 °C | [JSON](docs/benchmark-series/tombraider-native-glibc-fast-60hz-40c-20260817.json) |
 
-The direct game path is 20.8% faster than the matched 59.97 Hz profile with
-the Runtime/Proton PRoot boundary. In the patched-topology comparison, `fast`
+The current best direct game path is 35.1% faster than the matched 59.97 Hz
+profile with the Runtime/Proton PRoot boundary. In the patched-topology comparison, `fast`
 scores 30.467 FPS and `safe` 30.400 FPS, only 0.22% apart, so `safe` remains
 the production profile. The opt-in native CEF hold raises the matched average
 to 31.233 FPS, a small 2.74% candidate gain, while reducing minimum-FPS mean
@@ -95,6 +97,14 @@ control.
 The later post-RakNet CEF revisit measured three current-default controls at
 32.667 FPS and three held passes at 32.867 FPS. Its +0.61% change and paired
 deltas of +1.3/-0.5/-0.2 FPS are noise-sized, so CEF hold remains off.
+The final-game FEX WIP cache switch measured 34.000 FPS against an immediate
+33.000 FPS reverse control, a +3.03% mean gain with positive paired changes of
++2.0/+0.8/+0.2 FPS. Upstream source shows that the switch starts FEX with one
+128 MiB JIT buffer instead of an initial 16 MiB buffer. This Proton payload
+lacks `FEXOfflineCompiler`, so no reusable compiled cache was loaded: the
+accepted claim is maximal-buffer/code-map mode, not persistent-cache reuse.
+The mode is now Tomb Raider's default; use
+`TOMB_RAIDER_FEX_CODE_CACHE=off` for an exact control.
 The first topology-fixed direct `proton` series averages 31.300 FPS. Against
 the immediate reverse-order Safe control at 30.900 FPS, that is only +1.29%;
 the per-position average changes are +1.2, 0.0, and 0.0 FPS. Proton raises

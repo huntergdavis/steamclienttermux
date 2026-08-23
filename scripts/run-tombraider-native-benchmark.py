@@ -932,7 +932,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--fex-code-cache",
         choices=("off", "on"),
         default="off",
-        help="enable the experimental final-game-only persistent FEX code cache",
+        help=(
+            "enable the final-game-only FEX 128 MiB JIT buffer and code-map "
+            "recording mode"
+        ),
     )
     cef_group = parser.add_mutually_exclusive_group()
     cef_group.add_argument(

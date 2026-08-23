@@ -1,0 +1,121 @@
+{
+  "schema": 1,
+  "title": "Tomb Raider final-game FEX maximal JIT buffer A/B",
+  "date": "2026-08-23",
+  "target": {
+    "device": "Samsung Galaxy Tab S8+ SM-X808U",
+    "soc": "Snapdragon 8 Gen 1 / Adreno 730",
+    "game": "Tomb Raider (2013)",
+    "appid": 203160,
+    "resolution": "2800x1752",
+    "graphics": "Low",
+    "refresh_hz": 59.97,
+    "vsync": false,
+    "motion_blur": false,
+    "fex_profile": "safe",
+    "backend": "direct glibc game path",
+    "raknet_empty_receive_backoff_microseconds": 1000,
+    "start_temperature_ceiling_millidegrees_c": 40000,
+    "warmups_excluded": 1,
+    "recorded_runs": 3
+  },
+  "single_variable": {
+    "candidate": {
+      "TOMB_RAIDER_FEX_CODE_CACHE": "on",
+      "FEX_ENABLECODECACHINGWIP": "1",
+      "FEX_APP_CACHE_LOCATION": "$HOME/steam-arm64/cache/fex-code-cache/tombraider-203160/"
+    },
+    "reverse_control": {
+      "TOMB_RAIDER_FEX_CODE_CACHE": "off",
+      "FEX_ENABLECODECACHINGWIP": "unset",
+      "FEX_APP_CACHE_LOCATION": "unset"
+    },
+    "containment": "Actual FEX variables exist only in the final Tomb Raider Wine/FEX environment. Steam, CEF, the captured Pressure Vessel request, and unrelated games do not receive them."
+  },
+  "candidate": {
+    "series_id": "20260823T152452Z-safe",
+    "raw_file": "docs/benchmark-series/tombraider-direct-glibc-safe-fex-max-buffer-60hz-40c-20260823.json",
+    "raw_sha256": "a6a94e4088a112e395039d991732780a8467b7da53887d8ee3e33901b4f3c39f",
+    "warmup_excluded": {"minimum_fps": 15.4, "maximum_fps": 47.4, "average_fps": 36.2},
+    "recorded": [
+      {"minimum_fps": 26.9, "maximum_fps": 45.7, "average_fps": 35.3},
+      {"minimum_fps": 25.4, "maximum_fps": 47.0, "average_fps": 34.6},
+      {"minimum_fps": 9.7, "maximum_fps": 46.6, "average_fps": 32.1}
+    ],
+    "mean": {"minimum_fps": 20.667, "maximum_fps": 46.433, "average_fps": 34.0},
+    "median": {"minimum_fps": 25.4, "maximum_fps": 46.6, "average_fps": 34.6}
+  },
+  "reverse_control": {
+    "series_id": "20260823T154117Z-safe",
+    "raw_file": "docs/benchmark-series/tombraider-direct-glibc-safe-fex-max-buffer-reverse-control-60hz-40c-20260823.json",
+    "raw_sha256": "909de77dc8de188340d7066be7c2a5a01f9d2fe659491db991e30a50cd32a028",
+    "warmup_excluded": {"minimum_fps": 25.5, "maximum_fps": 44.8, "average_fps": 33.8},
+    "recorded": [
+      {"minimum_fps": 23.3, "maximum_fps": 45.3, "average_fps": 33.3},
+      {"minimum_fps": 23.2, "maximum_fps": 47.1, "average_fps": 33.8},
+      {"minimum_fps": 18.0, "maximum_fps": 48.0, "average_fps": 31.9}
+    ],
+    "mean": {"minimum_fps": 21.5, "maximum_fps": 46.8, "average_fps": 33.0},
+    "median": {"minimum_fps": 23.2, "maximum_fps": 47.1, "average_fps": 33.3}
+  },
+  "comparison": {
+    "paired_average_fps_delta": [2.0, 0.8, 0.2],
+    "average_fps_delta": 1.0,
+    "average_fps_percent": 3.030303,
+    "minimum_fps_delta": -0.833,
+    "minimum_fps_percent": -3.874419,
+    "maximum_fps_delta": -0.367,
+    "maximum_fps_percent": -0.784188,
+    "candidate_won_recorded_average_pairs": 3,
+    "recorded_average_pairs": 3,
+    "prior_accepted_control_average_fps": 32.667,
+    "candidate_vs_prior_accepted_control_fps": 1.333,
+    "candidate_vs_prior_accepted_control_percent": 4.080571
+  },
+  "mechanism": {
+    "upstream_fex_commit": "af9b438eec342e0fadbf11e0c34664397c554dcc",
+    "ordinary_initial_code_buffer_bytes": 16777216,
+    "maximal_code_buffer_bytes": 134217728,
+    "finding": "FEX calls StartMaximalCodeBuffer when ENABLECODECACHINGWIP is true. The maximal buffer is 128 MiB; the ordinary initial buffer is 16 MiB. No independent runtime setting for this buffer was found.",
+    "installed_arm64ec_module": "$HOME/steam-arm64/client/steamapps/common/Proton 11.0 (ARM64)/files/lib/wine/aarch64-windows/libwow64fex.dll",
+    "installed_arm64ec_module_sha256": "69849e054b8c6677d44767ca7d89fcd87606ba05a57a97cafdde49bf0f2601da",
+    "installed_arm64ec_module_bytes": 4677632,
+    "module_exposes": [
+      "FEX_ENABLECODECACHINGWIP",
+      "FEX_ENABLELAZYCODECACHINGWIP",
+      "FEX_APP_CACHE_LOCATION"
+    ]
+  },
+  "persistent_cache_boundary": {
+    "fex_offline_compiler_present": false,
+    "compiled_cache_file_count": 0,
+    "tombraider_code_map_count": 4,
+    "tombraider_code_map_total_bytes": 1949508,
+    "steam_code_map_count": 4,
+    "steam_code_map_total_bytes": 0,
+    "claim": "The run proves the FEX maximal-buffer/code-map mode, not a loaded persistent compiled cache. This Proton payload records code maps but does not contain FEXOfflineCompiler32/64.exe to aggregate them into loadable cache artifacts."
+  },
+  "decision": {
+    "status": "promoted for Tomb Raider",
+    "default": "on",
+    "control": "TOMB_RAIDER_FEX_CODE_CACHE=off",
+    "reason": "The candidate won all three same-position recorded average-FPS comparisons and improved the mean by 3.03%. The minimum-FPS mean regressed 3.87%, so this remains separately reversible and must be rechecked after future translator changes."
+  },
+  "preservation": {
+    "steam_pid": 15575,
+    "steam_start_ticks": 128118834,
+    "termux_x11_pid": 13643,
+    "termux_x11_start_ticks": 121863492,
+    "termux_properties_sha256": "89094537f49531dc9b380a0dec3a441b2fb92577e0a4f1db505790eb8b7025b0",
+    "steam_restarted": false,
+    "x11_restarted": false,
+    "login_state_touched": false
+  },
+  "recall": "The required deja query returned no indexed FEX code-cache or maximal-buffer experiment. This gate reused the repository's final-game environment containment, anti-smuggling selector, Android top-app foreground launcher, full-topology guard, and cooled game-authored benchmark methodology.",
+  "sources": [
+    "https://github.com/FEX-Emu/FEX/blob/af9b438eec342e0fadbf11e0c34664397c554dcc/FEXCore/Source/Interface/Core/Core.cpp",
+    "https://github.com/FEX-Emu/FEX/blob/af9b438eec342e0fadbf11e0c34664397c554dcc/FEXCore/Source/Interface/Core/SharedCodeBufferManager.cpp",
+    "https://github.com/FEX-Emu/FEX/blob/af9b438eec342e0fadbf11e0c34664397c554dcc/Source/Common/Config.cpp",
+    "https://github.com/FEX-Emu/FEX/blob/af9b438eec342e0fadbf11e0c34664397c554dcc/Source/Windows/Common/ImageTracker.cpp"
+  ]
+}
