@@ -8918,3 +8918,12 @@ containment, cooled native-resolution benchmark protocol, and private
 no-clobber/rollback discipline established by earlier Tomb Raider work.
 Structured host evidence is retained in
 `docs/evidence/tombraider-fex-offline-cache-pipeline-host-20260823.json`.
+
+The first tablet execution reached the direct handoff but returned status 1
+before consuming a map. Its `amdxcffx64.dll` copy line is the same benign
+optional-contrib warning seen in earlier successful Proton launches; recall
+explicitly prevented treating that line as the cause. The real compiler exit
+was opaque because the new mode had not forwarded the existing direct
+diagnostic selector. The dispatcher now applies that selector to the compiler
+mode as it already does for the game and ARM64 command smoke gate, permitting
+a bounded diagnostic retry while leaving the default quiet path unchanged.

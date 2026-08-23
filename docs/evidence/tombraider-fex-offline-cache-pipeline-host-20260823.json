@@ -30,7 +30,7 @@
     },
     "dispatcher": {
       "path": "scripts/pressure-vessel-direct-dispatch.py",
-      "sha256": "b8479a03a8ddbe2d62fcabc32d801f6cb8d813627920c6e0bb8022c5c842fec2"
+      "sha256": "f9ddbfc6d27da5dc6dcdc0eb0819d2f9e410bd4879abc00497bfc9b9459a9a2f"
     }
   },
   "safety": {

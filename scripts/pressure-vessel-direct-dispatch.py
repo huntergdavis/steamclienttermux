@@ -1710,7 +1710,10 @@ def run_fex_offline_compile(
     descriptors: list[int],
 ) -> tuple[int, int]:
     loader, arguments, environment = pv_smoke_invocation(
-        base, payload, "fex-offline-compile"
+        base,
+        payload,
+        "fex-offline-compile",
+        direct_diagnostics_enabled(),
     )
     return run_loader_child(
         loader, arguments, environment, descriptors, payload["fd_numbers"]

@@ -475,6 +475,9 @@ def main() -> None:
         assert MODULE.proton_smoke_environment("fex-offline-compile") == {
             "WINEDEBUG": "-all"
         }
+        assert MODULE.proton_smoke_environment(
+            "fex-offline-compile", diagnostics=True
+        )["WINEDEBUG"].endswith("+schannel")
         assert MODULE.proton_smoke_environment("tombraider") == {
             "WINEDEBUG": "-all"
         }
