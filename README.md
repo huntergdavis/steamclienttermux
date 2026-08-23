@@ -58,6 +58,7 @@ minimum/maximum/average FPS.
 | `safe` | 2800×1752 | 59.97 Hz | 25.3 / 24.9 / 25.3 | 16.200 / 34.500 / **25.167** | 37.0 °C observed | [JSON](docs/benchmark-series/tombraider-native-glibc-safe-60hz-20260817.json) |
 | `safe` (direct game) | 2800×1752 | 59.97 Hz | 31.1 / 30.3 / 30.3 | 18.900 / 47.733 / **30.567** | Fixed 40 °C ceiling; all starts 37.0 °C | [JSON](docs/benchmark-series/tombraider-direct-glibc-safe-60hz-40c-20260818.json) |
 | `safe` (direct game, topology fix) | 2800×1752 | 59.97 Hz | 30.6 / 30.2 / 30.4 | 21.000 / 46.133 / **30.400** | Fixed 40 °C ceiling; starts 37.0–37.9 °C | [JSON](docs/benchmark-series/tombraider-direct-glibc-safe-topology-fix-60hz-40c-20260818.json) |
+| `safe` (direct game, RakNet backoff) | 2800×1752 | 59.97 Hz | 32.9 / 31.3 / 30.7 | 20.300 / 46.767 / **31.633** | Fixed 40 °C ceiling; all starts 37.0 °C; promoted | [JSON](docs/benchmark-series/tombraider-direct-glibc-safe-raknet-backoff-60hz-40c-20260822.json) |
 | `proton` (direct game, topology fix) | 2800×1752 | 59.97 Hz | 32.1 / 31.2 / 30.6 | 20.400 / 45.567 / **31.300** | Fixed 40 °C ceiling; starts 37.0–37.2 °C; candidate | [JSON](docs/benchmark-series/tombraider-direct-glibc-proton-topology-fix-60hz-40c-20260818.json) |
 | `safe` (immediate reverse control) | 2800×1752 | 59.97 Hz | 30.9 / 31.2 / 30.6 | 19.233 / 47.367 / **30.900** | Fixed 40 °C ceiling; all starts 37.0 °C | [JSON](docs/benchmark-series/tombraider-direct-glibc-safe-topology-fix-reverse-control-60hz-40c-20260818.json) |
 | `safe` (RakNet pair controls) | 2800×1752 | 59.97 Hz | 30.9 / 31.2 / 30.7 | 20.967 / 45.433 / **30.933** | Fixed 40 °C ceiling; paired control | [JSON](docs/benchmark-series/tombraider-direct-glibc-safe-topology-fix-raknet-exclusive-alternating-60hz-40c-20260818.json) |
@@ -81,6 +82,14 @@ Reserving CPU1 exclusively for RakNet is rejected: three alternating pairs
 reduced average mean 2.15% (30.933 to 30.267 FPS) and minimum mean 25.28%,
 while raising maximum mean only 1.91%. The paired average changes were -1.3,
 -0.7, and 0.0 FPS, so production remains game CPUs1-7 with RakNet on CPU1.
+The targeted 1 ms empty-receive backoff instead reduces the exact
+`Raknet-RecvFrom` thread from 98.2% to 3.0% CPU and records a 31.633 FPS mean,
+2.37% above the retained complete reverse control. A new same-session control
+accepted 30.4/28.9 FPS before its third affinity validation failed, so its
+directional +6.69% comparison is not treated as a complete series. The CPU
+efficiency and correctness result is strong enough to make backoff the lean
+Tomb Raider default; set `TOMB_RAIDER_RAKNET_RECV_SLEEP_US=0` for an explicit
+control.
 The first topology-fixed direct `proton` series averages 31.300 FPS. Against
 the immediate reverse-order Safe control at 30.900 FPS, that is only +1.29%;
 the per-position average changes are +1.2, 0.0, and 0.0 FPS. Proton raises

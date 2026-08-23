@@ -11,6 +11,8 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parents[1]
 DISPATCHER = ROOT / "scripts/pressure-vessel-direct-dispatch.py"
 LAUNCHER = ROOT / "scripts/start-tombraider-direct-dispatch.sh"
+LEAN_WRAPPER = ROOT / "scripts/start-tombraider-direct-lean.sh"
+DIRECT_BENCHMARK_WRAPPER = ROOT / "scripts/start-tombraider-direct-benchmark.sh"
 GAME_WRAPPER = ROOT / "scripts/start-tombraider-direct-raknet-backoff.sh"
 BENCHMARK_WRAPPER = (
     ROOT / "scripts/start-tombraider-direct-raknet-backoff-benchmark.sh"
@@ -86,6 +88,40 @@ def main() -> None:
             "printf '%s\\n' \"${STEAM_ARM64_BVB_VULKAN-}\" "
             "\"${TOMB_RAIDER_RAKNET_RECV_SLEEP_US-}\" \"$*\" >\"$CAPTURE\"\n",
         )
+        for wrapper in (LEAN_WRAPPER, DIRECT_BENCHMARK_WRAPPER):
+            wrapper_env = {
+                **os.environ,
+                "TOMB_RAIDER_DIRECT_LAUNCHER_WRAPPER": str(fake_launcher),
+                "CAPTURE": str(capture),
+            }
+            wrapper_env.pop("TOMB_RAIDER_RAKNET_RECV_SLEEP_US", None)
+            promoted = subprocess.run(
+                ["bash", str(wrapper), "default"],
+                env=wrapper_env,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            assert promoted.returncode == 0, promoted.stderr
+            assert capture.read_text(encoding="utf-8").splitlines() == [
+                "",
+                "1000",
+                "default",
+            ]
+            wrapper_env["TOMB_RAIDER_RAKNET_RECV_SLEEP_US"] = "0"
+            control = subprocess.run(
+                ["bash", str(wrapper), "control"],
+                env=wrapper_env,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            assert control.returncode == 0, control.stderr
+            assert capture.read_text(encoding="utf-8").splitlines() == [
+                "",
+                "0",
+                "control",
+            ]
         for wrapper in (GAME_WRAPPER, BENCHMARK_WRAPPER):
             result = subprocess.run(
                 ["bash", str(wrapper), "fixture"],
@@ -144,6 +180,12 @@ def main() -> None:
     assert "STEAM_ARM64_DIRECT_RAKNET_RECV_SLEEP_US" in launcher_source
     assert launcher_source.count("-u TGCOMPAT_RAKNET_RECV_SLEEP_US") >= 2
     assert "raknet_recv_sleep_us=%s" in launcher_source
+    for promoted_wrapper in (LEAN_WRAPPER, DIRECT_BENCHMARK_WRAPPER):
+        promoted_source = promoted_wrapper.read_text(encoding="utf-8")
+        assert (
+            "TOMB_RAIDER_RAKNET_RECV_SLEEP_US=${TOMB_RAIDER_RAKNET_RECV_SLEEP_US-1000}"
+            in promoted_source
+        )
     dispatcher_source = DISPATCHER.read_text(encoding="utf-8")
     assert "final_preloads.append(raknet_recv_backoff[0])" in dispatcher_source
     assert 'environment.update(raknet_recv_backoff[1])' in dispatcher_source

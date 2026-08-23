@@ -1,11 +1,12 @@
 {
   "schema_version": 1,
   "status": "pass",
-  "claim": "The exact Raknet-RecvFrom backoff reduced that thread from 98.2% CPU to 3.0% CPU and completed a guarded three-pass native-resolution series at 31.633 FPS mean.",
+  "claim": "The exact Raknet-RecvFrom backoff reduced that thread from 98.2% CPU to 3.0% CPU, completed a guarded three-pass native-resolution series at 31.633 FPS mean, and is now the default lean Tomb Raider policy.",
   "claim_limits": [
     "The CPU samples are matched launch/configuration diagnostics, not samples from the recorded FPS scenes.",
-    "The 2.372% FPS comparison uses the retained immediate reverse-control series from 2026-08-18; the same-session reverse control was still running when this evidence was first committed.",
-    "The backoff remains opt-in until the same-session reverse control completes."
+    "The complete 2.372% FPS comparison uses the retained immediate reverse-control series from 2026-08-18.",
+    "The same-session reverse control accepted two passes at 30.4 and 28.9 average FPS, then rejected pass three because its affinity log never emitted the final ready state. Its partial 6.688% comparison is directional only, not a complete three-pass FPS claim.",
+    "Default promotion is based on the 96.945% receive-thread CPU reduction, exact upstream empty-receive behavior, normal networking/rendering, and clean exits; it does not depend on treating the incomplete control as a full FPS series."
   ],
   "source": {
     "termux_glibc_compat_commit": "f1b4889b73967adfe1e30c00ca291aa2c36329a1",
@@ -70,6 +71,7 @@
   "backoff_series": {
     "series_id": "20260823T053018Z-safe",
     "tablet_path": "/data/data/com.termux/files/home/steam-arm64/logs/tombraider-benchmarks/20260823T053018Z-safe/series.json",
+    "retained_artifact": "docs/benchmark-series/tombraider-direct-glibc-safe-raknet-backoff-60hz-40c-20260822.json",
     "sha256": "a25e6892d81c6e58693549decb32c961eed669c57e283d427340a917d92f3c0f",
     "resolution": "2800x1752",
     "refresh_hz": 60,
@@ -90,6 +92,32 @@
       "average_fps": 31.633
     },
     "average_fps_median": 31.3
+  },
+  "same_session_reverse_control": {
+    "status": "incomplete_after_two_accepted_recorded_passes",
+    "series_id": "20260823T055031Z-safe",
+    "tablet_path": "/data/data/com.termux/files/home/steam-arm64/logs/tombraider-benchmarks/20260823T055031Z-safe/series.json",
+    "retained_artifact": "docs/benchmark-series/tombraider-direct-glibc-safe-raknet-backoff-partial-reverse-control-60hz-40c-20260822.json",
+    "sha256": "226085196d578a62ea4502045ba47de4d56695f5bde33ec79694f6bed3f2942c",
+    "recorded_start_temperatures_c": [37.0, 37.6],
+    "accepted_recorded": [
+      {"minimum_fps": 19.3, "maximum_fps": 47.5, "average_fps": 30.4},
+      {"minimum_fps": 11.0, "maximum_fps": 41.0, "average_fps": 28.9}
+    ],
+    "partial_means": {
+      "minimum_fps": 15.15,
+      "maximum_fps": 44.25,
+      "average_fps": 29.65
+    },
+    "partial_comparison_backoff_percent": {
+      "minimum_fps": 33.993,
+      "maximum_fps": 5.688,
+      "average_fps": 6.688
+    },
+    "failed_pass": 3,
+    "failure": "The changed affinity log recorded startup-topology readiness but never emitted the final performance-state ready record, so the fail-closed runner accepted no FPS result for pass three.",
+    "affinity_log_sha256": "4dfb91a0cecd26be4a706b5b572dfcff4f8a7fbb66cd4697d3a4570ddc6f641a",
+    "foreground_log_sha256": "034ef95720cfe0c1d8c20ad31f48c7d81efa21ff023183bfb2ed3c7d56537061"
   },
   "retained_reverse_control": {
     "artifact": "docs/benchmark-series/tombraider-direct-glibc-safe-topology-fix-reverse-control-60hz-40c-20260818.json",

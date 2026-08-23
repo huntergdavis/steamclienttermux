@@ -8506,8 +8506,16 @@ The guarded native-resolution series scored 32.9, 31.3, and 30.7 average FPS:
 **31.633 mean / 31.3 median**, with all passes beginning at 37 C. Mean
 minimum/maximum/average was 20.300/46.767/31.633 FPS. Against the retained
 immediate reverse control's 19.233/47.367/30.900 FPS this is
-+5.55%/-1.27%/**+2.37%**. That is a small FPS gain and a large CPU-efficiency
-gain, not yet proof of a new default; the same-session reverse control remains
-the final variance check. Exact paths, hashes, process identities, raw-series
-hash, and claim limits are retained in
++5.55%/-1.27%/**+2.37%**. The same-session reverse control accepted two
+recorded passes at 30.4 and 28.9 FPS, a partial 29.650 mean, before pass three
+failed closed because its changed affinity log never emitted the final ready
+state. Relative to that incomplete two-pass control, the backoff is
+directionally +6.69%, but it is not reported as a complete three-pass claim.
+
+The backoff is nevertheless promoted for lean Tomb Raider launches. The
+decision follows the proportionate evidence: a 96.9% reduction in a proven
+empty-receive busy loop, exact network/render/exit correctness, and no observed
+FPS regression. `TOMB_RAIDER_RAKNET_RECV_SLEEP_US=0` remains the explicit
+reverse-control switch. Exact paths, hashes, process identities, both retained
+raw series, and claim limits are in
 `docs/evidence/tombraider-direct-raknet-backoff-20260822.json`.
