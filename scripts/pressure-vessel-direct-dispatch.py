@@ -231,6 +231,26 @@ def apply_fex_code_cache(
     )
 
 
+def apply_dxvk_relaxed_graphics_barriers(
+    environment: dict[str, str], command_mode: str
+) -> None:
+    selector = os.environ.get(
+        "STEAM_ARM64_DIRECT_DXVK_RELAXED_GRAPHICS_BARRIERS", "off"
+    )
+    if selector not in ("off", "on"):
+        fail(
+            "STEAM_ARM64_DIRECT_DXVK_RELAXED_GRAPHICS_BARRIERS "
+            "must be off or on"
+        )
+    environment.pop("DXVK_CONFIG", None)
+    environment.pop("DXVK_CONFIG_FILE", None)
+    if selector == "off":
+        return
+    if command_mode not in ("tombraider", "tombraider-benchmark"):
+        fail("DXVK relaxed graphics barriers are valid only for Tomb Raider")
+    environment["DXVK_CONFIG"] = "d3d11.relaxedGraphicsBarriers = True"
+
+
 def validated_vulkan_trace(base: Path) -> tuple[Path, Path] | None:
     preload_value = os.environ.get("STEAM_ARM64_VULKAN_TRACE_PRELOAD")
     trace_value = os.environ.get("STEAM_ARM64_VULKAN_TRACE_FILE")
@@ -826,6 +846,10 @@ def request_environment(payload: dict[str, object]) -> dict[str, str]:
         "FEX_APP_CACHE_LOCATION",
         "STEAM_ARM64_DIRECT_FEX_CODE_CACHE",
         "TOMB_RAIDER_FEX_CODE_CACHE",
+        "DXVK_CONFIG",
+        "DXVK_CONFIG_FILE",
+        "STEAM_ARM64_DIRECT_DXVK_RELAXED_GRAPHICS_BARRIERS",
+        "TOMB_RAIDER_DXVK_RELAXED_GRAPHICS_BARRIERS",
     ):
         environment.pop(name, None)
     return environment
@@ -1383,6 +1407,7 @@ def pv_smoke_invocation(
         if direct_fex_profile is not None:
             apply_direct_fex_profile(environment, direct_fex_profile)
         apply_fex_code_cache(environment, base, command_mode)
+        apply_dxvk_relaxed_graphics_barriers(environment, command_mode)
     prefix = os.environ.get("PREFIX", "")
     if not prefix.startswith("/"):
         fail("Termux PREFIX is unavailable to the direct dispatcher")

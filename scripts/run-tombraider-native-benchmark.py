@@ -937,6 +937,15 @@ def build_parser() -> argparse.ArgumentParser:
             "recording mode"
         ),
     )
+    parser.add_argument(
+        "--dxvk-relaxed-graphics-barriers",
+        choices=("off", "on"),
+        default="off",
+        help=(
+            "enable Tomb Raider-only DXVK graphics-UAV relaxed barriers; "
+            "compute barriers remain strict"
+        ),
+    )
     cef_group = parser.add_mutually_exclusive_group()
     cef_group.add_argument(
         "--hold-steam-cef",
@@ -1225,8 +1234,17 @@ def main() -> int:
                 arguments.startup_topology
             )
             environment["TOMB_RAIDER_FEX_CODE_CACHE"] = arguments.fex_code_cache
-        elif arguments.fex_code_cache != "off":
-            raise RuntimeError("FEX code-cache experiments require the direct backend")
+            environment["TOMB_RAIDER_DXVK_RELAXED_GRAPHICS_BARRIERS"] = (
+                arguments.dxvk_relaxed_graphics_barriers
+            )
+        elif (
+            arguments.fex_code_cache != "off"
+            or arguments.dxvk_relaxed_graphics_barriers != "off"
+        ):
+            raise RuntimeError(
+                "FEX code-cache and DXVK barrier experiments require "
+                "the direct backend"
+            )
         if arguments.raknet_nice is not None:
             environment["TOMB_RAIDER_RAKNET_NICE"] = str(arguments.raknet_nice)
         series = {
@@ -1247,6 +1265,9 @@ def main() -> int:
                 "motion_blur": "off",
                 "fex_profile": arguments.profile,
                 "fex_code_cache": arguments.fex_code_cache,
+                "dxvk_relaxed_graphics_barriers": (
+                    arguments.dxvk_relaxed_graphics_barriers
+                ),
                 "raknet_nice": arguments.raknet_nice,
                 "raknet_exclusive_recorded_passes": list(
                     arguments.raknet_exclusive_recorded_passes

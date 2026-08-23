@@ -19,6 +19,7 @@ descriptor_journal=${TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL:-strict}
 first_rejection_diagnostic=${TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC-0}
 raknet_recv_sleep_us=${TOMB_RAIDER_RAKNET_RECV_SLEEP_US:-0}
 fex_code_cache=${TOMB_RAIDER_FEX_CODE_CACHE:-on}
+dxvk_relaxed_graphics_barriers=${TOMB_RAIDER_DXVK_RELAXED_GRAPHICS_BARRIERS:-off}
 child_preload=${TOMB_RAIDER_DIRECT_CHILD_PRELOAD:-full}
 vulkan_trace=${TOMB_RAIDER_VULKAN_TRACE:-0}
 vulkan_trace_preload=${TOMB_RAIDER_VULKAN_TRACE_PRELOAD:-$HOME/bionic-vulkan-bridge/out/glibc/libbvb-vulkan-resolve-trace.so}
@@ -55,6 +56,9 @@ fail() {
     fail 'TOMB_RAIDER_RAKNET_RECV_SLEEP_US must be 0 or 1000'
 [[ $fex_code_cache == off || $fex_code_cache == on ]] ||
     fail 'TOMB_RAIDER_FEX_CODE_CACHE must be off or on'
+[[ $dxvk_relaxed_graphics_barriers == off ||
+    $dxvk_relaxed_graphics_barriers == on ]] ||
+    fail 'TOMB_RAIDER_DXVK_RELAXED_GRAPHICS_BARRIERS must be off or on'
 if [[ $command_stream == shared && ${STEAM_ARM64_BVB_VULKAN:-0} != 1 ]]; then
     fail 'shared BVB command stream requires STEAM_ARM64_BVB_VULKAN=1'
 fi
@@ -81,7 +85,10 @@ unset BVB_COMMAND_STREAM STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
     STEAM_ARM64_DIRECT_RAKNET_RECV_SLEEP_US \
     TOMB_RAIDER_RAKNET_RECV_SLEEP_US \
     FEX_ENABLECODECACHINGWIP FEX_APP_CACHE_LOCATION \
-    STEAM_ARM64_DIRECT_FEX_CODE_CACHE TOMB_RAIDER_FEX_CODE_CACHE
+    STEAM_ARM64_DIRECT_FEX_CODE_CACHE TOMB_RAIDER_FEX_CODE_CACHE \
+    DXVK_CONFIG DXVK_CONFIG_FILE \
+    STEAM_ARM64_DIRECT_DXVK_RELAXED_GRAPHICS_BARRIERS \
+    TOMB_RAIDER_DXVK_RELAXED_GRAPHICS_BARRIERS
 [[ $vulkan_trace == 0 || $vulkan_trace == 1 ]] ||
     fail 'TOMB_RAIDER_VULKAN_TRACE must be 0 or 1'
 [[ $child_preload == full || $child_preload == lean ||
@@ -178,6 +185,7 @@ dispatcher_environment=(
     "STEAM_ARM64_DIRECT_BVB_FIRST_REJECTION_DIAGNOSTIC=$first_rejection_diagnostic"
     "STEAM_ARM64_DIRECT_RAKNET_RECV_SLEEP_US=$raknet_recv_sleep_us"
     "STEAM_ARM64_DIRECT_FEX_CODE_CACHE=$fex_code_cache"
+    "STEAM_ARM64_DIRECT_DXVK_RELAXED_GRAPHICS_BARRIERS=$dxvk_relaxed_graphics_barriers"
 )
 if [[ $vulkan_trace == 1 ]]; then
     dispatcher_environment+=(
@@ -195,6 +203,8 @@ env -u BVB_COMMAND_STREAM -u TOMB_RAIDER_BVB_COMMAND_STREAM \
     -u TOMB_RAIDER_RAKNET_RECV_SLEEP_US \
     -u FEX_ENABLECODECACHINGWIP -u FEX_APP_CACHE_LOCATION \
     -u TOMB_RAIDER_FEX_CODE_CACHE \
+    -u DXVK_CONFIG -u DXVK_CONFIG_FILE \
+    -u TOMB_RAIDER_DXVK_RELAXED_GRAPHICS_BARRIERS \
     "${dispatcher_environment[@]}" \
     "$python" "$dispatcher" serve --base "$base" --mode "$mode" \
     >"$server_log" 2>&1 &
@@ -224,8 +234,8 @@ if [[ $mode == tombraider || $mode == tombraider-benchmark ||
     affinity_pid=$!
 fi
 
-printf 'pid=%s\nmode=%s\nchild_preload=%s\nraknet_recv_sleep_us=%s\nfex_code_cache=%s\ngame_cpus=%s\nvulkan_trace_file=%s\nserver_pid=%s\nserver_log=%s\nlauncher_log=%s\naffinity_log=%s\nstatus=launching\n' \
-    "$$" "$mode" "$child_preload" "$raknet_recv_sleep_us" "$fex_code_cache" "$game_cpus" "$vulkan_trace_file" \
+printf 'pid=%s\nmode=%s\nchild_preload=%s\nraknet_recv_sleep_us=%s\nfex_code_cache=%s\ndxvk_relaxed_graphics_barriers=%s\ngame_cpus=%s\nvulkan_trace_file=%s\nserver_pid=%s\nserver_log=%s\nlauncher_log=%s\naffinity_log=%s\nstatus=launching\n' \
+    "$$" "$mode" "$child_preload" "$raknet_recv_sleep_us" "$fex_code_cache" "$dxvk_relaxed_graphics_barriers" "$game_cpus" "$vulkan_trace_file" \
     "$server_pid" "$server_log" "$launcher_log" "$affinity_log" >"$state"
 
 set +e
@@ -249,6 +259,9 @@ env -u BVB_COMMAND_STREAM -u STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
     -u FEX_ENABLECODECACHINGWIP -u FEX_APP_CACHE_LOCATION \
     -u STEAM_ARM64_DIRECT_FEX_CODE_CACHE \
     -u TOMB_RAIDER_FEX_CODE_CACHE \
+    -u DXVK_CONFIG -u DXVK_CONFIG_FILE \
+    -u STEAM_ARM64_DIRECT_DXVK_RELAXED_GRAPHICS_BARRIERS \
+    -u TOMB_RAIDER_DXVK_RELAXED_GRAPHICS_BARRIERS \
     STEAM_ARM64_BWRAP_DIRECT=1 \
     STEAM_BACKGROUND=1 \
     STEAM_PROCESS_TIMEOUT=${STEAM_PROCESS_TIMEOUT:-180} \

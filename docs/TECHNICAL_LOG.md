@@ -8734,3 +8734,25 @@ wrapper. It runs exactly one cooled current-default pass with no warm-up so
 the Android foreground broker never needs to transport raw benchmark options.
 Any profiler attached to this pass makes its FPS explicitly excluded; its only
 purpose is to rank the post-promotion hot paths.
+
+That pass completed normally at 17.8/47.5/35.2 FPS, but remains excluded.
+During its 10.0-second sample Tomb Raider used 230.9% CPU, Termux:X11 57.7%,
+wineserver 45.4%, and the DXVK command thread 20.4%. GPU busy read 74% at the
+full 818 MHz with thermal power level zero at the sample boundary. Steam core
+used 14.3% and no Steam/CEF worker dominated, so the earlier Steam placement
+candidate is not reopened.
+
+The next default-off selector is
+`TOMB_RAIDER_DXVK_RELAXED_GRAPHICS_BARRIERS={off,on}`. Enabled mode injects
+only `DXVK_CONFIG=d3d11.relaxedGraphicsBarriers = True` into the final
+Tomb Raider Wine/DXVK process. Caller-supplied `DXVK_CONFIG`,
+`DXVK_CONFIG_FILE`, and selector copies are removed from the captured request;
+Steam, CEF, unrelated games, and the control receive none. Pinned DXVK
+`a6764047` documents that this skips graphics UAV barriers while retaining
+compute UAV barriers. It may improve performance but can cause rendering
+errors, so an excluded correctness run precedes any cooled A/B.
+
+The required focused `deja` query returned no indexed implementation. This
+candidate reuses final-game environment containment, strict selector
+anti-smuggling, the 40 C benchmark gate, and the argument-free Android
+foreground wrappers.
