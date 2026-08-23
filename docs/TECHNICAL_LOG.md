@@ -8350,3 +8350,32 @@ experience, so the launcher must be hardened and the visible foreground
 surface minimized without losing `/top-app`. Exact results, placement proof,
 profiles, screenshot, property restoration, hashes, and caveats are retained
 in `docs/evidence/tombraider-bvb-e135-top-app-profile-20260822.json`.
+
+## 2026-08-22: harden the E135 foreground launch contract
+
+The E135 procedure is now a reusable installed command,
+`~/start-tombraider-bvb-foreground`. Its controller enables
+`allow-external-apps` through an atomic same-directory replacement, waits for
+Termux's cached setting to settle, and proves a harmless RunCommandService
+child enters both `/top-app` controllers. It then starts the real BVB probe,
+requires the exact Python/tool/request command line, Termux Activity parent,
+start tick, and `/top-app` placement, and restores `termux.properties`
+byte-for-byte immediately. Cleanup repeats the restoration check on every
+exit path.
+
+When the separate-UID BVB Activity displaces the controller, the outer process
+promotes only the exact Termux:X11 Activity in Samsung freeform mode, resizes
+only its resolved task ID, and requires the controller to return to
+`/top-app`. Android polling stops before the timed scene. Normal or failed
+completion restores X11 through fullscreen windowing mode; interruption may
+signal only the revalidated Activity-owned child PID and never uses a broad
+process match. Structured state also prevents a dead child from consuming the
+full benchmark timeout.
+
+The focused contract proves byte-identical property restoration, exact
+RunCommand intent arguments, top-app/parent/start-tick validation, unique X11
+task selection, cleanup ordering, and the absence of `pkill`/`killall`. The
+complete project suite passes. The required exact `deja` query returned no
+indexed implementation; this launcher reuses the repository's earlier guarded
+RunCommandService race fix, the E135 top-app evidence, and the existing paired
+ADB/same-task discipline from the BVB probe.

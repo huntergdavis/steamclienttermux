@@ -154,6 +154,10 @@ install_one "$repo_root/scripts/start-tombraider-vulkan-trace.sh" \
     "$HOME/start-tombraider-vulkan-trace" 700
 install_one "$repo_root/scripts/start-tombraider-bvb-probe.sh" \
     "$HOME/start-tombraider-bvb-probe" 700
+install_one "$repo_root/scripts/run-tombraider-bvb-foreground.py" \
+    "$base/compat-bin/run-tombraider-bvb-foreground.py" 700
+install_one "$repo_root/scripts/start-tombraider-bvb-foreground.sh" \
+    "$HOME/start-tombraider-bvb-foreground" 700
 install_one "$repo_root/scripts/run-tombraider-native-benchmark.py" \
     "$base/compat-bin/run-tombraider-native-benchmark.py" 600
 install_one "$repo_root/scripts/hold-tombraider-steam-cef.py" \
