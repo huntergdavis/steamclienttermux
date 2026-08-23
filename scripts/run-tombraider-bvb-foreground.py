@@ -536,7 +536,9 @@ def controller_main(arguments: argparse.Namespace) -> int:
             base / "compat-bin/run-tombraider-bvb-foreground.py",
         )
     )
-    python = Path(os.environ.get("TOMB_RAIDER_FOREGROUND_PYTHON", TERMUX_PREFIX / "bin/python3"))
+    python = Path(
+        os.environ.get("TOMB_RAIDER_FOREGROUND_PYTHON", sys.executable)
+    ).resolve(strict=True)
     am = Path(os.environ.get("TOMB_RAIDER_FOREGROUND_AM", TERMUX_PREFIX / "bin/am"))
     reload_command = Path(
         os.environ.get(

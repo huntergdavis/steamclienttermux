@@ -160,6 +160,7 @@ def main() -> None:
         in installer
     )
     assert "exec \"$python\" \"$tool\" \"$@\"" in BROKER.read_text(encoding="utf-8")
+    assert 'python=$(readlink -f -- "$python")' in BROKER.read_text(encoding="utf-8")
     print("Tomb Raider BVB foreground launcher tests: PASS")
 
 
