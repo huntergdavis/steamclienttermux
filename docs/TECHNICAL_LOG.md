@@ -8645,3 +8645,45 @@ The required post-RakNet `deja` query returned no indexed implementation. This
 run reused the repository's exact native-descendant hold/resume guard, guarded
 Android foreground controller, and cooled alternating game-authored benchmark
 methodology.
+
+## 2026-08-23: stage a final-game-only FEX code-cache A/B
+
+The post-RakNet default controls now average 32.667 FPS, while both Steam
+service placement and a second native CEF hold replication are rejected. The
+next experiment therefore returns to the translated game rather than moving
+native host work between CPUs.
+
+Current upstream FEX configuration definitions show that this stack's
+`MaxInst=5000` is already the current default. They also describe disabled L2
+lookup and dynamic L1 sizing as memory-saving choices that can introduce
+stutter; the existing Safe profile deliberately retains the fixed L1 and L2
+lookup caches. Blindly changing those settings would trade away the exact
+latency behavior we are trying to improve. FEX instead documents its
+experimental code cache as a way to reduce JIT work and in-game stutter on
+subsequent runs. The installed ARM64EC module contains the exact
+`FEX_ENABLECODECACHINGWIP` and `FEX_APP_CACHE_LOCATION` controls, so this is a
+testable feature rather than a guessed variable.
+
+`TOMB_RAIDER_FEX_CODE_CACHE={off,on}` is now a strict default-off selector.
+The shell validates it, removes caller-supplied actual/internal copies, and
+passes only a server control to the direct dispatcher. The dispatcher strips
+all cache variables from the captured Pressure Vessel request and injects the
+actual FEX controls only into the final Tomb Raider Wine/FEX environment. An
+enabled run uses the private persistent directory
+`~/steam-arm64/cache/fex-code-cache/tombraider-203160`; Steam, CEF, the outer
+runtime request, and unrelated games never receive the switch. Invalid modes,
+non-Tomb-Raider modes, unsafe directories, and request smuggling fail closed.
+
+The benchmark controller records the exact selector in `series.json`, and
+`test-tomb-raider-direct-fex-code-cache-40c-ceiling.sh` runs the existing Safe,
+full-topology, native-resolution, 40 C protocol. Its warm-up is intentionally
+part of the experiment: it can populate the cache before three recorded runs.
+No cache file, launch, FPS, or promotion is claimed by this host-only gate.
+
+Sources: [FEX configuration definitions](https://github.com/FEX-Emu/FEX/blob/main/FEXCore/Source/Interface/Config/Config.json.in),
+[FEX project overview](https://github.com/FEX-Emu/FEX), and
+[FEX release history](https://github.com/FEX-Emu/FEX/releases). The required
+post-RakNet `deja` query returned no indexed MaxInst/DynamicL1/code-cache
+experiment. This implementation reuses the direct launcher's final-process
+environment containment, the BVB selector anti-smuggling pattern, and the
+existing cooled game-authored benchmark protocol.

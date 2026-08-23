@@ -205,6 +205,31 @@ def validated_raknet_recv_backoff(
     return shim, {"TGCOMPAT_RAKNET_RECV_SLEEP_US": sleep_us}
 
 
+def apply_fex_code_cache(
+    environment: dict[str, str], base: Path, command_mode: str
+) -> None:
+    selector = os.environ.get("STEAM_ARM64_DIRECT_FEX_CODE_CACHE", "off")
+    if selector not in ("off", "on"):
+        fail("STEAM_ARM64_DIRECT_FEX_CODE_CACHE must be off or on")
+    environment.pop("FEX_ENABLECODECACHINGWIP", None)
+    environment.pop("FEX_APP_CACHE_LOCATION", None)
+    if selector == "off":
+        return
+    if command_mode not in ("tombraider", "tombraider-benchmark"):
+        fail("FEX code cache is valid only for Tomb Raider")
+    cache = private_directory(
+        base / "cache/fex-code-cache/tombraider-203160",
+        "Tomb Raider FEX code cache",
+        create=True,
+    )
+    environment.update(
+        {
+            "FEX_ENABLECODECACHINGWIP": "1",
+            "FEX_APP_CACHE_LOCATION": str(cache),
+        }
+    )
+
+
 def validated_vulkan_trace(base: Path) -> tuple[Path, Path] | None:
     preload_value = os.environ.get("STEAM_ARM64_VULKAN_TRACE_PRELOAD")
     trace_value = os.environ.get("STEAM_ARM64_VULKAN_TRACE_FILE")
@@ -796,6 +821,10 @@ def request_environment(payload: dict[str, object]) -> dict[str, str]:
         "TGCOMPAT_RAKNET_RECV_SLEEP_US",
         "STEAM_ARM64_DIRECT_RAKNET_RECV_SLEEP_US",
         "TOMB_RAIDER_RAKNET_RECV_SLEEP_US",
+        "FEX_ENABLECODECACHINGWIP",
+        "FEX_APP_CACHE_LOCATION",
+        "STEAM_ARM64_DIRECT_FEX_CODE_CACHE",
+        "TOMB_RAIDER_FEX_CODE_CACHE",
     ):
         environment.pop(name, None)
     return environment
@@ -1352,6 +1381,7 @@ def pv_smoke_invocation(
         direct_fex_profile = os.environ.get("STEAM_ARM64_DIRECT_FEX_PROFILE")
         if direct_fex_profile is not None:
             apply_direct_fex_profile(environment, direct_fex_profile)
+        apply_fex_code_cache(environment, base, command_mode)
     prefix = os.environ.get("PREFIX", "")
     if not prefix.startswith("/"):
         fail("Termux PREFIX is unavailable to the direct dispatcher")

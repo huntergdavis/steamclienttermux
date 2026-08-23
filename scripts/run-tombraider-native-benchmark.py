@@ -928,6 +928,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--profile", choices=("safe", "proton", "fast"), default="safe")
     parser.add_argument("--backend", choices=("proot", "direct"), default="proot")
+    parser.add_argument(
+        "--fex-code-cache",
+        choices=("off", "on"),
+        default="off",
+        help="enable the experimental final-game-only persistent FEX code cache",
+    )
     cef_group = parser.add_mutually_exclusive_group()
     cef_group.add_argument(
         "--hold-steam-cef",
@@ -1215,6 +1221,9 @@ def main() -> int:
             environment["STEAM_ARM64_DIRECT_STARTUP_TOPOLOGY"] = (
                 arguments.startup_topology
             )
+            environment["TOMB_RAIDER_FEX_CODE_CACHE"] = arguments.fex_code_cache
+        elif arguments.fex_code_cache != "off":
+            raise RuntimeError("FEX code-cache experiments require the direct backend")
         if arguments.raknet_nice is not None:
             environment["TOMB_RAIDER_RAKNET_NICE"] = str(arguments.raknet_nice)
         series = {
@@ -1234,6 +1243,7 @@ def main() -> int:
                 "vsync": "off",
                 "motion_blur": "off",
                 "fex_profile": arguments.profile,
+                "fex_code_cache": arguments.fex_code_cache,
                 "raknet_nice": arguments.raknet_nice,
                 "raknet_exclusive_recorded_passes": list(
                     arguments.raknet_exclusive_recorded_passes
