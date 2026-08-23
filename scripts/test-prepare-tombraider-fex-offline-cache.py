@@ -150,6 +150,12 @@ def main() -> None:
     assert '"fex-offline-compile"' in dispatcher_source
     assert '"process-all"' in dispatcher_source
     assert "run_fex_offline_compile" in dispatcher_source
+    compile_environment = dispatcher_source.split(
+        'if command_mode == "fex-offline-compile":', 1
+    )[1].split('if command_mode in ("tombraider", "tombraider-benchmark"):', 1)[0]
+    assert 'environment.pop("FEX_ENABLECODECACHINGWIP", None)' in compile_environment
+    assert 'environment["FEX_APP_CACHE_LOCATION"]' in compile_environment
+    assert '"FEX_ENABLECODECACHINGWIP": "1"' not in compile_environment
     print("Tomb Raider FEX offline-cache preparation tests: PASS")
 
 

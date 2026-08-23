@@ -8927,3 +8927,12 @@ was opaque because the new mode had not forwarded the existing direct
 diagnostic selector. The dispatcher now applies that selector to the compiler
 mode as it already does for the game and ARM64 command smoke gate, permitting
 a bounded diagnostic retry while leaving the default quiet path unchanged.
+
+The diagnostic retry exposed a more precise pre-execution contamination: the
+compiler process inherited `FEX_ENABLECODECACHINGWIP=1` together with its
+target cache root, so its own Wine/FEX bootstrap wrote a zero-byte `steam.exe`
+map into `codemap/new`. The compile path now supplies only
+`FEX_APP_CACHE_LOCATION`; `process-all` can still find its input/output root,
+while the compiler process cannot record itself into that input. The failed
+zero-byte file is retained separately as attempt evidence rather than deleted.
+The required focused recall query found no prior implementation of this fix.

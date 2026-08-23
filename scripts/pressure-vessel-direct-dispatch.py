@@ -1562,12 +1562,12 @@ def pv_smoke_invocation(
     if command_mode == "fex-offline-compile":
         assert fex_offline_root is not None
         apply_direct_fex_profile(environment, "safe")
-        environment.update(
-            {
-                "FEX_ENABLECODECACHINGWIP": "1",
-                "FEX_APP_CACHE_LOCATION": f"{fex_offline_root}/",
-            }
-        )
+        # The compiler needs the target cache location, but enabling runtime
+        # recording here makes its own Wine/FEX bootstrap deposit a zero-byte
+        # steam.exe map into codemap/new before process-all can consume the
+        # real game maps.
+        environment.pop("FEX_ENABLECODECACHINGWIP", None)
+        environment["FEX_APP_CACHE_LOCATION"] = f"{fex_offline_root}/"
     if command_mode in ("tombraider", "tombraider-benchmark"):
         environment.update(
             direct_game_environment(base, runtime_root, diagnostics)
