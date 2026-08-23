@@ -8519,3 +8519,25 @@ FPS regression. `TOMB_RAIDER_RAKNET_RECV_SLEEP_US=0` remains the explicit
 reverse-control switch. Exact paths, hashes, process identities, both retained
 raw series, and claim limits are in
 `docs/evidence/tombraider-direct-raknet-backoff-20260822.json`.
+
+### Post-backoff live profile
+
+The upgraded all-thread sampler captured the next excluded benchmark after the
+RakNet promotion. `Raknet-RecvFrom` remained at 3.0% CPU. The largest newly
+visible non-game consumer was instead Steam's `IPC:CServiceEng` thread at
+100.8% CPU; its owning Steam process used 114.7%. Termux:X11 used 57.8%, native
+wineserver 47.1%, and Tomb Raider 222.4%. Inside the game, the main thread used
+55.0%, another anonymous game thread 31.6%, and `dxvk-cs` 19.2%.
+
+This profile was deliberately diagnostic and ran late enough to observe 84.5 C,
+CPU/GPU thermal caps, and 29.1 FPS, so it is not an FPS baseline. It does prove
+the ordering of the next CPU investigation. A follow-up `/proc` sample found
+`IPC:CServiceEng` blocked in an epoll set containing three Steam-service
+eventfds when idle; after game exit the same thread fell to 0.2% CPU over five
+seconds. The next gate must therefore identify and suppress the game-lifetime
+Steam service event storm without killing Steam, authentication, input, or the
+outer lifecycle request. The exact raw profile is retained as
+`docs/evidence/tombraider-direct-raknet-backoff-live-profile-20260822.json`
+(SHA-256 `e4367b458fea650619e41b2ba0f45b4ebfc97895a7cbdc782dd2c98a772f02d8`).
+The required `deja` query found no indexed implementation; this investigation
+reuses the existing low-overhead live sampler and its new same-UID thread rank.
