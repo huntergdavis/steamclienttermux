@@ -427,10 +427,15 @@ def adb_shell(adb: Path, serial: str, *arguments: str, timeout: float = 30) -> s
 
 
 def find_x11_task_id(task_dump: str) -> int:
-    records = re.split(r"(?=\n?  \* Recent #[0-9]+: Task\{)", task_dump)
+    recent_tasks = task_dump.split("\n  Visible recent tasks", 1)[0]
+    records = re.split(r"(?=\n?  \* Recent #[0-9]+: Task\{)", recent_tasks)
     matches: list[int] = []
     for record in records:
-        if "realActivity={com.termux.x11/com.termux.x11.MainActivity}" not in record:
+        components = (
+            "realActivity={com.termux.x11/com.termux.x11.MainActivity}",
+            "mActivityComponent=com.termux.x11/.MainActivity",
+        )
+        if not any(component in record for component in components):
             continue
         match = re.search(r"Recent #[0-9]+: Task\{[^\n]* #([1-9][0-9]{0,9}) ", record)
         if match:

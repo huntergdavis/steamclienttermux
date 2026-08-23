@@ -41,10 +41,26 @@ def main() -> None:
     realActivity={com.termux.x11/com.termux.x11.MainActivity}
   * Recent #1: Task{4c9dfa6 #2918 type=standard A=10323:io.github.huntergdavis.bvb.visiblehost}
     realActivity={io.github.huntergdavis.bvb.visiblehost/io.github.huntergdavis.bvb.visiblehost.VisibleHostActivity}
+  Visible recent tasks (most recent first):
+  * RecentTaskInfo #0:
+    id=2852
+    realActivity={com.termux.x11/com.termux.x11.MainActivity}
 """
     assert module.find_x11_task_id(task_dump) == 2852
+    assert module.find_x11_task_id(
+        task_dump.replace(
+            "realActivity={com.termux.x11/com.termux.x11.MainActivity}",
+            "mActivityComponent=com.termux.x11/.MainActivity",
+        )
+    ) == 2852
+    duplicate = """
+  * Recent #2: Task{3db498f #3000 type=standard A=10469:.MainActivity}
+    mActivityComponent=com.termux.x11/.MainActivity
+"""
     try:
-        module.find_x11_task_id(task_dump + task_dump.replace("#2852", "#3000"))
+        module.find_x11_task_id(
+            task_dump.replace("\n  Visible recent tasks", duplicate + "\n  Visible recent tasks")
+        )
     except module.ForegroundError:
         pass
     else:
