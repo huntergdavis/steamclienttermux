@@ -8399,3 +8399,37 @@ top-app Activity never displaced controller timeout benchmark completes"`
 query returned no indexed implementation. This fix reuses the E135 exact
 top-app validation, paired-ADB X11 task identity, and property-restoration
 contract; it changes no game, bridge, Steam, or Vulkan behavior.
+
+## 2026-08-22: E137 isolates coherent mirror copying inside native submission
+
+The corrected foreground controller completed the E137 diagnostic benchmark
+and wrote a game-authored **3.7 minimum, 11.7 maximum, and 7.1 average FPS**
+result at 2800x1752 Low. The Wait-only Android ANR guard acted during the
+scene, so this result corroborates E135 rather than replacing its clean
+7.0-FPS result. Steam and X11 retained their exact PIDs and start ticks, the
+performance-hardening property remained `1`, and `termux.properties` remained
+byte-identical after teardown.
+
+Across 1,568 profiled presents, the client spent 24.05 ms per present in
+`vkWaitSemaphores`, 15.53 ms in shared Submit2, and 4.58 ms in ordinary
+Submit2. Matching Bionic records show 23.80 ms of native wait, 14.04 ms of
+coherent mirror synchronization, 3.04 ms of actual Turnip queue submission,
+2.47 ms of shared-command replay, and only 0.80 ms of remaining client/service
+transport difference. Virtual WSI is 0.79 ms per present.
+
+The wait shape is not an accidental poll: all 3,926 measured calls used an
+infinite timeout, waited for both of two timeline semaphores, and succeeded;
+none timed out. The queue path is more actionable. Coherent mirror copying is
+82% of the measured resolve/mirror/native queue stage. Even so, it consumes
+only 14.04 ms of a 140.85-ms average frame, so eliminating it alone has an
+idealized ceiling near 7.9 FPS, roughly an 11% gain—not an order-of-magnitude
+fix.
+
+The next bounded gate is therefore an architecture probe, not another socket
+micro-optimization: ask private Turnip for an exported host-visible allocation
+FD, map it from the glibc client, and prove bidirectional visibility. If that
+works, the bridge can replace eligible coherent mirrors with direct shared
+device memory. If it does not, the probe rules out that design before invasive
+changes. Exact counts, hashes, the diagnostic result, launch-state screenshot,
+and claim boundary are retained in
+`docs/evidence/tombraider-bvb-e137-native-sync-profile-20260822.json`.
