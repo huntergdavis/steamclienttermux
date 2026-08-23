@@ -8756,3 +8756,28 @@ The required focused `deja` query returned no indexed implementation. This
 candidate reuses final-game environment containment, strict selector
 anti-smuggling, the 40 C benchmark gate, and the argument-free Android
 foreground wrappers.
+
+The relaxed-graphics-barrier candidate then completed its real-game gate. An
+excluded correctness pass scored 11.3/45.8/34.7 FPS and a separate excluded
+warm-up scored 23.9/48.4/34.9 FPS. The captured native-resolution Lara frame
+showed coherent geometry, textures, shadows, vegetation, and lighting; its
+SHA-256 is
+`fc62f965f1c6821560432923689ebe1706a2d3cf0cc7600897bbf257fdf4096c`.
+That remains a spot check rather than proof against subtle corruption.
+
+The three cooled recorded passes scored 7.9/47.6/32.2,
+24.0/49.9/33.5, and 23.6/45.8/33.3 FPS. Their **33.0 FPS mean** is
+**1.0 FPS / 2.94% below** the accepted 34.0 FPS build. Minimum-FPS mean also
+fell from 20.667 to 18.5 (-10.49%), while maximum-FPS mean rose from 46.433
+to 47.767 (+2.87%). The promising excluded readings therefore did not
+replicate. The candidate is rejected and remains default-off; its opt-in is
+retained for future translator/driver retests.
+
+The full raw series is retained at
+`docs/benchmark-series/tombraider-direct-glibc-safe-dxvk-relaxed-graphics-60hz-40c-20260823.json`
+with SHA-256
+`0ae6410e2b81da8d321e494c504414e09059fadb7ef8b1fc1c3a28424afc3055`.
+Structured interpretation is in
+`docs/evidence/tombraider-direct-dxvk-relaxed-graphics-20260823.json`.
+Steam PID 15575/start tick 128118834 and Termux:X11 PID 13643/start tick
+121863492 survived unchanged; login state was not touched.

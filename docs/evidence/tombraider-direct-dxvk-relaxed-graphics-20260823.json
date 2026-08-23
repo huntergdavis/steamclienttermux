@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "title": "Tomb Raider DXVK relaxed graphics barriers validation",
+  "date": "2026-08-23",
+  "target": {
+    "device": "Samsung Galaxy Tab S8+ SM-X808U",
+    "soc": "Snapdragon 8 Gen 1 / Adreno 730",
+    "game": "Tomb Raider (2013)",
+    "appid": 203160,
+    "resolution": "2800x1752",
+    "graphics": "Low",
+    "refresh_hz": 59.97,
+    "vsync": false,
+    "motion_blur": false,
+    "fex_profile": "safe",
+    "backend": "direct glibc game path",
+    "fex_maximal_jit_buffer": true,
+    "raknet_empty_receive_backoff_microseconds": 1000,
+    "start_temperature_ceiling_millidegrees_c": 40000,
+    "warmups_excluded": 1,
+    "recorded_runs": 3
+  },
+  "single_variable": {
+    "candidate": {
+      "TOMB_RAIDER_DXVK_RELAXED_GRAPHICS_BARRIERS": "on",
+      "DXVK_CONFIG": "d3d11.relaxedGraphicsBarriers = True"
+    },
+    "control": {
+      "TOMB_RAIDER_DXVK_RELAXED_GRAPHICS_BARRIERS": "off",
+      "DXVK_CONFIG": "unset"
+    },
+    "containment": "The actual DXVK_CONFIG exists only in the final Tomb Raider Wine/DXVK environment. Steam, CEF, the captured Pressure Vessel request, unrelated games, and the default control do not receive it. Caller-supplied DXVK_CONFIG and DXVK_CONFIG_FILE are removed before final reconstruction."
+  },
+  "excluded_correctness_pass": {
+    "series_id": "20260823T164326Z-safe",
+    "minimum_fps": 11.3,
+    "maximum_fps": 45.8,
+    "average_fps": 34.7,
+    "screenshot": "$HOME/steam-arm64/logs/tombraider-benchmarks/20260823T164326Z-safe/dxvk-relaxed-scene.png",
+    "screenshot_sha256": "fc62f965f1c6821560432923689ebe1706a2d3cf0cc7600897bbf257fdf4096c",
+    "visual_check": "The captured native-resolution Lara benchmark frame showed coherent geometry, textures, shadows, vegetation, lighting, and composition with no obvious corruption. This is a spot check, not proof against subtle rendering errors."
+  },
+  "candidate": {
+    "series_id": "20260823T164758Z-safe",
+    "raw_file": "docs/benchmark-series/tombraider-direct-glibc-safe-dxvk-relaxed-graphics-60hz-40c-20260823.json",
+    "raw_sha256": "0ae6410e2b81da8d321e494c504414e09059fadb7ef8b1fc1c3a28424afc3055",
+    "warmup_excluded": {"minimum_fps": 23.9, "maximum_fps": 48.4, "average_fps": 34.9},
+    "recorded": [
+      {"minimum_fps": 7.9, "maximum_fps": 47.6, "average_fps": 32.2},
+      {"minimum_fps": 24.0, "maximum_fps": 49.9, "average_fps": 33.5},
+      {"minimum_fps": 23.6, "maximum_fps": 45.8, "average_fps": 33.3}
+    ],
+    "mean": {"minimum_fps": 18.5, "maximum_fps": 47.767, "average_fps": 33.0},
+    "median": {"minimum_fps": 23.6, "maximum_fps": 47.6, "average_fps": 33.3}
+  },
+  "accepted_control": {
+    "evidence": "docs/evidence/tombraider-direct-fex-max-buffer-20260823.json",
+    "mean": {"minimum_fps": 20.667, "maximum_fps": 46.433, "average_fps": 34.0}
+  },
+  "comparison": {
+    "average_fps_delta": -1.0,
+    "average_fps_percent": -2.941176,
+    "minimum_fps_delta": -2.167,
+    "minimum_fps_percent": -10.485314,
+    "maximum_fps_delta": 1.334,
+    "maximum_fps_percent": 2.872956
+  },
+  "decision": {
+    "status": "rejected",
+    "default": "off",
+    "reason": "Two promising excluded samples at 34.7 and 34.9 FPS did not replicate. The three cooled recorded passes averaged 33.0 FPS, 1.0 FPS or 2.94% below the accepted 34.0 FPS build, and minimum-FPS mean regressed 10.49%. The opt-in remains available only for future retesting after major translator or driver changes."
+  },
+  "implementation": {
+    "source_commit": "5ac5d7c3edd0b2ea56dfc71a3b33d2f1fc3f8fe1",
+    "upstream_dxvk_commit": "a6764047e587178283fcde4073ae6e1410af594f",
+    "upstream_boundary": "DXVK documents this option as removing graphics UAV barriers while keeping compute UAV barriers, with a warning that it may improve performance but can cause rendering errors."
+  },
+  "preservation": {
+    "steam_pid": 15575,
+    "steam_start_ticks": 128118834,
+    "termux_x11_pid": 13643,
+    "termux_x11_start_ticks": 121863492,
+    "steam_restarted": false,
+    "x11_restarted": false,
+    "login_state_touched": false,
+    "foreground_controller_exit_status": 0
+  },
+  "recall": "The required deja queries returned no indexed DXVK relaxed-graphics-barrier experiment. This gate reused the repository's final-game-only environment containment, selector anti-smuggling, Android top-app foreground launcher, full-topology guard, 40 C cooled game-authored benchmark protocol, and preserve-negative-results rule.",
+  "sources": [
+    "https://github.com/doitsujin/dxvk/blob/a6764047e587178283fcde4073ae6e1410af594f/dxvk.conf"
+  ]
+}
