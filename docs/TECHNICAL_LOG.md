@@ -8820,3 +8820,28 @@ The three replaced files are retained under
 `~/steam-arm64/backups/pre-315120d-fex-smc-none`; the five exact sources are
 under `~/steam-arm64/candidates/315120d-fex-smc-none`. Steam and Termux:X11
 kept PID/start-tick identities 15575/128118834 and 13643/121863492.
+
+The excluded `SMC=none` correctness pass completed at 11.1/46.1/34.6 FPS.
+Live environment inspection proved the parked outer Steam/PRoot request kept
+`FEX_SMC_CHECKS=mtrack`, while the final direct Runtime/Proton/Wine/game chain
+received `FEX_SMC_CHECKS=none` and the FEX maximal-buffer switch. A real ADB
+screenshot at 2800x1752 showed coherent Lara geometry, skin, hair, clothing,
+trees, rocks, shadows, and lighting; SHA-256 is
+`ff5b6e690d13d190d78109f5a0151aa58ffbc64942309695e4d85c99931702ce`.
+The game and foreground controller exited normally.
+
+The complete candidate warm-up scored 15.4/45.7/33.9 FPS. Recorded passes
+were 23.7/46.3/34.0, 23.6/46.8/32.9, and 21.1/45.2/32.7. Their **33.2 FPS
+mean** is **0.8 FPS / 2.35% below** the accepted 34.0 FPS build, so `mtrack`
+remains the default. The candidate's minimum-FPS mean did improve from 20.667
+to 22.8 (+10.32%), which is why `none` remains available as an explicit
+future pacing experiment rather than being removed.
+
+Both raw runs are retained under `docs/benchmark-series/`; their SHA-256
+values are
+`8372395cef435110645e2e5744431db43d4bfac325cdf7d4dc970cafa2a79b9d`
+for the excluded pass and
+`8ccaa7c61facd238b081bc80fa0aa011b7e335fced958bb9d27a7d809fcf9bd1`
+for the full series. Structured interpretation is in
+`docs/evidence/tombraider-direct-fex-smc-none-20260823.json`. Steam and
+Termux:X11 identities survived unchanged, and login state was not touched.

@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "title": "Tomb Raider FEX SMC checks none validation",
+  "date": "2026-08-23",
+  "target": {
+    "device": "Samsung Galaxy Tab S8+ SM-X808U",
+    "soc": "Snapdragon 8 Gen 1 / Adreno 730",
+    "game": "Tomb Raider (2013)",
+    "appid": 203160,
+    "resolution": "2800x1752",
+    "graphics": "Low",
+    "refresh_hz": 59.97,
+    "vsync": false,
+    "motion_blur": false,
+    "fex_profile": "safe",
+    "backend": "direct glibc game path",
+    "fex_maximal_jit_buffer": true,
+    "dxvk_relaxed_graphics_barriers": false,
+    "raknet_empty_receive_backoff_microseconds": 1000,
+    "start_temperature_ceiling_millidegrees_c": 40000,
+    "warmups_excluded": 1,
+    "recorded_runs": 3
+  },
+  "single_variable": {
+    "candidate": {"FEX_SMC_CHECKS": "none"},
+    "control": {"FEX_SMC_CHECKS": "mtrack"},
+    "containment": "The actual FEX_SMC_CHECKS override exists only in the final Tomb Raider Runtime/Proton/Wine/FEX process chain. The parked outer Steam/PRoot request retained mtrack, and caller-supplied raw/internal/user selector values are removed before final reconstruction."
+  },
+  "excluded_correctness_pass": {
+    "series_id": "20260823T171243Z-safe",
+    "raw_file": "docs/benchmark-series/tombraider-direct-glibc-safe-fex-smc-none-excluded-60hz-40c-20260823.json",
+    "raw_sha256": "8372395cef435110645e2e5744431db43d4bfac325cdf7d4dc970cafa2a79b9d",
+    "minimum_fps": 11.1,
+    "maximum_fps": 46.1,
+    "average_fps": 34.6,
+    "screenshot": "$HOME/steam-arm64/logs/tombraider-benchmarks/20260823T171243Z-safe/fex-smc-none-scene.png",
+    "screenshot_sha256": "ff5b6e690d13d190d78109f5a0151aa58ffbc64942309695e4d85c99931702ce",
+    "visual_check": "The native-resolution benchmark frame showed coherent Lara geometry, skin, hair, clothing, trees, rocks, shadows, and lighting with no obvious corruption. Normal benchmark and foreground-controller exit status was zero."
+  },
+  "candidate": {
+    "series_id": "20260823T171556Z-safe",
+    "raw_file": "docs/benchmark-series/tombraider-direct-glibc-safe-fex-smc-none-60hz-40c-20260823.json",
+    "raw_sha256": "8ccaa7c61facd238b081bc80fa0aa011b7e335fced958bb9d27a7d809fcf9bd1",
+    "warmup_excluded": {"minimum_fps": 15.4, "maximum_fps": 45.7, "average_fps": 33.9},
+    "recorded": [
+      {"minimum_fps": 23.7, "maximum_fps": 46.3, "average_fps": 34.0},
+      {"minimum_fps": 23.6, "maximum_fps": 46.8, "average_fps": 32.9},
+      {"minimum_fps": 21.1, "maximum_fps": 45.2, "average_fps": 32.7}
+    ],
+    "mean": {"minimum_fps": 22.8, "maximum_fps": 46.1, "average_fps": 33.2},
+    "median": {"minimum_fps": 23.6, "maximum_fps": 46.3, "average_fps": 32.9}
+  },
+  "accepted_control": {
+    "evidence": "docs/evidence/tombraider-direct-fex-max-buffer-20260823.json",
+    "mean": {"minimum_fps": 20.667, "maximum_fps": 46.433, "average_fps": 34.0}
+  },
+  "comparison": {
+    "average_fps_delta": -0.8,
+    "average_fps_percent": -2.352941,
+    "minimum_fps_delta": 2.133,
+    "minimum_fps_percent": 10.320801,
+    "maximum_fps_delta": -0.333,
+    "maximum_fps_percent": -0.717162
+  },
+  "decision": {
+    "status": "rejected for average-FPS default",
+    "default": "mtrack",
+    "opt_in": "TOMB_RAIDER_FEX_SMC_CHECKS=none",
+    "reason": "The complete candidate averaged 33.2 FPS, 0.8 FPS or 2.35% below the accepted 34.0 FPS build. Minimum-FPS mean improved 10.32%, so the selector remains available for a future frame-pacing retest, but disabling executable-code invalidation is not justified as the performance default."
+  },
+  "implementation": {
+    "source_commit": "315120df1270dfe188c696d3a27745f62b6bb504",
+    "deployment_log_commit": "f3a5879bbe253ca2dc5b724c3f6f56075a82da51",
+    "upstream_boundary": "FEX documents mtrack as default page-tracking invalidation, none as no checks, and full as validation before every run."
+  },
+  "preservation": {
+    "steam_pid": 15575,
+    "steam_start_ticks": 128118834,
+    "termux_x11_pid": 13643,
+    "termux_x11_start_ticks": 121863492,
+    "steam_restarted": false,
+    "x11_restarted": false,
+    "login_state_touched": false,
+    "foreground_controller_exit_status": 0
+  },
+  "recall": "The required deja query returned no indexed Tomb Raider FEX SMC experiment. This gate reused the final-game-only environment boundary, anti-smuggling selectors, FEX maximal-buffer default, Android top-app controller, full-topology guard, visual screenshot check, and 40 C cooled game-authored benchmark method.",
+  "sources": [
+    "https://github.com/FEX-Emu/FEX/blob/main/FEXCore/Source/Interface/Config/Config.json.in",
+    "https://github.com/FEX-Emu/FEX/issues/4999"
+  ]
+}
