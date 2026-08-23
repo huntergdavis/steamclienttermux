@@ -208,6 +208,10 @@ install_one "$repo_root/scripts/test-tomb-raider-direct-dxvk-relaxed-graphics-ex
     "$HOME/test-tomb-raider-direct-dxvk-relaxed-graphics-excluded-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/test-tomb-raider-direct-dxvk-relaxed-graphics-40c-ceiling.sh" \
     "$HOME/test-tomb-raider-direct-dxvk-relaxed-graphics-40c-ceiling.sh" 700
+install_one "$repo_root/scripts/test-tomb-raider-direct-fex-smc-none-excluded-40c-ceiling.sh" \
+    "$HOME/test-tomb-raider-direct-fex-smc-none-excluded-40c-ceiling.sh" 700
+install_one "$repo_root/scripts/test-tomb-raider-direct-fex-smc-none-40c-ceiling.sh" \
+    "$HOME/test-tomb-raider-direct-fex-smc-none-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/test-tomb-raider-direct-steam-service-cpu0-abba-40c-ceiling.sh" \
     "$HOME/test-tomb-raider-direct-steam-service-cpu0-abba-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/test-tomb-raider-direct-steam-service-cpu0-excluded-40c-ceiling.sh" \

@@ -946,6 +946,15 @@ def build_parser() -> argparse.ArgumentParser:
             "compute barriers remain strict"
         ),
     )
+    parser.add_argument(
+        "--fex-smc-checks",
+        choices=("mtrack", "none"),
+        default="mtrack",
+        help=(
+            "select Tomb Raider-only FEX self-modifying-code checks; none is "
+            "an unsafe performance experiment"
+        ),
+    )
     cef_group = parser.add_mutually_exclusive_group()
     cef_group.add_argument(
         "--hold-steam-cef",
@@ -1234,15 +1243,17 @@ def main() -> int:
                 arguments.startup_topology
             )
             environment["TOMB_RAIDER_FEX_CODE_CACHE"] = arguments.fex_code_cache
+            environment["TOMB_RAIDER_FEX_SMC_CHECKS"] = arguments.fex_smc_checks
             environment["TOMB_RAIDER_DXVK_RELAXED_GRAPHICS_BARRIERS"] = (
                 arguments.dxvk_relaxed_graphics_barriers
             )
         elif (
             arguments.fex_code_cache != "off"
+            or arguments.fex_smc_checks != "mtrack"
             or arguments.dxvk_relaxed_graphics_barriers != "off"
         ):
             raise RuntimeError(
-                "FEX code-cache and DXVK barrier experiments require "
+                "FEX code-cache, FEX SMC, and DXVK barrier experiments require "
                 "the direct backend"
             )
         if arguments.raknet_nice is not None:
@@ -1265,6 +1276,7 @@ def main() -> int:
                 "motion_blur": "off",
                 "fex_profile": arguments.profile,
                 "fex_code_cache": arguments.fex_code_cache,
+                "fex_smc_checks": arguments.fex_smc_checks,
                 "dxvk_relaxed_graphics_barriers": (
                     arguments.dxvk_relaxed_graphics_barriers
                 ),

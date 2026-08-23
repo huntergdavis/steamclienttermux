@@ -8781,3 +8781,26 @@ Structured interpretation is in
 `docs/evidence/tombraider-direct-dxvk-relaxed-graphics-20260823.json`.
 Steam PID 15575/start tick 128118834 and Termux:X11 PID 13643/start tick
 121863492 survived unchanged; login state was not touched.
+
+The next translator-side candidate is FEX self-modifying-code tracking. The
+Safe profile currently sets `FEX_SMC_CHECKS=mtrack`, FEX's default page-based
+executable-code invalidation mode. Upstream documents `none` as disabling
+those checks entirely, and an upstream game issue shows that invalidation can
+become a major CPU cost in pathological workloads. This is therefore a real
+performance lever, but it is also a correctness risk: modified executable
+code would no longer invalidate translated blocks.
+
+The new `TOMB_RAIDER_FEX_SMC_CHECKS={mtrack,none}` selector defaults to the
+unchanged `mtrack`. It removes raw and user-supplied selector copies from the
+captured request and injects exact `FEX_SMC_CHECKS` only into the final Tomb
+Raider Wine/FEX environment. Invalid values and `none` outside Tomb Raider
+fail closed. Argument-free excluded and cooled-series wrappers keep Android
+foreground promotion simple. A correctness/visual/exit pass is mandatory
+before measuring `none`; a crash or malformed frame rejects it immediately.
+
+The required focused `deja` query returned no indexed Tomb Raider SMC
+experiment. The implementation reuses the final-game containment,
+anti-smuggling, FEX maximal-buffer default, full-topology guard, and 40 C
+game-authored benchmark protocol. Upstream references:
+[FEX configuration](https://github.com/FEX-Emu/FEX/blob/main/FEXCore/Source/Interface/Config/Config.json.in)
+and [invalidation performance issue](https://github.com/FEX-Emu/FEX/issues/4999).

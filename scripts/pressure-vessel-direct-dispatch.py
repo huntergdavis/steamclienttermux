@@ -231,6 +231,20 @@ def apply_fex_code_cache(
     )
 
 
+def apply_fex_smc_checks(
+    environment: dict[str, str], command_mode: str
+) -> None:
+    selector = os.environ.get("STEAM_ARM64_DIRECT_FEX_SMC_CHECKS", "mtrack")
+    if selector not in ("mtrack", "none"):
+        fail("STEAM_ARM64_DIRECT_FEX_SMC_CHECKS must be mtrack or none")
+    environment.pop("FEX_SMC_CHECKS", None)
+    if command_mode not in ("tombraider", "tombraider-benchmark"):
+        if selector != "mtrack":
+            fail("FEX SMC-check override is valid only for Tomb Raider")
+        return
+    environment["FEX_SMC_CHECKS"] = selector
+
+
 def apply_dxvk_relaxed_graphics_barriers(
     environment: dict[str, str], command_mode: str
 ) -> None:
@@ -846,6 +860,9 @@ def request_environment(payload: dict[str, object]) -> dict[str, str]:
         "FEX_APP_CACHE_LOCATION",
         "STEAM_ARM64_DIRECT_FEX_CODE_CACHE",
         "TOMB_RAIDER_FEX_CODE_CACHE",
+        "FEX_SMC_CHECKS",
+        "STEAM_ARM64_DIRECT_FEX_SMC_CHECKS",
+        "TOMB_RAIDER_FEX_SMC_CHECKS",
         "DXVK_CONFIG",
         "DXVK_CONFIG_FILE",
         "STEAM_ARM64_DIRECT_DXVK_RELAXED_GRAPHICS_BARRIERS",
@@ -1407,6 +1424,7 @@ def pv_smoke_invocation(
         if direct_fex_profile is not None:
             apply_direct_fex_profile(environment, direct_fex_profile)
         apply_fex_code_cache(environment, base, command_mode)
+        apply_fex_smc_checks(environment, command_mode)
         apply_dxvk_relaxed_graphics_barriers(environment, command_mode)
     prefix = os.environ.get("PREFIX", "")
     if not prefix.startswith("/"):
