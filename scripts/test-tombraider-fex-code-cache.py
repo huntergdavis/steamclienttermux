@@ -48,7 +48,7 @@ def main() -> None:
         cache = base / "cache/fex-code-cache/tombraider-203160"
         assert enabled == {
             "FEX_ENABLECODECACHINGWIP": "1",
-            "FEX_APP_CACHE_LOCATION": str(cache),
+            "FEX_APP_CACHE_LOCATION": f"{cache}/",
         }
         metadata = cache.lstat()
         assert stat.S_ISDIR(metadata.st_mode)

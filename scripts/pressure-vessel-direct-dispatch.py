@@ -225,7 +225,8 @@ def apply_fex_code_cache(
     environment.update(
         {
             "FEX_ENABLECODECACHINGWIP": "1",
-            "FEX_APP_CACHE_LOCATION": str(cache),
+            # FEX appends paths such as "codemap/new" directly to this value.
+            "FEX_APP_CACHE_LOCATION": f"{cache}/",
         }
     )
 

@@ -8670,7 +8670,9 @@ passes only a server control to the direct dispatcher. The dispatcher strips
 all cache variables from the captured Pressure Vessel request and injects the
 actual FEX controls only into the final Tomb Raider Wine/FEX environment. An
 enabled run uses the private persistent directory
-`~/steam-arm64/cache/fex-code-cache/tombraider-203160`; Steam, CEF, the outer
+`~/steam-arm64/cache/fex-code-cache/tombraider-203160/`; the actual environment
+value retains that trailing slash because upstream concatenates `codemap/...`
+without inserting a separator. Steam, CEF, the outer
 runtime request, and unrelated games never receive the switch. Invalid modes,
 non-Tomb-Raider modes, unsafe directories, and request smuggling fail closed.
 
