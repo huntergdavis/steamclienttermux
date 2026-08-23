@@ -8562,6 +8562,10 @@ to undo an experimental priority reduction.
 
 The benchmark runner can apply the holder to all passes or selected recorded
 passes and retains its exact active/restored identity in `series.json`. The
+argument-free
+`test-tomb-raider-direct-steam-service-cpu0-excluded-40c-ceiling.sh` wrapper
+exists for the hardened Android foreground controller's first correctness run.
+The
 `test-tomb-raider-direct-steam-service-cpu0-abba-40c-ceiling.sh` wrapper uses
 control/isolation/isolation/control ordering at the existing 40 C gate. This is
 host-tested experimental machinery only; no game completion, CPU reduction,
