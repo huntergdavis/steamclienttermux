@@ -111,6 +111,8 @@ def main() -> None:
     assert '"--fex-code-cache"' in runner_source
     assert '"fex_code_cache": arguments.fex_code_cache' in runner_source
     wrapper_source = WRAPPER.read_text(encoding="utf-8")
+    assert "TOMB_RAIDER_BENCHMARK_COMMAND" in wrapper_source
+    assert "compat-bin/run-tombraider-native-benchmark.py" not in wrapper_source
     assert "--fex-code-cache on" in wrapper_source
     assert "--start-temperature-ceiling-c 40" in wrapper_source
 
