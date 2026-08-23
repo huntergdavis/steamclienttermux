@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-23",
+  "game": "Tomb Raider (2013)",
+  "appid": 203160,
+  "stack": "native glibc Steam host; direct Runtime 4/Proton game execution",
+  "target": {
+    "resolution": "2800x1752",
+    "graphics": "Low",
+    "vsync": "off",
+    "motion_blur": "off",
+    "fex_profile": "safe",
+    "refresh_hz": 59.97,
+    "start_temperature_ceiling_c": 40,
+    "raknet_empty_receive_backoff_us": 1000
+  },
+  "order": [
+    "warmup-control",
+    "recorded-control",
+    "recorded-isolated",
+    "recorded-isolated",
+    "recorded-control"
+  ],
+  "warmup": {
+    "minimum_fps": 12.5,
+    "maximum_fps": 46.9,
+    "average_fps": 33.5,
+    "start_max_millidegrees_c": 37000
+  },
+  "recorded_runs": [
+    {"condition": "control", "minimum_fps": 25.2, "maximum_fps": 48.8, "average_fps": 35.5, "start_max_millidegrees_c": 37200},
+    {"condition": "cpu0-isolated", "minimum_fps": 23.8, "maximum_fps": 49.9, "average_fps": 33.7, "start_max_millidegrees_c": 37000},
+    {"condition": "cpu0-isolated", "minimum_fps": 18.7, "maximum_fps": 47.1, "average_fps": 32.7, "start_max_millidegrees_c": 38300},
+    {"condition": "control", "minimum_fps": 23.3, "maximum_fps": 46.2, "average_fps": 33.3, "start_max_millidegrees_c": 37000}
+  ],
+  "condition_means": {
+    "control": {"minimum_fps": 24.25, "maximum_fps": 47.5, "average_fps": 34.4},
+    "cpu0_isolated": {"minimum_fps": 21.25, "maximum_fps": 48.5, "average_fps": 33.2}
+  },
+  "isolated_relative_change_percent": {
+    "minimum_fps": -12.371,
+    "maximum_fps": 2.105,
+    "average_fps": -3.488
+  },
+  "correctness": {
+    "game_authored_results": 5,
+    "normal_exits": 5,
+    "isolated_passes_with_exact_active_and_restore_evidence": 2,
+    "steam_identity_unchanged": true,
+    "x11_identity_unchanged": true,
+    "termux_properties_restored_byte_identical": true,
+    "post_series_service_cpu_mask": "0-3"
+  },
+  "artifacts": {
+    "tablet_series_path": "/data/data/com.termux/files/home/steam-arm64/logs/tombraider-benchmarks/20260823T135256Z-safe/series.json",
+    "tablet_series_sha256": "56a71c0a10666cc7a58b848cfc36bdf8d22ae08bcde455c6416aaf2c4a87c3c8",
+    "recorded_result_sha256": [
+      "290c59ba1e904f3b9f9d7064e315d328cde92f7b8dfef7e5dcc4ea5140c69a1a",
+      "db6696f4709553a084aa093cac46e345b0045f44398fd2aa24c7a76163de9440",
+      "6297968a6a72829b3aaef786cdd17ac5f01f8463e2909f65080b7962a2add41e",
+      "1d2eb0fb6fbd64d4c62766983b9a178449bdb6298ca1494f8e35927d978018aa"
+    ],
+    "isolation_log_sha256": "80c92e6052f052be612c2f35188ccc780c1e8101f23bd06d46f8e1791a68a021"
+  },
+  "decision": "Reject CPU0 isolation as a production optimization. It regressed matched mean average and minimum FPS despite a small maximum-FPS increase.",
+  "revisit_when": "Only revisit placement if Steam's IPC workload is reduced first or a wider CPU mask can be justified by a new profile; do not enumerate masks without a causal change.",
+  "reuse": "The exact deja query returned no indexed implementation. The run reused the CEF holder identity/restore contract, the guarded top-app RunCommandService controller, and the native-resolution 40 C game-authored ABBA methodology."
+}

@@ -8593,3 +8593,23 @@ became Steam's leading sampled thread at 48.3% on CPUs0-3. RakNet remained at
 FPS gain. Exact hashes, paths, placement, and preservation evidence are in
 `docs/evidence/tombraider-direct-steam-service-cpu0-excluded-20260823.json`.
 The next acceptance gate is the profiler-free cooled ABBA series.
+
+### Cooled ABBA result: CPU0 placement rejected
+
+The complete profiler-free series used control/isolation/isolation/control
+ordering after one control warm-up. All five runs began below 40 C and wrote
+normal game-authored results. Controls scored 35.5 and 33.3 average FPS, for a
+34.4 mean. CPU0-isolated passes scored 33.7 and 32.7, for a 33.2 mean. Relative
+to the matched controls, isolation changed mean minimum/maximum/average by
+**-12.37%/+2.11%/-3.49%**. The small maximum increase does not compensate for
+the lower mean and much worse minimum.
+
+Both experimental passes proved exact 0-3 -> 0 -> 0-3 transitions. Steam,
+X11, authentication, and `termux.properties` remained intact. CPU0 isolation
+is rejected as a production setting and remains opt-in only. The result also
+argues against blindly enumerating narrower Steam masks: the service is
+latency-sensitive enough that constraining it can worsen frame pacing. The
+next investigation should reduce an identified Steam/X11/Wine workload or
+change a more scalable boundary, not merely move the same work. Full numbers
+and hashes are retained in
+`docs/evidence/tombraider-direct-steam-service-cpu0-abba-20260823.json`.
