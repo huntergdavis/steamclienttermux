@@ -97,6 +97,17 @@ def thread_stats(pid: int, proc_root: Path = PROC_ROOT) -> dict[int, dict[str, i
     return tasks
 
 
+def all_thread_stats(
+    processes: dict[int, dict[str, int | str]], proc_root: Path = PROC_ROOT
+) -> dict[int, dict[str, int | str]]:
+    """Read every thread owned by the already-validated same-UID processes."""
+    tasks = {}
+    for owner_pid in processes:
+        for tid, record in thread_stats(owner_pid, proc_root).items():
+            tasks[tid] = {**record, "owner_pid": owner_pid}
+    return tasks
+
+
 def find_target(processes: dict[int, dict[str, int | str]], name: str) -> int:
     matches = sorted(pid for pid, record in processes.items() if record["name"] == name)
     if len(matches) != 1:
@@ -124,6 +135,11 @@ def delta_rows(
                 "name": str(final["name"]),
                 "cpu_percent": round(tick_delta * 100.0 / clock_ticks / elapsed, 1),
                 "processor": int(final["processor"]),
+                **(
+                    {"owner_pid": int(final["owner_pid"])}
+                    if "owner_pid" in final
+                    else {}
+                ),
             }
         )
     return sorted(rows, key=lambda row: (-float(row["cpu_percent"]), int(row["pid"])))
@@ -186,17 +202,22 @@ def build_report(name: str, seconds: float, top: int) -> dict[str, object]:
     processes_before = same_uid_processes()
     target_pid = find_target(processes_before, name)
     target_threads_before = thread_stats(target_pid)
+    all_threads_before = all_thread_stats(processes_before)
     started = time.monotonic()
     time.sleep(seconds)
     elapsed = time.monotonic() - started
     processes_after = same_uid_processes()
     target_threads_after = thread_stats(target_pid)
+    all_threads_after = all_thread_stats(processes_after)
     if target_pid not in processes_after:
         raise RuntimeError(f"target process {target_pid} exited during sample")
 
     process_rows = delta_rows(processes_before, processes_after, elapsed, clock_ticks)
     thread_rows = delta_rows(
         target_threads_before, target_threads_after, elapsed, clock_ticks
+    )
+    all_thread_rows = delta_rows(
+        all_threads_before, all_threads_after, elapsed, clock_ticks
     )
     status = parse_status(PROC_ROOT / str(target_pid) / "status")
     return {
@@ -214,6 +235,7 @@ def build_report(name: str, seconds: float, top: int) -> dict[str, object]:
         },
         "top_processes": process_rows[:top],
         "top_target_threads": thread_rows[:top],
+        "top_same_uid_threads": all_thread_rows[:top],
         "cpu": cpu_snapshot(),
         "gpu": gpu_snapshot(),
         "thermal": thermal_snapshot(),
@@ -241,6 +263,12 @@ def print_human(report: dict[str, object]) -> None:
         print(
             f" tid={row['pid']} name={row['name']} cpu={row['cpu_percent']}%"
             f" last_cpu={row['processor']}"
+        )
+    print("TOP_SAME_UID_THREADS")
+    for row in report["top_same_uid_threads"]:
+        print(
+            f" tid={row['pid']} owner_pid={row['owner_pid']} name={row['name']}"
+            f" cpu={row['cpu_percent']}% last_cpu={row['processor']}"
         )
     gpu = report["gpu"]
     assert isinstance(gpu, dict)

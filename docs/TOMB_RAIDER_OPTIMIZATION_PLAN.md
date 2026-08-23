@@ -150,6 +150,28 @@ as a default-performance change but remains available for explicit experiments.
 | BVB descriptor allocation reuse | E130's bounded active handoff improved the complete native-resolution benchmark from 2.0 to 2.4 FPS. E131 then proved reset-epoch whole-sequence prediction wrong on the real game: only 36 of 159,843 attempts hit a lease (0.0225%), and that attempt did not complete. | E132 should batch the live request's exact pool/layout signature instead: return the requested prefix from one real native multi-set allocation and publish only the extras. Scan independent signature banks per pool; invalidate them all on reset/destroy; fall back to the exact atomic request on batch failure. |
 | BVB first-rejection diagnostic | E079 can expose the bridge's first rejected real-game call without contaminating Steam/CEF or enabling persistent verbose diagnostics. | Set `TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC=1` only for a bounded BVB diagnostic run. Default `0` emits no game variable; this is a diagnosis gate, not a speed setting. |
 
+## Experiment ledger and revisit triggers
+
+`TECHNICAL_LOG.md` is the chronological authority and the JSON under
+`benchmark-series/` and `evidence/` is the raw authority. This compact ledger
+keeps rejected and near-miss work discoverable instead of treating it as
+discarded.
+
+| Experiment | Current decision | Revisit when |
+|---|---|---|
+| Samsung Performance mode | Rejected: controlled mean was 9.9% below Standard. | A firmware/Game Booster update changes the policy, or another fix removes the measured thermal cap. |
+| 119.92 Hz display | Rejected for this 60-FPS target: 59.97 Hz improved mean by 7.6%. | Testing a game that can sustain more than 60 FPS, or proving equal thermals at 120 Hz. |
+| FEX `proton` profile | Closed near-miss: reverse control narrowed the mean change to +1.29% with mixed min/max results. | FEX/Proton changes materially, or later fixes remove enough CPU pressure to rerun the exact alternating comparison. |
+| FEX `fast` profile | Rejected: 5.4% below the cooled Safe control and carries upstream correctness risk. | A newer FEX documents changed TSO/block behavior and passes an excluded correctness run. |
+| Native CEF hold | Closed near-miss: alternating replication was only +0.55%. | A later profile again shows CEF as a leading consumer, especially after game/wineserver CPU reductions. |
+| X11 on CPU0 only | Rejected: the game never reached topology readiness. | X11 CPU falls substantially, game CPU headroom rises, or a different device exposes another efficiency core. |
+| X11 on CPUs0-1 | Feasible backlog item; not promoted. | A fresh post-optimization profile still ranks X11 near the top and an exact cooled A/B can isolate it. |
+| RakNet nice 19 | Rejected and superseded: activation was unreliable and verified passes were neutral. | Do not revisit while the exact empty-receive backoff is available. |
+| RakNet-exclusive CPU1 | Rejected: mean minimum/average regressed 25.28%/2.15%. | Only if a future title has a genuinely busy network worker not fixed by backoff; not for current Tomb Raider. |
+| RakNet 1 ms empty-receive backoff | Active candidate: receive-thread CPU fell 98.2% to 3.0%; same-session FPS control is in progress. | Promote or reject after the matched reverse control; retain the generic shim for other exact-thread RakNet titles. |
+| Internal-storage move | Deferred: likely loading/minimum-FPS benefit but insufficient safe internal free space. | At least 20 GB internal space is safely available or a smaller reproducible asset subset can isolate storage. |
+| Bionic Vulkan bridge | Paused after visible Tomb Raider frames because current transport remains far below direct glibc. | Direct-glibc bottlenecks plateau, or the logged shared-memory/descriptor/submit changes close the bridge's measured frame-time gap. |
+
 ## Changes not worth leading with
 
 - **Rewriting Python:** Python launches and records the session; it is absent

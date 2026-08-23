@@ -48,6 +48,38 @@ def main():
     rows = module.delta_rows(before, after, elapsed=2.0, clock_ticks=100)
     assert rows == [{"pid": 42, "name": "game", "cpu_percent": 25.0, "processor": 7}]
 
+    thread_before = {
+        52: {
+            "pid": 52,
+            "owner_pid": 42,
+            "name": "render",
+            "ticks": 20,
+            "start_ticks": 15,
+            "processor": 4,
+        }
+    }
+    thread_after = {
+        52: {
+            "pid": 52,
+            "owner_pid": 42,
+            "name": "render",
+            "ticks": 80,
+            "start_ticks": 15,
+            "processor": 6,
+        }
+    }
+    assert module.delta_rows(
+        thread_before, thread_after, elapsed=2.0, clock_ticks=100
+    ) == [
+        {
+            "pid": 52,
+            "owner_pid": 42,
+            "name": "render",
+            "cpu_percent": 30.0,
+            "processor": 6,
+        }
+    ]
+
     try:
         module.parse_stat("malformed")
     except ValueError:
