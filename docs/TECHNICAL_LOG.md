@@ -8281,3 +8281,38 @@ only the third identical request may start a two-set batch. Further growth
 still requires every published extra to have been claimed. Exact identities,
 logs, visual boundaries, and teardown state are retained in
 `docs/evidence/tombraider-bvb-e133-cold-extra-pool-exhaustion-20260822.json`.
+
+## 2026-08-22: E134 restores a complete benchmark without cold speculation
+
+E134 passed 96/96 host and 94/94 applicable Termux contracts plus the glibc
+ICD self-test. The exact pair was installed transactionally with rollback
+`install-pre-O3JlkOCn`; Steam PID 15575 and Termux:X11 PID 13643 retained their
+original start ticks. The first two occurrences of each descriptor signature
+allocated exactly, the third could begin a two-set batch, and larger batches
+still required a completely drained bank.
+
+That policy crossed the E132/E133 pool-exhaustion boundary. The 2800x1752 Low
+benchmark rendered its loading screen and multiple visibly distinct Lara
+frames, wrote a new game-authored result, and exited with status zero. The
+result is **0.5 FPS minimum, 5.0 maximum, and 2.2 average**. This is 10% above
+E129's 2.0 average, but 8.3% below E130's 2.4 and still roughly fourteen times
+below the established direct-path target near 31 FPS. E134 is therefore a
+correctness recovery, not the desired performance result.
+
+Fifty-one complete profile windows cover 1,632 presents. In the comparable
+final 30 windows, socket calls block for 126.1 ms per present and the
+descriptor ring blocks for another 116.6 ms. Stream submission, semaphore
+waits, and ordinary Submit2 account for about 107.8 ms per present; virtual
+WSI acquire plus present remains only 1.70 ms. Descriptor leases hit 81.75% of
+the eligible set observations, but the remaining ring boundary still averages
+311 microseconds per recorded transaction. The measured socket-plus-ring
+budget is 242.7 ms of the game's 454.5-ms average frame.
+
+The old scheduler defect also remains. The affinity artifact records the
+Termux-owned game in `/moderate` and `/background` on CPUs 0-3 while the
+separate-UID BVB Activity owns `/top-app`. That factor was not isolated in this
+run. The next bounded test should foreground the Termux UID without changing
+bridge code, while the next bridge transport design should target submission
+completion and the remaining descriptor misses—not WSI or more API breadth.
+Exact results, profiles, screenshots, hashes, and claim boundaries are in
+`docs/evidence/tombraider-bvb-e134-zero-speculation-profile-20260822.json`.

@@ -1,0 +1,153 @@
+{
+  "gate": "E134",
+  "date": "2026-08-22",
+  "result": "complete_benchmark",
+  "target": {
+    "device": "Samsung Galaxy Tab S8+ SM-X808U",
+    "game": "Tomb Raider (2013)",
+    "appid": 203160,
+    "resolution": "2800x1752",
+    "refresh_hz": 60,
+    "quality": "Low",
+    "exclusive_fullscreen": true,
+    "vsync": false,
+    "motion_blur": false
+  },
+  "runtime": {
+    "bridge_commit": "5a0cc335dbebec4b9ae8a19ba7eac5103e554d43",
+    "steamclienttermux_commit": "7d2e1dcb64bf2dbc2954125b90a67f69c55744dd",
+    "run_id": "20260823T001430Z-7728",
+    "command_stream": "shared",
+    "mapped_memory": "shared",
+    "descriptor_journal": "shared",
+    "frame_profile": true,
+    "first_rejection_diagnostic": true,
+    "activity_version_code": 40,
+    "frame_setup_generation_unsigned": 16167922662260080641,
+    "frame_setup_image_count": 3,
+    "per_frame_java_calls": 0,
+    "per_frame_binder_calls": 0
+  },
+  "validation": {
+    "host_contracts": "96/96 passed",
+    "termux_contracts": "94/94 passed",
+    "glibc_icd_selftest": "passed",
+    "rollback_backup": "/data/data/com.termux/files/home/steam-arm64/bvb/backups/install-pre-O3JlkOCn",
+    "termux_build_log_sha256": "301a352e89d36419ad41f04d44894ce6a2949f1efc299634d2be352a6284e0be",
+    "glibc_build_log_sha256": "6fc390dbbcdea5b6434d61e3fec6b81f8cde848738d1b1bd8393e54fa10a3f49"
+  },
+  "installed_artifacts": {
+    "glibc_icd_sha256": "d12e38069002d3b342ed38d2f6fcdeb34d60f6a693830502509f00707f876bc7",
+    "bionic_service_sha256": "6aeacb849177a85b865d7ed7ae4d638a248691bb46810d7c1d2e5a4df31e86b9",
+    "manifest_sha256": "77f3395e3f657b6a7274c182afe994edacda2a4b38d49814ea84440520af33df",
+    "install_stamp_sha256": "f07fcfc053de3a58fda8d55500d88d93e66376ed5e24ad516734f1912b1270bc"
+  },
+  "game_authored_result": {
+    "minimum_fps": 0.5,
+    "maximum_fps": 5.0,
+    "average_fps": 2.2,
+    "average_frame_time_ms": 454.545455,
+    "source_path": "/data/data/com.termux/files/home/steam-arm64/removable-library/steamapps/common/Tomb Raider/benchmarkresults 2026-08-23 00-24-29.txt",
+    "source_sha256": "93822ac990840358e6e465ac06ebfd80c3e49c66337e124e4a46563dfcb5ccfe",
+    "retained_normalized_path": "docs/evidence/tombraider-bvb-e134-zero-speculation-result-20260822.txt",
+    "retained_normalized_sha256": "9a12722e3fc468de1dbde6813663dec15751cdf9190b0c1eb7823bdac707fcf2",
+    "direct_launch_to_result_seconds_approx": 594,
+    "e130_average_fps": 2.4,
+    "change_from_e130_percent": -8.333,
+    "e129_average_fps": 2.0,
+    "change_from_e129_percent": 10.0,
+    "prior_direct_path_typical_average_fps_approx": 31.0
+  },
+  "client_profile": {
+    "complete_windows": 51,
+    "profiled_presents": 1632,
+    "comparable_final_30_windows": {
+      "windows": 30,
+      "presents": 960,
+      "socket_calls": 38007,
+      "socket_calls_per_present": 39.590625,
+      "socket_blocked_ms_per_present": 126.120082,
+      "descriptor_ring_calls": 359496,
+      "descriptor_ring_calls_per_present": 374.475,
+      "descriptor_ring_blocked_ms_per_present": 116.568088,
+      "descriptor_ring_mean_microseconds_per_call": 311.284,
+      "descriptor_lease_hits": 147542,
+      "descriptor_lease_misses": 32935,
+      "descriptor_lease_hit_rate_percent": 81.751,
+      "descriptor_lease_hits_per_present": 153.69,
+      "descriptor_lease_misses_per_present": 34.307,
+      "socket_plus_ring_ms_per_present": 242.68817,
+      "shared_stream_submit_ms_per_present": 50.599,
+      "semaphore_wait_ms_per_present": 47.205,
+      "queue_submit_2_ms_per_present": 10.037,
+      "descriptor_journal_flush_ms_per_present": 2.443,
+      "query_pool_results_ms_per_present": 1.885,
+      "query_pool_reset_ms_per_present": 0.713
+    }
+  },
+  "worker_profile": {
+    "records": 91,
+    "completed_transactions": 371203,
+    "total_ms": 27593.634,
+    "mean_microseconds_per_transaction": 74.336,
+    "context_wait_ms": 244.577,
+    "decode_ms": 441.785,
+    "snapshot_ms": 1384.428,
+    "journal_replay_ms": 3995.631,
+    "native_allocation_ms": 19466.862,
+    "response_ms": 197.97,
+    "completion_ms": 1726.068,
+    "batch_attempts": 37276,
+    "batch_successes": 36144,
+    "batch_prefetched_sets": 198820,
+    "batch_fallbacks": 1132,
+    "batch_growths": 15835,
+    "batch_cold_exact": 33885
+  },
+  "wsi_profile_final_30_windows": {
+    "present_ms_per_present": 1.115547,
+    "acquire_ms_per_present": 0.584018,
+    "combined_ms_per_present": 1.699565
+  },
+  "visual_evidence": {
+    "initial_activity_sha256": "28b7305067678da2bc88ffcb75bf49b49141cf49c27c59d79df332dcee89e9f8",
+    "loading_frame_sha256": "d84a335e425916887e29411f8c69b0e92ec6f09c5b83882216cc33f5f9c5c44f",
+    "retained_lara_frame_path": "docs/evidence/tombraider-bvb-e134-zero-speculation-frame-20260822.png",
+    "retained_lara_frame_sha256": "486bba66313f4d6b8d271a71fd59f6b68d7185c21fe6890107c389d2001a5374",
+    "lara_sea_frame_sha256": "6c13ae29a24313db759c923e238f9c8cbb5448cf9fa74ee16c4c19628a98d551",
+    "later_lara_frame_sha256": "486cea6b403af2862939bda9a504f5925a1fbdc2f4fe1248efd8e1a781737838",
+    "claim": "The inspected loading frame and three distinct Lara frames prove sustained changing game output. The game-authored result proves benchmark completion."
+  },
+  "retained_log_hashes": {
+    "direct_sha256": "82bf24efadbc9bfeaf189b57f2a767b19520ecfdfce012feb5cc5c9c08e373b7",
+    "service_sha256": "043baaabb669e52fb6911975d0d0a0ea747a883f120c89771ba4de515f2f1b9c",
+    "launcher_sha256": "b386e0fae6721dbda44028dc9bee3b891f5a1c416cb402581b495baed4e5392d",
+    "direct_launcher_sha256": "b69e52103cde41a20185e4264162c5f212b524de5514ce2db03202e48318a952",
+    "affinity_sha256": "655749f110a433120ee53247b3cbb3f249dccea1db524ee2f827b3f366e7088a",
+    "frame_setup_json_sha256": "e22d934315295cb2c5735088f04424faed11d5b6b84a6a5ad49449fbfd62a934",
+    "game_log_sha256": "88d91f84de07ba4b50260750bd23f29ff24eb7f14d3270a307ce1f16a2235493",
+    "anr_watchdog_sha256": "a569248f0edace80b17b76c7eb46fc71d62abfde00ac48edcfe6c05b714b8c51"
+  },
+  "post_run": {
+    "probe_status": 0,
+    "owned_children_remaining": 0,
+    "steam_pid": 15575,
+    "steam_start_ticks": 128118834,
+    "x11_pid": 13643,
+    "x11_start_ticks": 121863492,
+    "protected_processes_unchanged": true,
+    "maximum_thermal_zone_c_after_cooldown": 37.0,
+    "memory_available_kib_after_cooldown": 1629276,
+    "swap_free_kib_after_cooldown": 5333132
+  },
+  "scheduler_boundary": {
+    "game_cpus": "0-3",
+    "game_cpuset_cgroup": "/moderate",
+    "game_cpu_cgroup": "/background",
+    "interpretation": "The known E125 scheduler defect remains: the separate-UID visible BVB Activity is top-app while the Termux-owned game and service stay on the four efficiency cores. E134 does not isolate that factor."
+  },
+  "diagnosis": "E134 fixes E132/E133 descriptor-pool exhaustion and restores a complete real benchmark. It recovers average FPS from 2.0 to 2.2 versus E129 but remains below E130's 2.4. In the final 960 presents, measured socket plus descriptor-ring waiting is about 242.7 ms per present. Descriptor-ring waiting is still 116.6 ms, while stream submission, semaphore waits, and ordinary Submit2 total about 107.8 ms. Virtual WSI is only 1.70 ms per present. The separate background-efficiency-core placement is also still present.",
+  "recommendation": "Preserve E134 correctness. First run a bounded scheduling A/B that foregrounds the Termux UID without changing bridge code; the old direct path shows this factor can be large. In parallel design terms, the next bridge hot-path target is shared submission/completion plus fewer synchronous descriptor misses, not WSI or more Vulkan breadth. Do not claim either gain until a game-authored matched run measures it.",
+  "claim_boundary": "One complete E134 run proves restored correctness and a 2.2-FPS average at the exact target. It is not a cooled alternating series, and it does not isolate descriptor policy, thermal state, GPU work, or Android cgroup placement.",
+  "reuse": "The required E134 deja query returned no indexed implementation. Runtime validation reused E121 pool lifecycle, E127 journal ordering, E131 typed leases, E132 live signature fallback, E133 drained growth, the paired-ADB Activity handoff, Wait-only ANR watchdog, first-rejection diagnostic, screenshot inspection, and protected Steam/X checks."
+}
