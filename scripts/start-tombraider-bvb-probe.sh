@@ -331,8 +331,9 @@ trap 'exit 143' TERM
     fail 'TOMB_RAIDER_BVB_ICD_DIAGNOSTICS must be 0 or 1'
 [[ $command_stream == strict || $command_stream == shared ]] ||
     fail 'TOMB_RAIDER_BVB_COMMAND_STREAM must be strict or shared'
-[[ $mapped_memory == strict || $mapped_memory == shared ]] ||
-    fail 'TOMB_RAIDER_BVB_MAPPED_MEMORY must be strict or shared'
+[[ $mapped_memory == strict || $mapped_memory == shared ||
+    $mapped_memory == direct ]] ||
+    fail 'TOMB_RAIDER_BVB_MAPPED_MEMORY must be strict, shared, or direct'
 [[ $descriptor_journal == strict || $descriptor_journal == shared ]] ||
     fail 'TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL must be strict or shared'
 [[ $first_rejection_diagnostic == 0 || $first_rejection_diagnostic == 1 ]] ||

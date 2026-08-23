@@ -8433,3 +8433,25 @@ device memory. If it does not, the probe rules out that design before invasive
 changes. Exact counts, hashes, the diagnostic result, launch-state screenshot,
 and claim boundary are retained in
 `docs/evidence/tombraider-bvb-e137-native-sync-profile-20260822.json`.
+
+## 2026-08-22: E139 direct mapped-memory selector
+
+Private Turnip's E138 probe proved that an exported host-visible coherent
+allocation can be mapped across the Bionic/glibc boundary with zero
+bidirectional byte mismatches. Bridge E139 (`b385d0e`) turns that into an
+opt-in `BVB_MAPPED_MEMORY=direct` path: Bionic retains the real Vulkan mapping,
+sends its opaque FD once, and the glibc ICD maps the same allocation directly.
+Its host contract changes Map/Flush/Invalidate/Unmap/Submit socket exchanges
+from mirror `1,1,1,1,1` to direct `1,0,0,1,1`, while a forced native rejection
+proves clean mirror fallback.
+
+The Tomb Raider launch controls now accept
+`TOMB_RAIDER_BVB_MAPPED_MEMORY=direct`. As with E077's `shared` selector, the
+user-facing value is validated and converted into the internal dispatcher
+control, stripped from captured Pressure Vessel input, and emitted as the real
+`BVB_MAPPED_MEMORY` variable only in the final BVB Wine/DXVK environment. It
+does not enter Steam, CEF, the Bionic service, Activity, or frame helper. The
+default remains `strict`; `shared` remains the mirror A/B control; any
+non-strict mode without BVB fails closed. The required exact `deja` query found
+no indexed prior implementation, so this change reuses the existing E077
+selector-containment design.

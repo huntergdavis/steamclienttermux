@@ -111,7 +111,7 @@ def main() -> None:
             ),
             "STEAM_ARM64_BVB_VULKAN": "1",
             "TOMB_RAIDER_BVB_COMMAND_STREAM": "shared",
-            "TOMB_RAIDER_BVB_MAPPED_MEMORY": "shared",
+            "TOMB_RAIDER_BVB_MAPPED_MEMORY": "direct",
             "TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL": "shared",
             "TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC": "1",
             "BVB_COMMAND_STREAM": "smuggled",
@@ -142,7 +142,7 @@ def main() -> None:
             "STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM=shared",
             "TOMB_RAIDER_BVB_COMMAND_STREAM=<absent>",
             "BVB_MAPPED_MEMORY=<absent>",
-            "STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY=shared",
+            "STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY=direct",
             "TOMB_RAIDER_BVB_MAPPED_MEMORY=<absent>",
             "BVB_DESCRIPTOR_JOURNAL=<absent>",
             "STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL=shared",
@@ -296,7 +296,7 @@ def main() -> None:
             check=False,
         )
         assert invalid_mapped_memory.returncode != 0
-        assert "TOMB_RAIDER_BVB_MAPPED_MEMORY must be strict or shared" in (
+        assert "TOMB_RAIDER_BVB_MAPPED_MEMORY must be strict, shared, or direct" in (
             invalid_mapped_memory.stderr
         )
 
@@ -361,7 +361,7 @@ def main() -> None:
             env={
                 **environment,
                 "TOMB_RAIDER_BVB_COMMAND_STREAM": "strict",
-                "TOMB_RAIDER_BVB_MAPPED_MEMORY": "shared",
+                "TOMB_RAIDER_BVB_MAPPED_MEMORY": "direct",
                 "STEAM_ARM64_BVB_VULKAN": "0",
             },
             text=True,
@@ -369,7 +369,7 @@ def main() -> None:
             check=False,
         )
         assert mapped_memory_without_bvb.returncode != 0
-        assert "shared BVB mapped memory requires" in (
+        assert "direct BVB mapped memory requires" in (
             mapped_memory_without_bvb.stderr
         )
 

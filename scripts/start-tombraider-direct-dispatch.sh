@@ -42,8 +42,9 @@ fail() {
     fail 'TOMB_RAIDER_DIRECT_DIAGNOSTICS must be 0 or 1'
 [[ $command_stream == strict || $command_stream == shared ]] ||
     fail 'TOMB_RAIDER_BVB_COMMAND_STREAM must be strict or shared'
-[[ $mapped_memory == strict || $mapped_memory == shared ]] ||
-    fail 'TOMB_RAIDER_BVB_MAPPED_MEMORY must be strict or shared'
+[[ $mapped_memory == strict || $mapped_memory == shared ||
+    $mapped_memory == direct ]] ||
+    fail 'TOMB_RAIDER_BVB_MAPPED_MEMORY must be strict, shared, or direct'
 [[ $descriptor_journal == strict || $descriptor_journal == shared ]] ||
     fail 'TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL must be strict or shared'
 [[ $first_rejection_diagnostic == 0 || $first_rejection_diagnostic == 1 ]] ||
@@ -51,8 +52,8 @@ fail() {
 if [[ $command_stream == shared && ${STEAM_ARM64_BVB_VULKAN:-0} != 1 ]]; then
     fail 'shared BVB command stream requires STEAM_ARM64_BVB_VULKAN=1'
 fi
-if [[ $mapped_memory == shared && ${STEAM_ARM64_BVB_VULKAN:-0} != 1 ]]; then
-    fail 'shared BVB mapped memory requires STEAM_ARM64_BVB_VULKAN=1'
+if [[ $mapped_memory != strict && ${STEAM_ARM64_BVB_VULKAN:-0} != 1 ]]; then
+    fail "$mapped_memory BVB mapped memory requires STEAM_ARM64_BVB_VULKAN=1"
 fi
 if [[ $descriptor_journal == shared && ${STEAM_ARM64_BVB_VULKAN:-0} != 1 ]]; then
     fail 'shared BVB descriptor journal requires STEAM_ARM64_BVB_VULKAN=1'

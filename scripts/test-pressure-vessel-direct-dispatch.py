@@ -137,7 +137,8 @@ def main() -> None:
                 mapped_memory,
                 descriptor_journal,
                 first_rejection_diagnostic,
-            ) in product(("strict", "shared"), ("strict", "shared"),
+            ) in product(("strict", "shared"),
+                         ("strict", "shared", "direct"),
                          ("strict", "shared"), ("0", "1")):
                         os.environ["STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM"] = (
                             command_stream
@@ -162,8 +163,8 @@ def main() -> None:
                                 else {}
                             ),
                             **(
-                                {"BVB_MAPPED_MEMORY": "shared"}
-                                if mapped_memory == "shared"
+                                {"BVB_MAPPED_MEMORY": mapped_memory}
+                                if mapped_memory != "strict"
                                 else {}
                             ),
                             **(
@@ -243,7 +244,7 @@ def main() -> None:
             {
                 "STEAM_ARM64_BVB_VULKAN": "0",
                 "STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM": "strict",
-                "STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY": "shared",
+                "STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY": "direct",
                 "STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL": "strict",
             },
             clear=False,
@@ -253,7 +254,7 @@ def main() -> None:
             except MODULE.DispatchError:
                 pass
             else:
-                raise AssertionError("shared mapped memory without BVB was accepted")
+                raise AssertionError("direct mapped memory without BVB was accepted")
         with mock.patch.dict(
             os.environ,
             {

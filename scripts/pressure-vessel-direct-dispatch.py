@@ -118,8 +118,10 @@ def bvb_vulkan_environment() -> dict[str, str]:
     frame_profile = os.environ.get("BVB_FRAME_PROFILE", "0")
     if command_stream not in ("strict", "shared"):
         fail("STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM must be strict or shared")
-    if mapped_memory not in ("strict", "shared"):
-        fail("STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY must be strict or shared")
+    if mapped_memory not in ("strict", "shared", "direct"):
+        fail(
+            "STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY must be strict, shared, or direct"
+        )
     if descriptor_journal not in ("strict", "shared"):
         fail("STEAM_ARM64_DIRECT_BVB_DESCRIPTOR_JOURNAL must be strict or shared")
     if first_rejection_diagnostic not in ("0", "1"):
@@ -131,8 +133,11 @@ def bvb_vulkan_environment() -> dict[str, str]:
     if bvb != "1":
         if command_stream == "shared":
             fail("shared BVB command stream requires STEAM_ARM64_BVB_VULKAN=1")
-        if mapped_memory == "shared":
-            fail("shared BVB mapped memory requires STEAM_ARM64_BVB_VULKAN=1")
+        if mapped_memory != "strict":
+            fail(
+                f"{mapped_memory} BVB mapped memory requires "
+                "STEAM_ARM64_BVB_VULKAN=1"
+            )
         if descriptor_journal == "shared":
             fail("shared BVB descriptor journal requires STEAM_ARM64_BVB_VULKAN=1")
         if first_rejection_diagnostic == "1":
@@ -155,8 +160,8 @@ def bvb_vulkan_environment() -> dict[str, str]:
         environment["BVB_ICD_DIAGNOSTICS"] = "1"
     if command_stream == "shared":
         environment["BVB_COMMAND_STREAM"] = "shared"
-    if mapped_memory == "shared":
-        environment["BVB_MAPPED_MEMORY"] = "shared"
+    if mapped_memory != "strict":
+        environment["BVB_MAPPED_MEMORY"] = mapped_memory
     if descriptor_journal == "shared":
         environment["BVB_DESCRIPTOR_JOURNAL"] = "shared"
     if first_rejection_diagnostic == "1":

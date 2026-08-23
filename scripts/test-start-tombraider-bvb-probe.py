@@ -313,6 +313,7 @@ def main() -> None:
         for command_stream, mapped_memory, descriptor_journal, first_rejection_diagnostic, frame_profile in (
             ("shared", "strict", "strict", "0", "1"),
             ("strict", "shared", "strict", "0", "0"),
+            ("strict", "direct", "strict", "0", "0"),
             ("shared", "shared", "shared", "0", "0"),
             ("strict", "strict", "strict", "1", "0"),
         ):
@@ -358,7 +359,7 @@ def main() -> None:
         invalid_stream, _ = run_case(TOMB_RAIDER_BVB_COMMAND_STREAM="invalid")
         assert invalid_stream.returncode == 1
         assert "must be strict or shared" in invalid_stream.stderr
-        assert_activity_balanced(5)
+        assert_activity_balanced(6)
 
         invalid_first_rejection_diagnostic, _ = run_case(
             TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC="invalid"
@@ -367,7 +368,7 @@ def main() -> None:
         assert "TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC must be 0 or 1" in (
             invalid_first_rejection_diagnostic.stderr
         )
-        assert_activity_balanced(5)
+        assert_activity_balanced(6)
 
         empty_first_rejection_diagnostic, _ = run_case(
             TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC=""
@@ -376,16 +377,16 @@ def main() -> None:
         assert "TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC must be 0 or 1" in (
             empty_first_rejection_diagnostic.stderr
         )
-        assert_activity_balanced(5)
+        assert_activity_balanced(6)
 
         invalid_mapped_memory, _ = run_case(
             TOMB_RAIDER_BVB_MAPPED_MEMORY="invalid"
         )
         assert invalid_mapped_memory.returncode == 1
-        assert "TOMB_RAIDER_BVB_MAPPED_MEMORY must be strict or shared" in (
+        assert "TOMB_RAIDER_BVB_MAPPED_MEMORY must be strict, shared, or direct" in (
             invalid_mapped_memory.stderr
         )
-        assert_activity_balanced(5)
+        assert_activity_balanced(6)
 
         invalid_descriptor_journal, _ = run_case(
             TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL="invalid"
@@ -394,7 +395,7 @@ def main() -> None:
         assert "TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL must be strict or shared" in (
             invalid_descriptor_journal.stderr
         )
-        assert_activity_balanced(5)
+        assert_activity_balanced(6)
 
         invalid_frame_profile, _ = run_case(
             TOMB_RAIDER_BVB_FRAME_PROFILE="invalid"
@@ -403,17 +404,17 @@ def main() -> None:
         assert "TOMB_RAIDER_BVB_FRAME_PROFILE must be 0 or 1" in (
             invalid_frame_profile.stderr
         )
-        assert_activity_balanced(5)
+        assert_activity_balanced(6)
 
         early, _ = run_case(FAKE_LAUNCHER_MODE="early17")
         assert early.returncode == 1
         assert "failed before Activity handoff: status=17" in early.stderr
-        assert_activity_balanced(5)
+        assert_activity_balanced(6)
 
         stale, _ = run_case(FAKE_PM_VERSION="39")
         assert stale.returncode == 1
         assert "visible host versionCode 40 or newer is required" in stale.stderr
-        assert_activity_balanced(5)
+        assert_activity_balanced(6)
 
         frame_failed, elapsed = run_case(
             FAKE_HELPER_MODE="fail", FAKE_LAUNCHER_MODE="ignore_term"
@@ -422,28 +423,28 @@ def main() -> None:
         assert "Activity frame transport did not pass: status=7" in frame_failed.stderr
         assert elapsed < 4, elapsed
         assert "launcher pid" in frame_failed.stderr and "sending KILL" in frame_failed.stderr
-        assert_activity_balanced(6)
+        assert_activity_balanced(7)
 
         nested, _ = run_case(
             FAKE_HELPER_MODE="nested", FAKE_LAUNCHER_MODE="ignore_term"
         )
         assert nested.returncode == 1
         assert "Activity frame transport did not pass: status=0" in nested.stderr
-        assert_activity_balanced(7)
+        assert_activity_balanced(8)
 
         multiple, _ = run_case(
             FAKE_HELPER_MODE="multiple", FAKE_LAUNCHER_MODE="ignore_term"
         )
         assert multiple.returncode == 1
         assert "Activity frame transport did not pass: status=0" in multiple.stderr
-        assert_activity_balanced(8)
+        assert_activity_balanced(9)
 
         hung_helper, elapsed = run_case(FAKE_HELPER_MODE="hang")
         assert hung_helper.returncode == 1
         assert "Activity frame transport timed out" in hung_helper.stderr
         assert "frame-client pid" in hung_helper.stderr and "sending KILL" in hung_helper.stderr
         assert elapsed < 4, elapsed
-        assert_activity_balanced(9)
+        assert_activity_balanced(10)
 
         service_died, elapsed = run_case(
             FAKE_SERVICE_MODE="die_after_handoff",
@@ -453,7 +454,7 @@ def main() -> None:
         assert service_died.returncode == 1
         assert "BVB service exited during the foreground probe: status=23" in service_died.stderr
         assert elapsed < 4, elapsed
-        assert_activity_balanced(10)
+        assert_activity_balanced(11)
 
         launcher_first, _ = run_case(
             FAKE_HELPER_MODE="delayed_fail", FAKE_LAUNCHER_MODE="post17"
@@ -461,14 +462,14 @@ def main() -> None:
         assert launcher_first.returncode == 17, launcher_first.stderr
         assert "probe complete: status=17" in launcher_first.stdout
         assert "Activity frame transport did not pass" not in launcher_first.stderr
-        assert_activity_balanced(11)
+        assert_activity_balanced(12)
 
         paired_adb, _ = run_case(
             BVB_ACTIVITY_ADB_SERIAL="test-device:5555",
             BVB_ADB_COMMAND=str(adb),
         )
         assert paired_adb.returncode == 0, paired_adb.stderr
-        assert_activity_balanced(12)
+        assert_activity_balanced(13)
         paired_start = [record for record in calls() if record.startswith("start ")][-1]
         assert "--windowingMode 1" in paired_start, paired_start
         paired_resizes = [record for record in calls() if record.startswith("task resize ")]
@@ -484,7 +485,7 @@ def main() -> None:
             for line in environment_capture.read_text(encoding="utf-8").splitlines()
         )
         assert diagnostic_values["BVB_ICD_DIAGNOSTICS"] == "1"
-        assert_activity_balanced(13)
+        assert_activity_balanced(14)
 
 
 if __name__ == "__main__":
