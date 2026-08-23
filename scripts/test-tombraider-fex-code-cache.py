@@ -14,6 +14,10 @@ DISPATCHER = ROOT / "scripts/pressure-vessel-direct-dispatch.py"
 LAUNCHER = ROOT / "scripts/start-tombraider-direct-dispatch.sh"
 RUNNER = ROOT / "scripts/run-tombraider-native-benchmark.py"
 WRAPPER = ROOT / "scripts/test-tomb-raider-direct-fex-code-cache-40c-ceiling.sh"
+PROFILE_WRAPPER = (
+    ROOT
+    / "scripts/test-tomb-raider-direct-fex-max-buffer-profile-excluded-40c-ceiling.sh"
+)
 
 
 def load_dispatcher():
@@ -115,6 +119,17 @@ def main() -> None:
     assert "compat-bin/run-tombraider-native-benchmark.py" not in wrapper_source
     assert "--fex-code-cache on" in wrapper_source
     assert "--start-temperature-ceiling-c 40" in wrapper_source
+
+    profile_wrapper_source = PROFILE_WRAPPER.read_text(encoding="utf-8")
+    assert "--fex-code-cache on" in profile_wrapper_source
+    assert "--startup-topology full" in profile_wrapper_source
+    assert "--warmups 0" in profile_wrapper_source
+    assert "--runs 1" in profile_wrapper_source
+    assert "--start-temperature-ceiling-c 40" in profile_wrapper_source
+    assert (
+        "test-tomb-raider-direct-fex-max-buffer-profile-excluded-40c-ceiling.sh"
+        in (ROOT / "scripts/install-project-files.sh").read_text(encoding="utf-8")
+    )
 
     print("Tomb Raider final-game FEX code-cache tests: PASS")
 

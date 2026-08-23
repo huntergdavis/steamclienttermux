@@ -202,6 +202,8 @@ install_one "$repo_root/scripts/test-tomb-raider-direct-raknet-backoff-40c-ceili
     "$HOME/test-tomb-raider-direct-raknet-backoff-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/test-tomb-raider-direct-fex-code-cache-40c-ceiling.sh" \
     "$HOME/test-tomb-raider-direct-fex-code-cache-40c-ceiling.sh" 700
+install_one "$repo_root/scripts/test-tomb-raider-direct-fex-max-buffer-profile-excluded-40c-ceiling.sh" \
+    "$HOME/test-tomb-raider-direct-fex-max-buffer-profile-excluded-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/test-tomb-raider-direct-steam-service-cpu0-abba-40c-ceiling.sh" \
     "$HOME/test-tomb-raider-direct-steam-service-cpu0-abba-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/test-tomb-raider-direct-steam-service-cpu0-excluded-40c-ceiling.sh" \

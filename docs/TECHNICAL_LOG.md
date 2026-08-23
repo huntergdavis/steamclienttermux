@@ -8727,3 +8727,10 @@ the previous exact file is retained under
 `~/steam-arm64/backups/pre-6aea0fa-fex-max-buffer`. The broad installer was
 not used. Steam/X11 identities and the Termux properties hash remained
 unchanged after the atomic replacement.
+
+The next diagnostic uses the argument-free
+`test-tomb-raider-direct-fex-max-buffer-profile-excluded-40c-ceiling.sh`
+wrapper. It runs exactly one cooled current-default pass with no warm-up so
+the Android foreground broker never needs to transport raw benchmark options.
+Any profiler attached to this pass makes its FPS explicitly excluded; its only
+purpose is to rank the post-promotion hot paths.
