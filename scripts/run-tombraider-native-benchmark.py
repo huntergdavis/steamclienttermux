@@ -45,6 +45,13 @@ X11_ISOLATION_LOG_PATTERN = re.compile(
     r"Termux X11 experimental isolation: restored; "
     r"tids=([1-9][0-9]*(?:,[1-9][0-9]*)*)\n?"
 )
+STEAM_SERVICE_ISOLATION_LOG_PATTERN = re.compile(
+    r"Steam service CPU isolation: active; steam_pid=([1-9][0-9]*); "
+    r"tid=([1-9][0-9]*); cpus=0; original_cpus=([0-9,-]+)\n"
+    r"Steam service CPU isolation: game exited\n"
+    r"Steam service CPU isolation: restored; steam_pid=([1-9][0-9]*); "
+    r"tid=([1-9][0-9]*); cpus=([0-9,-]+)\n?"
+)
 DIRECT_DISPATCH_COMPLETION_PATTERN = re.compile(
     r"Tomb Raider direct dispatch completed: mode=tombraider-benchmark "
     r"child_preload=lean launcher=0 server=1 server_log=(\S+) launcher_log=(\S+)"
@@ -304,6 +311,28 @@ def parse_x11_isolation_log(output: str) -> dict[str, int | list[int]]:
     if not set(active).issubset(restored):
         raise RuntimeError("Termux X11 isolation did not restore every active TID")
     return {"pid": pid, "cpus": cpus, "active_tids": active, "restored_tids": restored}
+
+
+def parse_steam_service_isolation_log(output: str) -> dict[str, int | str]:
+    match = STEAM_SERVICE_ISOLATION_LOG_PATTERN.fullmatch(output)
+    if match is None:
+        raise RuntimeError(
+            "Steam service CPU isolation log is incomplete or contains errors"
+        )
+    steam_pid, tid, original_cpus, restored_pid, restored_tid, restored_cpus = (
+        match.groups()
+    )
+    if steam_pid != restored_pid or tid != restored_tid:
+        raise RuntimeError("Steam service CPU isolation restored a different thread")
+    if original_cpus != restored_cpus:
+        raise RuntimeError("Steam service CPU isolation did not restore its CPU mask")
+    return {
+        "steam_pid": int(steam_pid),
+        "tid": int(tid),
+        "isolated_cpus": "0",
+        "original_cpus": original_cpus,
+        "restored_cpus": restored_cpus,
+    }
 
 
 def parse_recorded_passes(value: str) -> tuple[int, ...]:
@@ -666,6 +695,66 @@ def run_logged_with_x11_isolator(
     )
 
 
+def run_logged_with_steam_service_isolator(
+    command,
+    environment,
+    output: Path,
+    isolator_command,
+    isolator_output: Path,
+    allow_launch_failure: bool = False,
+) -> tuple[float, dict[str, int | str], int]:
+    launch_error = None
+    elapsed = None
+    launch_return_code = None
+    with isolator_output.open("w") as isolator_log:
+        isolator = subprocess.Popen(
+            [str(value) for value in isolator_command],
+            env=environment,
+            stdout=isolator_log,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+        try:
+            elapsed, launch_return_code = run_logged_outcome(
+                command, environment, output
+            )
+            if launch_return_code != 0 and not allow_launch_failure:
+                launch_error = command_failure(command, output, launch_return_code)
+        except BaseException as error:
+            launch_error = error
+        try:
+            isolator_return_code = isolator.wait(timeout=15)
+        except subprocess.TimeoutExpired as error:
+            isolator.terminate()
+            try:
+                isolator_return_code = isolator.wait(timeout=15)
+            except subprocess.TimeoutExpired as stop_error:
+                raise RuntimeError(
+                    "Steam service CPU isolator did not stop after graceful "
+                    "termination; it retains its own bounded isolation timeout"
+                ) from stop_error
+            if launch_error is None:
+                launch_error = RuntimeError(
+                    "Steam service CPU isolator outlived the game launch command"
+                )
+        if launch_error is not None:
+            raise launch_error
+        if isolator_return_code != 0:
+            raise RuntimeError(
+                f"Steam service CPU isolator exited {isolator_return_code}; "
+                f"inspect {isolator_output}"
+            )
+    if elapsed is None:
+        raise RuntimeError("game launch elapsed time is unavailable")
+    if launch_return_code is None:
+        raise RuntimeError("game launch return code is unavailable")
+    return (
+        elapsed,
+        parse_steam_service_isolation_log(isolator_output.read_text()),
+        launch_return_code,
+    )
+
+
 def python_tool_command(tool: Path, *arguments: str) -> list[Path | str]:
     return [Path(sys.executable), tool, *arguments]
 
@@ -777,6 +866,29 @@ def aggregate_raknet_exclusive_conditions(
     }
 
 
+def aggregate_steam_service_isolation_conditions(
+    runs,
+) -> dict[str, dict[str, dict[str, float]]]:
+    control = [
+        run
+        for run in runs
+        if run["kind"] == "recorded" and not run["steam_service_isolation"]
+    ]
+    isolated = [
+        run
+        for run in runs
+        if run["kind"] == "recorded" and run["steam_service_isolation"]
+    ]
+    if not control or not isolated:
+        raise RuntimeError(
+            "paired Steam service isolation comparison requires both conditions"
+        )
+    return {
+        "control": aggregate_results(control),
+        "steam_service_isolation": aggregate_results(isolated),
+    }
+
+
 def affinity_log_is_ready(
     text: str, backend: str, expected_game_cpus: str = "1-7"
 ) -> bool:
@@ -864,6 +976,19 @@ def build_parser() -> argparse.ArgumentParser:
             "other game threads to CPUs2-7"
         ),
     )
+    service_group = parser.add_mutually_exclusive_group()
+    service_group.add_argument(
+        "--isolate-steam-service",
+        action="store_true",
+        help="isolate Steam's exact IPC:CServiceEng thread on CPU0 during each pass",
+    )
+    service_group.add_argument(
+        "--steam-service-isolation-recorded-passes",
+        type=parse_recorded_passes,
+        default=(),
+        metavar="N[,N...]",
+        help="recorded passes that isolate Steam's IPC:CServiceEng thread on CPU0",
+    )
     parser.add_argument(
         "--startup-topology",
         choices=("available", "full"),
@@ -933,6 +1058,10 @@ def main() -> int:
     raknet_exclusive_requested = bool(
         arguments.raknet_exclusive_recorded_passes
     )
+    steam_service_isolation_requested = bool(
+        arguments.isolate_steam_service
+        or arguments.steam_service_isolation_recorded_passes
+    )
     if cef_hold_requested and arguments.backend != "direct":
         print("Steam CEF hold experiments require the direct backend", file=sys.stderr)
         return 2
@@ -941,6 +1070,18 @@ def main() -> int:
         for number in arguments.steam_cef_hold_recorded_passes
     ):
         print("Steam CEF hold pass number exceeds configured recorded runs", file=sys.stderr)
+        return 2
+    if steam_service_isolation_requested and arguments.backend != "direct":
+        print("Steam service isolation requires the direct backend", file=sys.stderr)
+        return 2
+    if any(
+        number > arguments.runs
+        for number in arguments.steam_service_isolation_recorded_passes
+    ):
+        print(
+            "Steam service isolation pass number exceeds configured recorded runs",
+            file=sys.stderr,
+        )
         return 2
     if x11_isolation_requested and arguments.backend != "direct":
         print("Termux X11 isolation experiments require the direct backend", file=sys.stderr)
@@ -970,10 +1111,19 @@ def main() -> int:
         cef_hold_requested
         or x11_isolation_requested
         or arguments.raknet_nice is not None
+        or steam_service_isolation_requested
     ):
         print(
-            "RakNet-exclusive passes cannot be combined with CEF, X11, or "
-            "RakNet-nice experiments",
+            "RakNet-exclusive passes cannot be combined with CEF, X11, "
+            "Steam-service, or RakNet-nice experiments",
+            file=sys.stderr,
+        )
+        return 2
+    if steam_service_isolation_requested and (
+        cef_hold_requested or x11_isolation_requested
+    ):
+        print(
+            "Steam service isolation cannot be combined with CEF or X11 isolation",
             file=sys.stderr,
         )
         return 2
@@ -997,6 +1147,9 @@ def main() -> int:
     topology_checker = base / "compat-bin/configure-tombraider-cpu-topology.py"
     cef_holder = base / "compat-bin/hold-tombraider-steam-cef.py"
     x11_isolator = base / "compat-bin/isolate-tombraider-x11.py"
+    steam_service_isolator = (
+        base / "compat-bin/isolate-tombraider-steam-service.py"
+    )
     steam_executable = base / "client/steamrtarm64/steam"
     proc_root = Path("/proc")
     cpu_root = Path("/sys/devices/system/cpu")
@@ -1028,6 +1181,10 @@ def main() -> int:
                 required.append((cef_holder, "native Steam CEF holder"))
             if x11_isolation_requested:
                 required.append((x11_isolator, "Termux X11 isolator"))
+            if steam_service_isolation_requested:
+                required.append(
+                    (steam_service_isolator, "native Steam service CPU isolator")
+                )
         for path, label in required:
             require_regular(path, label, executable=True)
         if not game_directory.is_dir() or game_directory.is_symlink():
@@ -1080,6 +1237,10 @@ def main() -> int:
                 "raknet_nice": arguments.raknet_nice,
                 "raknet_exclusive_recorded_passes": list(
                     arguments.raknet_exclusive_recorded_passes
+                ),
+                "steam_service_isolation": arguments.isolate_steam_service,
+                "steam_service_isolation_recorded_passes": list(
+                    arguments.steam_service_isolation_recorded_passes
                 ),
                 "steam_cef_hold": arguments.hold_steam_cef,
                 "steam_cef_hold_recorded_passes": list(
@@ -1203,6 +1364,10 @@ def main() -> int:
                 kind == "recorded"
                 and number in arguments.raknet_exclusive_recorded_passes
             )
+            use_steam_service_isolation = arguments.isolate_steam_service or (
+                kind == "recorded"
+                and number in arguments.steam_service_isolation_recorded_passes
+            )
             expected_game_cpus = "2-7" if use_raknet_exclusive else "1-7"
             active_pass = {
                 "kind": kind,
@@ -1212,6 +1377,7 @@ def main() -> int:
                 "steam_cef_hold": use_cef_hold,
                 "x11_isolation": use_x11_isolation,
                 "raknet_exclusive": use_raknet_exclusive,
+                "steam_service_isolation": use_steam_service_isolation,
             }
             series["status"] = "running"
             set_series_phase(
@@ -1265,6 +1431,7 @@ def main() -> int:
             )
             cef_hold_pids = None
             x11_isolation_evidence = None
+            steam_service_isolation_evidence = None
             pass_environment = environment.copy()
             pass_environment["TOMB_RAIDER_GAME_CPUS"] = expected_game_cpus
             launch_return_code = 0
@@ -1314,6 +1481,29 @@ def main() -> int:
                         "300",
                     ),
                     x11_isolation_log,
+                    allow_launch_failure=arguments.backend == "direct",
+                )
+            elif use_steam_service_isolation:
+                steam_service_isolation_log = (
+                    output_directory / f"{label}-steam-service-isolation.log"
+                )
+                (
+                    elapsed,
+                    steam_service_isolation_evidence,
+                    launch_return_code,
+                ) = run_logged_with_steam_service_isolator(
+                    launch_command,
+                    pass_environment,
+                    launch_log,
+                    python_tool_command(
+                        steam_service_isolator,
+                        "--acknowledge-experimental",
+                        "--wait-seconds",
+                        "300",
+                        "--isolation-timeout-seconds",
+                        "300",
+                    ),
+                    steam_service_isolation_log,
                     allow_launch_failure=arguments.backend == "direct",
                 )
             else:
@@ -1382,6 +1572,10 @@ def main() -> int:
                 "x11_isolation": use_x11_isolation,
                 "x11_isolation_evidence": x11_isolation_evidence,
                 "raknet_exclusive": use_raknet_exclusive,
+                "steam_service_isolation": use_steam_service_isolation,
+                "steam_service_isolation_evidence": (
+                    steam_service_isolation_evidence
+                ),
                 "game_cpus": expected_game_cpus,
                 "before": before,
                 "after": after,
@@ -1408,6 +1602,10 @@ def main() -> int:
         if arguments.raknet_exclusive_recorded_passes:
             series["condition_aggregates"] = aggregate_raknet_exclusive_conditions(
                 series["runs"]
+            )
+        if arguments.steam_service_isolation_recorded_passes:
+            series["condition_aggregates"] = (
+                aggregate_steam_service_isolation_conditions(series["runs"])
             )
         series["status"] = "complete"
         series["finished_at"] = dt.datetime.now(dt.timezone.utc).isoformat()

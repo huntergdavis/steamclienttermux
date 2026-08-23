@@ -8541,3 +8541,31 @@ outer lifecycle request. The exact raw profile is retained as
 (SHA-256 `e4367b458fea650619e41b2ba0f45b4ebfc97895a7cbdc782dd2c98a772f02d8`).
 The required `deja` query found no indexed implementation; this investigation
 reuses the existing low-overhead live sampler and its new same-UID thread rank.
+
+## 2026-08-23: reversible Steam service CPU isolation candidate
+
+The post-RakNet profile moved the next external bottleneck into focus: Steam's
+single `IPC:CServiceEng` thread reached 100.8% CPU during Tomb Raider, then
+fell to 0.2% after game exit. A later trace showed game-lifetime Steam-service
+IPC activity but did not establish a safe optional feature that could simply
+be disabled. The next gate therefore changes placement rather than behavior.
+
+`isolate-tombraider-steam-service.py` validates the exact native Steam process,
+Android top-app membership, the exact Tomb Raider process, and exactly one
+thread named `IPC:CServiceEng`. It records that thread's start time and
+original CPU mask, moves it to CPU0 only while the same game identity remains
+alive, continuously verifies both identities and the target mask, and restores
+the original mask after normal exit, timeout, error, or handled termination.
+It deliberately does not change nice priority: the live service thread is
+already nice -10, and an unprivileged same-UID process cannot be assumed able
+to undo an experimental priority reduction.
+
+The benchmark runner can apply the holder to all passes or selected recorded
+passes and retains its exact active/restored identity in `series.json`. The
+`test-tomb-raider-direct-steam-service-cpu0-abba-40c-ceiling.sh` wrapper uses
+control/isolation/isolation/control ordering at the existing 40 C gate. This is
+host-tested experimental machinery only; no game completion, CPU reduction,
+FPS improvement, or promotion is claimed yet. The required exact `deja` query
+returned no indexed implementation. This gate reuses the existing CEF holder's
+exact Steam/game identity, bounded sidecar lifecycle, signal cleanup, and
+restore-validation contract.

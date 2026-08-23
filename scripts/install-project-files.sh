@@ -176,6 +176,8 @@ install_one "$repo_root/scripts/run-tombraider-native-benchmark.py" \
     "$base/compat-bin/run-tombraider-native-benchmark.py" 600
 install_one "$repo_root/scripts/hold-tombraider-steam-cef.py" \
     "$base/compat-bin/hold-tombraider-steam-cef.py" 700
+install_one "$repo_root/scripts/isolate-tombraider-steam-service.py" \
+    "$base/compat-bin/isolate-tombraider-steam-service.py" 700
 install_one "$repo_root/scripts/isolate-tombraider-x11.py" \
     "$base/compat-bin/isolate-tombraider-x11.py" 700
 install_one "$repo_root/scripts/run-tombraider-native-benchmark.sh" \
@@ -198,6 +200,8 @@ install_one "$repo_root/scripts/test-tomb-raider-direct-safe-full-topology-rakne
     "$HOME/test-tomb-raider-direct-safe-full-topology-raknet-nice19-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/test-tomb-raider-direct-raknet-backoff-40c-ceiling.sh" \
     "$HOME/test-tomb-raider-direct-raknet-backoff-40c-ceiling.sh" 700
+install_one "$repo_root/scripts/test-tomb-raider-direct-steam-service-cpu0-abba-40c-ceiling.sh" \
+    "$HOME/test-tomb-raider-direct-steam-service-cpu0-abba-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/test-tomb-raider-direct-safe-full-topology-cef-hold-40c-ceiling.sh" \
     "$HOME/test-tomb-raider-direct-safe-full-topology-cef-hold-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/test-tomb-raider-direct-safe-full-topology-cef-hold-alternating-40c-ceiling.sh" \

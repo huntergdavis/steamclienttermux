@@ -103,6 +103,36 @@ def main():
             pass
         else:
             raise AssertionError("invalid Termux X11 isolation log was accepted")
+    assert module.parse_steam_service_isolation_log(
+        "Steam service CPU isolation: active; steam_pid=10; tid=20; "
+        "cpus=0; original_cpus=0-3\n"
+        "Steam service CPU isolation: game exited\n"
+        "Steam service CPU isolation: restored; steam_pid=10; tid=20; cpus=0-3\n"
+    ) == {
+        "steam_pid": 10,
+        "tid": 20,
+        "isolated_cpus": "0",
+        "original_cpus": "0-3",
+        "restored_cpus": "0-3",
+    }
+    for invalid_service_log in (
+        "Steam service CPU isolation: active; steam_pid=10; tid=20; "
+        "cpus=0; original_cpus=0-3\n",
+        "Steam service CPU isolation: active; steam_pid=10; tid=20; "
+        "cpus=0; original_cpus=0-3\n"
+        "Steam service CPU isolation: game exited\n"
+        "Steam service CPU isolation: restored; steam_pid=10; tid=21; cpus=0-3\n",
+        "Steam service CPU isolation: active; steam_pid=10; tid=20; "
+        "cpus=0; original_cpus=0-3\n"
+        "Steam service CPU isolation: game exited\n"
+        "Steam service CPU isolation: restored; steam_pid=10; tid=20; cpus=0-2\n",
+    ):
+        try:
+            module.parse_steam_service_isolation_log(invalid_service_log)
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError("invalid Steam service isolation log was accepted")
     assert module.parse_recorded_passes("2,4,6") == (2, 4, 6)
     for invalid_passes in ("", "0", "2,2", "4,2", "one,2"):
         try:
@@ -148,6 +178,8 @@ def main():
     assert not direct.isolate_x11
     assert direct.x11_isolation_recorded_passes == ()
     assert direct.x11_isolation_cpus == (0,)
+    assert not direct.isolate_steam_service
+    assert direct.steam_service_isolation_recorded_passes == ()
     direct_cef_hold = module.build_parser().parse_args(
         ["--backend", "direct", "--hold-steam-cef"]
     )
@@ -176,6 +208,15 @@ def main():
         ["--backend", "direct", "--raknet-exclusive-recorded-passes", "2,4,6"]
     )
     assert direct_raknet_exclusive.raknet_exclusive_recorded_passes == (2, 4, 6)
+    direct_service_pairs = module.build_parser().parse_args(
+        [
+            "--backend",
+            "direct",
+            "--steam-service-isolation-recorded-passes",
+            "2,4,6",
+        ]
+    )
+    assert direct_service_pairs.steam_service_isolation_recorded_passes == (2, 4, 6)
     direct_full = module.build_parser().parse_args(
         ["--backend", "direct", "--startup-topology", "full"]
     )
@@ -268,6 +309,22 @@ def main():
             "average_fps": {"mean": 20.0, "median": 20.0, "values": [20.0]},
         },
         "raknet_exclusive": {
+            "minimum_fps": {"mean": 12.0, "median": 12.0, "values": [12.0]},
+            "maximum_fps": {"mean": 32.0, "median": 32.0, "values": [32.0]},
+            "average_fps": {"mean": 22.0, "median": 22.0, "values": [22.0]},
+        },
+    }
+    service_runs = [
+        {**condition_runs[0], "steam_service_isolation": False},
+        {**condition_runs[1], "steam_service_isolation": True},
+    ]
+    assert module.aggregate_steam_service_isolation_conditions(service_runs) == {
+        "control": {
+            "minimum_fps": {"mean": 10.0, "median": 10.0, "values": [10.0]},
+            "maximum_fps": {"mean": 30.0, "median": 30.0, "values": [30.0]},
+            "average_fps": {"mean": 20.0, "median": 20.0, "values": [20.0]},
+        },
+        "steam_service_isolation": {
             "minimum_fps": {"mean": 12.0, "median": 12.0, "values": [12.0]},
             "maximum_fps": {"mean": 32.0, "median": 32.0, "values": [32.0]},
             "average_fps": {"mean": 22.0, "median": 22.0, "values": [22.0]},
@@ -386,6 +443,35 @@ def main():
             nonzero_output,
         )
         assert elapsed >= 0
+        assert launch_return_code == 1
+
+        service_output = root / "accepted-steam-service-isolator.log"
+        elapsed, service_evidence, launch_return_code = (
+            module.run_logged_with_steam_service_isolator(
+                [sys.executable, "-c", "raise SystemExit(1)"],
+                os.environ,
+                root / "accepted-steam-service-nonzero-launch.log",
+                [
+                    sys.executable,
+                    "-c",
+                    "print('Steam service CPU isolation: active; steam_pid=10; "
+                    "tid=20; cpus=0; original_cpus=0-3'); "
+                    "print('Steam service CPU isolation: game exited'); "
+                    "print('Steam service CPU isolation: restored; steam_pid=10; "
+                    "tid=20; cpus=0-3')",
+                ],
+                service_output,
+                allow_launch_failure=True,
+            )
+        )
+        assert elapsed >= 0
+        assert service_evidence == {
+            "steam_pid": 10,
+            "tid": 20,
+            "isolated_cpus": "0",
+            "original_cpus": "0-3",
+            "restored_cpus": "0-3",
+        }
         assert launch_return_code == 1
 
         accepted_output = root / "accepted-holder.log"
