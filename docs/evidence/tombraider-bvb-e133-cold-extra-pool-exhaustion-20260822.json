@@ -1,0 +1,67 @@
+{
+  "gate": "E133",
+  "date": "2026-08-22",
+  "result": "failed_runtime_gate",
+  "target": {
+    "device": "Samsung Galaxy Tab S8+ SM-X808U",
+    "game": "Tomb Raider (2013)",
+    "appid": 203160,
+    "resolution": "2800x1752",
+    "refresh_hz": 60,
+    "quality": "Low"
+  },
+  "runtime": {
+    "bridge_commit": "8526f78beda69cc3db303ef4f3baf8cdb122ccf2",
+    "steamclienttermux_commit": "017045b3eeb819555402bd6ad694cf140824e3cf",
+    "run_id": "20260822T235811Z-28753",
+    "command_stream": "shared",
+    "mapped_memory": "shared",
+    "descriptor_journal": "shared",
+    "activity_version_code": 40
+  },
+  "validation": {
+    "host_contracts": "95/95 passed",
+    "termux_contracts": "93/93 passed",
+    "glibc_icd_selftest": "passed",
+    "rollback_backup": "/data/data/com.termux/files/home/steam-arm64/bvb/backups/install-pre-askFUMfF"
+  },
+  "installed_artifacts": {
+    "glibc_icd_sha256": "d12e38069002d3b342ed38d2f6fcdeb34d60f6a693830502509f00707f876bc7",
+    "bionic_service_sha256": "e2cbe7a07eb169e7dbe438de1a03369f12c43607b5508d67ed938ff322f9c5cc"
+  },
+  "observed_boundary": {
+    "entry": "vkAllocateDescriptorSets",
+    "result": -1000069000,
+    "symbolic_result": "VK_ERROR_OUT_OF_POOL_MEMORY",
+    "reason": "negative_vkresult_after_retry",
+    "executable_invocations_before_failure": 1500,
+    "game_swapchain_created": false,
+    "game_frame_presented": false,
+    "game_authored_result_file_created": false,
+    "fps_claim": false
+  },
+  "visual_evidence": {
+    "unchanged_activity_triangle_sha256": "28b7305067678da2bc88ffcb75bf49b49141cf49c27c59d79df332dcee89e9f8",
+    "hidden_x11_window_title": "Tomb Raider Error",
+    "interpretation": "The inspected Android screenshot contains only the bridge triangle. X11 independently exposed Tomb Raider's error dialog; no game pixel is claimed."
+  },
+  "retained_log_hashes": {
+    "direct_sha256": "385a9a24aa057d4103f5a1038ac74df7bc9bf01a8982ba5f6dc8a2da90640bfb",
+    "service_sha256": "3b77e599423bab0e1390f062f485ef5a50064bd8fee9652079539c072cda3d3f",
+    "launcher_sha256": "7cb70ee63e968dd8b0c323d1220179a16ed82a44428b0d446916eddb9f28fdf0",
+    "anr_watchdog_sha256": "235a95bac9a49df4fab6fa07e9a6d04dbcbfa3c5f48b39f4d2b298167fc18e96"
+  },
+  "post_run": {
+    "owned_children_remaining": 0,
+    "steam_pid": 15575,
+    "steam_start_ticks": 128118834,
+    "x11_pid": 13643,
+    "x11_start_ticks": 121863492,
+    "protected_processes_unchanged": true,
+    "maximum_thermal_zone_c_after_teardown": 39.3
+  },
+  "diagnosis": "E133 cut cold waste from fifteen extras to one, but enough unproven signatures still consumed descriptor capacity that Tomb Raider required later in the same tightly sized native pools.",
+  "recommendation": "E134 allocates the first two occurrences of each signature exactly. Only a third identical request proves recurrence and starts batch 2; later growth still requires a fully drained bank.",
+  "claim_boundary": "E133 failed before a game swapchain or frame. No FPS, hit-rate, or speedup is claimed.",
+  "reuse": "The required E134 deja query returned no indexed implementation. The run reused the paired-ADB Activity handoff, exact Wait-only ANR watchdog, first-rejection diagnostic, screenshot inspection, and protected Steam/X checks."
+}

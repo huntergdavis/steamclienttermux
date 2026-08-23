@@ -8259,3 +8259,25 @@ toward the existing cap. Reset must invalidate all banks and restore cold
 state rather than prefill a maximum batch. Exact hashes, diagnostics, visual
 boundaries, and teardown state are retained in
 `docs/evidence/tombraider-bvb-e132-live-batch-pool-exhaustion-20260822.json`.
+
+## 2026-08-22: E133 proves one cold extra is still unsafe
+
+E133 passed 95/95 host and 93/93 applicable Termux contracts plus the tablet
+glibc ICD self-test. It reduced a new signature from E132's sixteen native
+sets to two—one requested set plus one extra—and grew only after a published
+bank drained. The exact pair was installed transactionally with rollback
+`install-pre-askFUMfF`; the existing Steam and X11 processes were preserved.
+
+The run still failed before a game swapchain. Screenshot inspection showed
+only the unchanged bridge triangle, while X11 exposed a hidden **Tomb Raider
+Error** window. The first-rejection diagnostic again ended at
+`vkAllocateDescriptorSets` with `VK_ERROR_OUT_OF_POOL_MEMORY`, now after 1,500
+executable Vulkan calls. This is not a rendering or FPS result.
+
+Tomb Raider therefore sizes some descriptor pools tightly enough that even
+one unused real extra across many unproven signatures is unsafe. E134 removes
+cold speculation completely: the first two occurrences allocate exactly, and
+only the third identical request may start a two-set batch. Further growth
+still requires every published extra to have been claimed. Exact identities,
+logs, visual boundaries, and teardown state are retained in
+`docs/evidence/tombraider-bvb-e133-cold-extra-pool-exhaustion-20260822.json`.
