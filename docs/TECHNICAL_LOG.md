@@ -9622,3 +9622,13 @@ read syscalls, and physical storage reads. Window counters are explicitly
 labeled as stability-confirmation samples rather than first-sighting values.
 The exact recall query returned no prior implementation; the focused decoder
 and full suite pass. No hot-file mirror is promoted before tablet attribution.
+
+The tablet attribution pass completed at 58.564 seconds with a verified
+2800x1752 full-screen Tomb Raider frame. From target creation to Wine Vulkan
+mapping, 12.755 wall seconds contained 4.12 CPU seconds and 51,837,440 bytes of
+physical reads, confirming a mixed external-storage/I/O opportunity. From
+D3D11 mapping to the DXVK cache marker, 13.885 wall seconds contained 13.45 CPU
+seconds but only 1,474,560 bytes of physical reads, identifying serialized
+translation/graphics initialization as the other major block. The next two
+bounded experiments are therefore the existing FEX learned-map refresh and an
+overlapped hot-file prefetch; neither is promoted until independently timed.

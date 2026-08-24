@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "date": "2026-08-24",
-  "source_base_commit": "9172121",
-  "status": "host-pass-tablet-runtime-pending",
+  "source_base_commit": "f56ed5c",
+  "status": "tablet-pass",
   "operation": "cumulative game-process CPU and I/O counters at AppID startup milestones",
   "metrics": [
     "cpu_user_seconds",
@@ -28,7 +28,41 @@
     "synthetic_stat_and_io_decode": "pass",
     "missing_or_exited_pid": "empty result",
     "focused_timer_contract": "pass",
-    "complete_project_suite": "pass"
+    "complete_project_suite": "pass",
+    "tablet_result": "pass",
+    "full_screen_frame": "2800x1752 Tomb Raider loading frame",
+    "screenshot_sha256": "f86fb905085739e1b18bf88420de2ae369e1ed547fcb2fd922c7e6abe0eed381",
+    "steam_pid_start_ticks_preserved": "15575:128118834",
+    "x11_pid_start_ticks_preserved": "13643:121863492"
+  },
+  "tablet_measurement": {
+    "session_to_runtime_seconds": 11.0,
+    "runtime_to_target_seconds": 19.657,
+    "runtime_to_winevulkan_seconds": 32.412,
+    "runtime_to_dxgi_seconds": 33.557,
+    "runtime_to_d3d11_seconds": 33.558,
+    "runtime_to_turnip_seconds": 33.559,
+    "runtime_to_dxvk_cache_marker_seconds": 47.443,
+    "runtime_to_first_window_seconds": 47.564,
+    "appid_to_first_window_seconds": 58.564,
+    "segments": [
+      {
+        "name": "target-to-winevulkan",
+        "wall_seconds": 12.755,
+        "cpu_seconds_delta": 4.12,
+        "storage_read_bytes_delta": 51837440,
+        "read_syscalls_delta": 10570,
+        "interpretation": "mixed CPU and external-storage wait; bounded hot-file prefetch is justified"
+      },
+      {
+        "name": "d3d11-to-dxvk-cache-marker",
+        "wall_seconds": 13.885,
+        "cpu_seconds_delta": 13.45,
+        "storage_read_bytes_delta": 1474560,
+        "read_syscalls_delta": 64164,
+        "interpretation": "nearly one serialized CPU core; graphics/translation initialization is CPU-bound"
+      }
+    ]
   },
   "recall": {
     "query": "Steam AppID startup timer proc pid io stat CPU ticks read_bytes milestone attribution",
@@ -39,5 +73,5 @@
       "external bounded launch timer"
     ]
   },
-  "claim_boundary": "Host behavior only. Tablet deltas must decide whether the pre-graphics and graphics intervals are CPU, storage, or wait dominated."
+  "claim_boundary": "One externally sampled tablet run. It attributes startup phases but is not a latency distribution or an FPS result."
 }

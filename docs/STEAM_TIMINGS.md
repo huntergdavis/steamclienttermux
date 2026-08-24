@@ -179,3 +179,16 @@ the split alone does not prove storage or translation is responsible.
 The next timer revision samples cumulative CPU and I/O counters for the same
 verified PID at those boundaries so a hot-file mirror is attempted only if the
 tablet shows meaningful reads rather than CPU work or waits.
+
+The attribution run completed in 58.564 seconds and confirmed two different
+targets:
+
+| Startup segment | Wall | Game CPU | Physical reads | Conclusion |
+| --- | ---: | ---: | ---: | --- |
+| Target -> Wine Vulkan | 12.755s | 4.12s | 49.4 MiB | overlap bounded hot-file reads with handoff |
+| D3D11 -> DXVK cache marker | 13.885s | 13.45s | 1.4 MiB | CPU-bound translation/graphics setup |
+
+The screenshot was a genuine full-screen 2800x1752 Tomb Raider loading frame.
+These are cumulative `/proc` deltas from one run, not benchmark FPS or a
+latency distribution. Exact counters are in
+[the process-metrics evidence](evidence/steam-appid-process-metrics-host-20260824.json).
