@@ -60,6 +60,18 @@ forward_bootstrap=${STEAM_ARM64_FORWARD_BOOTSTRAP:-strict}
     printf 'start-steam: STEAM_ARM64_FORWARD_BOOTSTRAP must be strict or fast\n' >&2
     exit 1
 }
+cef_affinity=${STEAM_ARM64_CEF_AFFINITY:-auto}
+[[ $cef_affinity == auto || $cef_affinity == compact ||
+        $cef_affinity == responsive ]] || {
+    printf 'start-steam: STEAM_ARM64_CEF_AFFINITY must be auto, compact, or responsive\n' >&2
+    exit 1
+}
+cef_cpu_mask=0
+if [[ $cef_affinity == responsive ||
+        ($cef_affinity == auto && -z $requested_appid &&
+            $background_mode == 0) ]]; then
+    cef_cpu_mask=0-3
+fi
 if [[ "$background_mode" == 1 ]]; then
     has_silent=0
     for argument in "${steam_arguments[@]}"; do
@@ -433,7 +445,7 @@ apply_steam_session_affinity() {
         require_top_app Steam-helper "$helper_pid"
         start_ticks=$(steam_arm64_process_start_ticks "$helper_pid") ||
             fail "unable to resolve Steam-helper PID $helper_pid start identity"
-        signature+="$helper_pid:$start_ticks:0,"
+        signature+="$helper_pid:$start_ticks:$cef_cpu_mask,"
     done
     if [[ -f $steam_affinity_stamp && ! -L $steam_affinity_stamp ]] &&
             [[ $(<"$steam_affinity_stamp") == "$signature" ]] &&
@@ -441,7 +453,7 @@ apply_steam_session_affinity() {
             process_mask_is "$steam_pid" 0-3; then
         masks_current=1
         for helper_pid in "${helper_pids[@]}"; do
-            if ! process_mask_is "$helper_pid" 0; then
+            if ! process_mask_is "$helper_pid" "$cef_cpu_mask"; then
                 masks_current=0
                 break
             fi
@@ -451,7 +463,7 @@ apply_steam_session_affinity() {
     apply_uniform_affinity X11 "$x11_pid" 0-3
     apply_uniform_affinity Steam "$steam_pid" 0-3
     for helper_pid in "${helper_pids[@]}"; do
-        apply_uniform_affinity Steam-helper "$helper_pid" 0
+        apply_uniform_affinity Steam-helper "$helper_pid" "$cef_cpu_mask"
     done
     mkdir -p "$base/runtime"
     stamp_tmp=$(mktemp "$steam_affinity_stamp.tmp.XXXXXX")

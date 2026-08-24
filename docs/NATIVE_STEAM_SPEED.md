@@ -39,6 +39,13 @@ mask. An unchanged set skips thread-by-thread `/proc` reads; any restarted,
 added, removed, re-cgrouped, or stale process forces the complete validation
 and repin before atomically replacing the stamp.
 
+`STEAM_ARM64_CEF_AFFINITY=auto` is the default UI policy. A visible Steam
+Library/Store request gives CEF CPUs 0-3 for responsiveness; an AppID launch or
+background request confines CEF to CPU 0 to preserve game resources. Explicit
+`responsive` and `compact` modes are available for A/B work. The selected CEF
+mask is part of the affinity stamp, so switching modes forces an exact repin
+and subsequent launches of the same mode become cache hits.
+
 The code reuses the exact loader-process model and remembered-profile rules
 established in indexed sessions `019ff310-e8ac-7212-9f2f-5ba9005b97bd` and
 `019fe348-1247-7530-bc25-8a573aaf4252`. A focused deja query for an existing
@@ -83,8 +90,17 @@ run records `request`, `fast_inspect`, `session_valid`, `fast_launch`, and
 `complete`; a rejection records `fast_fallback` before `strict_launch`. Compare
 request-to-complete and the existing Steam/AppID acknowledgement separately.
 
-No tablet timing has been collected for this candidate yet, so it carries no
-launch-time, UI-latency, or FPS claim.
+The first tablet sequence reduced the authenticated warm wrapper from 27.329
+seconds to 17.208 seconds after eliminating redundant foreground/affinity work,
+then to 12.678 seconds on an exact affinity-stamp hit. The dispatcher itself
+remained approximately 0.33--0.35 seconds. This is a single-device engineering
+sequence, not yet a timing distribution or a UI-latency claim. It does not
+change the separately measured Tomb Raider FPS result.
+
+The focused deja query
+`Steam CEF responsive affinity UI CPU0 cache warm launch optimization` returned
+no indexed implementation, so the responsive/compact split is new work built on
+the exact authenticated fast-forward and affinity-stamp boundaries above.
 
 ## Later, separate A/Bs
 

@@ -48,7 +48,10 @@ def main():
     assert 'steam_affinity_stamp="$base/runtime/steam-session-affinity-v1"' in source
     assert 'signature="version=1 x11=$x11_pid:$start_ticks:0-3"' in source
     assert '$(<"$steam_affinity_stamp") == "$signature"' in source
-    assert 'process_mask_is "$helper_pid" 0' in source
+    assert 'cef_affinity=${STEAM_ARM64_CEF_AFFINITY:-auto}' in source
+    assert 'cef_cpu_mask=0-3' in source
+    assert 'process_mask_is "$helper_pid" "$cef_cpu_mask"' in source
+    assert 'apply_uniform_affinity Steam-helper "$helper_pid" "$cef_cpu_mask"' in source
     assert '--steam-start-ticks "$steam_start_ticks"' in source
     reused_x11 = source.index('    1)\n        # A prior native Activity')
     foreground = source.index("        foreground_x11", reused_x11)
@@ -131,6 +134,21 @@ def main():
     )
     assert invalid_forward.returncode != 0
     assert "STEAM_ARM64_FORWARD_BOOTSTRAP must be strict or fast" in invalid_forward.stderr
+    invalid_cef_affinity = subprocess.run(
+        ["bash", str(SCRIPT)],
+        env={
+            **os.environ,
+            "START_STEAM_PARSE_ONLY": "1",
+            "STEAM_ARM64_CEF_AFFINITY": "invalid",
+        },
+        text=True,
+        capture_output=True,
+    )
+    assert invalid_cef_affinity.returncode != 0
+    assert (
+        "STEAM_ARM64_CEF_AFFINITY must be auto, compact, or responsive"
+        in invalid_cef_affinity.stderr
+    )
     print("start-steam argument tests: ok")
 
 
