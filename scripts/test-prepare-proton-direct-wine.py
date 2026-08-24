@@ -68,6 +68,17 @@ def main() -> None:
         readelf_target.chmod(0o700)
         readelf = root / "readelf"
         readelf.symlink_to(readelf_target)
+        prefix = base / "removable-library-compatdata/203160/pfx"
+        prefix.mkdir(parents=True)
+        user_registry = prefix / "user.reg"
+        original_registry = (
+            "WINE REGISTRY Version 2\n\n"
+            "[Control Panel\\\\Colors] 1\n"
+            '"Window"="255 255 255"\n'
+            '"WindowText"="0 0 0"\n'
+        )
+        user_registry.write_text(original_registry, encoding="utf-8")
+        user_registry.chmod(0o600)
         command = [
             os.sys.executable,
             str(SCRIPT),
@@ -79,6 +90,10 @@ def main() -> None:
             str(patchelf),
             "--readelf",
             str(readelf),
+            "--wine-prefix",
+            str(prefix),
+            "--window-background",
+            "0 0 0",
         ]
         prepared = subprocess.run(command, text=True, capture_output=True, check=False)
         assert prepared.returncode == 0, prepared.stderr
@@ -95,6 +110,13 @@ def main() -> None:
         assert state["schema_version"] == "2"
         assert len(state["targets"]) == len(TARGETS)
         assert not list((base / "backups/proton-direct-wine").glob(".backup.*"))
+        assert '"Window"="0 0 0"' in user_registry.read_text(encoding="utf-8")
+        appearance_states = list(
+            (base / "backups/wine-prefix-appearance").glob("*/state.json")
+        )
+        assert len(appearance_states) == 1
+        appearance = json.loads(appearance_states[0].read_text(encoding="utf-8"))
+        assert appearance["original_value"] == "255 255 255"
         checked = subprocess.run(
             [*command[:2], "check", *command[2:]],
             text=True,
@@ -113,6 +135,7 @@ def main() -> None:
             target = base / relative
             assert target.read_bytes() == originals[relative]
             assert target.stat().st_mode & 0o777 == 0o500
+        assert user_registry.read_text(encoding="utf-8") == original_registry
         restored_again = subprocess.run(
             [*command[:2], "restore", *command[2:]],
             text=True,
@@ -127,6 +150,7 @@ def main() -> None:
         for relative in TARGETS:
             target = base / relative
             assert target.read_text().splitlines()[0] == f"INTERP={loader}"
+        assert '"Window"="0 0 0"' in user_registry.read_text(encoding="utf-8")
         state = json.loads(
             (base / "backups/proton-direct-wine/state.json").read_text()
         )

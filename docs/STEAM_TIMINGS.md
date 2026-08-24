@@ -100,6 +100,7 @@ the AppID handoff and restored them to CPU 0 after acknowledgement:
 | FEX generation 7 + DXVK 2.4.1 | 55.303 | -32.3%; valid, not promoted |
 | Generation 7 + forced 7 DXVK workers | 58.670 | -28.2%; valid, rejected |
 | Restored generation 6 confirmation | 59.381 | -27.4%; visual pass, no new record |
+| Copied DXVK cache + explicit path | 58.634 | -28.3%; no promotion |
 
 Session-to-runtime fell from 30 to 12 seconds while runtime-to-window remained
 roughly flat (51.742 vs 53.193 seconds). A 2800x1752 tablet screenshot confirmed
@@ -246,3 +247,12 @@ initial black capture was rejected, while a later screenshot proved the real
 full-screen Terms UI. This validates the restored cache but is slower than its
 53.553-second best, which remains the published record. See [the restore
 evidence](evidence/tombraider-fex-cache-generation6-restored-20260824.json).
+
+The internal DXVK cache experiment reached the same full-screen Terms UI in
+**58.634 seconds**, only 0.747 seconds faster than the adjacent 59.381-second
+confirmation and 5.081 seconds slower than the record. More importantly, the
+source compatdata cache was already on Termux's private internal filesystem;
+the experiment copied it to another directory on the same device. The DXVK log
+continued to report its Windows-visible AppData path, so this run does not
+prove a distinct physical-cache fast path. External/default placement remains
+selected. See [the bounded result](evidence/tombraider-dxvk-state-cache-internal-20260824.json).

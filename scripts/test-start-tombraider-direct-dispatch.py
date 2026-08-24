@@ -141,7 +141,12 @@ def main() -> None:
             check=False,
         )
         assert result.returncode == 1, result.stderr
-        assert prepare_result.read_text().splitlines() == [f"prepare --base {base}"]
+        assert prepare_result.read_text().splitlines() == [
+            "prepare --base "
+            f"{base} --wine-prefix "
+            f"{base}/removable-library-compatdata/203160/pfx "
+            "--window-background 0 0 0"
+        ]
         assert topology_result.read_text().splitlines() == ["--check"]
         assert result_file.read_text().splitlines() == [
             "1",

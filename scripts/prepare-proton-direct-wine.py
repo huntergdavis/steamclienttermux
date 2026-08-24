@@ -15,6 +15,7 @@ import tempfile
 
 
 ORIGINAL_INTERPRETER = "/lib/ld-linux-aarch64.so.1"
+WINDOW_BACKGROUND = re.compile(r'(?m)^"Window"="([0-9]+ [0-9]+ [0-9]+)"$')
 TARGET_RELATIVES = (
     Path("client/steamapps/common/Proton 11.0 (ARM64)/files/bin-arm64/wine"),
     Path("client/steamapps/common/Proton 11.0 (ARM64)/files/bin-arm64/wineserver"),
@@ -168,6 +169,157 @@ def write_state(
             "targets": [records[target] for target in sorted(records)],
         },
     )
+
+
+def read_window_background(user_registry: Path) -> tuple[str, str]:
+    regular_owned_file(user_registry, "Wine user registry")
+    document = user_registry.read_text(encoding="utf-8")
+    matches = list(WINDOW_BACKGROUND.finditer(document))
+    if len(matches) != 1:
+        raise PrepareError(
+            f"Wine user registry does not contain one Window color: {user_registry}"
+        )
+    return document, matches[0].group(1)
+
+
+def wine_prefix_is_active(prefix: Path) -> bool:
+    expected = {
+        f"WINEPREFIX={prefix}".encode(),
+        f"STEAM_COMPAT_DATA_PATH={prefix.parent}".encode(),
+    }
+    for process in Path("/proc").iterdir():
+        if not process.name.isdigit():
+            continue
+        try:
+            environment = (process / "environ").read_bytes().split(b"\0")
+        except (FileNotFoundError, PermissionError, ProcessLookupError):
+            continue
+        if expected.intersection(environment):
+            return True
+    return False
+
+
+def write_text_atomic(path: Path, document: str) -> None:
+    metadata = path.lstat()
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{path.name}.", dir=path.parent
+    )
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="") as stream:
+            stream.write(document)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.chmod(temporary, stat.S_IMODE(metadata.st_mode))
+        os.replace(temporary, path)
+    finally:
+        if temporary.exists() and not temporary.is_symlink():
+            temporary.unlink()
+
+
+def appearance_state_path(base: Path, prefix: Path) -> Path:
+    identity = hashlib.sha256(str(prefix).encode("utf-8")).hexdigest()[:16]
+    return base / "backups/wine-prefix-appearance" / identity / "state.json"
+
+
+def configure_window_background(base: Path, prefix: Path, value: str) -> None:
+    color_channel = r"(?:[0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])"
+    if re.fullmatch(fr"{color_channel} {color_channel} {color_channel}", value) is None:
+        raise PrepareError(f"invalid Wine Window color: {value}")
+    user_registry = prefix / "user.reg"
+    document, current = read_window_background(user_registry)
+    state_path = appearance_state_path(base, prefix)
+    state_path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if (
+        state_path.parent.is_symlink()
+        or state_path.parent.stat().st_uid != os.geteuid()
+    ):
+        raise PrepareError(
+            f"unsafe Wine appearance state directory: {state_path.parent}"
+        )
+    state: dict[str, str]
+    if state_path.exists() or state_path.is_symlink():
+        regular_owned_file(state_path, "Wine appearance state")
+        decoded = json.loads(state_path.read_text(encoding="utf-8"))
+        if not isinstance(decoded, dict):
+            raise PrepareError(f"Wine appearance state is not an object: {state_path}")
+        state = decoded
+        if (
+            state.get("schema_version") != "1"
+            or state.get("target") != str(user_registry)
+            or state.get("configured_value") != value
+            or not isinstance(state.get("original_value"), str)
+        ):
+            raise PrepareError(f"Wine appearance state mismatch: {state_path}")
+    else:
+        original_hash = sha256(user_registry)
+        backup = state_path.parent / f"user.reg-{original_hash}.original"
+        install_backup(user_registry, backup, original_hash)
+        state = {
+            "backup": str(backup),
+            "configured_value": value,
+            "original_sha256": original_hash,
+            "original_value": current,
+            "schema_version": "1",
+            "target": str(user_registry),
+        }
+        write_json_atomic(state_path, state)
+    if current == value:
+        print(f"Wine startup background already configured: {user_registry}")
+        return
+    if current != state["original_value"]:
+        raise PrepareError(
+            f"Wine Window color changed outside the managed state: {user_registry}"
+        )
+    if wine_prefix_is_active(prefix):
+        raise PrepareError(f"refusing to edit an active Wine prefix: {prefix}")
+    configured = WINDOW_BACKGROUND.sub(f'"Window"="{value}"', document, count=1)
+    write_text_atomic(user_registry, configured)
+    _, installed = read_window_background(user_registry)
+    if installed != value:
+        raise PrepareError(f"Wine Window color verification failed: {user_registry}")
+    print(f"Configured Wine startup background: {user_registry} value={value}")
+
+
+def check_window_background(prefix: Path, value: str) -> None:
+    user_registry = prefix / "user.reg"
+    _, current = read_window_background(user_registry)
+    if current != value:
+        raise PrepareError(
+            f"Wine Window color is not configured: {user_registry}: {current}"
+        )
+    print(f"Wine startup background check: PASS target={user_registry} value={value}")
+
+
+def restore_window_background(base: Path, prefix: Path, value: str) -> None:
+    user_registry = prefix / "user.reg"
+    document, current = read_window_background(user_registry)
+    state_path = appearance_state_path(base, prefix)
+    regular_owned_file(state_path, "Wine appearance state")
+    decoded = json.loads(state_path.read_text(encoding="utf-8"))
+    if not isinstance(decoded, dict):
+        raise PrepareError(f"Wine appearance state is not an object: {state_path}")
+    state = decoded
+    if (
+        state.get("schema_version") != "1"
+        or state.get("target") != str(user_registry)
+        or state.get("configured_value") != value
+        or not isinstance(state.get("original_value"), str)
+    ):
+        raise PrepareError(f"Wine appearance state mismatch: {state_path}")
+    original = state["original_value"]
+    if current == original:
+        print(f"Wine startup background already restored: {user_registry}")
+        return
+    if current != value:
+        raise PrepareError(
+            f"refusing to restore over a changed Wine Window color: {user_registry}"
+        )
+    if wine_prefix_is_active(prefix):
+        raise PrepareError(f"refusing to edit an active Wine prefix: {prefix}")
+    restored = WINDOW_BACKGROUND.sub(f'"Window"="{original}"', document, count=1)
+    write_text_atomic(user_registry, restored)
+    print(f"Restored Wine startup background: {user_registry} value={original}")
 
 
 def validate_existing_record(
@@ -396,8 +548,14 @@ def main() -> int:
     )
     parser.add_argument("--patchelf")
     parser.add_argument("--readelf")
+    parser.add_argument("--wine-prefix")
+    parser.add_argument("--window-background")
     arguments = parser.parse_args()
     try:
+        if bool(arguments.wine_prefix) != bool(arguments.window_background):
+            raise PrepareError(
+                "--wine-prefix and --window-background must be provided together"
+            )
         base = Path(arguments.base).resolve(strict=True)
         loader = Path(os.path.abspath(os.path.expanduser(arguments.loader)))
         loader.resolve(strict=True)
@@ -422,6 +580,18 @@ def main() -> int:
             check(base, loader, readelf)
         else:
             restore(base, readelf)
+        if arguments.wine_prefix:
+            prefix = Path(os.path.abspath(os.path.expanduser(arguments.wine_prefix)))
+            if arguments.action == "prepare":
+                configure_window_background(
+                    base, prefix, arguments.window_background
+                )
+            elif arguments.action == "check":
+                check_window_background(prefix, arguments.window_background)
+            else:
+                restore_window_background(
+                    base, prefix, arguments.window_background
+                )
     except (PrepareError, OSError, ValueError, json.JSONDecodeError) as error:
         print(f"prepare-proton-direct-wine: {error}", file=os.sys.stderr)
         return 1

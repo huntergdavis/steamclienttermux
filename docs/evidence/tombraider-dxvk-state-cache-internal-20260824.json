@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "source_commit": "baa394c",
+  "date": "2026-08-24",
+  "mode": "internal-dxvk-state-cache",
+  "timing": {
+    "session_to_runtime_seconds": 14.0,
+    "runtime_to_stable_window_seconds": 44.634,
+    "appid_to_stable_window_seconds": 58.634,
+    "adjacent_external_confirmation_seconds": 59.381,
+    "difference_seconds": -0.747,
+    "best_generation6_seconds": 53.553
+  },
+  "artifacts": {
+    "timer_json_sha256": "07896232ccd0380620156dc29d5ed14044321ad7986e56c726ca5cfc2b514dc0",
+    "dxvk_log_sha256": "06d69402fe1edc152cb939b4497017aecdc45b9b34ad8b9e687af6cc6c341fa6",
+    "cache_bin_sha256": "34072859a2a2a539121755197166f6a4d097df22a49380f4d93d9d423e172914",
+    "cache_lut_sha256": "e783236e286fb9fdfe1d51b40b7a31a014f4e6d5bc56b10eb88a90f0145a88ef",
+    "screenshot_sha256": "6b5bca318fb8a097832f214d79daa4c73c1e9de8f524284d32117a19db44f75b"
+  },
+  "observations": {
+    "window": "2800x1752 full-screen Square Enix Terms UI",
+    "dxvk_cache_marker": "Found cache file: C:\\users\\steamuser\\AppData\\Local\\dxvk\\768ce64b0d470b50.dxvk.bin",
+    "source_cache_filesystem": "Termux private internal storage",
+    "destination_cache_filesystem": "same Termux private internal storage"
+  },
+  "decision": "Do not promote. Keep the existing default; the measured delta is within variance and the physical-storage hypothesis was false.",
+  "claim_boundary": "This is one valid rendered AppID launch and a rejected storage hypothesis, not proof that DXVK read a distinct internal cache path or a repeatable speed improvement."
+}

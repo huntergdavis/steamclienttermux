@@ -9785,3 +9785,33 @@ The first tablet seed failed closed after discovering DXVK 2.4.1's legitimate
 The allow-list now accepts exactly hash-named `bin|lut` pairs, and the focused
 contract copies and validates both shapes. No game launched during the rejected
 seed. A second required recall query found no indexed prior implementation.
+
+## 2026-08-24: internal DXVK cache does not earn promotion
+
+The bounded internal-cache launch completed in 58.634 seconds: 14.000 seconds
+from Steam session to runtime request and 44.634 seconds from runtime request to
+the first stable Tomb Raider window. That is 0.747 seconds faster than the
+adjacent restored-cache confirmation but well inside observed run variance and
+5.081 seconds behind the 53.553-second record. A screenshot proved the real
+full-screen Square Enix Terms UI.
+
+The storage premise was false on this installation. Tomb Raider's compatdata
+cache at `removable-library-compatdata/203160` and the copied cache under
+`cache/dxvk-state/203160` are both on the same private internal filesystem.
+DXVK also logged the Windows-visible AppData cache name rather than the injected
+Unix directory. The selector therefore remains an opt-in experiment and the
+default stays unchanged; no launch-speed claim is made.
+
+## 2026-08-24: the white startup surface is Wine, not diagnostics
+
+The required recall query for the white-square launch symptom returned no
+indexed match. Live process environments proved the game was using the lean
+production preload and did not contain the old debug-wait shim. X properties
+identified the transient surface as the real Wine game drawable, while the
+prefix explicitly set `Control Panel\\Colors\\Window` to white.
+
+Prefix preparation now changes only that managed color to black before launch.
+It stores a private original receipt/backup, uses an atomic same-directory
+replacement, refuses active prefixes or unexpected color changes, and supports
+exact check/restore paths. This removes the distracting white flash; it does
+not claim to shorten DXVK initialization.

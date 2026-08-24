@@ -243,7 +243,15 @@ launch_phase() {
 
 launch_phase wrapper_start "mode=$mode"
 launch_phase prepare_start
-"$python" "$prepare" prepare --base "$base"
+prepare_arguments=(prepare --base "$base")
+if [[ $mode == tombraider || $mode == tombraider-benchmark ||
+    $mode == tombraider-diagnostic ]]; then
+    prepare_arguments+=(
+        --wine-prefix "$base/removable-library-compatdata/203160/pfx"
+        --window-background '0 0 0'
+    )
+fi
+"$python" "$prepare" "${prepare_arguments[@]}"
 if [[ $dxvk_state_cache == internal ]]; then
     [[ -x $dxvk_state_cache_tool && ! -L $dxvk_state_cache_tool ]] ||
         fail "DXVK state-cache tool is unavailable: $dxvk_state_cache_tool"

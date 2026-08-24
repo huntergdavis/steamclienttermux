@@ -107,6 +107,48 @@ files and SHA-256 `08822e3d...31bd`. The manifest truthfully reports that no
 license is tracked; selecting one is the remaining owner-controlled publication
 gate.
 
+## License decision
+
+MIT is open source, but it permits a distributor to keep a modified fork
+closed. For this user-installed application stack, the recommended license for
+new project-owned code is **GPL-3.0-or-later**: anyone distributing a modified
+binary must also provide corresponding source. AGPL-3.0 adds a source offer for
+software used over a network, which is valuable for hosted services but does
+not materially strengthen this local Android launcher.
+
+One root license cannot replace upstream terms. The release manifest and
+notices must retain these component boundaries:
+
+| Component | Upstream terms | Release treatment |
+| --- | --- | --- |
+| Project-owned scripts and tools | Owner choice | GPL-3.0-or-later recommended |
+| PRoot-derived patches/binary | GPL-2.0-or-later | Keep GPL notices and corresponding source |
+| glibc | LGPL-2.1-or-later | Preserve LGPL notices/source and relinking rights |
+| FEX | MIT | Preserve its copyright/license notice |
+| DXVK | zlib/libpng | Preserve notice; mark modified source |
+| Mesa/Turnip | Mostly MIT, file-specific | Carry the selected files' SPDX licenses/notices |
+| Termux and Termux:X11 apps | GPL-3.0 | Separate official installs, or ship compliant source/notices |
+| Steam, Proton, games | Mixed/proprietary | Fetch from publishers; never relicense or bundle blindly |
+
+The PRoot patch directory remains under its upstream GPL terms even if the rest
+of this repository uses GPL-3.0-or-later. GPL does not compel publication of
+private changes or require anyone to submit changes upstream; it requires
+source availability when covered builds are distributed. Running or
+orchestrating separate programs does not by itself relicense original project
+code. Before release, add the chosen root license, SPDX headers,
+`THIRD_PARTY_NOTICES.md`, and a component-level SBOM. This is engineering
+guidance, not legal advice.
+
+Primary references: [GPLv3 guide](https://www.gnu.org/licenses/quick-guide-gplv3.en.html),
+[AGPL network clause](https://www.gnu.org/licenses/agpl-3.0.en.html),
+[PRoot GPLv2](https://github.com/termux/proot/blob/master/COPYING),
+[glibc LGPLv2.1](https://snapshots.sourceware.org/glibc/trunk/2025-08-04_17-48_1754329681/manual/html_node/Copying.html),
+[Termux GPLv3](https://github.com/termux/termux-app/blob/master/LICENSE.md),
+[Termux:X11 GPLv3](https://github.com/termux/termux-x11/blob/master/LICENSE),
+[FEX MIT](https://github.com/FEX-Emu/FEX/blob/main/LICENSE),
+[DXVK zlib](https://github.com/doitsujin/dxvk/blob/master/LICENSE), and
+[Mesa licensing](https://docs.mesa3d.org/license.html).
+
 ## Next implementation slices
 
 1. One `bootstrap` and one `rollback` entry point; the read-only doctor exists.

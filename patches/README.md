@@ -12,9 +12,10 @@ headers and disables PE timestamps for reproducible artifact identity.
 working tablet source tree on 2026-08-08. It applies cleanly to Termux PRoot
 commit `a89b3732ec6ae1db674510f0843b2f3db54d0a2f`.
 
-The upstream source is <https://github.com/termux/proot>. PRoot is GPL-2.0;
-redistribution and use of this derivative patch remain subject to that license.
-The build script clones upstream rather than vendoring an unexplained snapshot.
+The upstream source is <https://github.com/termux/proot>. Its source headers
+grant GPL-2.0-or-later; redistribution and use of these derivative patches
+remain subject to those terms. The build script clones upstream rather than
+vendoring an unexplained snapshot.
 
 Patch statistics:
 
