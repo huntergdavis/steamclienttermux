@@ -9264,3 +9264,20 @@ Both generated FEX maps were moved to the recoverable
 `runtime-delta-valid-720p-ultimate-20260824T0201Z` archive. The compact source
 of truth is
 `docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-720p-ultimate-fullscreen-60hz-40c-20260824.json`.
+
+## 2026-08-23: 1080p High reaches 28.7 FPS
+
+The first higher-quality 1080p cell completed at **17.2 minimum, 37.3
+maximum, and 28.7 average FPS**. The game, runner, DXVK swapchain, and a live
+scene screenshot all prove exclusive 1920x1080 at 60 Hz within the full-display
+2800x1752 Termux:X11 task. Expected aspect-ratio bars are part of the
+fullscreen presentation and are not the prior floating-window failure.
+
+The run began at 37.0 C after 30.291 seconds of cooldown. DXVK 2.4.1 selected
+eight compiler threads, and affinity reached ready for PID 2863 with 54
+threads on CPUs1-7. Steam, Termux:X11, and PulseAudio retained their protected
+identities. Both new FEX maps were archived rather than discarded.
+
+High loses 16.1 FPS / 35.9% versus the 44.8 FPS 1080p Normal control and lands
+1.3 FPS below the desired 30 FPS floor. Exact evidence is retained in
+`docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-1080p-high-fullscreen-60hz-40c-20260824.json`.
