@@ -285,20 +285,47 @@ x11_preferences_are_configured() {
 }
 
 largest_steam_window() {
-    local visibility="$1" window geometry width height area
+    local visibility="$1" key value window='' width='' height='' area index
     local largest_window='' largest_area=0
     local -a search_arguments=(--class '^steam$')
+    local -a windows=() widths=() heights=()
 
     if [[ "$visibility" == visible ]]; then
         search_arguments=(--onlyvisible "${search_arguments[@]}")
     fi
 
-    while IFS= read -r window; do
+    # xdotool applies the geometry query to every search result in one X11
+    # client. Parse its shell-form records with Bash built-ins, avoiding one
+    # xdotool and two sed processes per candidate window.
+    while IFS='=' read -r key value; do
+        case "$key" in
+            WINDOW)
+                if [[ -n "$window" ]]; then
+                    windows+=("$window")
+                    widths+=("$width")
+                    heights+=("$height")
+                fi
+                window="$value"
+                width=''
+                height=''
+                ;;
+            WIDTH) width="$value" ;;
+            HEIGHT) height="$value" ;;
+        esac
+    done < <(DISPLAY="$display" timeout 5 \
+        xdotool search "${search_arguments[@]}" \
+            getwindowgeometry --shell %@ 2>/dev/null || true)
+    if [[ -n "$window" ]]; then
+        windows+=("$window")
+        widths+=("$width")
+        heights+=("$height")
+    fi
+
+    for ((index = 0; index < ${#windows[@]}; index++)); do
+        window="${windows[index]}"
+        width="${widths[index]}"
+        height="${heights[index]}"
         [[ "$window" =~ ^[0-9]+$ ]] || continue
-        geometry="$(DISPLAY="$display" timeout 3 \
-            xdotool getwindowgeometry --shell "$window" 2>/dev/null || true)"
-        width="$(sed -n 's/^WIDTH=//p' <<<"$geometry")"
-        height="$(sed -n 's/^HEIGHT=//p' <<<"$geometry")"
         [[ "$width" =~ ^[0-9]+$ && "$height" =~ ^[0-9]+$ ]] || continue
         (( width >= minimum_window_width && height >= minimum_window_height )) ||
             continue
@@ -307,21 +334,19 @@ largest_steam_window() {
             largest_window="$window"
             largest_area="$area"
         fi
-    done < <(DISPLAY="$display" timeout 5 \
-        xdotool search "${search_arguments[@]}" 2>/dev/null || true)
+    done
 
     [[ -n "$largest_window" ]] && printf '%s\n' "$largest_window"
 }
 
 surface_steam_window() {
     local window="$1"
-    DISPLAY="$display" timeout 5 xdotool windowmap "$window" >/dev/null 2>&1 ||
-        return 1
-    DISPLAY="$display" timeout 5 xdotool windowraise "$window" >/dev/null 2>&1 ||
-        return 1
     # Direct X focus works in this deliberately WM-less, single-app session.
-    # It avoids starting Plasma or a standalone WM just to expose Steam.
-    DISPLAY="$display" timeout 5 xdotool windowfocus "$window" >/dev/null 2>&1 ||
+    # One xdotool process preserves ordered map/raise/focus semantics without
+    # starting three X11 clients or a standalone window manager.
+    DISPLAY="$display" timeout 5 xdotool \
+        windowmap "$window" windowraise "$window" windowfocus "$window" \
+        >/dev/null 2>&1 ||
         return 1
 }
 
@@ -917,9 +942,17 @@ if [[ "${#steam_pids[@]}" -eq 1 ]]; then
             fail "Steam PID ${steam_pids[0]} exited before a usable window appeared"
         fail "Steam PID ${steam_pids[0]} exists but no usable window became visible in ${window_timeout}s"
     fi
+    steam_phase window_found "window=$steam_window"
     surface_steam_window "$steam_window" ||
         fail "Steam window $steam_window could not be mapped, raised, and focused"
-    apply_steam_session_affinity "${x11_pids[0]}" "${steam_pids[0]}"
+    steam_phase window_surfaced "window=$steam_window"
+    # A plain warm UI request has launched no process since the authenticated
+    # affinity pass above. Recheck only after forwarding arguments that may
+    # have created a new Steam helper.
+    if ((${#steam_arguments[@]} > 0)); then
+        apply_steam_session_affinity "${x11_pids[0]}" "${steam_pids[0]}"
+        steam_phase affinity_rechecked "cef=$cef_cpu_mask"
+    fi
     steam_phase window_ready "window=$steam_window,cef=$cef_cpu_mask"
     steam_phase complete "route=warm-visible"
     printf 'start-steam: ready; X11 PID %s CPUs 0-3, Steam PID %s CPUs 0-3, CEF CPUs %s, window %s visible, PulseAudio sink, Lorie mouse/touch/keyboard, no KDE\n' \

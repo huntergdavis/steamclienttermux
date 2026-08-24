@@ -74,6 +74,13 @@ def main():
     assert 'required_stable_count="${2:-$window_stable_seconds}"' in source
     assert '[[ -z "$window" && "$background_mode" == 0 ]]' in source
     assert 'wait_for_steam_window "${steam_pids[0]}" 1' in source
+    assert 'xdotool search "${search_arguments[@]}" \\' in source
+    assert 'getwindowgeometry --shell %@' in source
+    assert 'windowmap "$window" windowraise "$window" windowfocus "$window"' in source
+    assert source.count('xdotool getwindowgeometry') == 0
+    assert 'steam_phase window_found "window=$steam_window"' in source
+    assert 'steam_phase window_surfaced "window=$steam_window"' in source
+    assert 'if ((${#steam_arguments[@]} > 0)); then' in source
     assert "process_is_top_app()" in source
     assert 'if ! process_is_top_app "${x11_pids[0]}"; then' in source
     assert 'if [[ $x11_foreground_handoff == 1 ]]; then' in source
