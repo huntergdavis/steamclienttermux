@@ -532,7 +532,7 @@ def expand_x11_full_display(
     serial: str,
     task_id: int,
     bounds: tuple[int, int, int, int],
-    settle_timeout_seconds: float = 10.0,
+    settle_timeout_seconds: float = 30.0,
 ) -> tuple[int, int]:
     left, top, right, bottom = bounds
     width = right - left
