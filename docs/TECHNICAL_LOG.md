@@ -9597,3 +9597,11 @@ the state-cache marker only 0.100 seconds before the first window and the
 swapchain/compiler markers after that first sighting, demonstrating DXVK log
 buffering rather than a causal ordering. The next diagnostic must therefore
 use unbuffered process-map milestones before changing another runtime option.
+
+That process-map gate is now host-complete. The existing timer reads only the
+verified target PID's `/proc/<pid>/maps` at its existing polling cadence and
+records first Wine Vulkan, DXGI, D3D11, and Turnip mappings. It injects nothing,
+adds no render-thread/per-frame work, and tolerates an exited PID. The focused
+four-module contract and full project suite pass. The required exact `deja`
+query returned no indexed implementation; the gate reuses verified target-PID
+matching and the timer's external first-observation event model.

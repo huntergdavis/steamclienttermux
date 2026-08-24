@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-24",
+  "source_base_commit": "f3003b7",
+  "status": "host-pass-tablet-runtime-pending",
+  "operation": "external graphics-module timing for Steam AppID launches",
+  "events": [
+    "module_winevulkan",
+    "module_dxgi",
+    "module_d3d11",
+    "module_turnip"
+  ],
+  "design": {
+    "source": "/proc/<verified-game-pid>/maps",
+    "polling": "existing launch-timer cadence",
+    "game_instrumentation": false,
+    "per_frame_work": false,
+    "pid_scope": "only the process already matched by exact target name/executable"
+  },
+  "validation": {
+    "all_four_module_families": "pass",
+    "missing_or_exited_pid": "empty result",
+    "focused_timer_contract": "pass",
+    "complete_project_suite": "pass"
+  },
+  "recall": {
+    "query": "Steam AppID launch timer proc maps DXGI D3D11 winevulkan Turnip milestones",
+    "result": "no indexed match",
+    "reused": [
+      "verified target-PID stage matching",
+      "external first-observation event schema",
+      "existing bounded AppID timer poll"
+    ]
+  },
+  "claim_boundary": "Host behavior only. A tablet run must measure which graphics module first divides the remaining game-process-to-window interval."
+}

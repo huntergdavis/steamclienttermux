@@ -47,6 +47,24 @@ def main():
         "wineserver": 4,
         "target_process": 5,
     }
+    with tempfile.TemporaryDirectory(prefix="game-maps.") as directory:
+        proc = Path(directory)
+        game = proc / "5"
+        game.mkdir()
+        (game / "maps").write_text(
+            "1000-2000 r-xp 0 00:00 0 /wine/winevulkan.dll\n"
+            "2000-3000 r-xp 0 00:00 0 /dxvk/x32/dxgi.dll\n"
+            "3000-4000 r-xp 0 00:00 0 /dxvk/x32/d3d11.dll\n"
+            "4000-5000 r-xp 0 00:00 0 /turnip/libvulkan_freedreno.so\n",
+            encoding="utf-8",
+        )
+        assert module.mapped_module_events(proc, 5) == {
+            "module_winevulkan": "/wine/winevulkan.dll",
+            "module_dxgi": "/dxvk/x32/dxgi.dll",
+            "module_d3d11": "/dxvk/x32/d3d11.dll",
+            "module_turnip": "/turnip/libvulkan_freedreno.so",
+        }
+        assert module.mapped_module_events(proc, 6) == {}
 
     event = module.event_record(
         datetime(2026, 8, 16, 16, 47, 27, 250000, tzinfo=timezone.utc),

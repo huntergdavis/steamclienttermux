@@ -167,3 +167,6 @@ For startup diagnosis, `time-steam-game-launch.py --dxvk-log-root DIR` can also
 timestamp first state-cache, swapchain, and compiler markers from only the new
 DXVK log directory created by that run. This is an external polling sidecar,
 not game instrumentation, and remains outside the render/frame path.
+The same timer externally observes Wine Vulkan, DXGI, D3D11, and Turnip module
+maps for only the verified game PID, avoiding buffered-log ordering when
+partitioning startup.

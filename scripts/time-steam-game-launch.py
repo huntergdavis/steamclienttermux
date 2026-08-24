@@ -21,6 +21,12 @@ DXVK_MILESTONES = (
     ("dxvk_swapchain", "Presenter: Actual swapchain properties:"),
     ("dxvk_compiler", "DXVK: Using "),
 )
+GAME_MODULE_MILESTONES = (
+    ("module_winevulkan", "winevulkan.dll"),
+    ("module_dxgi", "dxgi.dll"),
+    ("module_d3d11", "d3d11.dll"),
+    ("module_turnip", "libvulkan_freedreno.so"),
+)
 
 
 @dataclass(frozen=True)
@@ -171,6 +177,25 @@ def stage_processes(processes: list[Process], target_name: str) -> dict[str, Pro
         ):
             stages["target_process"] = process
     return stages
+
+
+def mapped_module_events(proc_root: Path, pid: int) -> dict[str, str]:
+    """Return graphics modules currently mapped by one verified game PID."""
+
+    try:
+        lines = (proc_root / str(pid) / "maps").read_text(
+            encoding="utf-8", errors="replace"
+        ).splitlines()
+    except (FileNotFoundError, PermissionError, ProcessLookupError, OSError):
+        return {}
+    result = {}
+    for line in lines:
+        folded = line.casefold()
+        for event, module in GAME_MODULE_MILESTONES:
+            if event not in result and module in folded:
+                fields = line.split(maxsplit=5)
+                result[event] = fields[5] if len(fields) == 6 else module
+    return result
 
 
 def first_visible_window(display: str, pattern: str, timeout: float) -> str | None:
@@ -326,6 +351,18 @@ def measure(arguments: argparse.Namespace) -> tuple[int, dict[str, object]]:
                         process_name=process.name,
                         executable=process.executable,
                     )
+            target = current_stages.get("target_process")
+            if target is not None:
+                for stage, module_path in mapped_module_events(
+                    arguments.proc_root, target.pid
+                ).items():
+                    if stage not in events:
+                        events[stage] = event_record(
+                            utc_now(),
+                            runtime_launch,
+                            pid=target.pid,
+                            module=module_path,
+                        )
             if dxvk is not None:
                 for stage, path, line in dxvk.read():
                     if stage not in events:
@@ -407,7 +444,8 @@ def measure(arguments: argparse.Namespace) -> tuple[int, dict[str, object]]:
             "A game window is complete only after the target and matching visible "
             "window remain continuously present for window_stable_seconds. "
             "Optional DXVK milestones are external first-observation times and "
-            "do not instrument the game process. "
+            "do not instrument the game process. Graphics-module events are "
+            "external observations of the verified target PID's proc maps. "
             "A later StartSession for the same AppID closes the incomplete attempt "
             "and resets process/window attribution for the retry."
         ),
