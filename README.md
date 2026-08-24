@@ -61,6 +61,7 @@ DXVK 2.4.1 both averaged 59.1 FPS.
 | official 2.4.1 x32 | `safe`, offline-compiled cache generation 5 | 1280x720 High (`QualityLevel=2`), exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 31.4 / 59.4 / **47.5** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-720p-high-fullscreen-60hz-40c-20260824.json) |
 | official 2.4.1 x32 | `safe`, offline-compiled cache generation 5 | 1280x720 Ultra (`QualityLevel=3`), exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 16.3 / 22.0 / **19.4** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-720p-ultra-fullscreen-60hz-40c-20260824.json) |
 | official 2.4.1 x32 | `safe`, offline-compiled cache generation 5 | 1280x720 Ultra, tessellation off, exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 17.0 / 26.0 / **22.9** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-720p-ultra-no-tessellation-fullscreen-60hz-40c-20260824.json) |
+| official 2.4.1 x32 | `safe`, offline-compiled cache generation 5 | 1280x720 Ultra, tessellation off, SSAO mode 1, exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 15.5 / 57.7 / **44.3** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-720p-ultra-no-tessellation-ssao1-fullscreen-60hz-40c-20260824.json) |
 | official 2.4.1 x32 | `safe`, offline-compiled cache generation 5 | 1280x720 Ultimate (`QualityLevel=4`), exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 10.8 / 18.2 / **14.2** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-720p-ultimate-fullscreen-60hz-40c-20260824.json) |
 | official 2.4.1 x32 | `safe`, offline-compiled cache generation 5 | 1920x1080 Normal, exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 29.2 / 65.5 / **44.8** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-1080p-normal-fullscreen-60hz-40c-20260824.json) |
 | official 2.4.1 x32 | `safe`, offline-compiled cache generation 5 | 1920x1080 High (`QualityLevel=2`), exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 17.2 / 37.3 / **28.7** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-1080p-high-fullscreen-60hz-40c-20260824.json) |
@@ -97,6 +98,13 @@ the cost to one feature.
 Disabling only tessellation lifts 720p Ultra to 22.9 FPS, a 3.5 FPS / 18.0%
 gain. Tessellation is worth disabling on this GPU, but it explains only a
 small part of the 28.1 FPS High-to-Ultra loss; SSAO is the next isolation.
+
+Keeping that tessellation change and reducing only SSAO from mode 2 to mode 1
+raises the result again to 44.3 FPS: a 21.4 FPS / 93.4% gain over the
+tessellation-off control and 24.9 FPS / 128.4% over stock Ultra. This isolates
+Ultra SSAO as the dominant quality cliff. The tuned profile now trails High
+by only 3.2 FPS while retaining Ultra textures, filtering, LOD, depth of
+field, shadows, and reflections.
 
 Ultimate averaged 14.2 FPS, 5.2 FPS / 26.8% below Ultra. The game-authored
 settings differ from Ultra only by enabling TressFX hair, making hair the

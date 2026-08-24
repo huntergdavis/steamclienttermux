@@ -9361,3 +9361,26 @@ the exact generated INI and reject a mutated `SSAOMode=2` result. The required
 fullscreen runner, private transient INI, fail-closed game-result validation,
 and recoverable FEX-map archive. No FPS claim is made until the tablet run
 passes every gate.
+
+## 2026-08-23: SSAO mode 1 lifts tuned 720p Ultra to 44.3 FPS
+
+The cumulative profile completed at **15.5 minimum, 57.7 maximum, and 44.3
+average FPS**. The game-authored quality block proves Ultra texture quality,
+filtering, LOD, DOF, shadows, reflections, and post-processing remained
+unchanged; only the already-accepted tessellation disable and the new
+`SSAOMode=1` override differ from stock Ultra.
+
+This step gains 21.4 FPS / 93.4% over the 22.9 FPS tessellation-off control.
+The cumulative result gains 24.9 FPS / 128.4% over stock Ultra and lands only
+3.2 FPS below High. SSAO mode 2, not tessellation alone, was therefore the
+dominant Ultra cliff on this Adreno 730 path.
+
+The run began at 37.0 C after 30.319 seconds of cooldown. DXVK 2.4.1 created
+the exact 1280x720 swapchain with six compiler threads; affinity reached ready
+for PID 17469 with 51 threads on CPUs1-7. A retained 2800x1752 live-scene
+screenshot proves fullscreen visible rendering. Steam, X11, and PulseAudio
+retained their protected identities, and both generated FEX maps were moved
+to the recoverable
+`runtime-delta-valid-720p-ultra-no-tessellation-ssao1-20260824T0254Z`
+archive. Exact evidence is in
+`docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-720p-ultra-no-tessellation-ssao1-fullscreen-60hz-40c-20260824.json`.

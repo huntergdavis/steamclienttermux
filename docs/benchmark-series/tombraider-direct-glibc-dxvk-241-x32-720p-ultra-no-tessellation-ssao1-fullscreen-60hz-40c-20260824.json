@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "status": "accepted_single_run_optimization",
+  "game": "Tomb Raider (2013)",
+  "appid": 203160,
+  "target": {
+    "backend": "direct native-glibc Steam host",
+    "resolution": "1280x720",
+    "graphics": "Ultra without tessellation, SSAO mode 1",
+    "quality_level": 3,
+    "benchmark_overrides": {"EnableTessellation": 0, "SSAOMode": 1},
+    "benchmark_ini_sha256": "e8a2c0c1dd8f3e68e914a74858255ec815d62ce567f3dc7f4f07d4bf494ccb23",
+    "exclusive_fullscreen": true,
+    "fullscreen_refresh_hz": 60,
+    "vsync": false,
+    "motion_blur": false,
+    "termux_x11_surface": "borderless 2800x1752 at 59.97 Hz",
+    "fex_profile": "safe",
+    "fex_code_cache": "offline-compiled generation 5",
+    "fex_smc_checks": "mtrack",
+    "dxvk_variant": "official DXVK 2.4.1 x32",
+    "dxvk_compiler_threads": "automatic (runtime selected 6)"
+  },
+  "comparison": {
+    "control": "1280x720 Ultra without tessellation",
+    "control_average_fps": 22.9,
+    "candidate_average_fps": 44.3,
+    "absolute_average_change_fps": 21.4,
+    "relative_average_change_percent": 93.44978165938865,
+    "stock_ultra_average_fps": 19.4,
+    "change_from_stock_ultra_fps": 24.9,
+    "change_from_stock_ultra_percent": 128.35051546391753,
+    "remaining_gap_to_high_fps": -3.2
+  },
+  "run": {
+    "series_id": "20260824T025102Z-safe",
+    "minimum_fps": 15.5,
+    "maximum_fps": 57.7,
+    "average_fps": 44.3,
+    "initial_max_temperature_millidegrees_c": 37000,
+    "cooldown_seconds": 30.319,
+    "elapsed_seconds": 128.456,
+    "game_result": "~/steam-arm64/removable-library/steamapps/common/Tomb Raider/benchmarkresults 2026-08-24 02-53-40.txt",
+    "game_result_sha256": "4827cd1567bf31343c7aa9809599c577d3890dd7cd9ad2a604425a8995d814b0",
+    "series": "~/steam-arm64/logs/tombraider-benchmarks/20260824T025102Z-safe/series.json",
+    "series_sha256": "5fc87b877c5a278f688cecd186a8d83f316ee4a7ffe2e3d7b4f3e61a1fb18636",
+    "affinity_log_sha256": "63d1efaf3fccab4d6eb96c12b841e19ec813fa09ae21727cfed4e5b24572bc09",
+    "affinity_ready": "PID 17469, 51 threads, CPUs 1-7, RakNet CPU 1, Steam helpers CPU 0"
+  },
+  "resolved_quality_settings": {
+    "TextureQuality": 4,
+    "BestTextureFilter": 18,
+    "HairQuality": 0,
+    "AntiAliasingMode": 1,
+    "ShadowMode": 1,
+    "ShadowResolution": 2,
+    "SSAOMode": 1,
+    "DOFQuality": 2,
+    "ReflectionQuality": 2,
+    "LODScale": 4,
+    "EnablePostProcess": 1,
+    "EnableMotionBlur": 0,
+    "EnableScreenEffects": 0,
+    "EnableHighPrecisionRT": 1,
+    "EnableTessellation": 0
+  },
+  "presentation": {
+    "controller_log": "~/steam-arm64/logs/tombraider-bvb-foreground-20260824T025049Z-15348.log",
+    "controller_log_sha256": "aae8ece29398a780dcdfe57898e366532190bf2e4c1da1df092a79b735e0995d",
+    "task_id": 2852,
+    "task_bounds": "0,0,2800,1752",
+    "controller_cgroup": "/top-app",
+    "android_polling_during_timed_scene": false,
+    "controller_exit_status": 0,
+    "live_scene": "~/steam-arm64/logs/tombraider-benchmarks/20260824T025102Z-safe/live-scene.png",
+    "live_scene_screenshot_sha256": "de6ab7381c9a3216c8004b3ecda7b31a86459cce8de4890e78c7a08ce5a83c51"
+  },
+  "dxvk": {
+    "log_directory": "~/steam-arm64/logs/dxvk-direct-_e9p5w8p",
+    "version": "2.4.1",
+    "swapchain_extent": "1280x720",
+    "display_mode": "1280x720@60",
+    "graphics_pipeline_libraries": true,
+    "compiler_threads": 6,
+    "log_sha256": {
+      "TombRaider_d3d11.log": "1daa7b25e0d5501c14e80e1bcf38b841694bc08a365132e4e1e282e7d6cf45ef",
+      "TombRaider_d3d9.log": "7a6277e6712d6f4ca7008a60e814f0b4ff851ed7663a0774292c90026e8a8071",
+      "TombRaider_dxgi.log": "e592fb1a061eb52416f0abec67bb1131ea2550ad91a635bed4fc86f4bb7b9707"
+    }
+  },
+  "fex_runtime_delta": {
+    "archive": "~/steam-arm64/cache/fex-code-cache/tombraider-203160-offline-7efb8f8e/runtime-delta-valid-720p-ultra-no-tessellation-ssao1-20260824T0254Z",
+    "sha256sums_sha256": "619c9e1adb4182dea6119637e47e1a2c9a3b805cf1efdee85645aa41f2b837bd",
+    "pending_directory_empty_after_archive": true
+  },
+  "validation": {
+    "profile_check_sha256": "b452b49d0814133021f40edf18489e2cbcce5a0723f6d2100609a0abee8f3599",
+    "topology_check_sha256": "84c3407f4f99dc2a2060e9d3e5db0240ed79fe76da94ecd9dcd05e87a80377a2",
+    "protected_processes_unchanged": {
+      "steam": {"pid": 15575, "start_ticks": 128118834},
+      "termux_x11": {"pid": 13643, "start_ticks": 121863492},
+      "pulseaudio": {"pid": 13923, "start_ticks": 121863956}
+    }
+  },
+  "recall": {
+    "query": "Tomb Raider benchmarkini QualityLevel individual EnableTessellation override order custom profile",
+    "result": "no indexed match",
+    "reused": [
+      "controlled 40 C fullscreen runner",
+      "byte-exact transient benchmark INI",
+      "fail-closed game-authored result validation",
+      "recoverable FEX runtime-delta archive"
+    ]
+  },
+  "claim_boundary": "One runner-accepted thermally valid 1280x720 Ultra pass with tessellation disabled and SSAO reduced from mode 2 to mode 1 improves average FPS from 22.9 to 44.3; it is not yet a replicated mean."
+}
