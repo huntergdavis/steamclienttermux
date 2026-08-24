@@ -170,3 +170,9 @@ not game instrumentation, and remains outside the render/frame path.
 The same timer externally observes Wine Vulkan, DXGI, D3D11, and Turnip module
 maps for only the verified game PID, avoiding buffered-log ordering when
 partitioning startup.
+
+The first module-timed tablet run split the 26.783-second process-to-window
+interval almost evenly: 12.769 seconds before Wine Vulkan/Turnip mapped, then
+14.014 seconds from those graphics modules to the visible window. The complete
+AppID-to-window result was 57.828 seconds. CPU/I/O counters are the next gate;
+the split alone does not prove storage or translation is responsible.

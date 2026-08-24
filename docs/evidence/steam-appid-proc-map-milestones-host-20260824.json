@@ -2,7 +2,7 @@
   "schema_version": 1,
   "date": "2026-08-24",
   "source_base_commit": "f3003b7",
-  "status": "host-pass-tablet-runtime-pending",
+  "status": "tablet-pass",
   "operation": "external graphics-module timing for Steam AppID launches",
   "events": [
     "module_winevulkan",
@@ -21,7 +21,21 @@
     "all_four_module_families": "pass",
     "missing_or_exited_pid": "empty result",
     "focused_timer_contract": "pass",
-    "complete_project_suite": "pass"
+    "complete_project_suite": "pass",
+    "tablet_default_path": {
+      "session_to_runtime_seconds": 11.0,
+      "runtime_to_target_process_seconds": 20.045,
+      "target_process_to_graphics_modules_seconds": 12.769,
+      "graphics_modules_to_visible_window_seconds": 14.014,
+      "session_to_visible_window_seconds": 57.828,
+      "winevulkan_seconds_after_runtime": 32.814,
+      "turnip_seconds_after_runtime": 32.814,
+      "dxgi_seconds_after_runtime": 33.955,
+      "d3d11_seconds_after_runtime": 33.955,
+      "screenshot_sha256": "9c771d21270fa3d5a07a2f1503050b09258f785c168bb7fd291999abff3f190d",
+      "screenshot_resolution": "2800x1752",
+      "screenshot_content": "full-screen Tomb Raider loading frame"
+    }
   },
   "recall": {
     "query": "Steam AppID launch timer proc maps DXGI D3D11 winevulkan Turnip milestones",
@@ -32,5 +46,5 @@
       "existing bounded AppID timer poll"
     ]
   },
-  "claim_boundary": "Host behavior only. A tablet run must measure which graphics module first divides the remaining game-process-to-window interval."
+  "claim_boundary": "One promoted-default tablet run partitions process-to-window into pre-graphics and graphics-to-window intervals. It does not yet attribute either interval to CPU, I/O, or waits."
 }

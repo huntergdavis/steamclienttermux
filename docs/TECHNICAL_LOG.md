@@ -9605,3 +9605,12 @@ adds no render-thread/per-frame work, and tolerates an exited PID. The focused
 four-module contract and full project suite pass. The required exact `deja`
 query returned no indexed implementation; the gate reuses verified target-PID
 matching and the timer's external first-observation event model.
+
+The tablet module run completed at 57.828 seconds with a visually confirmed
+full-screen loading frame. The verified game PID appeared at 20.045 seconds,
+Wine Vulkan and Turnip mapped at 32.814, DXGI/D3D11 at 33.955, and the first
+window appeared at 46.828. The remaining interval is therefore 12.769 seconds
+before graphics plus 14.014 seconds after graphics begins. The game install is
+15 GiB on external-card Android FUSE while the prefix, DXVK, cache, and Turnip
+are internal F2FS, making a hot-file mirror plausible but not yet proven. CPU
+and I/O deltas must decide that next optimization.
