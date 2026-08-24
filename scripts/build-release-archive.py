@@ -45,6 +45,7 @@ REQUIRED_FILES = {
     "scripts/bootstrap-steam-arm64-client.py",
     "scripts/build-release-archive.py",
     "scripts/check-project.sh",
+    "scripts/steam-stack-doctor.py",
     "docs/PRODUCTIZATION_RESEARCH.md",
 }
 FIXED_ZIP_TIME = (1980, 1, 1, 0, 0, 0)

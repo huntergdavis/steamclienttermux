@@ -88,8 +88,8 @@ gate.
 
 ## Next implementation slices
 
-1. One `bootstrap`, one `doctor`, and one `rollback` entry point.
-2. Fresh-prefix integration test with fake external payloads.
+1. One `bootstrap` and one `rollback` entry point; the read-only doctor exists.
+2. Fresh-prefix integration test with fake external payloads and doctor output.
 3. Hardware validation on the Tab S8+ with exact artifact identity.
 4. Project-owner license selection and tracked license text.
 5. Signed release process and compatibility matrix.

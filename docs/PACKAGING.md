@@ -54,6 +54,22 @@ modes and only permits relative symlinks that remain inside the extracted tree.
 Extraction occurs in a new sibling staging directory and is promoted by rename
 only after the locked AArch64 ELF is re-hashed.
 
+## Read-only doctor
+
+```sh
+python3 scripts/steam-stack-doctor.py --mode bootstrap
+python3 scripts/steam-stack-doctor.py --mode runtime
+```
+
+| Mode | Checks |
+| --- | --- |
+| `bootstrap` | ARM64 Android, Termux/X11, build tools, private storage, release source |
+| `runtime` | Bootstrap checks plus Steam, Turnip, glibc, audio, and launcher artifacts |
+
+The doctor changes nothing and does not read Steam credentials. Use `--json`
+for installer/UI integration. Missing project licensing is a warning for local
+research; any missing runtime prerequisite fails closed.
+
 ## Release and trust plan
 
 - Build a deterministic package from an exact Git commit and stack lock.
@@ -65,8 +81,8 @@ only after the locked AArch64 ELF is re-hashed.
   new lock only after hardware validation.
 - Make every system mutation transactional with exact backups and a dry-run.
 
-The remaining package gates are a fresh-device setup test, uninstall/rollback
-test, license selection, and a release-signing workflow. A later optional
+The remaining package gates are a bootstrap/rollback entry point, fresh-device
+setup test, uninstall test, license selection, and release-signing workflow. A later optional
 target-SDK-36 Android UI can invoke a small fixed set of Termux `RUN_COMMAND`
 entry points, but it must remain separately signed and must not share Termux's
 UID.

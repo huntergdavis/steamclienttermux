@@ -82,6 +82,12 @@ The intended first release is a signed/checksummed Termux bootstrap archive
 containing only project source code and locks. See [productization
 research](docs/PRODUCTIZATION_RESEARCH.md) and [packaging](docs/PACKAGING.md).
 
+Check a device without changing it:
+
+```sh
+python3 scripts/steam-stack-doctor.py --mode bootstrap
+```
+
 Build the current commit's deterministic candidate archive:
 
 ```sh
