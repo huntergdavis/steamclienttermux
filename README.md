@@ -11,6 +11,10 @@ app. The working tablet is an SM-X808U with a Snapdragon 8 Gen 1, Adreno 730,
 7.12 GiB usable RAM, and Android 16. It requires no root, bootloader unlock,
 custom kernel, chroot, or system-wide library replacement.
 
+The reproducible distribution plan and the first manifest-locked Valve seed
+bootstrap are documented in [Packaging the native Steam stack](docs/PACKAGING.md).
+The repository does not redistribute Valve binaries or account state.
+
 ## What works
 
 | Component | Verified state |

@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "channel": "stable",
+  "platform": "linuxarm64",
+  "build_id": 1785799196,
+  "manifest": {
+    "url": "https://client-update.steamstatic.com/steam_client_linuxarm64",
+    "size": 12579,
+    "sha256": "a2ad912ef6f150d373504a80c79f95210f8ed4ddbc42071593d0a120eb96ca91"
+  },
+  "seed_archive": {
+    "url": "https://client-update.steamstatic.com/bins_linuxarm64_linuxarm64.zip.4f25204460fd1f27acce2f687019e2518ed8d8bf",
+    "size": 109534844,
+    "sha256": "3f282edba1e24ab01c4d532a43bf3000946df8199c16f16c279635f16c6edc06",
+    "member_count": 55,
+    "max_uncompressed_bytes": 536870912
+  },
+  "seed_executable": {
+    "member": "steamrtarm64/steam",
+    "size": 10044176,
+    "sha256": "72f48fb9c3f2c19cf64f8f7bbf4c7b7af65a73571ae0eeaab05bffd1633f4126",
+    "elf_machine": 183
+  },
+  "redistribution": false,
+  "source": "Valve public client-update service",
+  "updated_at": "2026-08-23"
+}
