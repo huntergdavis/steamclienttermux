@@ -52,6 +52,10 @@ def main():
     assert 'cef_cpu_mask=0-3' in source
     assert 'process_mask_is "$helper_pid" "$cef_cpu_mask"' in source
     assert 'apply_uniform_affinity Steam-helper "$helper_pid" "$cef_cpu_mask"' in source
+    assert 'pgrep -f -u "$(id -u)" -- "com.termux.x11 ${display}"' in source
+    assert "'steamrtarm64/steam($| )'" in source
+    assert "'steamrtarm64/steamwebhelper($| )'" in source
+    assert "${arguments[0]:-} == termux-x11" in source
     assert '--steam-start-ticks "$steam_start_ticks"' in source
     reused_x11 = source.index('    1)\n        # A prior native Activity')
     foreground = source.index("        foreground_x11", reused_x11)

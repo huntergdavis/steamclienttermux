@@ -136,25 +136,54 @@ package_uid() {
 }
 
 matching_pids() {
-    local kind="$1" process cmdline
-    for process in /proc/[0-9]*; do
+    local kind="$1" process pid cmdline
+    local -a arguments=() candidates=()
+    case "$kind" in
+        x11)
+            mapfile -t candidates < <(
+                pgrep -f -u "$(id -u)" -- "com.termux.x11 ${display}" || true
+            )
+            ;;
+        steam)
+            mapfile -t candidates < <(
+                pgrep -f -u "$(id -u)" -- 'steamrtarm64/steam($| )' || true
+            )
+            ;;
+        steamwebhelper)
+            mapfile -t candidates < <(
+                pgrep -f -u "$(id -u)" -- \
+                    'steamrtarm64/steamwebhelper($| )' || true
+            )
+            ;;
+        *)
+            for process in /proc/[0-9]*; do
+                candidates+=("${process#/proc/}")
+            done
+            ;;
+    esac
+    for pid in "${candidates[@]}"; do
+        [[ $pid =~ ^[1-9][0-9]*$ ]] || continue
+        process=/proc/$pid
         [[ -r "$process/cmdline" ]] || continue
-        cmdline="$(tr '\0' ' ' <"$process/cmdline" 2>/dev/null || true)"
         case "$kind" in
             x11)
-                [[ "$cmdline" == "termux-x11 com.termux.x11 ${display} "* ]] ||
-                    continue
+                arguments=()
+                mapfile -d '' -t arguments < "$process/cmdline" || continue
+                [[ ${arguments[0]:-} == termux-x11 &&
+                        ${arguments[1]:-} == com.termux.x11 &&
+                        ${arguments[2]:-} == "$display" ]] || continue
                 ;;
             steam)
-                steam_arm64_process_matches "${process#/proc/}" \
+                steam_arm64_process_matches "$pid" \
                     "$base/client/steamrtarm64/steam" ||
                     continue
                 ;;
             steamwebhelper)
-                steam_arm64_process_matches "${process#/proc/}" \
+                steam_arm64_process_matches "$pid" \
                     "$base/client/steamrtarm64/steamwebhelper" || continue
                 ;;
             launcher)
+                cmdline="$(tr '\0' ' ' <"$process/cmdline" 2>/dev/null || true)"
                 [[ "$cmdline" == *" $steam_launcher "* ||
                         "$cmdline" == *" $steam_launcher" ]] || continue
                 ;;
@@ -162,7 +191,7 @@ matching_pids() {
                 fail "internal process selector is invalid: $kind"
                 ;;
         esac
-        printf '%s\n' "${process#/proc/}"
+        printf '%s\n' "$pid"
     done
 }
 
@@ -569,7 +598,7 @@ for value_name in process_timeout duplicate_process_timeout window_timeout \
 done
 
 for command in am cmd termux-x11 termux-x11-preference timeout xdpyinfo \
-        xdotool pactl pulseaudio python3 stat tail taskset unlink logcat; do
+        xdotool pactl pgrep pulseaudio python3 stat tail taskset unlink logcat; do
     require_command "$command"
 done
 [[ -n "${PREFIX:-}" ]] || fail 'PREFIX is not set; run this from Termux'
