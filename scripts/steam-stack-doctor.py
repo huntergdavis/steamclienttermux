@@ -21,7 +21,7 @@ REQUIRED_SOURCE = (
     "scripts/build-release-archive.py",
     "scripts/steam-stack-doctor.py",
 )
-REQUIRED_TOOLS = ("bash", "python3", "git", "clang", "cmake", "ninja", "pkg-config")
+REQUIRED_TOOLS = ("bash", "python3", "git", "clang", "cmake", "pkg-config")
 DEFAULT_MIN_FREE_BYTES = 4 * 1024**3
 
 
@@ -111,6 +111,15 @@ def collect_checks(
             "pass" if not missing_tools else "fail",
             "all present" if not missing_tools else f"missing: {', '.join(missing_tools)}",
             "install the missing packages with pkg",
+        )
+    )
+    backends = [tool for tool in ("make", "ninja") if lookup(tool) is not None]
+    checks.append(
+        Check(
+            "build backend",
+            "pass" if backends else "fail",
+            ", ".join(backends) if backends else "missing: make or ninja",
+            "install make or ninja with pkg",
         )
     )
 

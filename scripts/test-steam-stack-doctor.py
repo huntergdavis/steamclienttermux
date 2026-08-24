@@ -89,6 +89,22 @@ def main() -> None:
         assert {"architecture", "android ABI", "Termux package", "Termux:X11 package", "build tools", "free storage"} <= failures.keys()
         assert "missing: clang" in failures["build tools"].detail
 
+        no_backend = MODULE.collect_checks(
+            "bootstrap",
+            base,
+            prefix,
+            home,
+            1024**3,
+            repo_root=repo,
+            machine=lambda: "aarch64",
+            lookup=lambda command: None if command in ("make", "ninja") else f"/fake/{command}",
+            run=run,
+            disk_usage=lambda path: SimpleNamespace(free=8 * 1024**3),
+        )
+        backend = next(check for check in no_backend if check.name == "build backend")
+        assert backend.status == "fail"
+        assert backend.detail == "missing: make or ninja"
+
     print("Steam stack doctor tests: PASS")
 
 
