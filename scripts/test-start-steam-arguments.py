@@ -45,6 +45,10 @@ def main():
     assert 'if thread_masks_are "$pid" "$mask"' in source
     assert 'x11_cold_start=0' in source
     assert 'if [[ $x11_cold_start == 1 ]]' in source
+    assert 'steam_affinity_stamp="$base/runtime/steam-session-affinity-v1"' in source
+    assert 'signature="version=1 x11=$x11_pid:$start_ticks:0-3"' in source
+    assert '$(<"$steam_affinity_stamp") == "$signature"' in source
+    assert 'process_mask_is "$helper_pid" 0' in source
     assert '--steam-start-ticks "$steam_start_ticks"' in source
     reused_x11 = source.index('    1)\n        # A prior native Activity')
     foreground = source.index("        foreground_x11", reused_x11)

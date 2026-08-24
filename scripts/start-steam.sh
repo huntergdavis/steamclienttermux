@@ -89,6 +89,7 @@ process_match_helper="$base/compat-bin/steam-arm64-process-match.sh"
 forward_dispatcher="$base/compat-bin/steam-arm64-forward-dispatch"
 affinity_lock="$base/runtime/tomb-raider-affinity.lock"
 gtaiv_affinity_lock="$base/runtime/gtaiv-affinity.lock"
+steam_affinity_stamp="$base/runtime/steam-session-affinity-v1"
 x11_component="com.termux.x11/com.termux.x11.MainActivity"
 x11_preferences="/data/data/com.termux.x11/shared_prefs/com.termux.x11_preferences.xml"
 x11_socket="${PREFIX:-}/tmp/.X11-unix/X${display#:}"
@@ -391,6 +392,13 @@ thread_masks_are() {
     (( count > 0 ))
 }
 
+process_mask_is() {
+    local pid="$1" expected="$2" mask
+    mask=$(sed -n 's/^Cpus_allowed_list:[[:space:]]*//p' "/proc/$pid/status" \
+        2>/dev/null) || return 1
+    [[ $mask == "$expected" ]]
+}
+
 apply_uniform_affinity() {
     local label="$1" pid="$2" mask="$3"
     [[ "$pid" =~ ^[0-9]+$ && -r "/proc/$pid/status" ]] ||
@@ -408,17 +416,51 @@ apply_uniform_affinity() {
 }
 
 apply_steam_session_affinity() {
-    local x11_pid="$1" steam_pid="$2" helper_pid
+    local x11_pid="$1" steam_pid="$2" helper_pid start_ticks signature
+    local masks_current
+    local stamp_tmp
     local -a helper_pids=()
     require_top_app X11 "$x11_pid"
     require_top_app Steam "$steam_pid"
-    apply_uniform_affinity X11 "$x11_pid" 0-3
-    apply_uniform_affinity Steam "$steam_pid" 0-3
-    mapfile -t helper_pids < <(matching_pids steamwebhelper)
+    mapfile -t helper_pids < <(matching_pids steamwebhelper | sort -n)
+    start_ticks=$(steam_arm64_process_start_ticks "$x11_pid") ||
+        fail "unable to resolve X11 PID $x11_pid start identity"
+    signature="version=1 x11=$x11_pid:$start_ticks:0-3"
+    start_ticks=$(steam_arm64_process_start_ticks "$steam_pid") ||
+        fail "unable to resolve Steam PID $steam_pid start identity"
+    signature+=" steam=$steam_pid:$start_ticks:0-3 helpers="
     for helper_pid in "${helper_pids[@]}"; do
         require_top_app Steam-helper "$helper_pid"
+        start_ticks=$(steam_arm64_process_start_ticks "$helper_pid") ||
+            fail "unable to resolve Steam-helper PID $helper_pid start identity"
+        signature+="$helper_pid:$start_ticks:0,"
+    done
+    if [[ -f $steam_affinity_stamp && ! -L $steam_affinity_stamp ]] &&
+            [[ $(<"$steam_affinity_stamp") == "$signature" ]] &&
+            process_mask_is "$x11_pid" 0-3 &&
+            process_mask_is "$steam_pid" 0-3; then
+        masks_current=1
+        for helper_pid in "${helper_pids[@]}"; do
+            if ! process_mask_is "$helper_pid" 0; then
+                masks_current=0
+                break
+            fi
+        done
+        (( masks_current == 0 )) || return 0
+    fi
+    apply_uniform_affinity X11 "$x11_pid" 0-3
+    apply_uniform_affinity Steam "$steam_pid" 0-3
+    for helper_pid in "${helper_pids[@]}"; do
         apply_uniform_affinity Steam-helper "$helper_pid" 0
     done
+    mkdir -p "$base/runtime"
+    stamp_tmp=$(mktemp "$steam_affinity_stamp.tmp.XXXXXX")
+    chmod 600 "$stamp_tmp"
+    if ! printf '%s\n' "$signature" >"$stamp_tmp"; then
+        unlink -- "$stamp_tmp"
+        fail 'unable to write Steam session affinity stamp'
+    fi
+    mv -- "$stamp_tmp" "$steam_affinity_stamp"
 }
 
 start_tomb_raider_affinity_guard() {

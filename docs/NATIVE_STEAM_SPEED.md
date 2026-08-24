@@ -32,6 +32,13 @@ duplicate post-forward affinity pass when no AppID was requested. Cold X11,
 game-launch, window-surfacing, and incorrect-mask paths retain their checks and
 repinning behavior.
 
+Even checking every existing thread mask cost 7.7 seconds across Steam and 11
+CEF processes on the tablet. A private affinity stamp now binds the complete
+helper set to each exact PID/start-time identity, `/top-app` cgroup, and target
+mask. An unchanged set skips thread-by-thread `/proc` reads; any restarted,
+added, removed, re-cgrouped, or stale process forces the complete validation
+and repin before atomically replacing the stamp.
+
 The code reuses the exact loader-process model and remembered-profile rules
 established in indexed sessions `019ff310-e8ac-7212-9f2f-5ba9005b97bd` and
 `019fe348-1247-7530-bc25-8a573aaf4252`. A focused deja query for an existing
