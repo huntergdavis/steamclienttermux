@@ -9197,3 +9197,28 @@ game-authored result. The required `deja` query for prior High registry/preset
 work returned no indexed session, so this reuses the repository's existing
 controlled runner, private transient-file, final-process containment, and
 fullscreen validation disciplines rather than a prior preset implementation.
+
+## 2026-08-23: 720p High establishes 47.5 FPS
+
+The first higher-quality matrix cell completed with a game-authored **31.4
+minimum, 59.4 maximum, and 47.5 average FPS**. The runner's exact
+`QualityLevel=2` INI resolved to High settings including texture quality 3,
+anisotropic filter code 10, shadow resolution 2, reflection quality 2, LOD 3,
+and high-precision RT enabled; TressFX and tessellation remained off. The game
+independently recorded exclusive 1280x720 at 60 Hz with V-Sync and motion blur
+off.
+
+The fixed 40 C gate began at 37.0 C after 30.302 seconds of cooldown. The
+foreground controller proved borderless Android task 2852 at
+`0,0,2800,1752`, retained `/top-app`, stopped Android polling before the timed
+scene, and returned status zero. DXVK logs prove official 2.4.1, a 1280x720
+swapchain, graphics pipeline libraries, and six automatically selected
+compiler threads. Steam PID 15575, Termux:X11 PID 13643, and PulseAudio PID
+13923 retained their protected start ticks.
+
+Compared with 720p Normal's repeated 59.1 FPS, High loses 11.6 FPS / 19.6%.
+This establishes a meaningful quality-path cost rather than a pure pixel-fill
+cost. The two runtime FEX maps were preserved, not deleted, in
+`runtime-delta-valid-720p-high-20260824T0143Z`; its manifest hash is retained
+in the compact evidence. The authoritative artifact is
+`docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-720p-high-fullscreen-60hz-40c-20260824.json`.
