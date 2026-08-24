@@ -22,6 +22,7 @@ def main() -> None:
     assert "benchmark_registry_quality" not in source
     assert "benchmark_extra_lines+=('ShadowResolution = 1')" in source
     assert "benchmark_extra_lines+=('ShadowResolution = 0')" in source
+    assert "ultra-no-tessellation-ssao1-dof1-shadow0)$" in source
     with tempfile.TemporaryDirectory(prefix="tombraider-direct.") as directory:
         root = Path(directory)
         base = root / "base"
