@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-24",
+  "commit": "6863a005720784f123b3295108866240285baa56",
+  "device": "Samsung Galaxy Tab S8+",
+  "operation": "warm direct-glibc Tomb Raider AppID to visible window",
+  "status": "pass",
+  "route": "native ARM64 Steam -> direct dispatcher -> Proton ARM64/FEX/DXVK",
+  "configuration": {
+    "appid": 203160,
+    "child_preload": "lean",
+    "raknet_recvfrom_sleep_us": 1000,
+    "fex_cache": true,
+    "fex_smc": "mtrack",
+    "dxvk": "bundled",
+    "game_cpu_set": "1-7"
+  },
+  "artifacts": {
+    "direct_wrapper_sha256": "3927688b0b98a498632cd4ee0093e530b16bbbc52169a839e97464b20ea06866",
+    "lean_wrapper_sha256": "98ed8803ec409f33b88be0c747228a1074a669ccdd628a94d591e8f4e19f9d0f",
+    "steam_launcher_sha256": "bab052042cd5930171d5a0dc9c5a20ee1514304d5579f9202028728ed62853f5"
+  },
+  "seconds": {
+    "preparation": 1.28,
+    "bridge_service_startup": 0.55,
+    "authenticated_fast_dispatch": 0.41,
+    "steam_request_wrapper": 34.44,
+    "estimated_post_dispatch_steam_ack": 29.49,
+    "session_to_runtime_request": 30.0,
+    "runtime_request_to_pressure_vessel": 1.627,
+    "runtime_request_to_proton": 10.438,
+    "runtime_request_to_wine": 12.605,
+    "runtime_request_to_game_process": 18.681,
+    "runtime_request_to_first_visible_window": 51.742,
+    "session_to_first_visible_window": 81.742,
+    "session_to_stable_confirmation": 86.744
+  },
+  "protected_processes": {
+    "steam": {
+      "pid": 15575,
+      "start_ticks_before": 128118834,
+      "start_ticks_after": 128118834
+    },
+    "x11": {
+      "pid": 13643,
+      "start_ticks_before": 121863492,
+      "start_ticks_after": 121863492
+    }
+  },
+  "diagnosis": {
+    "steamui_stalls_seconds": [10.371, 11.438],
+    "repeated_log_signal": "Using udev for HIDAPI joystick device discovery",
+    "boundary": "Most post-dispatch time is inside Steam; further dispatcher optimization cannot materially remove it."
+  },
+  "cleanup": "After the valid timer completed, the exact AppID-owned game process was terminated. The resulting service status 1 is excluded from launch validity; Steam and X11 identities were preserved.",
+  "tablet_files": {
+    "timer": "/data/data/com.termux/files/home/steam-arm64/logs/direct-appid-window-20260824-045510.json",
+    "phase_log": "/data/data/com.termux/files/home/steam-arm64/logs/tombraider-direct-launch-timing-20260824T115511Z-24646.log"
+  }
+}

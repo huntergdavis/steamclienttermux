@@ -39,12 +39,25 @@ latency distribution. See
 The direct dispatcher removes the remaining hot PRoot boundary only for exact
 allow-listed commands. See [`launch-timings/`](launch-timings/) for artifacts.
 
-The warm Tomb Raider wrapper now detects one exact native Steam process with
-the shared process-identity matcher and skips its redundant no-AppID readiness
-pass. The AppID request still performs the authoritative session, login, X11,
-audio, and affinity checks. Cold or ambiguous sessions retain the full prime.
-The expected saving is one warm-wrapper pass; no launch-time claim will be
-added until the structured timer measures it on the tablet.
+### Direct Tomb Raider launch phases
+
+One warm, authenticated direct-glibc launch on the same tablet:
+
+| Boundary | Seconds |
+| --- | ---: |
+| Session to runtime request | 30.000 |
+| Runtime request to Pressure Vessel | 1.627 |
+| Runtime request to Proton | 10.438 |
+| Runtime request to Wine | 12.605 |
+| Runtime request to game process | 18.681 |
+| Runtime request to first visible window | 51.742 |
+| **Session to first visible window** | **81.742** |
+
+The authenticated handoff itself took 0.410 seconds. Roughly 29.5 seconds then
+elapsed inside Steam before the request returned, coinciding with 10.371- and
+11.438-second SteamUI stalls plus repeated HIDAPI/udev discovery messages. That
+makes Steam UI/input work—not the dispatcher—the next measured launch target.
+See [the compact evidence](evidence/steam-direct-appid-window-20260824.json).
 
 ## Excluded measurements
 
