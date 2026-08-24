@@ -176,25 +176,34 @@ steam_arm64_authenticated_session() {
     STEAM_ARM64_SESSION_REASON=eligible
 }
 
-# A compact, append-friendly phase record based on Linux monotonic uptime.
-# Centisecond resolution is sufficient for the existing whole-second launch
-# evidence while avoiding a Python process on every phase transition.
+# A compact, append-friendly phase record. Prefer Linux monotonic uptime, but
+# Android/Termux may expose /proc/uptime while denying reads through SELinux.
+# EPOCHREALTIME is a zero-subprocess fallback and is labeled honestly.
 steam_arm64_forward_phase() {
-    local mode=$1 event=$2 detail=${3:-none} uptime whole fraction
+    local mode=$1 event=$2 detail=${3:-none} clock_value whole fraction
+    local clock_source=monotonic
     local uptime_file=${STEAM_ARM64_UPTIME_FILE:-/proc/uptime}
 
     [[ $mode == strict || $mode == fast ]] || return 1
     [[ $event =~ ^[a-z][a-z0-9_]*$ && $detail =~ ^[A-Za-z0-9_.:/=-]+$ ]] ||
         return 1
-    read -r uptime _ < "$uptime_file" || return 1
-    [[ $uptime =~ ^[0-9]+([.][0-9]+)?$ ]] || return 1
-    whole=${uptime%%.*}
-    if [[ $uptime == *.* ]]; then
-        fraction=${uptime#*.}00
+    if [[ -r $uptime_file ]] &&
+            { read -r clock_value _ < "$uptime_file"; } 2>/dev/null &&
+            [[ $clock_value =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+        clock_source=monotonic
+    else
+        clock_source=realtime
+        clock_value=${EPOCHREALTIME:-}
+        [[ $clock_value =~ ^[0-9]+([.][0-9]+)?$ ]] || return 1
+    fi
+    whole=${clock_value%%.*}
+    if [[ $clock_value == *.* ]]; then
+        fraction=${clock_value#*.}00
         fraction=${fraction:0:2}
     else
         fraction=00
     fi
-    printf 'steam-arm64-forward-phase version=1 mode=%s event=%s monotonic_cs=%s detail=%s\n' \
-        "$mode" "$event" "$((10#$whole * 100 + 10#$fraction))" "$detail"
+    printf 'steam-arm64-forward-phase version=2 mode=%s event=%s clock=%s timestamp_cs=%s detail=%s\n' \
+        "$mode" "$event" "$clock_source" \
+        "$((10#$whole * 100 + 10#$fraction))" "$detail"
 }

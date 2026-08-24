@@ -45,8 +45,13 @@ launcher retains its read-only remembered-login readiness check.
 Each forward log contains append-friendly monotonic records:
 
 ```text
-steam-arm64-forward-phase version=1 mode=fast event=fast_inspect monotonic_cs=... detail=none
+steam-arm64-forward-phase version=2 mode=fast event=fast_inspect clock=monotonic timestamp_cs=... detail=none
 ```
+
+Linux monotonic uptime is preferred. Android 16 may expose `/proc/uptime` but
+deny the Termux UID permission to read it; that case uses Bash's
+zero-subprocess `EPOCHREALTIME` and records `clock=realtime` rather than failing
+the request or pretending the fallback is monotonic.
 
 Strict mode records `request`, `strict_launch`, and `complete`. An eligible fast
 run records `request`, `fast_inspect`, `session_valid`, `fast_launch`, and

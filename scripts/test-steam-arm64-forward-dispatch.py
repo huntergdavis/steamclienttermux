@@ -70,7 +70,9 @@ def make_process(
     nul_record(process / "environ", environment)
 
 
-def phase_events(stderr: str, mode: str) -> list[str]:
+def phase_events(
+    stderr: str, mode: str, expected_clock: str = "monotonic"
+) -> list[str]:
     records = [
         line
         for line in stderr.splitlines()
@@ -80,12 +82,17 @@ def phase_events(stderr: str, mode: str) -> list[str]:
     times: list[int] = []
     events: list[str] = []
     for record in records:
-        assert "version=1" in record
+        assert "version=2" in record
         assert f"mode={mode}" in record
-        match = re.search(r" event=([a-z0-9_]+) monotonic_cs=([0-9]+) ", record)
+        match = re.search(
+            r" event=([a-z0-9_]+) clock=(monotonic|realtime) "
+            r"timestamp_cs=([0-9]+) ",
+            record,
+        )
         assert match, record
+        assert match.group(2) == expected_clock, record
         events.append(match.group(1))
-        times.append(int(match.group(2)))
+        times.append(int(match.group(3)))
     assert times == sorted(times), times
     return events
 
@@ -239,6 +246,22 @@ def main() -> None:
             "control=",
             *[f"arg={argument}" for argument in arguments],
         ]
+
+        # Android can deny /proc/uptime despite a visible procfs entry. The
+        # zero-subprocess realtime fallback must preserve all phase records.
+        unreadable_clock = subprocess.run(
+            command,
+            env={
+                **strict_environment,
+                "STEAM_ARM64_UPTIME_FILE": str(home / "missing-uptime"),
+            },
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+        assert phase_events(
+            unreadable_clock.stderr, "strict", expected_clock="realtime"
+        ) == ["request", "strict_launch", "complete"]
 
         fast = subprocess.run(
             command,
