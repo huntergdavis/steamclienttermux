@@ -212,46 +212,44 @@ if [[ $benchmark_preset != registry ]]; then
         *-ultra-no-tessellation-ssao1) benchmark_quality_level=3 ;;
         *-ultra-no-tessellation-ssao1-dof1) benchmark_quality_level=3 ;;
         *-ultra-no-tessellation-ssao1-dof1-lod3) benchmark_quality_level=3 ;;
+        *-ultra-no-tessellation-ssao1-dof1-shadow1) benchmark_quality_level=3 ;;
         *-ultimate) benchmark_quality_level=4 ;;
     esac
     benchmark_extra_lines=()
-    benchmark_registry_quality=0
-    if [[ $benchmark_preset == 1080p-ultra-no-tessellation-ssao1-dof1-lod3 ]]; then
-        benchmark_registry_quality=1
-    fi
     if [[ $benchmark_preset == *-ultra-no-tessellation ||
         $benchmark_preset == *-ultra-no-tessellation-ssao1 ||
         $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1 ||
-        $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1-lod3 ]]; then
+        $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1-lod3 ||
+        $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1-shadow1 ]]; then
         benchmark_extra_lines+=('EnableTessellation = 0')
     fi
     if [[ $benchmark_preset == *-ultra-no-tessellation-ssao1 ||
         $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1 ||
-        $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1-lod3 ]]; then
+        $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1-lod3 ||
+        $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1-shadow1 ]]; then
         benchmark_extra_lines+=('SSAOMode = 1')
     fi
     if [[ $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1 ||
-        $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1-lod3 ]]; then
+        $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1-lod3 ||
+        $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1-shadow1 ]]; then
         benchmark_extra_lines+=('DOFQuality = 1')
     fi
     if [[ $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1-lod3 ]]; then
         benchmark_extra_lines+=('LODScale = 3')
     fi
-    benchmark_ini_lines=()
-    if [[ $benchmark_registry_quality == 0 ]]; then
-        benchmark_ini_lines+=("QualityLevel = $benchmark_quality_level")
+    if [[ $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1-shadow1 ]]; then
+        benchmark_extra_lines+=('ShadowResolution = 1')
     fi
-    benchmark_ini_lines+=( \
+    benchmark_ini_lines=( \
+        "QualityLevel = $benchmark_quality_level" \
         'Fullscreen = 1' \
         'ExclusiveFullscreen = 1' \
         'VSyncMode = 0' \
         "FullscreenWidth = $benchmark_width" \
         "FullscreenHeight = $benchmark_height" \
         'FullscreenRefreshRate = 60' \
-        'EnableMotionBlur = 0')
-    if [[ $benchmark_registry_quality == 0 ]]; then
-        benchmark_ini_lines+=("${benchmark_extra_lines[@]}")
-    fi
+        'EnableMotionBlur = 0' \
+        "${benchmark_extra_lines[@]}")
     (set -o noclobber; printf '%s\n' \
         "${benchmark_ini_lines[@]}" >"$benchmark_ini") 2>/dev/null ||
         fail "could not create controlled Tomb Raider benchmark INI: $benchmark_ini"

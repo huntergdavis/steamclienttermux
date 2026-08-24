@@ -138,15 +138,31 @@ GAME_PROFILES = {
     "1080p-ultra-no-tessellation-ssao1-dof1-lod3": {
         "resolution": "1920x1080",
         "graphics": "Ultra without tessellation, SSAO 1, DOF 1, LOD 3",
-        "registry_profile": "1080p-ultra-tuned-lod3",
+        "registry_profile": "1080p-normal",
         "benchmark_preset": "1080p-ultra-no-tessellation-ssao1-dof1-lod3",
-        "registry_quality": True,
         "quality_level": 3,
         "benchmark_overrides": {
             "EnableTessellation": 0,
             "SSAOMode": 1,
             "DOFQuality": 1,
             "LODScale": 3,
+        },
+    },
+    "1080p-ultra-no-tessellation-ssao1-dof1-shadow1": {
+        "resolution": "1920x1080",
+        "graphics": (
+            "Ultra without tessellation, SSAO 1, DOF 1, shadow resolution 1"
+        ),
+        "registry_profile": "1080p-normal",
+        "benchmark_preset": (
+            "1080p-ultra-no-tessellation-ssao1-dof1-shadow1"
+        ),
+        "quality_level": 3,
+        "benchmark_overrides": {
+            "EnableTessellation": 0,
+            "SSAOMode": 1,
+            "DOFQuality": 1,
+            "ShadowResolution": 1,
         },
     },
     "720p-ultimate": {
@@ -169,12 +185,8 @@ GAME_PROFILES = {
 def quality_benchmark_ini(profile: dict[str, object]) -> str:
     width, height = (int(value) for value in profile["resolution"].split("x"))
     contents = (
-        (
-            ""
-            if profile.get("registry_quality")
-            else f"QualityLevel = {profile['quality_level']}\n"
-        )
-        + "Fullscreen = 1\n"
+        f"QualityLevel = {profile['quality_level']}\n"
+        "Fullscreen = 1\n"
         "ExclusiveFullscreen = 1\n"
         "VSyncMode = 0\n"
         f"FullscreenWidth = {width}\n"
@@ -182,9 +194,8 @@ def quality_benchmark_ini(profile: dict[str, object]) -> str:
         "FullscreenRefreshRate = 60\n"
         "EnableMotionBlur = 0\n"
     )
-    if not profile.get("registry_quality"):
-        for name, value in profile.get("benchmark_overrides", {}).items():
-            contents += f"{name} = {value}\n"
+    for name, value in profile.get("benchmark_overrides", {}).items():
+        contents += f"{name} = {value}\n"
     return contents
 RESULT_GLOB = "benchmarkresults*.txt"
 PROOT_GUARD_GLOB = "tomb-raider-affinity-*.log"

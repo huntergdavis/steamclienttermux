@@ -669,6 +669,7 @@ def main() -> None:
             / "run/tombraider-benchmark-1080p-ultra-no-tessellation-ssao1-dof1-lod3.ini"
         )
         registry_lod_ini.write_text(
+            "QualityLevel = 3\n"
             "Fullscreen = 1\n"
             "ExclusiveFullscreen = 1\n"
             "VSyncMode = 0\n"
@@ -676,6 +677,10 @@ def main() -> None:
             "FullscreenHeight = 1080\n"
             "FullscreenRefreshRate = 60\n"
             "EnableMotionBlur = 0\n"
+            "EnableTessellation = 0\n"
+            "SSAOMode = 1\n"
+            "DOFQuality = 1\n"
+            "LODScale = 3\n"
         )
         registry_lod_ini.chmod(0o600)
         registry_lod_payload = [
@@ -694,7 +699,7 @@ def main() -> None:
             benchmark_preset="1080p-ultra-no-tessellation-ssao1-dof1-lod3",
         ) == (high_proton, high_game)
         registry_lod_ini.write_text(
-            "QualityLevel = 3\n" + registry_lod_ini.read_text()
+            registry_lod_ini.read_text().replace("LODScale = 3", "LODScale = 4")
         )
         try:
             MODULE.validated_tombraider_command(
@@ -708,7 +713,62 @@ def main() -> None:
         except MODULE.DispatchError:
             pass
         else:
-            raise AssertionError("aggregate quality escaped the registry-owned profile")
+            raise AssertionError("modified 1080p LOD override was accepted")
+
+        shadow_ini = (
+            high_base
+            / "run/tombraider-benchmark-1080p-ultra-no-tessellation-ssao1-dof1-shadow1.ini"
+        )
+        shadow_ini.write_text(
+            "QualityLevel = 3\n"
+            "Fullscreen = 1\n"
+            "ExclusiveFullscreen = 1\n"
+            "VSyncMode = 0\n"
+            "FullscreenWidth = 1920\n"
+            "FullscreenHeight = 1080\n"
+            "FullscreenRefreshRate = 60\n"
+            "EnableMotionBlur = 0\n"
+            "EnableTessellation = 0\n"
+            "SSAOMode = 1\n"
+            "DOFQuality = 1\n"
+            "ShadowResolution = 1\n"
+        )
+        shadow_ini.chmod(0o600)
+        shadow_payload = [
+            "--",
+            str(high_proton),
+            "waitforexitandrun",
+            str(high_game),
+            "-nolauncher",
+            "-benchmarkini",
+            "Z:" + str(shadow_ini).replace("/", "\\"),
+        ]
+        assert MODULE.validated_tombraider_command(
+            high_base,
+            shadow_payload,
+            benchmark=True,
+            benchmark_preset=(
+                "1080p-ultra-no-tessellation-ssao1-dof1-shadow1"
+            ),
+        ) == (high_proton, high_game)
+        shadow_ini.write_text(
+            shadow_ini.read_text().replace(
+                "ShadowResolution = 1", "ShadowResolution = 2"
+            )
+        )
+        try:
+            MODULE.validated_tombraider_command(
+                high_base,
+                shadow_payload,
+                benchmark=True,
+                benchmark_preset=(
+                    "1080p-ultra-no-tessellation-ssao1-dof1-shadow1"
+                ),
+            )
+        except MODULE.DispatchError:
+            pass
+        else:
+            raise AssertionError("modified shadow override was accepted")
     try:
         MODULE.validated_tombraider_command(
             tablet_base, benchmark_payload, benchmark=False

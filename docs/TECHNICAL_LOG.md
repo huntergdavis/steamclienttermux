@@ -9474,3 +9474,33 @@ and its exact-PID cleanup.  The abandoned controller was terminated through
 its own child cleanup path; Steam, X11, and PulseAudio retained their exact
 start identities.  No performance claim is made until the hybrid path
 completes a controlled tablet benchmark.
+
+## 2026-08-23: reject LOD3 and isolate Ultra shadow resolution
+
+The hybrid experiment disproved its own premise. The minimal presentation-only
+INI did preserve the registry's LOD3 state, but Tomb Raider then requested
+`VK_FORMAT_R8G8B8A8_UNORM`; the service repeatedly returned
+`VK_ERROR_FORMAT_NOT_SUPPORTED`. A 2800x1752 screenshot with SHA-256
+`28b7305067678da2bc88ffcb75bf49b49141cf49c27c59d79df332dcee89e9f8`
+proves only the bridge triangle was visible. The run produced no benchmark
+result and is not part of the FPS table. Its DXVK log is retained at
+`~/steam-arm64/logs/dxvk-direct-ry5yed1w`.
+
+The exact 27.5 FPS control instead used `QualityLevel = 3`, which selected the
+working `VK_FORMAT_B8G8R8A8_UNORM` path but also restored Ultra's LOD4. The
+game ignores an appended `LODScale = 3`, so LOD3 cannot currently be isolated
+through the supported benchmark interface. Adding RGBA frame transport is a
+separate bridge feature, not a valid performance result. The failed RGBA
+attempt's two generated FEX maps were preserved recoverably in
+`runtime-delta-rejected-registry-rgba-20260824T0422Z`.
+
+The next cumulative 1080p profile therefore returns to the proven BGRA
+benchmark route and changes one game-supported field: `ShadowResolution` from
+2 to 1. Ultra texture quality/filtering, high-precision rendering,
+reflections, LOD4, post-processing, tessellation-off, SSAO1, and DOF1 remain
+fixed. The runner, launcher, and final dispatcher independently require the
+exact ordered override and reject a mutated shadow value. The required
+`deja "Tomb Raider 2013 Ultra ShadowResolution benchmarkini performance
+Adreno 730 1080p"` query found no indexed implementation; this reuses the
+accepted custom-INI and game-authored result-validation pipeline. No FPS
+claim is made before a controlled tablet pass.

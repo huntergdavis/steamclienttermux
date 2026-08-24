@@ -17,12 +17,10 @@ def executable(path: Path, body: str) -> None:
 
 def main() -> None:
     source = SCRIPT.read_text(encoding="utf-8")
-    assert (
-        "benchmark_preset == 1080p-ultra-no-tessellation-ssao1-dof1-lod3"
-        in source
-    )
-    assert 'benchmark_ini_lines+=("QualityLevel = $benchmark_quality_level")' in source
-    assert source.count("benchmark_registry_quality == 0") == 2
+    assert "*-ultra-no-tessellation-ssao1-dof1-shadow1" in source
+    assert '"QualityLevel = $benchmark_quality_level"' in source
+    assert "benchmark_registry_quality" not in source
+    assert "benchmark_extra_lines+=('ShadowResolution = 1')" in source
     with tempfile.TemporaryDirectory(prefix="tombraider-direct.") as directory:
         root = Path(directory)
         base = root / "base"

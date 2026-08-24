@@ -299,11 +299,10 @@ def main():
     lod_tuned_1080p = module.GAME_PROFILES[
         "1080p-ultra-no-tessellation-ssao1-dof1-lod3"
     ]
-    assert lod_tuned_1080p["registry_profile"] == "1080p-ultra-tuned-lod3"
+    assert lod_tuned_1080p["registry_profile"] == "1080p-normal"
     assert lod_tuned_1080p["benchmark_preset"] == (
         "1080p-ultra-no-tessellation-ssao1-dof1-lod3"
     )
-    assert lod_tuned_1080p["registry_quality"] is True
     assert lod_tuned_1080p["benchmark_overrides"] == {
         "EnableTessellation": 0,
         "SSAOMode": 1,
@@ -315,6 +314,7 @@ def main():
         lod_tuned_1080p,
     )
     assert module.quality_benchmark_ini(lod_tuned_1080p) == (
+        "QualityLevel = 3\n"
         "Fullscreen = 1\n"
         "ExclusiveFullscreen = 1\n"
         "VSyncMode = 0\n"
@@ -322,6 +322,31 @@ def main():
         "FullscreenHeight = 1080\n"
         "FullscreenRefreshRate = 60\n"
         "EnableMotionBlur = 0\n"
+        "EnableTessellation = 0\n"
+        "SSAOMode = 1\n"
+        "DOFQuality = 1\n"
+        "LODScale = 3\n"
+    )
+    shadow_tuned_1080p = module.GAME_PROFILES[
+        "1080p-ultra-no-tessellation-ssao1-dof1-shadow1"
+    ]
+    assert shadow_tuned_1080p["benchmark_overrides"] == {
+        "EnableTessellation": 0,
+        "SSAOMode": 1,
+        "DOFQuality": 1,
+        "ShadowResolution": 1,
+    }
+    assert module.quality_benchmark_ini(shadow_tuned_1080p).endswith(
+        "DOFQuality = 1\nShadowResolution = 1\n"
+    )
+    module.validate_benchmark_quality_settings(
+        {
+            **dof_tuned_quality,
+            "FullscreenWidth": 1920,
+            "FullscreenHeight": 1080,
+            "ShadowResolution": 1,
+        },
+        shadow_tuned_1080p,
     )
     assert module.GAME_PROFILES["720p-ultimate"]["quality_level"] == 4
     assert module.GAME_PROFILES["1080p-ultimate"]["graphics"] == "Ultimate"
