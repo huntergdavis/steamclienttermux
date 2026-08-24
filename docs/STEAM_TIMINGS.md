@@ -86,6 +86,7 @@ the AppID handoff and restored them to CPU 0 after acknowledgement:
 | Transient CEF launch boost | 65.193 | -20.2% |
 | Launch boost + compiled FEX cache | 64.200 | -21.5% |
 | **Compiled cache + DXVK 2.4.1 x32** | **55.339** | **-32.3%** |
+| **Refreshed FEX generation 6 + DXVK 2.4.1** | **53.553** | **-34.5%** |
 
 Session-to-runtime fell from 30 to 12 seconds while runtime-to-window remained
 roughly flat (51.742 vs 53.193 seconds). A 2800x1752 tablet screenshot confirmed
@@ -132,6 +133,15 @@ The first no-override confirmation of the promoted defaults completed in
 timer first observed the DXVK cache marker at 46.220 seconds after the runtime
 request and the visible window at 46.320 seconds. Because DXVK buffers its log,
 these markers identify the end—not the internal shape—of the remaining delay.
+
+After compiling ten retained runtime maps into verified FEX cache generation
+6, the same warm AppID path completed in **53.553 seconds**, a new best. That
+is 1.786 seconds / 3.2% faster than the 55.339-second generation-5 best and
+28.189 seconds / 34.5% faster than the original path. The target appeared at
+16.858 seconds after the runtime request, Wine Vulkan at 28.560, D3D11 at
+29.379, and the game window at 42.553. A screenshot confirms the real
+full-screen game startup; Steam and X11 identities were unchanged. This is one
+engineering pass, not a latency distribution.
 
 ## Excluded measurements
 

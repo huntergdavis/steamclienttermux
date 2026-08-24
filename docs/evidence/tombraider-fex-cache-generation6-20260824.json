@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "date": "2026-08-24",
-  "status": "tablet-pass-performance-pending",
+  "status": "tablet-pass-performance-improved",
   "operation": "refresh verified FEX-2605 Tomb Raider offline cache",
   "input": {
     "generation": 5,
@@ -16,6 +16,20 @@
     "result_sha256": "02a4eda6237e2c28230be74a60042797f175921bc599d8ece3af5b9289bc7228",
     "compiler_dispatch_seconds": 75.05,
     "compiler_log_sha256": "7706f68d03a650bdaa0bbd6a77a7b550734f003eafbf8423af4d137da92ae29a"
+  },
+  "performance": {
+    "appid_to_window_seconds": 53.553,
+    "generation5_best_seconds": 55.339,
+    "generation5_improvement_seconds": 1.786,
+    "generation5_improvement_percent": 3.2,
+    "original_seconds": 81.742,
+    "original_improvement_seconds": 28.189,
+    "original_improvement_percent": 34.5,
+    "runtime_to_target_seconds": 16.858,
+    "runtime_to_winevulkan_seconds": 28.56,
+    "runtime_to_d3d11_seconds": 29.379,
+    "runtime_to_window_seconds": 42.553,
+    "screenshot_sha256": "22dba4c978dba7cf84135c7330aec0774ac17fd45e939c5ea82ce9230efc5168"
   },
   "rollback": {
     "path": "/storage/7376-B000/steam-arm64-evidence/fex-cache-generation5-pre-refresh-20260824.tar",
@@ -37,5 +51,5 @@
       "process-all plus post-compile header verification"
     ]
   },
-  "claim_boundary": "The cache refresh is proven. Launch-time benefit remains unmeasured until the same AppID timer is repeated."
+  "claim_boundary": "One same-session engineering pass proves a useful launch improvement. It is not a latency distribution or an FPS result."
 }

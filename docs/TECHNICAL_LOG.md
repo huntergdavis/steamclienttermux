@@ -9650,3 +9650,13 @@ The new `result.json` SHA-256 is
 `02a4eda6237e2c28230be74a60042797f175921bc599d8ece3af5b9289bc7228`.
 Steam and X11 identities survived unchanged. A repeated AppID-to-window run is
 required before attributing any launch-time improvement to generation 6.
+
+That A/B completed at **53.553 seconds**, the fastest verified AppID-to-game
+window result so far. It improves the generation-5/DXVK-2.4.1 best by 1.786
+seconds / 3.2% and the original 81.742-second path by 28.189 seconds / 34.5%.
+The verified target appeared at 16.858 seconds after the runtime request, Wine
+Vulkan at 28.560, D3D11 at 29.379, and the first window at 42.553. The
+2800x1752 screenshot shows the real full-screen game startup. The run added one
+normal Steam marker and one 400,992-byte Tomb Raider learning map for the next
+explicit refresh; it did not invalidate generation 6. This single pass proves
+a useful cache improvement, not a latency distribution.
