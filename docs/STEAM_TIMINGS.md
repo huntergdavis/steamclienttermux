@@ -40,6 +40,12 @@ audio, and affinity checks. Cold or ambiguous sessions retain the full prime.
 The expected saving is one warm-wrapper pass; no launch-time claim will be
 added until the structured timer measures it on the tablet.
 
+## Excluded measurements
+
+| Date | Route | Observation | Why excluded |
+| --- | --- | --- | --- |
+| 2026-08-24 | Ordinary Steam/PRoot game route | Duplicate readiness pass removed; strict forwards took 12.38s and 11.12s | Both accepted containers exited before the game process; [evidence](evidence/steam-warm-appid-single-pass-excluded-20260824.txt) |
+
 ## Logging rule
 
 Append only promoted or diagnostically useful measurements. Record the commit,

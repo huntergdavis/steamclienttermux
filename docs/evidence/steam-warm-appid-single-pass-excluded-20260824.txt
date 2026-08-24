@@ -1,0 +1,32 @@
+gate=warm AppID single-pass measurement
+date=2026-08-24
+commit=2e79185bf099d77307e718b09dcd515a48d53e19
+wrapper_sha256=0e2164c29ecbb305a5c892b6c7a75e713d8530ea4c1d997de812e6810d1bdb83
+steam_pid=15575
+steam_start_ticks=128118834
+x11_pid=13643
+x11_start_ticks=121863492
+route=ordinary Steam launch wrapper; PRoot game route
+result=excluded
+exclusion_reason=Steam accepted both AppID requests, but each runtime container exited before TombRaider.exe and no stable game window appeared
+redundant_readiness_passes=0
+appid_attempts=2
+
+attempt=1
+forward_request_timestamp_cs=178756903217
+forward_complete_timestamp_cs=178756904455
+forward_elapsed_seconds=12.38
+gameprocess_added_at=2026-08-24T10:58:13Z
+gameprocess_removed_at=2026-08-24T10:58:23Z
+gameprocess_lifetime_seconds=10
+
+attempt=2
+forward_request_timestamp_cs=178756910665
+forward_complete_timestamp_cs=178756911777
+forward_elapsed_seconds=11.12
+gameprocess_added_at=2026-08-24T10:58:48Z
+gameprocess_removed_at=2026-08-24T10:58:57Z
+gameprocess_lifetime_seconds=9
+
+published_launch_timing=false
+next_gate=measure the direct-glibc game route rather than the ordinary PRoot route
