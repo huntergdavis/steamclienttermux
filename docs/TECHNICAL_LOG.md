@@ -9673,3 +9673,12 @@ packaged with reviewed per-game manifests. The required `deja` query returned
 no indexed implementation; this reuses the measured AppID phase timer,
 fail-closed path discipline, and launcher child cleanup. Host contracts pass;
 tablet timing is required before promotion.
+
+Tablet validation did not justify promotion. The helper warmed all 48,371,402
+bytes in 0.255–0.432 seconds, but two integrated attempts lost their Steam
+outer process before the authenticated dispatcher handoff. A diagnostic split
+then ran the exact warm-up manually and used the unchanged launcher; it reached
+a real full-screen Tomb Raider Terms window in 55.357 seconds. That is 1.804
+seconds slower than the 53.553-second best, so ordinary run variance is larger
+than any demonstrated benefit. The helper remains reusable and opt-in, the
+Tomb Raider default remains off, and the unreliable attempts are excluded.

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "date": "2026-08-24",
-  "status": "host-pass-tablet-pending",
+  "status": "tablet-no-improvement-not-promoted",
   "operation": "bounded manifest-driven game startup prefetch",
   "design": {
     "generic_engine": "scripts/prefetch-game-files.py",
@@ -9,7 +9,20 @@
     "tombraider_files": 7,
     "tombraider_bytes": 48371402,
     "execution": "asynchronous overlap with Steam AppID handoff",
-    "default": "off pending tablet A/B"
+    "default": "off"
+  },
+  "tablet_validation": {
+    "manual_prefetch": {
+      "files": 7,
+      "bytes": 48371402,
+      "elapsed_seconds": 0.432,
+      "appid_to_window_seconds": 55.357,
+      "screenshot_sha256": "71786c7e3ffb00e7021ad3ac310e8121b32198be6549e43bb83d73e20b0c168d"
+    },
+    "best_without_prefetch_seconds": 53.553,
+    "delta_seconds": 1.804,
+    "integrated_attempts": "two Steam outer processes exited before authenticated dispatcher handoff",
+    "promotion": "rejected"
   },
   "validation": {
     "bounded_read": "pass",
@@ -29,5 +42,5 @@
       "exact child-process cleanup"
     ]
   },
-  "claim_boundary": "Host implementation only. Prefetch remains opt-in until the same warm AppID-to-window timer shows a tablet benefit."
+  "claim_boundary": "The generic helper is host- and tablet-functional, but this Tomb Raider manifest did not improve the best result and is not promoted."
 }
