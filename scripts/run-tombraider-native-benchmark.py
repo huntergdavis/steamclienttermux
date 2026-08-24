@@ -963,6 +963,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="select a validated Tomb Raider-only 32-bit DXVK payload",
     )
     parser.add_argument(
+        "--dxvk-compiler-threads",
+        type=int,
+        choices=range(17),
+        default=0,
+        help="set DXVK compiler workers; 0 keeps DXVK automatic selection",
+    )
+    parser.add_argument(
         "--fex-smc-checks",
         choices=("mtrack", "none"),
         default="mtrack",
@@ -1269,14 +1276,18 @@ def main() -> int:
                 arguments.dxvk_relaxed_graphics_barriers
             )
             environment["TOMB_RAIDER_DXVK_VARIANT"] = arguments.dxvk_variant
+            environment["TOMB_RAIDER_DXVK_COMPILER_THREADS"] = str(
+                arguments.dxvk_compiler_threads
+            )
         elif (
             arguments.fex_code_cache != "off"
             or arguments.fex_smc_checks != "mtrack"
             or arguments.dxvk_relaxed_graphics_barriers != "off"
             or arguments.dxvk_variant != "bundled"
+            or arguments.dxvk_compiler_threads != 0
         ):
             raise RuntimeError(
-                "FEX code-cache, FEX SMC, and DXVK barrier experiments require "
+                "FEX code-cache, FEX SMC, and DXVK experiments require "
                 "the direct backend"
             )
         if arguments.raknet_nice is not None:
@@ -1306,6 +1317,7 @@ def main() -> int:
                     arguments.dxvk_relaxed_graphics_barriers
                 ),
                 "dxvk_variant": arguments.dxvk_variant,
+                "dxvk_compiler_threads": arguments.dxvk_compiler_threads,
                 "raknet_nice": arguments.raknet_nice,
                 "raknet_exclusive_recorded_passes": list(
                     arguments.raknet_exclusive_recorded_passes

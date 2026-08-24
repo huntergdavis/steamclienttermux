@@ -477,6 +477,24 @@ def apply_dxvk_relaxed_graphics_barriers(
     environment["DXVK_CONFIG"] = "d3d11.relaxedGraphicsBarriers = True"
 
 
+def apply_dxvk_compiler_threads(
+    environment: dict[str, str], command_mode: str
+) -> None:
+    selector = os.environ.get("STEAM_ARM64_DIRECT_DXVK_COMPILER_THREADS", "0")
+    if re.fullmatch(r"(?:0|[1-9]|1[0-6])", selector) is None:
+        fail("STEAM_ARM64_DIRECT_DXVK_COMPILER_THREADS must be 0 through 16")
+    environment.pop("STEAMCLIENTTERMUX_DXVK_COMPILER_THREADS", None)
+    threads = int(selector)
+    if threads == 0:
+        return
+    if command_mode not in ("tombraider", "tombraider-benchmark"):
+        fail("DXVK compiler-thread override is valid only for Tomb Raider")
+    setting = f"dxvk.numCompilerThreads = {threads}"
+    existing = environment.get("DXVK_CONFIG")
+    environment["DXVK_CONFIG"] = f"{existing}; {setting}" if existing else setting
+    environment["STEAMCLIENTTERMUX_DXVK_COMPILER_THREADS"] = str(threads)
+
+
 def apply_dxvk_variant(
     environment: dict[str, str], base: Path, command_mode: str
 ) -> None:
@@ -1127,8 +1145,12 @@ def request_environment(payload: dict[str, object]) -> dict[str, str]:
         "DXVK_CONFIG_FILE",
         "WINEDLLPATH",
         "STEAMCLIENTTERMUX_DXVK_VARIANT",
+        "STEAMCLIENTTERMUX_DXVK_COMPILER_THREADS",
         "STEAM_ARM64_DIRECT_DXVK_RELAXED_GRAPHICS_BARRIERS",
         "TOMB_RAIDER_DXVK_RELAXED_GRAPHICS_BARRIERS",
+        "STEAM_ARM64_DIRECT_DXVK_COMPILER_THREADS",
+        "STEAM_ARM64_BWRAP_DXVK_COMPILER_THREADS",
+        "TOMB_RAIDER_DXVK_COMPILER_THREADS",
         "STEAM_ARM64_DIRECT_DXVK_VARIANT",
         "STEAM_ARM64_BWRAP_DXVK_VARIANT",
         "TOMB_RAIDER_DXVK_VARIANT",
@@ -1722,6 +1744,7 @@ def pv_smoke_invocation(
         apply_fex_code_cache(environment, base, command_mode)
         apply_fex_smc_checks(environment, command_mode)
         apply_dxvk_relaxed_graphics_barriers(environment, command_mode)
+        apply_dxvk_compiler_threads(environment, command_mode)
         apply_dxvk_variant(environment, base, command_mode)
     prefix = os.environ.get("PREFIX", "")
     if not prefix.startswith("/"):

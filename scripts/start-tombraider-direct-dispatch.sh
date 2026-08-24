@@ -22,6 +22,7 @@ raknet_recv_sleep_us=${TOMB_RAIDER_RAKNET_RECV_SLEEP_US:-0}
 fex_code_cache=${TOMB_RAIDER_FEX_CODE_CACHE:-on}
 fex_smc_checks=${TOMB_RAIDER_FEX_SMC_CHECKS:-mtrack}
 dxvk_relaxed_graphics_barriers=${TOMB_RAIDER_DXVK_RELAXED_GRAPHICS_BARRIERS:-off}
+dxvk_compiler_threads=${TOMB_RAIDER_DXVK_COMPILER_THREADS:-0}
 dxvk_variant=${TOMB_RAIDER_DXVK_VARIANT:-bundled}
 child_preload=${TOMB_RAIDER_DIRECT_CHILD_PRELOAD:-full}
 vulkan_trace=${TOMB_RAIDER_VULKAN_TRACE:-0}
@@ -66,6 +67,8 @@ fail() {
 [[ $dxvk_relaxed_graphics_barriers == off ||
     $dxvk_relaxed_graphics_barriers == on ]] ||
     fail 'TOMB_RAIDER_DXVK_RELAXED_GRAPHICS_BARRIERS must be off or on'
+[[ $dxvk_compiler_threads =~ ^(0|[1-9]|1[0-6])$ ]] ||
+    fail 'TOMB_RAIDER_DXVK_COMPILER_THREADS must be 0 through 16'
 [[ $dxvk_variant == bundled || $dxvk_variant == dxvk-1.10.3-x32 ||
     $dxvk_variant == dxvk-2.4.1-x32 ]] ||
     fail 'TOMB_RAIDER_DXVK_VARIANT must be bundled, dxvk-1.10.3-x32, or dxvk-2.4.1-x32'
@@ -102,6 +105,10 @@ unset BVB_COMMAND_STREAM STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
     WINEDLLPATH STEAM_ARM64_DIRECT_DXVK_VARIANT \
     STEAM_ARM64_BWRAP_DXVK_VARIANT \
     TOMB_RAIDER_DXVK_VARIANT \
+    STEAMCLIENTTERMUX_DXVK_COMPILER_THREADS \
+    STEAM_ARM64_DIRECT_DXVK_COMPILER_THREADS \
+    STEAM_ARM64_BWRAP_DXVK_COMPILER_THREADS \
+    TOMB_RAIDER_DXVK_COMPILER_THREADS \
     STEAM_ARM64_DIRECT_DXVK_RELAXED_GRAPHICS_BARRIERS \
     TOMB_RAIDER_DXVK_RELAXED_GRAPHICS_BARRIERS
 [[ $vulkan_trace == 0 || $vulkan_trace == 1 ]] ||
@@ -218,6 +225,7 @@ dispatcher_environment=(
     "STEAM_ARM64_DIRECT_FEX_CODE_CACHE=$fex_code_cache"
     "STEAM_ARM64_DIRECT_FEX_SMC_CHECKS=$fex_smc_checks"
     "STEAM_ARM64_DIRECT_DXVK_RELAXED_GRAPHICS_BARRIERS=$dxvk_relaxed_graphics_barriers"
+    "STEAM_ARM64_DIRECT_DXVK_COMPILER_THREADS=$dxvk_compiler_threads"
     "STEAM_ARM64_DIRECT_DXVK_VARIANT=$dxvk_variant"
 )
 if [[ $vulkan_trace == 1 ]]; then
@@ -238,6 +246,9 @@ env -u BVB_COMMAND_STREAM -u TOMB_RAIDER_BVB_COMMAND_STREAM \
     -u TOMB_RAIDER_FEX_CODE_CACHE \
     -u FEX_SMC_CHECKS -u TOMB_RAIDER_FEX_SMC_CHECKS \
     -u DXVK_CONFIG -u DXVK_CONFIG_FILE -u WINEDLLPATH \
+    -u STEAMCLIENTTERMUX_DXVK_COMPILER_THREADS \
+    -u STEAM_ARM64_BWRAP_DXVK_COMPILER_THREADS \
+    -u TOMB_RAIDER_DXVK_COMPILER_THREADS \
     -u STEAM_ARM64_BWRAP_DXVK_VARIANT \
     -u TOMB_RAIDER_DXVK_VARIANT \
     -u TOMB_RAIDER_DXVK_RELAXED_GRAPHICS_BARRIERS \
@@ -270,8 +281,8 @@ if [[ $mode == tombraider || $mode == tombraider-benchmark ||
     affinity_pid=$!
 fi
 
-printf 'pid=%s\nmode=%s\nchild_preload=%s\nraknet_recv_sleep_us=%s\nfex_code_cache=%s\nfex_smc_checks=%s\ndxvk_relaxed_graphics_barriers=%s\ndxvk_variant=%s\ngame_cpus=%s\nvulkan_trace_file=%s\nserver_pid=%s\nserver_log=%s\nlauncher_log=%s\naffinity_log=%s\nstatus=launching\n' \
-    "$$" "$mode" "$child_preload" "$raknet_recv_sleep_us" "$fex_code_cache" "$fex_smc_checks" "$dxvk_relaxed_graphics_barriers" "$dxvk_variant" "$game_cpus" "$vulkan_trace_file" \
+printf 'pid=%s\nmode=%s\nchild_preload=%s\nraknet_recv_sleep_us=%s\nfex_code_cache=%s\nfex_smc_checks=%s\ndxvk_relaxed_graphics_barriers=%s\ndxvk_compiler_threads=%s\ndxvk_variant=%s\ngame_cpus=%s\nvulkan_trace_file=%s\nserver_pid=%s\nserver_log=%s\nlauncher_log=%s\naffinity_log=%s\nstatus=launching\n' \
+    "$$" "$mode" "$child_preload" "$raknet_recv_sleep_us" "$fex_code_cache" "$fex_smc_checks" "$dxvk_relaxed_graphics_barriers" "$dxvk_compiler_threads" "$dxvk_variant" "$game_cpus" "$vulkan_trace_file" \
     "$server_pid" "$server_log" "$launcher_log" "$affinity_log" >"$state"
 
 set +e
@@ -301,6 +312,10 @@ env -u BVB_COMMAND_STREAM -u STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
     -u FEX_SMC_CHECKS -u STEAM_ARM64_DIRECT_FEX_SMC_CHECKS \
     -u TOMB_RAIDER_FEX_SMC_CHECKS \
     -u DXVK_CONFIG -u DXVK_CONFIG_FILE -u WINEDLLPATH \
+    -u STEAMCLIENTTERMUX_DXVK_COMPILER_THREADS \
+    -u STEAM_ARM64_DIRECT_DXVK_COMPILER_THREADS \
+    -u STEAM_ARM64_BWRAP_DXVK_COMPILER_THREADS \
+    -u TOMB_RAIDER_DXVK_COMPILER_THREADS \
     -u STEAM_ARM64_DIRECT_DXVK_VARIANT \
     -u STEAM_ARM64_BWRAP_DXVK_VARIANT \
     -u TOMB_RAIDER_DXVK_VARIANT \
@@ -343,8 +358,8 @@ if [[ -n ${affinity_pid:-} ]] && kill -0 "$affinity_pid" 2>/dev/null; then
 fi
 affinity_pid=
 
-printf 'pid=%s\nmode=%s\nchild_preload=%s\nraknet_recv_sleep_us=%s\nfex_code_cache=%s\nfex_smc_checks=%s\ndxvk_relaxed_graphics_barriers=%s\ndxvk_variant=%s\ngame_cpus=%s\nvulkan_trace_file=%s\nserver_log=%s\nlauncher_log=%s\naffinity_log=%s\nstatus=complete\nlauncher_status=%s\nserver_status=%s\n' \
-    "$$" "$mode" "$child_preload" "$raknet_recv_sleep_us" "$fex_code_cache" "$fex_smc_checks" "$dxvk_relaxed_graphics_barriers" "$dxvk_variant" "$game_cpus" "$vulkan_trace_file" \
+printf 'pid=%s\nmode=%s\nchild_preload=%s\nraknet_recv_sleep_us=%s\nfex_code_cache=%s\nfex_smc_checks=%s\ndxvk_relaxed_graphics_barriers=%s\ndxvk_compiler_threads=%s\ndxvk_variant=%s\ngame_cpus=%s\nvulkan_trace_file=%s\nserver_log=%s\nlauncher_log=%s\naffinity_log=%s\nstatus=complete\nlauncher_status=%s\nserver_status=%s\n' \
+    "$$" "$mode" "$child_preload" "$raknet_recv_sleep_us" "$fex_code_cache" "$fex_smc_checks" "$dxvk_relaxed_graphics_barriers" "$dxvk_compiler_threads" "$dxvk_variant" "$game_cpus" "$vulkan_trace_file" \
     "$server_log" "$launcher_log" "$affinity_log" "$launcher_status" \
     "$server_status" >"$state"
 printf 'Tomb Raider direct dispatch completed: mode=%s child_preload=%s launcher=%s server=%s trace=%s server_log=%s launcher_log=%s\n' \
