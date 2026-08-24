@@ -663,6 +663,52 @@ def main() -> None:
             pass
         else:
             raise AssertionError("modified LOD override was accepted")
+
+        registry_lod_ini = (
+            high_base
+            / "run/tombraider-benchmark-1080p-ultra-no-tessellation-ssao1-dof1-lod3.ini"
+        )
+        registry_lod_ini.write_text(
+            "Fullscreen = 1\n"
+            "ExclusiveFullscreen = 1\n"
+            "VSyncMode = 0\n"
+            "FullscreenWidth = 1920\n"
+            "FullscreenHeight = 1080\n"
+            "FullscreenRefreshRate = 60\n"
+            "EnableMotionBlur = 0\n"
+        )
+        registry_lod_ini.chmod(0o600)
+        registry_lod_payload = [
+            "--",
+            str(high_proton),
+            "waitforexitandrun",
+            str(high_game),
+            "-nolauncher",
+            "-benchmarkini",
+            "Z:" + str(registry_lod_ini).replace("/", "\\"),
+        ]
+        assert MODULE.validated_tombraider_command(
+            high_base,
+            registry_lod_payload,
+            benchmark=True,
+            benchmark_preset="1080p-ultra-no-tessellation-ssao1-dof1-lod3",
+        ) == (high_proton, high_game)
+        registry_lod_ini.write_text(
+            "QualityLevel = 3\n" + registry_lod_ini.read_text()
+        )
+        try:
+            MODULE.validated_tombraider_command(
+                high_base,
+                registry_lod_payload,
+                benchmark=True,
+                benchmark_preset=(
+                    "1080p-ultra-no-tessellation-ssao1-dof1-lod3"
+                ),
+            )
+        except MODULE.DispatchError:
+            pass
+        else:
+            raise AssertionError("aggregate quality escaped the registry-owned profile")
     try:
         MODULE.validated_tombraider_command(
             tablet_base, benchmark_payload, benchmark=False

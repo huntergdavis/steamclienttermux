@@ -9445,3 +9445,32 @@ Profile `1080p-ultra-tuned-lod3` writes the complete effective 1080p tuned
 Ultra state—including texture/filter, shadow, reflection, high-precision RT,
 tessellation, SSAO, DOF, and LOD DWORDs—before launching ordinary `-benchmark`.
 It does not weaken validation or accept the rejected 29.0 FPS measurement.
+
+## 2026-08-23: preserve the working BGRA benchmark presentation path
+
+The first registry-owned LOD3 run exposed a separate presentation constraint.
+The foreground controller correctly converged Termux:X11 to the full
+2800x1752 Samsung task before releasing the Activity/game gate, but ordinary
+`-benchmark` requested a 1920x1080 `VK_FORMAT_R8G8B8A8_UNORM` swapchain.  The
+BVB service rejected that format with `VK_ERROR_FORMAT_NOT_SUPPORTED`; the
+screen therefore showed only the bridge's rotating diagnostic triangle and
+the attempt produced no usable FPS result.  The failed DXVK trace is retained
+in `~/steam-arm64/logs/dxvk-direct-znh8cte5`.
+
+The accepted benchmark-INI route requests
+`VK_FORMAT_B8G8R8A8_UNORM`, as retained in
+`~/steam-arm64/logs/dxvk-direct-_uiy1415`.  The next profile therefore keeps
+the registry as the sole owner of quality—including the effective LOD3
+DWORD—but restores `-benchmarkini` with only fullscreen, resolution, refresh,
+VSync, and motion-blur presentation fields.  It deliberately omits
+`QualityLevel` and every quality override from the INI.  The runner and both
+launcher layers validate that exact minimal payload, while the game-authored
+result must still prove every tuned-Ultra setting before FPS is accepted.
+
+The required fullscreen and cleanup `deja` queries returned no indexed
+implementation.  This reuses the already accepted BGRA benchmark path, the
+transactional registry profile, the child-gated Samsung fullscreen controller,
+and its exact-PID cleanup.  The abandoned controller was terminated through
+its own child cleanup path; Steam, X11, and PulseAudio retained their exact
+start identities.  No performance claim is made until the hybrid path
+completes a controlled tablet benchmark.

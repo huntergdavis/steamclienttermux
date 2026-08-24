@@ -1170,6 +1170,9 @@ def tombraider_benchmark_arguments(base: Path, preset: str) -> list[str]:
             "720p": (1280, 720),
             "1080p": (1920, 1080),
         }[resolution]
+        registry_quality = (
+            preset == "1080p-ultra-no-tessellation-ssao1-dof1-lod3"
+        )
         overrides = []
         if quality == "ultra-no-tessellation-ssao1-dof1-lod3":
             quality = "ultra"
@@ -1205,15 +1208,17 @@ def tombraider_benchmark_arguments(base: Path, preset: str) -> list[str]:
     except OSError as error:
         fail(f"controlled Tomb Raider benchmark INI is unavailable: {error}")
     expected = (
-        f"QualityLevel = {quality_level}\n"
-        "Fullscreen = 1\n"
+        ("" if registry_quality else f"QualityLevel = {quality_level}\n")
+        + "Fullscreen = 1\n"
         "ExclusiveFullscreen = 1\n"
         "VSyncMode = 0\n"
         f"FullscreenWidth = {width}\n"
         f"FullscreenHeight = {height}\n"
         "FullscreenRefreshRate = 60\n"
         "EnableMotionBlur = 0\n"
-        + "".join(f"{line}\n" for line in overrides)
+        + (
+            "" if registry_quality else "".join(f"{line}\n" for line in overrides)
+        )
     ).encode()
     if (
         not stat.S_ISREG(metadata.st_mode)

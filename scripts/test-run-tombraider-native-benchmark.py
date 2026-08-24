@@ -300,7 +300,10 @@ def main():
         "1080p-ultra-no-tessellation-ssao1-dof1-lod3"
     ]
     assert lod_tuned_1080p["registry_profile"] == "1080p-ultra-tuned-lod3"
-    assert lod_tuned_1080p["benchmark_preset"] == "registry"
+    assert lod_tuned_1080p["benchmark_preset"] == (
+        "1080p-ultra-no-tessellation-ssao1-dof1-lod3"
+    )
+    assert lod_tuned_1080p["registry_quality"] is True
     assert lod_tuned_1080p["benchmark_overrides"] == {
         "EnableTessellation": 0,
         "SSAOMode": 1,
@@ -310,6 +313,15 @@ def main():
     module.validate_benchmark_quality_settings(
         {**lod_tuned_quality, "FullscreenWidth": 1920, "FullscreenHeight": 1080},
         lod_tuned_1080p,
+    )
+    assert module.quality_benchmark_ini(lod_tuned_1080p) == (
+        "Fullscreen = 1\n"
+        "ExclusiveFullscreen = 1\n"
+        "VSyncMode = 0\n"
+        "FullscreenWidth = 1920\n"
+        "FullscreenHeight = 1080\n"
+        "FullscreenRefreshRate = 60\n"
+        "EnableMotionBlur = 0\n"
     )
     assert module.GAME_PROFILES["720p-ultimate"]["quality_level"] == 4
     assert module.GAME_PROFILES["1080p-ultimate"]["graphics"] == "Ultimate"
