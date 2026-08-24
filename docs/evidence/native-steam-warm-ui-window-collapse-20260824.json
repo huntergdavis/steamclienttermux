@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "date_pdt": "2026-08-24",
+  "target": {
+    "device": "Samsung Galaxy Tab S8+",
+    "x11_root": "2800x1752",
+    "route": "native ARM64 glibc Steam with Termux:X11, no PRoot, no KDE"
+  },
+  "change": {
+    "source_commit": "c66ae18",
+    "installed_launcher_sha256": "7db3b7760de4967d1a0792c4154041ce603138644cfd8abf68b40eb6c36d5e7d",
+    "window_search": "one xdotool search-plus-geometry transaction with Bash builtin parsing",
+    "window_surface": "one ordered xdotool map-plus-raise-plus-focus transaction",
+    "affinity": "plain warm UI skips a second affinity pass when no arguments were forwarded"
+  },
+  "accepted_repeat": {
+    "returncode": 0,
+    "external_elapsed_seconds": 1.662,
+    "internal_elapsed_seconds": 1.53,
+    "phase_log": "start-steam-phases-1787580467067498-13441.log",
+    "phases_seconds": {
+      "wrapper_to_x11_ready": 0.61,
+      "x11_to_audio_ready": 0.14,
+      "audio_to_steam_discovery": 0.13,
+      "steam_discovery_to_affinity_ready": 0.38,
+      "window_search_and_validation": 0.20,
+      "window_map_raise_focus": 0.07,
+      "affinity_ready_to_window_ready": 0.27
+    },
+    "screenshot": {
+      "sha256": "07c8b574a16a06b7357c14b93fb6649f092930bfd5f240a09e25fec3d1aa4a29",
+      "dimensions": "2800x1752",
+      "visual_result": "pass: populated Steam Store, navigation, account controls, artwork, and footer visible"
+    }
+  },
+  "candidate_first_pass": {
+    "returncode": 0,
+    "external_elapsed_seconds": 2.623,
+    "internal_elapsed_seconds": 2.27,
+    "phase_log": "start-steam-phases-1787580440844184-12654.log",
+    "affinity_ready_to_window_ready_seconds": 0.4,
+    "classification": "valid but slower readiness phases; retained as run-to-run variance"
+  },
+  "comparison": {
+    "initial_warm_seconds": 27.329,
+    "phase_instrumented_control_seconds": 2.22,
+    "accepted_candidate_seconds": 1.662,
+    "reduction_from_initial_percent": 93.9,
+    "reduction_from_control_percent": 25.1,
+    "window_slice_reduction_percent": 68.6
+  },
+  "protected_processes_after_run": {
+    "steam": {"pid": 15575, "start_ticks": 128118834},
+    "termux_x11": {"pid": 13643, "start_ticks": 121863492}
+  },
+  "rollback": {
+    "path": "~/steam-arm64/bvb-backups/start-steam-native-pre-c66ae18.sh",
+    "sha256": "d576573bd382bff404355a262f3cd389367814a31828d4fc4b20d95b4a0470f3"
+  },
+  "recall": {
+    "query": "warm visible Steam cached X11 window identity xdotool validation surface phase reduce round trips",
+    "indexed_match": false,
+    "reused": [
+      "identity-bound Steam process gate",
+      "minimum visible-window geometry gate",
+      "phase-timed warm Steam methodology"
+    ]
+  },
+  "limitations": [
+    "Two candidate passes and one phase-timed control are engineering A/B evidence, not a randomized latency distribution.",
+    "The screenshot proves visible populated UI, not interaction or scroll latency.",
+    "The optimization applies to the wrapper readiness path, not Steam CEF rendering or game frame time."
+  ]
+}

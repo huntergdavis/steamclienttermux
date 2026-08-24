@@ -15,27 +15,31 @@ Same authenticated native ARM64 Steam/X11 session on the Galaxy Tab S8+.
 | Native process discovery + warm window gate | `d2e1bde` | 9.889 | -63.8% | Superseded |
 | Exact X11 top-app fast path | `506080c` | 4.887 | -82.1% | Superseded |
 | Built-in `/proc` validation | `73a9b02` | 2.254 | -91.8% | Superseded |
-| Phase-instrumented confirmation | `e0f34b5` | **2.220** | **-91.9%** | Current; within run noise |
+| Phase-instrumented confirmation | `e0f34b5` | 2.220 | -91.9% | Superseded |
+| Collapsed X11 window transactions | `c66ae18` | **1.662** | **-93.9%** | Current |
 
 The authenticated dispatcher itself measured about 0.33-0.35 seconds. The
-2.220-second confirmation returned 0, preserved exact Steam/X11 identities,
-and produced a populated 2800x1752 Steam Store screenshot. It is effectively
-equal to the prior 2.254-second run rather than a claimed material speedup.
+current launcher batches window search/geometry and map/raise/focus into one
+X11 client each. A plain warm UI request also skips the redundant second
+affinity pass because it launched no process after the first authenticated
+pass.
 
-| Confirmed warm phase | Seconds |
-| --- | ---: |
-| X11 readiness | 0.58 |
-| Audio readiness | 0.17 |
-| Steam discovery | 0.15 |
-| Affinity validation | 0.35 |
-| Visible-window validation | **0.86** |
-| **Internal total** | **2.11** |
-| **External wrapper total** | **2.22** |
+| Warm phase | Before | Current |
+| --- | ---: | ---: |
+| X11 readiness | 0.58 | 0.61 |
+| Audio readiness | 0.17 | 0.14 |
+| Steam discovery | 0.15 | 0.13 |
+| Affinity validation | 0.35 | 0.38 |
+| Visible-window validation | **0.86** | **0.27** |
+| **Internal total** | **2.11** | **1.53** |
+| **External wrapper total** | **2.220** | **1.662** |
 
 This is an engineering sequence from one live session, not a randomized
 latency distribution. See the [original optimization
 sequence](evidence/native-steam-warm-ui-20260823.json) and the [phase-timed
 confirmation](evidence/native-steam-warm-ui-phases-20260824.json).
+The [collapsed-window A/B](evidence/native-steam-warm-ui-window-collapse-20260824.json)
+includes both candidate passes and the screenshot proof.
 
 ## Steam-to-game launch architecture
 

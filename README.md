@@ -14,7 +14,7 @@ contain Valve binaries, games, credentials, or account state.
 | Goal | Best verified result | Next gate |
 | --- | --- | --- |
 | Tomb Raider performance | 1080p tuned Ultra: **30.7 FPS average** | Replicate and generalize the profile |
-| Steam startup | UI **2.220s**; AppID-to-window **65.193s** | Reduce runtime-to-window startup |
+| Steam startup | UI **1.662s**; AppID-to-window **65.193s** | Reduce runtime-to-window startup |
 | Easy distribution | Reproducible ZIP + tablet-tested read-only doctor | Bootstrap/rollback workflow |
 
 | Component | Verified |
@@ -31,7 +31,7 @@ contain Valve binaries, games, credentials, or account state.
 | --- | --- | ---: | --- |
 | Tomb Raider (2013) | 1920x1080 tuned Ultra, exclusive fullscreen | 17.3 / 39.8 / **30.7 FPS** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-1080p-ultra-no-tessellation-ssao1-dof1-shadow0-fullscreen-60hz-40c-20260824.json) |
 | Tomb Raider (2013) | 1280x720 Normal, exclusive fullscreen | 35.8 / 74.4 / **59.1 FPS** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-720p-normal-fullscreen-60hz-20260823.json) |
-| Steam warm visible UI | Existing authenticated native session | **2.220 seconds** | [Timing log](docs/STEAM_TIMINGS.md) |
+| Steam warm visible UI | Existing authenticated native session | **1.662 seconds** | [Timing log](docs/STEAM_TIMINGS.md) |
 
 The tuned-Ultra profile keeps Ultra textures/filtering, LOD4, reflections, and
 high-precision rendering. Tessellation, TressFX hair, and motion blur are off;
