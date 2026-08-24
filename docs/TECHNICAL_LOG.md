@@ -9244,3 +9244,23 @@ Ultra loses 28.1 FPS / 59.2% versus 720p High and 39.7 FPS / 67.2% versus
 `runtime-delta-valid-720p-ultra-20260824T0150Z`. Exact hashes and the
 single-run claim boundary are in
 `docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-720p-ultra-fullscreen-60hz-40c-20260824.json`.
+
+## 2026-08-23: 720p Ultimate isolates TressFX at 14.2 FPS
+
+The completed 720p preset sweep ends with **10.8 minimum, 18.2 maximum, and
+14.2 average FPS** at Ultimate. The controlled `QualityLevel=4` run was exact
+exclusive 1280x720 at 60 Hz with V-Sync and motion blur off. Its game-authored
+quality state is byte-for-byte equivalent to Ultra's resolved settings except
+that `HairQuality` changes from 0 to 1. This isolates TressFX as the cause of
+the 5.2 FPS / 26.8% Ultra-to-Ultimate loss in this benchmark.
+
+The run began at 37.0 C after 30.276 seconds of cooldown, used official DXVK
+2.4.1 with a 1280x720 swapchain and six compiler threads, and reached affinity
+ready for PID 30182 with 55 threads. A live screenshot records the fullscreen
+Tomb Raider loading artwork across the complete 2800x1752 tablet surface.
+Steam, Termux:X11, and PulseAudio retained their protected identities.
+
+Both generated FEX maps were moved to the recoverable
+`runtime-delta-valid-720p-ultimate-20260824T0201Z` archive. The compact source
+of truth is
+`docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-720p-ultimate-fullscreen-60hz-40c-20260824.json`.
