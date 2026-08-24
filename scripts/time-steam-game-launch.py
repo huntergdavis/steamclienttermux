@@ -198,6 +198,42 @@ def mapped_module_events(proc_root: Path, pid: int) -> dict[str, str]:
     return result
 
 
+def process_metrics(proc_root: Path, pid: int) -> dict[str, int | float]:
+    """Read bounded cumulative CPU and I/O counters for one process."""
+
+    try:
+        stat_text = (proc_root / str(pid) / "stat").read_text(encoding="utf-8")
+        fields = stat_text.rsplit(") ", maxsplit=1)[1].split()
+        user_ticks = int(fields[11])
+        system_ticks = int(fields[12])
+        threads = int(fields[17])
+        io_values = {}
+        for line in (proc_root / str(pid) / "io").read_text(
+            encoding="utf-8"
+        ).splitlines():
+            key, separator, value = line.partition(":")
+            if separator and value.strip().isdecimal():
+                io_values[key] = int(value.strip())
+        ticks_per_second = int(os.sysconf("SC_CLK_TCK"))
+    except (
+        FileNotFoundError,
+        PermissionError,
+        ProcessLookupError,
+        OSError,
+        IndexError,
+        ValueError,
+    ):
+        return {}
+    return {
+        "cpu_user_seconds": round(user_ticks / ticks_per_second, 3),
+        "cpu_system_seconds": round(system_ticks / ticks_per_second, 3),
+        "threads": threads,
+        "rchar_bytes": io_values.get("rchar", 0),
+        "read_syscalls": io_values.get("syscr", 0),
+        "storage_read_bytes": io_values.get("read_bytes", 0),
+    }
+
+
 def first_visible_window(display: str, pattern: str, timeout: float) -> str | None:
     environment = os.environ.copy()
     environment["DISPLAY"] = display
@@ -344,12 +380,18 @@ def measure(arguments: argparse.Namespace) -> tuple[int, dict[str, object]]:
             )
             for stage, process in current_stages.items():
                 if stage not in events:
+                    metrics = (
+                        process_metrics(arguments.proc_root, process.pid)
+                        if stage == "target_process"
+                        else {}
+                    )
                     events[stage] = event_record(
                         observed,
                         runtime_launch,
                         pid=process.pid,
                         process_name=process.name,
                         executable=process.executable,
+                        **({"metrics": metrics} if metrics else {}),
                     )
             target = current_stages.get("target_process")
             if target is not None:
@@ -357,20 +399,28 @@ def measure(arguments: argparse.Namespace) -> tuple[int, dict[str, object]]:
                     arguments.proc_root, target.pid
                 ).items():
                     if stage not in events:
+                        metrics = process_metrics(arguments.proc_root, target.pid)
                         events[stage] = event_record(
                             utc_now(),
                             runtime_launch,
                             pid=target.pid,
                             module=module_path,
+                            **({"metrics": metrics} if metrics else {}),
                         )
             if dxvk is not None:
                 for stage, path, line in dxvk.read():
                     if stage not in events:
+                        metrics = (
+                            process_metrics(arguments.proc_root, target.pid)
+                            if target is not None
+                            else {}
+                        )
                         events[stage] = event_record(
                             utc_now(),
                             runtime_launch,
                             log=str(path),
                             marker=line,
+                            **({"metrics": metrics} if metrics else {}),
                         )
             title = None
             if "target_process" in current_stages:
@@ -391,11 +441,24 @@ def measure(arguments: argparse.Namespace) -> tuple[int, dict[str, object]]:
                 )
             )
             if window_stable:
+                metrics = (
+                    process_metrics(arguments.proc_root, target.pid)
+                    if target is not None
+                    else {}
+                )
                 events["game_window"] = event_record(
                     window_first_seen,
                     runtime_launch,
                     title=window_first_title,
                     stable_seconds=arguments.window_stable_seconds,
+                    **(
+                        {
+                            "metrics_at_stability_confirmation": metrics,
+                            "metrics_observed_at": iso_time(utc_now()),
+                        }
+                        if metrics
+                        else {}
+                    ),
                 )
                 status = "complete"
                 break
@@ -446,6 +509,8 @@ def measure(arguments: argparse.Namespace) -> tuple[int, dict[str, object]]:
             "Optional DXVK milestones are external first-observation times and "
             "do not instrument the game process. Graphics-module events are "
             "external observations of the verified target PID's proc maps. "
+            "Cumulative target metrics come from proc stat/io; game-window "
+            "metrics are sampled at stability confirmation, not first sighting. "
             "A later StartSession for the same AppID closes the incomplete attempt "
             "and resets process/window attribution for the retry."
         ),

@@ -65,6 +65,28 @@ def main():
             "module_turnip": "/turnip/libvulkan_freedreno.so",
         }
         assert module.mapped_module_events(proc, 6) == {}
+        (game / "stat").write_text(
+            "5 (TombRaider.exe) S 1 2 3 4 5 6 7 8 9 10 250 75 13 14 15 16 9 18 19 20\n",
+            encoding="utf-8",
+        )
+        (game / "io").write_text(
+            "rchar: 123456\n"
+            "wchar: 99\n"
+            "syscr: 321\n"
+            "read_bytes: 65536\n",
+            encoding="utf-8",
+        )
+        metrics = module.process_metrics(proc, 5)
+        ticks = int(module.os.sysconf("SC_CLK_TCK"))
+        assert metrics == {
+            "cpu_user_seconds": round(250 / ticks, 3),
+            "cpu_system_seconds": round(75 / ticks, 3),
+            "threads": 9,
+            "rchar_bytes": 123456,
+            "read_syscalls": 321,
+            "storage_read_bytes": 65536,
+        }
+        assert module.process_metrics(proc, 6) == {}
 
     event = module.event_record(
         datetime(2026, 8, 16, 16, 47, 27, 250000, tzinfo=timezone.utc),

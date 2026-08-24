@@ -9614,3 +9614,11 @@ before graphics plus 14.014 seconds after graphics begins. The game install is
 15 GiB on external-card Android FUSE while the prefix, DXVK, cache, and Turnip
 are internal F2FS, making a hot-file mirror plausible but not yet proven. CPU
 and I/O deltas must decide that next optimization.
+
+The host timer now samples bounded cumulative `/proc/<pid>/stat` and `io`
+counters at target-process, module-map, DXVK-marker, and stable-window
+boundaries. It reports user/system CPU seconds, threads, read characters,
+read syscalls, and physical storage reads. Window counters are explicitly
+labeled as stability-confirmation samples rather than first-sighting values.
+The exact recall query returned no prior implementation; the focused decoder
+and full suite pass. No hot-file mirror is promoted before tablet attribution.

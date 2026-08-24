@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-24",
+  "source_base_commit": "9172121",
+  "status": "host-pass-tablet-runtime-pending",
+  "operation": "cumulative game-process CPU and I/O counters at AppID startup milestones",
+  "metrics": [
+    "cpu_user_seconds",
+    "cpu_system_seconds",
+    "threads",
+    "rchar_bytes",
+    "read_syscalls",
+    "storage_read_bytes"
+  ],
+  "boundaries": [
+    "target process",
+    "each first graphics-module map",
+    "each first DXVK log marker",
+    "stable-window confirmation"
+  ],
+  "design": {
+    "source": "/proc/<verified-game-pid>/{stat,io}",
+    "game_instrumentation": false,
+    "per_frame_work": false,
+    "window_note": "Window metrics are explicitly labeled as stability-confirmation samples, five seconds after first sighting."
+  },
+  "validation": {
+    "synthetic_stat_and_io_decode": "pass",
+    "missing_or_exited_pid": "empty result",
+    "focused_timer_contract": "pass",
+    "complete_project_suite": "pass"
+  },
+  "recall": {
+    "query": "Steam AppID startup timer proc pid io stat CPU ticks read_bytes milestone attribution",
+    "result": "no indexed match",
+    "reused": [
+      "verified target-PID matching",
+      "module/DXVK milestone schema",
+      "external bounded launch timer"
+    ]
+  },
+  "claim_boundary": "Host behavior only. Tablet deltas must decide whether the pre-graphics and graphics intervals are CPU, storage, or wait dominated."
+}

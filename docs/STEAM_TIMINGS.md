@@ -176,3 +176,6 @@ interval almost evenly: 12.769 seconds before Wine Vulkan/Turnip mapped, then
 14.014 seconds from those graphics modules to the visible window. The complete
 AppID-to-window result was 57.828 seconds. CPU/I/O counters are the next gate;
 the split alone does not prove storage or translation is responsible.
+The next timer revision samples cumulative CPU and I/O counters for the same
+verified PID at those boundaries so a hot-file mirror is attempted only if the
+tablet shows meaningful reads rather than CPU work or waits.
