@@ -9553,3 +9553,21 @@ generated FEX maps are archived in
 `runtime-delta-valid-1080p-ultra-no-tessellation-ssao1-dof1-shadow0-20260824T0514Z`.
 Exact evidence is in
 `docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-1080p-ultra-no-tessellation-ssao1-dof1-shadow0-fullscreen-60hz-40c-20260824.json`.
+
+## 2026-08-24: compiled FEX caches remain reusable after learning
+
+The first promoted compiled-cache AppID launch reached a stable Tomb Raider
+window in 64.200 seconds, then retained FEX's normal zero-byte `steam.exe`
+marker and 486,888-byte Tomb Raider runtime map. The next DXVK 2.4.1 A/B
+stopped before Wine because runtime validation treated any pending map as an
+incomplete compilation. This was a repeat-launch defect, not a DXVK failure;
+the overlay restored and Steam/X11 identities were unchanged.
+
+Runtime validation now accepts only a bounded set of exact, private
+Steam/Tomb Raider delta names, permits an empty marker only for Steam, and
+retains every accepted byte for the explicit offline-refresh workflow.
+Unknown, empty-game, oversized, linked, writable, wrong-owner, and excess
+files still fail closed. The focused contract and complete project suite pass.
+The required exact `deja` query returned no indexed implementation; this
+reuses the verified generation-5 identity, existing refresh pipeline, and
+private-file checks. Tablet repeat-launch proof remains the next gate.

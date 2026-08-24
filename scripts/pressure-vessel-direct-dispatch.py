@@ -301,9 +301,24 @@ def validated_fex_offline_root(base: Path, before_compile: bool) -> Path:
             ):
                 fail(f"{description} contains an unsafe file: {path}")
 
-    validate_files(new_files, "pending FEX code maps", allow_zero=before_compile)
+    # Runtime recording creates a zero-byte steam.exe marker before the game
+    # emits its non-empty map. Keep those deltas for a later offline refresh;
+    # validate their exact shape below instead of making a compiled cache a
+    # one-launch artifact.
+    validate_files(new_files, "pending FEX code maps", allow_zero=True)
     validate_files(ready_files, "aggregated FEX code maps")
     validate_files(cache_files, "compiled FEX cache files")
+
+    def validate_pending_shapes() -> None:
+        for path in new_files:
+            match = re.fullmatch(
+                r"(steam|tombraider)\.exe-[0-9a-f]{16}\.[0-9]+\.bin",
+                path.name,
+            )
+            if match is None or (
+                path.stat().st_size == 0 and match.group(1) != "steam"
+            ):
+                fail(f"pending FEX code map has an unexpected shape: {path.name}")
 
     def validate_compiled_identity() -> tuple[Path, dict]:
         if not ready_files or not cache_files:
@@ -387,18 +402,17 @@ def validated_fex_offline_root(base: Path, before_compile: bool) -> Path:
             result_path = root / "result.json"
             if result_path.exists() or result_path.is_symlink():
                 fail("pristine FEX offline candidate unexpectedly has a result")
+        validate_pending_shapes()
         for path in new_files:
             match = re.fullmatch(
                 r"(steam|tombraider)\.exe-[0-9a-f]{16}\.[0-9]+\.bin",
                 path.name,
             )
-            if match is None or (path.stat().st_size == 0 and match.group(1) != "steam"):
-                fail(f"pending FEX code map has an unexpected shape: {path.name}")
+            assert match is not None
             if not refreshing and match.group(1) != "tombraider":
                 fail(f"pristine FEX code map has an unexpected name: {path.name}")
-    elif new_files:
-        fail("FEX offline candidate has uncompiled runtime maps")
     else:
+        validate_pending_shapes()
         validate_compiled_identity()
     return root
 

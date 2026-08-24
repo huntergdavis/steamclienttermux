@@ -118,6 +118,61 @@ def main() -> None:
             "FEX_APP_CACHE_LOCATION": f"{compiled}/",
         }
 
+        # A compiled cache remains reusable after normal FEX recording leaves
+        # the known zero-byte Steam marker and a non-empty game delta. These
+        # files are retained for an explicit later refresh, never compiled or
+        # deleted implicitly by game launch.
+        pending = compiled / "codemap/new"
+        steam_delta = pending / "steam.exe-2de0112aa63806bf.134320553989180176.bin"
+        steam_delta.write_bytes(b"")
+        steam_delta.chmod(0o600)
+        game_delta = pending / "tombraider.exe-4cb3720654f045ff.134320554024386949.bin"
+        game_delta.write_bytes(b"runtime delta")
+        game_delta.chmod(0o600)
+        repeated_environment = {}
+        with mock.patch.dict(
+            os.environ,
+            {"STEAM_ARM64_DIRECT_FEX_CODE_CACHE": "compiled"},
+            clear=True,
+        ):
+            module.apply_fex_code_cache(
+                repeated_environment, base, "tombraider-benchmark"
+            )
+        assert repeated_environment == compiled_environment
+        assert steam_delta.exists() and game_delta.read_bytes() == b"runtime delta"
+
+        invalid_delta = pending / "unknown.exe-0000000000000000.1.bin"
+        invalid_delta.write_bytes(b"unsafe shape")
+        invalid_delta.chmod(0o600)
+        with mock.patch.dict(
+            os.environ,
+            {"STEAM_ARM64_DIRECT_FEX_CODE_CACHE": "compiled"},
+            clear=True,
+        ):
+            try:
+                module.apply_fex_code_cache({}, base, "tombraider-benchmark")
+            except module.DispatchError as error:
+                assert "unexpected shape" in str(error)
+            else:
+                raise AssertionError("unexpected runtime delta was accepted")
+        invalid_delta.unlink()
+
+        empty_game_delta = pending / "tombraider.exe-0000000000000000.1.bin"
+        empty_game_delta.write_bytes(b"")
+        empty_game_delta.chmod(0o600)
+        with mock.patch.dict(
+            os.environ,
+            {"STEAM_ARM64_DIRECT_FEX_CODE_CACHE": "compiled"},
+            clear=True,
+        ):
+            try:
+                module.apply_fex_code_cache({}, base, "tombraider-benchmark")
+            except module.DispatchError as error:
+                assert "unexpected shape" in str(error)
+            else:
+                raise AssertionError("empty Tomb Raider runtime delta was accepted")
+        empty_game_delta.unlink()
+
         with mock.patch.dict(
             os.environ, {"STEAM_ARM64_DIRECT_FEX_CODE_CACHE": "invalid"}, clear=True
         ):

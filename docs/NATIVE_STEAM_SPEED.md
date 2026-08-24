@@ -195,3 +195,9 @@ it only to the final game process. `TOMB_RAIDER_FEX_CODE_CACHE=on` remains the
 recording/max-buffer reverse control; `off` disables both modes. Other games
 must build and validate their own binary-specific cache before adopting this
 pattern.
+
+Normal compiled-cache launches retain bounded, private runtime delta maps for
+an explicit later offline refresh. The launcher accepts only exact Steam/Tomb
+Raider map names, permits a zero-length marker only for Steam, and still
+rejects unknown, oversized, writable, linked, or excess files. It does not
+silently compile or delete learned maps during game launch.

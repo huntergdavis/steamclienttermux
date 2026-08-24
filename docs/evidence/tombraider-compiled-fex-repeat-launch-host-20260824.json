@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-24",
+  "source_base_commit": "9ed88f4",
+  "status": "host-pass-tablet-runtime-pending",
+  "problem": "A second compiled-cache launch stopped before Wine because the first run left normal runtime delta maps in codemap/new.",
+  "observed_tablet_maps": [
+    {
+      "name": "steam.exe-2de0112aa63806bf.134320553989180176.bin",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "tombraider.exe-4cb3720654f045ff.134320554024386949.bin",
+      "size_bytes": 486888,
+      "sha256": "ac68cfdd0493af2d3ef2dd89ccdd9a1f53e19491799019debfa810c57ae4de8d"
+    }
+  ],
+  "implementation": {
+    "accepts": "At most 128 owner-private regular Steam/Tomb Raider delta files with exact binary-hash and numeric suffix names; only Steam may be empty.",
+    "retains": "Accepted deltas remain byte-for-byte in codemap/new for an explicit later offline refresh.",
+    "rejects": "Unknown names, empty Tomb Raider maps, links, unsafe modes or owners, files over 64 MiB, and excess files.",
+    "implicit_compile_or_delete": false
+  },
+  "validation": {
+    "focused_fex_code_cache_contract": "pass",
+    "complete_project_suite": "pass"
+  },
+  "recall": {
+    "query": "pending FEX code maps contains an unsafe file compiled cache second launch",
+    "result": "no indexed match",
+    "reused": [
+      "verified generation-5 compiled-cache identity checks",
+      "existing explicit refresh workflow",
+      "bounded private-file validation"
+    ]
+  },
+  "claim_boundary": "Host correctness and the exact tablet failure are proven. A repeated tablet AppID launch must still prove the runtime fix."
+}
