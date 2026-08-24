@@ -9297,3 +9297,17 @@ evidence that the aggregate tessellation/SSAO/DOF/LOD/texture transition is
 substantially sensitive to pixel work, not solely fixed translation overhead.
 It does not yet identify which member dominates. Exact hashes are in
 `docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-1080p-ultra-fullscreen-60hz-40c-20260824.json`.
+
+## 2026-08-23: 1080p Ultimate completes the matrix at 7.4 FPS
+
+The final aggregate-profile cell completed at **4.3 minimum, 10.0 maximum,
+and 7.4 average FPS**. The only game-authored quality difference from 1080p
+Ultra is `HairQuality=1`, and the live screenshot visibly captures the TressFX
+hair path. Fullscreen, 1920x1080, 60 Hz, thermal, affinity, DXVK, protected
+process, and recoverable-map checks all passed.
+
+TressFX costs 2.6 FPS / 26.0% at 1080p versus 5.2 FPS / 26.8% at 720p. This
+consistent proportional cost makes it a clear optional feature to keep off,
+but the much larger High-to-Ultra drop remains the primary optimization
+target. Exact evidence is in
+`docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-1080p-ultimate-fullscreen-60hz-40c-20260824.json`.

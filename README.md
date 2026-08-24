@@ -64,6 +64,7 @@ DXVK 2.4.1 both averaged 59.1 FPS.
 | official 2.4.1 x32 | `safe`, offline-compiled cache generation 5 | 1920x1080 Normal, exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 29.2 / 65.5 / **44.8** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-1080p-normal-fullscreen-60hz-40c-20260824.json) |
 | official 2.4.1 x32 | `safe`, offline-compiled cache generation 5 | 1920x1080 High (`QualityLevel=2`), exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 17.2 / 37.3 / **28.7** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-1080p-high-fullscreen-60hz-40c-20260824.json) |
 | official 2.4.1 x32 | `safe`, offline-compiled cache generation 5 | 1920x1080 Ultra (`QualityLevel=3`), exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 7.2 / 12.8 / **10.0** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-1080p-ultra-fullscreen-60hz-40c-20260824.json) |
+| official 2.4.1 x32 | `safe`, offline-compiled cache generation 5 | 1920x1080 Ultimate (`QualityLevel=4`), exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 4.3 / 10.0 / **7.4** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-1080p-ultimate-fullscreen-60hz-40c-20260824.json) |
 | official 2.4.1 x32, 4 compiler workers (rejected) | `safe`, offline-compiled cache generation 5 | 1920x1080 Normal, exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 27.7 / 63.1 / **44.3** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-compiler4-1080p-normal-fullscreen-60hz-40c-20260824.json) |
 | official 1.10.3 x32 | `safe`, offline-compiled cache generation 5 | 1280x720 Normal, exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 27.9 / 70.3 / **55.6** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-1103-x32-720p-normal-fullscreen-60hz-40c-20260824.json) |
 | Proton 11 bundled DXVK | `safe`, offline-compiled cache generation 5 | 1280x720 Normal, exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 33.7 / 61.6 / **52.0** | [JSON](docs/benchmark-series/tombraider-direct-glibc-safe-offline-compiled-720p-normal-fullscreen-60hz-40c-first-20260823.json) |
@@ -103,6 +104,11 @@ count rises from 720p to 1080p.
 1080p Ultra averaged 10.0 FPS, 18.7 FPS / 65.2% below 1080p High. Because the
 same transition costs 59.2% at 720p, the Ultra bundle grows more expensive
 with pixel count and is substantially GPU/shader/bandwidth sensitive.
+
+1080p Ultimate averaged 7.4 FPS, 2.6 FPS / 26.0% below Ultra. The nearly
+identical 26.8% TressFX cost at 720p makes hair the cleanly isolated second
+cliff, while the larger High-to-Ultra bundle remains the first optimization
+target.
 
 Forcing four DXVK compiler workers reduced the 1080p result to 44.3 FPS,
 1.1% below DXVK's automatic seven-worker choice, with lower minimum and maximum
