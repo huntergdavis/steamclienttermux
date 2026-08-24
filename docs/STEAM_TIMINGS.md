@@ -96,3 +96,8 @@ Direct game launches now write one compact phase record at preparation, service,
 Steam/AppID, optional external-gate, and completion boundaries. These records
 use Bash's built-in clock and never enter the per-frame path. They are the source
 for the next AppID-to-window optimization rather than a new performance claim.
+
+Every full Steam wrapper invocation also writes `start-steam-phases-*.log` with
+zero-subprocess timestamps for X11, audio, process discovery, affinity,
+forwarding, login, AppID, and visible-window boundaries. This is lifecycle-only
+instrumentation; it does not sample Steam or enter any game/rendering path.

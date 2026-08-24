@@ -681,6 +681,35 @@ done
 # shellcheck source=/dev/null
 source "$process_match_helper"
 mkdir -p "$base/logs"
+phase_id=${EPOCHREALTIME/./}
+[[ $phase_id =~ ^[0-9]+$ ]] || fail 'Bash realtime clock is unavailable'
+phase_log=$base/logs/start-steam-phases-$phase_id-$$.log
+(set -o noclobber; : >"$phase_log") 2>/dev/null ||
+    fail "could not create Steam phase log: $phase_log"
+chmod 600 "$phase_log"
+
+steam_phase() {
+    local event=$1 detail=${2:-none} clock_value whole fraction
+    [[ $event =~ ^[a-z][a-z0-9_]*$ &&
+       $detail =~ ^[A-Za-z0-9_.:/=,-]+$ ]] ||
+        fail "invalid Steam phase: $event $detail"
+    clock_value=${EPOCHREALTIME:-}
+    [[ $clock_value =~ ^[0-9]+([.][0-9]+)?$ ]] ||
+        fail 'Bash realtime clock is unavailable'
+    whole=${clock_value%%.*}
+    if [[ $clock_value == *.* ]]; then
+        fraction=${clock_value#*.}00
+        fraction=${fraction:0:2}
+    else
+        fraction=00
+    fi
+    printf 'steam-arm64-wrapper-phase version=1 event=%s clock=realtime timestamp_cs=%s detail=%s\n' \
+        "$event" "$((10#$whole * 100 + 10#$fraction))" "$detail" \
+        >>"$phase_log"
+}
+
+steam_phase wrapper_start "appid=${requested_appid:-none},background=$background_mode"
+printf 'start-steam: phase log %s\n' "$phase_log"
 
 termux_uid="$(package_uid com.termux)"
 x11_uid="$(package_uid com.termux.x11)"
@@ -785,6 +814,7 @@ for input_device in '"Lorie mouse"' '"Lorie touch"' '"Lorie keyboard"'; do
     grep -Fq "$input_device" <<<"$x11_input" ||
         fail "Termux:X11 input device is unavailable: $input_device"
 done
+steam_phase x11_ready "cold=$x11_cold_start,foreground=$x11_foreground_handoff"
 
 "$pulse_helper" "$base"
 export PULSE_SERVER="$pulse_server"
@@ -794,6 +824,7 @@ if ! pulse_sinks="$(pactl --server="$pulse_server" list short sinks 2>/dev/null)
         [[ -z "$pulse_sinks" ]]; then
     fail 'PulseAudio is reachable but exposes no audio sink'
 fi
+steam_phase audio_ready
 
 mapfile -t steam_pids < <(matching_pids steam)
 gameprocess_log_offset="$(stat -c %s -- "$gameprocess_log" 2>/dev/null || printf '0\n')"
@@ -802,17 +833,20 @@ if [[ "${#steam_pids[@]}" -gt 1 ]]; then
     settle_steam_processes ||
         fail "multiple Steam main processes remained for ${duplicate_process_timeout}s: ${steam_pids[*]}"
 fi
+steam_phase steam_discovery "count=${#steam_pids[@]}"
 if [[ "${#steam_pids[@]}" -eq 1 ]]; then
     fast_forward_authenticated=0
     steam_hidapi_mode_matches "${steam_pids[0]}" ||
         fail "existing Steam input mode does not match STEAM_ARM64_HIDAPI=$hidapi_mode; restart Steam for this cold-start-only control"
     require_top_app Steam "${steam_pids[0]}"
     apply_steam_session_affinity "${x11_pids[0]}" "${steam_pids[0]}"
+    steam_phase affinity_ready "cef=$cef_cpu_mask"
     maybe_start_game_affinity_guard
     if [[ "${#steam_arguments[@]}" -gt 0 ]]; then
         steam_start_ticks="$(steam_arm64_process_start_ticks "${steam_pids[0]}" || true)"
         [[ $steam_start_ticks =~ ^[1-9][0-9]*$ ]] || steam_start_ticks=0
         forward_log="$base/logs/start-steam-forward-$(date +%Y%m%d-%H%M%S).log"
+        steam_phase forward_start "mode=$forward_bootstrap"
         if [[ $forward_bootstrap == fast ]]; then
             set +e
             env DISPLAY="$display" \
@@ -849,6 +883,7 @@ if [[ "${#steam_pids[@]}" -eq 1 ]]; then
         fi
         printf 'start-steam: forwarded request to Steam PID %s; log %s\n' \
             "${steam_pids[0]}" "$forward_log"
+        steam_phase forward_complete "authenticated=$fast_forward_authenticated"
     fi
     if [[ $fast_forward_authenticated == 0 ]] &&
             ! wait_for_remembered_login "${steam_pids[0]}"; then
@@ -857,6 +892,7 @@ if [[ "${#steam_pids[@]}" -eq 1 ]]; then
         fail "remembered Steam login did not complete in ${window_timeout}s"
     fi
     if [[ -z "$requested_appid" && "$background_mode" == 1 ]]; then
+        steam_phase complete "route=warm-background"
         printf 'start-steam: existing Steam PID %s ready in background; X11 PID %s CPUs 0-3, Steam CPUs 0-3, CEF CPUs %s, PulseAudio sink, no Steam window focus, no KDE\n' \
             "${steam_pids[0]}" "${x11_pids[0]}" "$cef_cpu_mask"
         exit 0
@@ -869,6 +905,8 @@ if [[ "${#steam_pids[@]}" -eq 1 ]]; then
             fail "Steam did not acknowledge AppID $requested_appid in ${app_timeout}s"
         fi
         finish_app_launch_affinity "${x11_pids[0]}" "${steam_pids[0]}"
+        steam_phase appid_ready "appid=$requested_appid,cef=$cef_cpu_mask"
+        steam_phase complete "route=warm-appid"
         printf 'start-steam: AppID %s accepted in background; X11 PID %s CPUs 0-3, Steam PID %s CPUs 0-3, CEF CPUs %s, PulseAudio sink, no Steam window focus, no KDE\n' \
             "$requested_appid" "${x11_pids[0]}" "${steam_pids[0]}" \
             "$cef_cpu_mask"
@@ -882,6 +920,8 @@ if [[ "${#steam_pids[@]}" -eq 1 ]]; then
     surface_steam_window "$steam_window" ||
         fail "Steam window $steam_window could not be mapped, raised, and focused"
     apply_steam_session_affinity "${x11_pids[0]}" "${steam_pids[0]}"
+    steam_phase window_ready "window=$steam_window,cef=$cef_cpu_mask"
+    steam_phase complete "route=warm-visible"
     printf 'start-steam: ready; X11 PID %s CPUs 0-3, Steam PID %s CPUs 0-3, CEF CPUs %s, window %s visible, PulseAudio sink, Lorie mouse/touch/keyboard, no KDE\n' \
         "${x11_pids[0]}" "${steam_pids[0]}" "$cef_cpu_mask" \
         "$steam_window"
@@ -907,6 +947,7 @@ else
     require_top_app launcher "$$"
     maybe_start_game_affinity_guard
     steam_log="$base/logs/start-steam-$(date +%Y%m%d-%H%M%S).log"
+    steam_phase steam_launch_start "profile=$profile"
     nohup env -u STEAM_ARM64_FORWARD_BOOTSTRAP \
         DISPLAY="$display" PULSE_SERVER="$pulse_server" \
         STEAM_ARM64_FEX_PROFILE="$profile" "$steam_launcher" -noshaders \
@@ -938,13 +979,16 @@ done
 steam_hidapi_mode_matches "${steam_pids[0]}" ||
     fail "launched Steam input mode does not match STEAM_ARM64_HIDAPI=$hidapi_mode; inspect $steam_log"
 require_top_app Steam "${steam_pids[0]}"
+steam_phase steam_process_ready "pid=${steam_pids[0]}"
 if ! wait_for_remembered_login "${steam_pids[0]}" "$login_log_offset"; then
     steam_pid_is_current "${steam_pids[0]}" ||
         fail "Steam PID ${steam_pids[0]} exited before remembered login completed; inspect $steam_log"
     fail "remembered Steam login did not complete in ${window_timeout}s; inspect $steam_log"
 fi
+steam_phase login_ready
 if [[ -z "$requested_appid" && "$background_mode" == 1 ]]; then
     apply_steam_session_affinity "${x11_pids[0]}" "${steam_pids[0]}"
+    steam_phase complete "route=cold-background"
     printf 'start-steam: Steam ready in background; X11 PID %s CPUs 0-3, Steam PID %s CPUs 0-3, CEF CPU 0, PulseAudio sink, FEX %s, no Steam window focus, no KDE\n' \
         "${x11_pids[0]}" "${steam_pids[0]}" "$profile"
     exit 0
@@ -957,6 +1001,8 @@ if [[ -n "$requested_appid" && "$background_mode" == 1 ]]; then
         fail "Steam did not acknowledge AppID $requested_appid in ${app_timeout}s; inspect $steam_log"
     fi
     finish_app_launch_affinity "${x11_pids[0]}" "${steam_pids[0]}"
+    steam_phase appid_ready "appid=$requested_appid,cef=$cef_cpu_mask"
+    steam_phase complete "route=cold-appid"
     printf 'start-steam: AppID %s accepted in background; X11 PID %s CPUs 0-3, Steam PID %s CPUs 0-3, CEF CPUs %s, PulseAudio sink, FEX %s, no Steam window focus, no KDE\n' \
         "$requested_appid" "${x11_pids[0]}" "${steam_pids[0]}" \
         "$cef_cpu_mask" "$profile"
@@ -970,5 +1016,7 @@ fi
 surface_steam_window "$steam_window" ||
     fail "Steam window $steam_window could not be mapped, raised, and focused"
 apply_steam_session_affinity "${x11_pids[0]}" "${steam_pids[0]}"
+steam_phase window_ready "window=$steam_window,cef=$cef_cpu_mask"
+steam_phase complete "route=cold-visible"
 printf 'start-steam: ready; X11 PID %s CPUs 0-3, Steam PID %s CPUs 0-3, CEF CPU 0, window %s visible, PulseAudio sink, Lorie mouse/touch/keyboard, FEX %s, no KDE\n' \
     "${x11_pids[0]}" "${steam_pids[0]}" "$steam_window" "$profile"

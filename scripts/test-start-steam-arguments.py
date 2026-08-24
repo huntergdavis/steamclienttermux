@@ -39,6 +39,13 @@ def main():
     assert 'hidapi_mode=${STEAM_ARM64_HIDAPI:-default}' in source
     assert "steam_hidapi_mode_matches()" in source
     assert "cold-start-only control" in source
+    assert "steam_phase()" in source
+    assert "steam-arm64-wrapper-phase version=1" in source
+    assert "event=%s clock=realtime timestamp_cs=%s detail=%s" in source
+    assert 'steam_phase wrapper_start "appid=${requested_appid:-none},background=$background_mode"' in source
+    assert 'steam_phase complete "route=warm-visible"' in source
+    assert 'steam_phase complete "route=warm-appid"' in source
+    assert 'steam_phase complete "route=cold-visible"' in source
     assert '"$forward_dispatcher"' in source
     assert 'if [[ $forward_bootstrap == fast ]]' in source
     assert 'fast_forward_authenticated=1' in source
