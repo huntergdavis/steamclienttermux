@@ -15,7 +15,7 @@ contain Valve binaries, games, credentials, or account state.
 | --- | --- | --- |
 | Tomb Raider performance | 1080p tuned Ultra: **30.7 FPS average** | Replicate and generalize the profile |
 | Steam startup | UI **1.662s**; cold AppID **21.80s**; cold game **49.513s** | Connect AppID acceptance to the direct game route |
-| Easy distribution | Reproducible ZIP + tablet-tested read-only doctor | Bootstrap/rollback workflow |
+| Easy distribution | Reproducible ZIP + restartable seed setup/rollback | Build/install the open-source runtime |
 
 | Component | Verified |
 | --- | --- |
@@ -80,20 +80,24 @@ scheduling, unverified windows, or mismatched artifacts.
 
 ## Reproducible packaging
 
-The project fetches the ARM64 Steam seed directly from Valve and verifies the
-pinned manifest, archive, members, symlinks, and executable before promotion:
+The first restartable setup phase checks the device, fetches the ARM64 Steam
+seed directly from Valve, verifies it, and writes an exact receipt:
 
 ```sh
-python3 scripts/bootstrap-steam-arm64-client.py install \
-  --cache "$HOME/steam-arm64/download-cache" \
-  --destination "$HOME/steam-arm64/client-seed"
+python3 scripts/setup-steam-stack.py prepare
+python3 scripts/setup-steam-stack.py status
 ```
 
-The intended first release is a signed/checksummed Termux bootstrap archive
-containing only project source code and locks. See [productization
-research](docs/PRODUCTIZATION_RESEARCH.md) and [packaging](docs/PACKAGING.md).
+An exact rollback quarantines the verified seed instead of deleting it:
 
-Check a device without changing it:
+```sh
+python3 scripts/setup-steam-stack.py rollback
+```
+
+The release ZIP contains only project source and locks—never Valve binaries,
+games, credentials, or account data. See [packaging](docs/PACKAGING.md).
+
+Run the read-only prerequisite check separately when needed:
 
 ```sh
 python3 scripts/steam-stack-doctor.py --mode bootstrap

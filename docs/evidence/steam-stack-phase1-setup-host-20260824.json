@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-24",
+  "gate": "restartable Phase-1 Steam ARM64 seed setup",
+  "source_base_commit": "f546952c203582061460c64a2ba2e99beabdc3ee",
+  "result": "pass",
+  "host_validation": {
+    "full_project_suite": "pass",
+    "full_project_suite_elapsed_seconds": 101.77,
+    "focused_setup_contract": "pass",
+    "deterministic_release_contract": "pass"
+  },
+  "proven": [
+    "doctor is mandatory before the command-line prepare path",
+    "locked local seed extraction writes an exact inventory receipt",
+    "an unchanged rerun is idempotent",
+    "a modified seed fails status and rollback",
+    "an interrupted prepared extraction finalizes on rerun",
+    "an interrupted rollback finalizes on rerun",
+    "rollback quarantines the payload and receipt instead of deleting them",
+    "the deterministic release builder requires the setup entry point"
+  ],
+  "not_proven": [
+    "fresh Android device installation",
+    "one-command glibc, Turnip, FEX, Proton, or launcher installation",
+    "uninstall",
+    "signed public release",
+    "tablet runtime or performance"
+  ],
+  "redistributes_valve_binaries": false,
+  "recall": "The required deja query for a manifest-locked Valve ARM64 bootstrap, safe extractor, and transactional installer returned no indexed implementation. This gate reuses the repository's exact lock, safe extractor, read-only doctor, deterministic release archive, and prior no-clobber/rollback discipline."
+}

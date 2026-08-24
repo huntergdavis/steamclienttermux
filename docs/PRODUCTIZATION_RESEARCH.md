@@ -9,7 +9,7 @@ bootstrap without redistributing Valve software or handling user credentials.
 
 | Shape | Decision | Reason |
 | --- | --- | --- |
-| Signed/checksummed Termux bootstrap archive | **Deterministic builder works** | Small, auditable, compatible with official Termux tooling |
+| Signed/checksummed Termux bootstrap archive | **Archive + Phase-1 setup work** | Small, auditable, compatible with official Termux tooling |
 | Optional Android setup UI using Termux `RUN_COMMAND` | Later | Improves onboarding without sharing Termux's UID |
 | Shared-UID add-on APK | Reject | Cannot join arbitrary Termux installs without the same signing key |
 | Monolithic Termux + X11 + Steam APK | Reject for MVP | Large maintenance, signing, target-SDK, and executable/JIT burden |
@@ -125,6 +125,12 @@ files and SHA-256 `08822e3d...31bd`. The manifest truthfully reports that no
 license is tracked; selecting one is the remaining owner-controlled publication
 gate.
 
+The restartable Phase-1 entry point now runs the read-only doctor, acquires the
+locked Valve seed, writes an exact inventory receipt, recognizes an unchanged
+rerun, recovers an interrupted promotion, and quarantines only an unchanged
+receipted seed on rollback. It deliberately does not claim that the glibc,
+Turnip, FEX, Proton, or launcher install is one-command yet.
+
 ## License decision
 
 MIT is open source, but it permits a distributor to keep a modified fork
@@ -169,8 +175,8 @@ Primary references: [GPLv3 guide](https://www.gnu.org/licenses/quick-guide-gplv3
 
 ## Next implementation slices
 
-1. One `bootstrap` and one `rollback` entry point; the read-only doctor exists.
-2. Fresh-prefix integration test with fake external payloads and doctor output.
+1. Extend the entry point from verified Steam seed to the open-source runtime.
+2. Fresh-device, update, rollback, and uninstall tests.
 3. Hardware validation on the Tab S8+ with exact artifact identity.
 4. Project-owner license selection and tracked license text.
 5. Signed release process and compatibility matrix.

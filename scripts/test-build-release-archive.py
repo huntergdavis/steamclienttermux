@@ -48,6 +48,7 @@ def fixture_repo(root: Path) -> str:
         "config/steam-arm64-bootstrap-lock.json": b"{}\n",
         "scripts/bootstrap-steam-arm64-client.py": b"#!/usr/bin/env python3\n",
         "scripts/build-release-archive.py": SCRIPT.read_bytes(),
+        "scripts/setup-steam-stack.py": b"#!/usr/bin/env python3\n",
         "scripts/steam-stack-doctor.py": b"#!/usr/bin/env python3\n",
         "scripts/check-project.sh": b"#!/bin/sh\nexit 0\n",
         "docs/PRODUCTIZATION_RESEARCH.md": b"# research\n",

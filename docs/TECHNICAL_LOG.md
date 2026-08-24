@@ -9935,3 +9935,26 @@ top-left crop, the unguarded capture reached mean luma 170.641 while guard v3
 peaked at 57.094. Steam PID/start ticks `20942:147636817` and X11
 `16431:147576800` were preserved. This supersedes the earlier visibility claim;
 it is launch polish, not a launch-time improvement. [Evidence](evidence/tombraider-wine-startup-window-guard-v3-20260824.json)
+
+## 2026-08-24: restartable Phase-1 product setup
+
+The product path now has one human-facing `setup-steam-stack.py` entry point
+for its first implemented phase. `prepare` runs the read-only bootstrap doctor,
+downloads or accepts the locked Valve ARM64 seed, delegates extraction to the
+existing safe extractor, and writes an exact inventory receipt. An unchanged
+rerun is idempotent. Prepared transactions recover after extraction but before
+receipt publication.
+
+`rollback` first revalidates the lock, seed ELF, and complete receipted tree,
+then moves the payload and receipt into a private quarantine. It refuses a
+modified or unreceipted tree and resumes if interrupted after the payload move;
+it deletes neither cached Valve downloads nor user libraries. The deterministic
+release archive now requires this entry point. Focused recovery and release
+contracts passed, and the complete project suite passed in **101.77 seconds**.
+
+This is deliberately Phase 1: the Steam seed is repeatable, but glibc, Turnip,
+FEX, Proton, launcher installation, fresh-device setup, and uninstall remain.
+The required packaging `deja` query returned no indexed implementation. The
+gate reuses the locked downloader/extractor, doctor, deterministic archive, and
+the project's earlier exact-identity/no-clobber rollback discipline.
+[Evidence](evidence/steam-stack-phase1-setup-host-20260824.json)

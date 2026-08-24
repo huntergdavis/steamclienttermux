@@ -27,7 +27,23 @@ maintenance costs, so it is not the MVP.
 pins Valve stable build `1785799196`, the official manifest, the raw AArch64
 seed ZIP, and the extracted ELF identity. The lock forbids redistribution.
 
-Run against an already-downloaded archive:
+The human-facing Phase-1 command runs the doctor, downloads/verifies the locked
+seed, writes an exact receipt, and can recover after interruption:
+
+```sh
+python3 scripts/setup-steam-stack.py prepare
+python3 scripts/setup-steam-stack.py status
+python3 scripts/setup-steam-stack.py rollback
+```
+
+`prepare` is idempotent. `rollback` refuses modified/unreceipted trees and
+moves the verified seed plus receipt into a private quarantine; it never
+deletes the download cache or user libraries. An interrupted prepare or
+rollback retains a durable transaction that the same command resumes.
+[Host evidence](evidence/steam-stack-phase1-setup-host-20260824.json) records
+the exact proof boundary; no fresh-device or full-runtime claim is made yet.
+
+The lower-level verifier can also use an already-downloaded archive:
 
 ```sh
 python3 scripts/bootstrap-steam-arm64-client.py verify \
@@ -89,11 +105,10 @@ See [the compact hardware evidence](evidence/steam-stack-doctor-tablet-20260824.
   new lock only after hardware validation.
 - Make every system mutation transactional with exact backups and a dry-run.
 
-The remaining package gates are a bootstrap/rollback entry point, fresh-device
-setup test, uninstall test, license selection, and release-signing workflow. A later optional
-target-SDK-36 Android UI can invoke a small fixed set of Termux `RUN_COMMAND`
-entry points, but it must remain separately signed and must not share Termux's
-UID.
+The remaining package gates are full open-source runtime build/install,
+fresh-device and uninstall tests, license selection, and release signing. A
+later optional target-SDK-36 UI can invoke fixed Termux `RUN_COMMAND` entry
+points, but it remains separately signed and never shares Termux's UID.
 
 ## Deterministic project archive
 
