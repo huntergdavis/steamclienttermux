@@ -30,6 +30,7 @@ supervise_poll=${TOMB_RAIDER_SUPERVISE_POLL_SECONDS:-5}
 base=${STEAM_ARM64_BASE:-$HOME/steam-arm64}
 proc_root=${TOMB_RAIDER_PROC_ROOT:-/proc}
 gameprocess_log=${TOMB_RAIDER_GAMEPROCESS_LOG:-$base/client/logs/gameprocess_log.txt}
+process_match_helper=${STEAM_ARM64_PROCESS_MATCH_HELPER:-$base/compat-bin/steam-arm64-process-match.sh}
 display=${STEAM_X11_DISPLAY:-:0}
 xdotool_command=${TOMB_RAIDER_XDOTOOL:-xdotool}
 declare -a launch_command=(
@@ -62,12 +63,37 @@ command -v "$xdotool_command" >/dev/null 2>&1 || {
         "$xdotool_command" >&2
     exit 1
 }
+[[ -r $process_match_helper && ! -L $process_match_helper ]] || {
+    printf 'start-tombraider-native: Steam process matcher is unavailable: %s\n' \
+        "$process_match_helper" >&2
+    exit 1
+}
+# shellcheck source=../bin/steam-arm64-process-match.sh
+source "$process_match_helper"
+
+native_steam_process_count() {
+    local process pid count=0
+    for process in "$proc_root"/[0-9]*; do
+        [[ -d $process ]] || continue
+        pid=${process##*/}
+        if steam_arm64_process_matches \
+                "$pid" "$base/client/steamrtarm64/steam"; then
+            count=$((count + 1))
+        fi
+    done
+    printf '%s\n' "$count"
+}
 
 # A game passed on Steam's own cold-start command line repeatedly reaches the
 # window and then loses PRoot vPID 1 to signal 1. The same AppID forwarded to
 # the remembered-login-ready client is stable, so establish that client first.
-# With an existing client this is a quick, focus-free readiness check.
-"$steam_start" "${native_options[@]}"
+# A warm session does not need a duplicate full readiness pass: the AppID call
+# below performs the authoritative identity, login, X11, audio, and affinity
+# checks itself. Multiple Steam processes deliberately fall through to that
+# authoritative call, which rejects the ambiguous session.
+if (( $(native_steam_process_count) == 0 )); then
+    "$steam_start" "${native_options[@]}"
+fi
 
 process_is_top_app() {
     local process=$1 cpuset cpu

@@ -33,6 +33,13 @@ latency distribution. See
 The direct dispatcher removes the remaining hot PRoot boundary only for exact
 allow-listed commands. See [`launch-timings/`](launch-timings/) for artifacts.
 
+The warm Tomb Raider wrapper now detects one exact native Steam process with
+the shared process-identity matcher and skips its redundant no-AppID readiness
+pass. The AppID request still performs the authoritative session, login, X11,
+audio, and affinity checks. Cold or ambiguous sessions retain the full prime.
+The expected saving is one warm-wrapper pass; no launch-time claim will be
+added until the structured timer measures it on the tablet.
+
 ## Logging rule
 
 Append only promoted or diagnostically useful measurements. Record the commit,
