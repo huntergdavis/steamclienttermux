@@ -9822,4 +9822,13 @@ The follow-up guard therefore watches for the real `steam_app_203160` window,
 briefly unmaps that same window during its two-second initialization paint, and
 then maps, raises, and focuses it. It adds no overlay/debug window and runs in
 parallel with launch. `TOMB_RAIDER_STARTUP_WINDOW_GUARD=off` is the exact
-reverse control. Screenshot proof is required before calling the flash fixed.
+reverse control.
+
+The guarded tablet run hid the game window at epoch
+`1787594639.889105` and revealed it at `1787594641.960743`. A continuous
+96-frame Android capture spanning both boundaries contained only two visually
+inspected black-screen variants: 85 frames of the pre-window black screen and
+11 frames of the revealed black game surface. The earlier white-frame hash did
+not recur. This passes the visible-flash gate at the capture's roughly
+0.6-second sampling interval; it is UI polish, not a launch-time speed claim.
+[Evidence](evidence/tombraider-wine-startup-window-guard-20260824.json)

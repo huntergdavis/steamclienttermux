@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "source_commit": "8c517be",
+  "date": "2026-08-24",
+  "run_id": "wine-guard-20260824T180303Z",
+  "target": "Tomb Raider 2013 AppID 203160 through the direct glibc route",
+  "guard": {
+    "window_class": "steam_app_203160",
+    "hidden_epoch": 1787594639.889105,
+    "revealed_epoch": 1787594641.960743,
+    "hold_seconds": 2.071638,
+    "overlay_window_created": false,
+    "reverse_control": "TOMB_RAIDER_STARTUP_WINDOW_GUARD=off"
+  },
+  "continuous_android_capture": {
+    "frame_count": 96,
+    "approximate_interval_seconds": 0.6,
+    "white_frame_count": 0,
+    "visually_inspected_boundary_frames": [
+      "000",
+      "080",
+      "084",
+      "085",
+      "095"
+    ],
+    "variants": [
+      {
+        "sha256": "a5714549246e0a0f7b72ad9df83225aa7dc547fb74438447f832b16e17c46710",
+        "count": 85,
+        "visual": "black X11 surface with cursor"
+      },
+      {
+        "sha256": "b4623a77209d795aec063aa0e1f71d6bd7fb02e5fa8060ae275c94bceefdd499",
+        "count": 11,
+        "visual": "solid black revealed game surface"
+      }
+    ],
+    "rejected_prior_white_frame_sha256": "6e7e1c5b0ee1ef3deac0d931ca6f340e174459a574e5453d17aa2fad388f6b0d"
+  },
+  "logs": {
+    "capture_log_sha256": "ac068c4a06236f4c264e91b1abe5d35a164f118aa29d48fe8088a5c4b096a8d3",
+    "guard_log_sha256": "840d679c2d32d8d8cf9f93dac91a3c4f9a86ab5e47ced9f9defd8361a19522e2",
+    "launcher_log_sha256": "6cfffbb46c692d2c9d3911d914d09d3874e43ec63715c1cae87b7833c40b7751"
+  },
+  "installed_artifacts": {
+    "launcher_sha256": "d06f443ff69099c1c3b6ac1b341ec80fcd65fa4517c70bde1349f3b9a3c34d25",
+    "guard_sha256": "0a1630547006f0f55f846934592cb5fa64ebb50ef178b99674c70851017e7fb2",
+    "wine_preparer_sha256": "5512a985458a9f5ba73e0346f8f69e4191ba79d8b0867957617786b903b27348"
+  },
+  "protected_processes": {
+    "steam": {
+      "pid": 15575,
+      "start_ticks": 128118834,
+      "unchanged": true
+    },
+    "termux_x11": {
+      "pid": 13643,
+      "start_ticks": 121863492,
+      "unchanged": true
+    }
+  },
+  "result": "pass",
+  "decision": "Keep the guard enabled for Tomb Raider launches; retain the exact off selector for A/B and recovery.",
+  "claim_boundary": "No white frame was sampled in one 96-frame Android capture at roughly 0.6-second intervals. This removes the observed visible flash in this run; it does not prove a zero-duration X11 map event or improve launch time."
+}
