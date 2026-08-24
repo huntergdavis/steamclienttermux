@@ -742,6 +742,7 @@ x11_uid="$(package_uid com.termux.x11)"
 
 x11_cold_start=0
 x11_foreground_handoff=0
+x11_start_source=reused
 mapfile -t x11_pids < <(matching_pids x11)
 case "${#x11_pids[@]}" in
     0)
@@ -781,8 +782,23 @@ case "${#x11_pids[@]}" in
             x11_preferences_are_configured ||
                 fail 'Termux:X11 did not persist input and idle preferences'
         fi
-        nohup termux-x11 "$display" -ac >"$x11_log" 2>&1 </dev/null &
-        x11_pid=$!
+        # Current Termux:X11 builds can create the server as a consequence of
+        # opening their Activity. Give that exact server a bounded opportunity
+        # to appear before starting the traditional CLI server; launching both
+        # races the same display and makes a legitimate cold start fail.
+        for _ in $(seq 1 30); do
+            mapfile -t x11_pids < <(matching_pids x11)
+            ((${#x11_pids[@]} > 0)) && break
+            sleep 0.1
+        done
+        if ((${#x11_pids[@]} == 0)); then
+            nohup termux-x11 "$display" -ac >"$x11_log" 2>&1 </dev/null &
+            x11_pid=$!
+            x11_start_source=manual
+        else
+            x11_pid=${x11_pids[0]}
+            x11_start_source=activity
+        fi
         if ! wait_for_x11; then
             fail "X server $x11_pid did not become ready; inspect $x11_log"
         fi
@@ -836,7 +852,7 @@ for input_device in '"Lorie mouse"' '"Lorie touch"' '"Lorie keyboard"'; do
     grep -Fq "$input_device" <<<"$x11_input" ||
         fail "Termux:X11 input device is unavailable: $input_device"
 done
-steam_phase x11_ready "cold=$x11_cold_start,foreground=$x11_foreground_handoff"
+steam_phase x11_ready "cold=$x11_cold_start,foreground=$x11_foreground_handoff,server=$x11_start_source"
 
 "$pulse_helper" "$base"
 export PULSE_SERVER="$pulse_server"
@@ -885,7 +901,7 @@ if [[ "${#steam_pids[@]}" -eq 1 ]]; then
                 fail "Steam fast forwarding failed with status $forward_status; inspect $forward_log"
             if grep -Eq '^steam-arm64-forward-phase version=2 mode=fast event=session_valid ' \
                     "$forward_log" &&
-                    grep -Eq '^steam-arm64-forward-phase version=2 mode=fast event=fast_launch ' \
+                    grep -Eq '^steam-arm64-forward-phase version=2 mode=fast event=(pipe_launch|fast_launch) ' \
                     "$forward_log" &&
                     grep -Eq '^steam-arm64-forward-phase version=2 mode=fast event=complete .* detail=status=0$' \
                     "$forward_log" &&

@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-24",
+  "device": "Samsung Galaxy Tab S8+",
+  "target": {
+    "appid": 203160,
+    "name": "Tomb Raider (2013)"
+  },
+  "cold_launch": {
+    "start_state": "Steam and Termux:X11 absent",
+    "previous_seconds_to_window": 79.256,
+    "current_seconds_to_window": 49.513,
+    "improvement_seconds": 29.743,
+    "improvement_percent": 37.5,
+    "phases_seconds": {
+      "x11_ready": 9.38,
+      "steam_process_ready": 14.51,
+      "remembered_login_ready": 22.97,
+      "appid_ready": 40.08,
+      "first_game_window": 49.513
+    },
+    "runtime_request_to_window_seconds": 22.213,
+    "timer_sha256": "b7caa74f1540156da25e6c375e792a481823c30980956e567858666af5eee464",
+    "screenshot_sha256": "4a3c2c849c3facf15329c33ffbe1e74b65aa593ca0265d6606d2e5ce4583c917"
+  },
+  "second_client_profile": {
+    "status": "accepted",
+    "elapsed_seconds": 13.049,
+    "architecture": {
+      "aarch64_payloads": 9,
+      "x86_64_payloads": 0,
+      "fex_mapped_pids": 0
+    },
+    "cpu_seconds": {
+      "steam_main": 2.29,
+      "steamwebhelper": 0.75,
+      "total": 3.04
+    },
+    "physical_read_bytes": {
+      "steam_main": 221184,
+      "steamwebhelper": 106496,
+      "total": 327680
+    },
+    "steam_warning": "IPC function call IClientUser::RunInstallScript took too long: 8851 msec",
+    "profile_sha256": "e0348937b24c161794e21d85dc49f36a5a6d82f22e8ff792f0805a89167738b1"
+  },
+  "direct_fifo_profile": {
+    "status": "accepted",
+    "elapsed_seconds": 8.971,
+    "improvement_seconds": 4.078,
+    "improvement_percent": 31.3,
+    "profile_sha256": "78f0a32d30130dba202032e5da4984fc93c103ad2ba47d4473c4ad0f806c4815"
+  },
+  "integrated_validation": {
+    "fifo_handoff_seconds": 0.1,
+    "request_to_appid_seconds": [
+      10.77,
+      19.61
+    ],
+    "game_route": "authenticated FIFO -> Steam -> Pressure Vessel -> Proton ARM64 -> FEX/DXVK",
+    "rendered_screen": "Tomb Raider Profile",
+    "rendered_screenshot_sha256": "ca3cff48440ba12269dc7aef935ddaaaa89059b19099ca479608021331cb1b97",
+    "first_forward_log_sha256": "49a882eab4f7e1c4e56819dccc67921ca05f9cb12014d1025a2e94571b3c5ead",
+    "first_launch_phase_sha256": "cf01fb494f2af3e80fdeaaa4da364032ac89b8e921758ce99c468ec0adf64435",
+    "repeat_forward_log_sha256": "357d6dc3daa873fbeaffb406a995f8aeceeb456276f165beb75f452861b7aad0",
+    "repeat_launch_phase_sha256": "60a9810bb87ef225d0b78be26526911e0d761e51282f4f30bdb90f802ff709b4"
+  },
+  "implementation": {
+    "packet": "UTF-8 shell-quoted argv plus newline",
+    "write": "one nonblocking write no larger than PC_PIPE_BUF",
+    "validation": [
+      "authenticated Steam PID and start ticks",
+      "exact native ARM64 loader and environment",
+      "private directory owner and mode 0700",
+      "FIFO owner, mode 0600, link count one",
+      "opened device and inode match lstat"
+    ],
+    "fallback": "existing native second-client path only when the validated FIFO has no reader"
+  },
+  "claim_boundary": "Single-pass engineering measurements. The FIFO optimization removes redundant native client startup but does not bypass Steam install-script, cloud, license, or game action work. No FPS claim."
+}

@@ -91,6 +91,15 @@ the AppID and named mode through a reviewed manifest, then enters that game's
 specialized direct launcher. Unknown games and malformed or linked launchers
 fail closed; the ordinary Steam route is never selected silently.
 
+Warm AppID requests also use a generic authenticated singleton handoff. After
+matching the exact native Steam PID, start ticks, loader, profile, and immutable
+environment, the launcher validates Steam's owner-only private directory and
+FIFO and writes one bounded argv packet atomically. It never sends credentials
+or account data. If the real FIFO has no reader, the established native-client
+fallback remains available; an unsafe path, owner, mode, link count, or inode
+change fails closed. This removes redundant Steam process startup for every
+reviewed AppID rather than embedding a Tomb Raider special case.
+
 ## Release gates
 
 | Gate | Pass condition |

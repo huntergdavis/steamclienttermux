@@ -9859,6 +9859,32 @@ child was then terminated while Steam/X11 identities remained unchanged. This
 is a 0.29-second control-plane improvement, not a new game-window record.
 [Evidence](evidence/steam-appid-incremental-wait-tablet-20260824.json)
 
+## 2026-08-24: cold timing and native AppID acceptance profile
+
+The first valid no-Steam/no-X11 pass reached a Tomb Raider window in **49.513
+seconds**, down from the retained 79.256-second cold result. A low-overhead
+`/proc` profiler then bounded the warm AppID acceptance stall: all nine Steam
+payloads were AArch64, none mapped FEX, and only 3.04 CPU-seconds plus 320 KiB
+of physical reads occurred during 13.049 seconds of wall time. Steam itself
+reported an 8.851-second `IClientUser::RunInstallScript` IPC call.
+
+Tracing the redundant second native Steam process showed that its successful
+singleton path performs one nonblocking write of a shell-quoted argv line to
+the owner-only `steam.pipe`. The forwarder now validates the private directory,
+FIFO type/owner/mode/link count, opened inode, and `PIPE_BUF` bound before one
+atomic write; an unavailable reader retains the former native-client path. The
+adjacent direct packet reached the AppID marker in 8.971 seconds, 4.078 seconds
+faster (-31.3%). An integrated run kept the per-game dispatcher alive and
+rendered the real Tomb Raider Profile screen. Steam's variable install-script
+and cloud work remains the dominant target.
+
+Required `deja` queries for the AppID profiler and FIFO protocol returned no
+indexed implementation. This work reused the existing authenticated-session
+matcher, monotonic phase format, AppID log marker, and external game-window
+timer. Valve's public Linux issue tracker corroborates `steam://rungameid`
+launch handling, but the exact FIFO argv wire used here was measured from this
+tablet's build rather than inferred from resolver or URI order.
+
 ## 2026-08-24: frame-rate capture corrects the white-surface gate
 
 The required `deja` query for the pre-class X11 white flash returned no indexed

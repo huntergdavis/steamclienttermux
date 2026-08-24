@@ -53,11 +53,20 @@ def main():
     assert 'sleep 1' not in source[source.index("wait_for_app_launch()") : source.index("read_process_cgroups()")]
     assert 'if [[ $forward_bootstrap == fast ]]' in source
     assert 'fast_forward_authenticated=1' in source
+    assert 'event=(pipe_launch|fast_launch)' in source
     assert '[[ $fast_forward_authenticated == 0 ]]' in source
     assert 'event=session_valid' in source
     assert 'event=fast_fallback' in source
     assert 'if thread_masks_are "$pid" "$mask"' in source
     assert 'x11_cold_start=0' in source
+    assert 'x11_start_source=reused' in source
+    assert 'x11_start_source=activity' in source
+    assert 'x11_start_source=manual' in source
+    assert 'for _ in $(seq 1 30); do' in source
+    activity_wait = source.index("# Current Termux:X11 builds can create the server")
+    activity_source = source.index("x11_start_source=activity", activity_wait)
+    manual_launch = source.index('nohup termux-x11 "$display" -ac', activity_wait)
+    assert activity_wait < manual_launch < activity_source
     assert 'if [[ $x11_cold_start == 1 ]]' in source
     assert 'steam_affinity_stamp="$base/runtime/steam-session-affinity-v1"' in source
     assert 'signature="version=1 x11=$x11_pid:$start_ticks:0-3"' in source

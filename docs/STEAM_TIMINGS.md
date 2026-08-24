@@ -41,6 +41,55 @@ confirmation](evidence/native-steam-warm-ui-phases-20260824.json).
 The [collapsed-window A/B](evidence/native-steam-warm-ui-window-collapse-20260824.json)
 includes both candidate passes and the screenshot proof.
 
+## Cold Steam-to-game launch
+
+One clean tablet pass started with neither Steam nor Termux:X11 alive and ended
+at the first Tomb Raider window:
+
+| Boundary | Seconds from wrapper start |
+| --- | ---: |
+| X11 ready | 9.38 |
+| Steam process ready | 14.51 |
+| Remembered login ready | 22.97 |
+| AppID accepted | 40.08 |
+| **First game window** | **49.513** |
+
+The previous validated cold result was 79.256 seconds. The current pass is
+29.743 seconds faster (-37.5%). It is one engineering pass, not a latency
+distribution. The external game timer independently measured 22.213 seconds
+from the runtime request to the first window. Exact evidence and hashes are in
+[`steam-cold-appid-acceptance-20260824.json`](evidence/steam-cold-appid-acceptance-20260824.json).
+
+## Steam AppID acceptance profile
+
+The warm acceptance boundary is native ARM64, not an emulation bottleneck:
+
+| Observation | Result |
+| --- | ---: |
+| Observed Steam payloads | 9 AArch64 / 0 x86-64 |
+| FEX mappings in Steam tree | 0 |
+| Second-client acceptance wall time | 13.049s |
+| Steam + helper CPU in that interval | 3.04 CPU-s |
+| Physical reads in that interval | 320 KiB |
+| Steam `RunInstallScript` warning | 8.851s |
+
+The authenticated forwarder previously started a second copy of the native
+Steam executable so its singleton logic could write to `steam.pipe`. Tracing
+that exact process recovered Steam's bounded shell-quoted argv record. Writing
+the same record directly reduced an adjacent acceptance pass from 13.049 to
+8.971 seconds (-31.3%) while retaining an authenticated session, exact FIFO
+owner/mode/inode checks, one atomic write, and the old client route when no FIFO
+reader exists. The integrated route then reached the real Proton/DXVK game and
+rendered Tomb Raider's Profile screen.
+
+The remaining result varies: two integrated request-to-AppID passes were 10.77
+and 19.61 seconds. Both still logged long `RunInstallScript` work, and the slower
+pass also spent about ten seconds in Steam Cloud synchronization. The FIFO path
+removes redundant process startup; it does not bypass Steam's license, cloud,
+install-script, or game-action state machine. The next A/B is a cold-session
+HIDAPI-disabled control because the stall is accompanied by repeated udev
+device discovery. No controller-safe default will change without that evidence.
+
 ## Steam-to-game launch architecture
 
 | Route | Runtime request to window | Change |
@@ -51,7 +100,8 @@ includes both candidate passes and the screenshot proof.
 | Warm forwarding boundary | Seconds | Status |
 | --- | ---: | --- |
 | Strict controls | 11.12--12.38 | Superseded |
-| Authenticated fast dispatcher | 0.340 | Current |
+| Authenticated second-client dispatcher | 0.340 | Superseded |
+| Authenticated direct FIFO write | **0.10** | Current; bounded atomic packet |
 | Complete warm background wrapper | **1.833** | Current; [evidence](evidence/steam-warm-fast-forward-default-20260824.json) |
 
 | Warm AppID acknowledgement | Control | Incremental follower | Change |

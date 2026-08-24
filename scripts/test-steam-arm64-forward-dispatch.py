@@ -9,11 +9,13 @@ import re
 import shutil
 import subprocess
 import tempfile
+import time
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DISPATCHER = REPO_ROOT / "bin" / "steam-arm64-forward-dispatch"
 MATCHER = REPO_ROOT / "bin" / "steam-arm64-process-match.sh"
+PIPE_FORWARDER = REPO_ROOT / "scripts" / "steam-pipe-forward.py"
 PID = 4217
 START_TICKS = 998877
 
@@ -105,6 +107,8 @@ def main() -> None:
         compat_bin.mkdir(parents=True)
         shutil.copy2(MATCHER, compat_bin / MATCHER.name)
         (compat_bin / MATCHER.name).chmod(0o600)
+        shutil.copy2(PIPE_FORWARDER, compat_bin / PIPE_FORWARDER.name)
+        (compat_bin / PIPE_FORWARDER.name).chmod(0o700)
 
         client_root = base / "client"
         client = client_root / "steamrtarm64"
@@ -163,6 +167,11 @@ def main() -> None:
         native_home = base / "native-home"
         runtime_dir = base / "run/native-steam"
         native_home.mkdir()
+        native_home.chmod(0o700)
+        steam_private = native_home / ".steam"
+        steam_private.mkdir(mode=0o700)
+        steam_pipe = steam_private / "steam.pipe"
+        os.mkfifo(steam_pipe, mode=0o600)
         runtime_dir.mkdir(parents=True)
         login_state = client_root / "config/loginusers.vdf"
         login_state.parent.mkdir()
@@ -263,6 +272,7 @@ def main() -> None:
             unreadable_clock.stderr, "strict", expected_clock="realtime"
         ) == ["request", "strict_launch", "complete"]
 
+        pipe_reader = os.open(steam_pipe, os.O_RDONLY | os.O_NONBLOCK)
         fast = subprocess.run(
             command,
             env={**common_environment, "STEAM_ARM64_FORWARD_BOOTSTRAP": "fast"},
@@ -274,9 +284,41 @@ def main() -> None:
             "request",
             "fast_inspect",
             "session_valid",
-            "fast_launch",
+            "pipe_launch",
             "complete",
         ], fast.stderr
+        pipe_payload = b""
+        for _ in range(100):
+            pipe_payload += os.read(pipe_reader, 4096)
+            if pipe_payload.endswith(b"\n"):
+                break
+            time.sleep(0.01)
+        os.close(pipe_reader)
+        assert pipe_payload.decode() == (
+            f"{target} -no-cef-sandbox -cef-disable-gpu "
+            "-chromeosnopreallocate -noverifyfiles -silent "
+            "-applaunch 203160 'two words'\n"
+        )
+        assert not capture.exists()
+
+        # A validated FIFO with no live reader retains the exact existing
+        # second-client path rather than silently dropping the request.
+        fast_fallback = subprocess.run(
+            command,
+            env={**common_environment, "STEAM_ARM64_FORWARD_BOOTSTRAP": "fast"},
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+        assert phase_events(fast_fallback.stderr, "fast") == [
+            "request",
+            "fast_inspect",
+            "session_valid",
+            "pipe_launch",
+            "pipe_fallback",
+            "fast_launch",
+            "complete",
+        ], fast_fallback.stderr
         fast_lines = capture.read_text(encoding="utf-8").splitlines()
         assert fast_lines[:4] == [
             f"HOME={native_home}",
@@ -403,6 +445,8 @@ def main() -> None:
         )
         assert '"$repo_root/bin/steam-arm64-forward-dispatch"' in installer
         assert '"$base/compat-bin/steam-arm64-forward-dispatch" 700' in installer
+        assert '"$repo_root/scripts/steam-pipe-forward.py"' in installer
+        assert '"$base/compat-bin/steam-pipe-forward.py" 700' in installer
 
     print("Steam authenticated warm-forward dispatcher tests: PASS")
 

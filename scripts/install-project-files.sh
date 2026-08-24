@@ -309,6 +309,8 @@ install_one "$repo_root/bin/steam-arm64-process-match.sh" \
     "$base/compat-bin/steam-arm64-process-match.sh" 600
 install_one "$repo_root/bin/steam-arm64-forward-dispatch" \
     "$base/compat-bin/steam-arm64-forward-dispatch" 700
+install_one "$repo_root/scripts/steam-pipe-forward.py" \
+    "$base/compat-bin/steam-pipe-forward.py" 700
 install_one "$repo_root/bin/steam-arm64-session-guard.py" \
     "$base/compat-bin/steam-arm64-session-guard.py" 700
 install_one "$repo_root/bin/steam-arm64-removable-library.py" \
@@ -337,6 +339,8 @@ install_one "$repo_root/scripts/profile-live-game.py" \
     "$base/compat-bin/profile-live-game.py" 700
 install_one "$repo_root/scripts/time-steam-game-launch.py" \
     "$base/compat-bin/time-steam-game-launch.py" 700
+install_one "$repo_root/scripts/profile-steam-appid-acceptance.py" \
+    "$base/compat-bin/profile-steam-appid-acceptance.py" 700
 install_one "$repo_root/scripts/prefetch-game-files.py" \
     "$base/compat-bin/prefetch-game-files.py" 700
 install_one "$repo_root/scripts/set-tombraider-affinity.py" \

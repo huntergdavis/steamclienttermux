@@ -19,6 +19,7 @@ robust_shim=${TGCOMPAT_ROBUST_SHIM:-${TGCOMPAT_REPO:-$HOME/workspace/termux-glib
 tmp_shim=${STEAM_ARM64_TMP_SHIM:-$compat_bin/steam-arm64-native-tmp.so}
 termux_exec_hook=${TERMUX_EXEC_GLIBC:-$PREFIX/glibc/lib/libtermux-exec.so}
 process_match_helper=$compat_bin/steam-arm64-process-match.sh
+pipe_forwarder=$compat_bin/steam-pipe-forward.py
 mode=${STEAM_ARM64_FORWARD_BOOTSTRAP:-strict}
 expected_pid=
 expected_start_ticks=
@@ -62,6 +63,8 @@ done
     fail "strict launcher is unavailable: $strict_launcher"
 [[ -f $process_match_helper && ! -L $process_match_helper ]] ||
     fail "process matcher is unavailable: $process_match_helper"
+[[ -x $pipe_forwarder && ! -L $pipe_forwarder ]] ||
+    fail "Steam FIFO forwarder is unavailable: $pipe_forwarder"
 # shellcheck source=/dev/null
 source "$process_match_helper"
 
@@ -165,6 +168,23 @@ done
 
 phase session_valid \
     "pid=$STEAM_ARM64_MATCHED_PID:start=$STEAM_ARM64_MATCHED_START_TICKS"
+phase pipe_launch
+set +e
+"$pipe_forwarder" \
+    --pipe "$native_home/.steam/steam.pipe" \
+    --expected-uid "$(id -u)" -- \
+    "$target" -no-cef-sandbox -cef-disable-gpu \
+    -chromeosnopreallocate -noverifyfiles "$@"
+pipe_status=$?
+set -e
+if ((pipe_status == 0)); then
+    phase complete status=0
+    exit 0
+fi
+if ((pipe_status != 75)); then
+    fail "Steam FIFO forwarding failed with status $pipe_status"
+fi
+phase pipe_fallback reason=unavailable
 phase fast_launch
 cd "$client_root"
 set +e
