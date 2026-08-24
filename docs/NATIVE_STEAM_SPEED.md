@@ -201,3 +201,9 @@ an explicit later offline refresh. The launcher accepts only exact Steam/Tomb
 Raider map names, permits a zero-length marker only for Steam, and still
 rejects unknown, oversized, writable, linked, or excess files. It does not
 silently compile or delete learned maps during game launch.
+
+The direct Tomb Raider launcher also defaults to the hash-pinned official x32
+DXVK 2.4.1 payload. In the same warm Steam session, that changed the stable
+game-window result from 64.200 to 55.339 seconds while also retaining the
+project's fastest verified Tomb Raider rendering results. `bundled` and
+`dxvk-1.10.3-x32` remain explicit fail-closed comparison/rollback selectors.

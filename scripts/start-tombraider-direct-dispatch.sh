@@ -26,7 +26,10 @@ fex_code_cache=${TOMB_RAIDER_FEX_CODE_CACHE:-compiled}
 fex_smc_checks=${TOMB_RAIDER_FEX_SMC_CHECKS:-mtrack}
 dxvk_relaxed_graphics_barriers=${TOMB_RAIDER_DXVK_RELAXED_GRAPHICS_BARRIERS:-off}
 dxvk_compiler_threads=${TOMB_RAIDER_DXVK_COMPILER_THREADS:-0}
-dxvk_variant=${TOMB_RAIDER_DXVK_VARIANT:-bundled}
+# The hash-pinned x32 2.4.1 payload is both the fastest validated renderer and
+# the fastest measured AppID-to-window path. Keep bundled/1.10.3 as explicit
+# reverse controls rather than silently falling back if validation fails.
+dxvk_variant=${TOMB_RAIDER_DXVK_VARIANT:-dxvk-2.4.1-x32}
 benchmark_preset=${TOMB_RAIDER_BENCHMARK_PRESET:-registry}
 child_preload=${TOMB_RAIDER_DIRECT_CHILD_PRELOAD:-full}
 vulkan_trace=${TOMB_RAIDER_VULKAN_TRACE:-0}

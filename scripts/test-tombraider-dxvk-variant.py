@@ -122,7 +122,9 @@ def main() -> None:
     assert sanitized == {"KEEP_ME": "yes"}
 
     launcher = LAUNCHER.read_text(encoding="utf-8")
-    assert "dxvk_variant=${TOMB_RAIDER_DXVK_VARIANT:-bundled}" in launcher
+    assert (
+        "dxvk_variant=${TOMB_RAIDER_DXVK_VARIANT:-dxvk-2.4.1-x32}" in launcher
+    )
     assert '"STEAM_ARM64_DIRECT_DXVK_VARIANT=$dxvk_variant"' in launcher
     assert "manage-tombraider-dxvk-overlay.py" in launcher
     assert 'activate --base "$base"' in launcher

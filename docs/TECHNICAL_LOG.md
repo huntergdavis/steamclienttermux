@@ -9571,3 +9571,13 @@ files still fail closed. The focused contract and complete project suite pass.
 The required exact `deja` query returned no indexed implementation; this
 reuses the verified generation-5 identity, existing refresh pipeline, and
 private-file checks. Tablet repeat-launch proof remains the next gate.
+
+The tablet repeat gate then accepted the two retained deltas and reached a
+stable full-screen Tomb Raider loading window. With official x32 DXVK 2.4.1 as
+the sole A/B variable, AppID-to-window fell from 64.200 to 55.339 seconds
+(-13.8%). Game-process-to-window fell from 33.425 to 26.905 seconds, so the
+renderer change reduced the previously dominant block rather than only moving
+the Steam handoff. The transactional overlay restored, four runtime maps were
+retained, and exact Steam/X11 identities survived. DXVK 2.4.1 is now the
+Tomb Raider direct-launch default; bundled DXVK and 1.10.3 remain explicit
+controls. The result is one engineering pass, not a latency distribution.

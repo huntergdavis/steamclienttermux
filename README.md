@@ -14,7 +14,7 @@ contain Valve binaries, games, credentials, or account state.
 | Goal | Best verified result | Next gate |
 | --- | --- | --- |
 | Tomb Raider performance | 1080p tuned Ultra: **30.7 FPS average** | Replicate and generalize the profile |
-| Steam startup | UI **1.662s**; AppID-to-window **64.200s** | Reduce the 33.4s game-init interval |
+| Steam startup | UI **1.662s**; AppID-to-window **55.339s** | Reduce the 26.9s game-init interval |
 | Easy distribution | Reproducible ZIP + tablet-tested read-only doctor | Bootstrap/rollback workflow |
 
 | Component | Verified |
@@ -60,9 +60,13 @@ Launch or stop a game session:
 
 ```sh
 ~/start-steam.sh --appid 203160 -- -nolauncher
-~/start-tombraider-native.sh
+~/start-tombraider-direct-raknet-backoff
 ~/stop-steam-native.sh
 ```
+
+The direct Tomb Raider command is the current optimized path. The plain
+`start-tombraider-native.sh` route remains available as a compatibility
+control.
 
 The launcher fails closed on stale X11 state, duplicate processes, background
 scheduling, unverified windows, or mismatched artifacts.

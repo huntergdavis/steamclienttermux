@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-24",
+  "source_commit": "e915c05",
+  "device": "Samsung Galaxy Tab S8+",
+  "operation": "warm direct-glibc AppID launch with compiled FEX cache and official DXVK 2.4.1 x32",
+  "status": "pass",
+  "control_evidence": "steam-direct-appid-window-compiled-fex-20260824.json",
+  "changed_variable": "bundled DXVK replaced transactionally with hash-pinned official DXVK 2.4.1 x32",
+  "seconds": {
+    "initial_session_to_first_visible_window": 81.742,
+    "control_session_to_first_visible_window": 64.2,
+    "candidate_session_to_first_visible_window": 55.339,
+    "candidate_improvement_from_initial": 26.403,
+    "candidate_reduction_from_initial_percent": 32.3,
+    "candidate_improvement_from_control": 8.861,
+    "candidate_reduction_from_control_percent": 13.8,
+    "candidate_session_to_runtime_request": 11.0,
+    "candidate_runtime_request_to_pressure_vessel": 1.671,
+    "candidate_runtime_request_to_proton": 10.072,
+    "candidate_runtime_request_to_wine": 11.115,
+    "candidate_runtime_request_to_game_process": 17.434,
+    "candidate_game_process_to_first_visible_window": 26.905,
+    "candidate_runtime_request_to_first_visible_window": 44.339
+  },
+  "configuration": {
+    "appid": 203160,
+    "route": "native ARM64 Steam -> direct dispatcher -> Proton ARM64/FEX/DXVK",
+    "child_preload": "lean",
+    "cef_affinity": "launch-boost",
+    "raknet_recvfrom_sleep_us": 1000,
+    "fex_cache": "compiled",
+    "fex_smc": "mtrack",
+    "dxvk": "dxvk-2.4.1-x32",
+    "game_cpu_set": "1-7"
+  },
+  "screen_validation": {
+    "resolution": "2800x1752",
+    "capture": "Full-screen Tomb Raider loading frame",
+    "sha256": "64b4470d6c341d0cc0f92004dfc4bb4332e9e4d1f9541858f4e01fc6f32078a5",
+    "not_steam_or_blank_x11": true
+  },
+  "repeatability": {
+    "prior_runtime_delta_files_accepted": 2,
+    "runtime_delta_files_retained_after_run": 4,
+    "overlay_restored": true
+  },
+  "protected_processes": {
+    "steam": {
+      "pid": 15575,
+      "start_ticks_before": 128118834,
+      "start_ticks_after": 128118834
+    },
+    "x11": {
+      "pid": 13643,
+      "start_ticks_before": 121863492,
+      "start_ticks_after": 121863492
+    }
+  },
+  "cleanup": "After screenshot validation, the exact TombRaider.exe PID 21747/start_ticks 145577073 received TERM and exited. Steam and X11 identities were preserved.",
+  "scope": "One controlled engineering A/B in one warm session. It supports the promoted Tomb Raider default, not a latency distribution or a cross-game DXVK default."
+}

@@ -84,7 +84,8 @@ the AppID handoff and restored them to CPU 0 after acknowledgement:
 | --- | ---: | ---: |
 | Compact CEF throughout | 81.742 | baseline |
 | Transient CEF launch boost | 65.193 | -20.2% |
-| **Launch boost + compiled FEX cache** | **64.200** | **-21.5%** |
+| Launch boost + compiled FEX cache | 64.200 | -21.5% |
+| **Compiled cache + DXVK 2.4.1 x32** | **55.339** | **-32.3%** |
 
 Session-to-runtime fell from 30 to 12 seconds while runtime-to-window remained
 roughly flat (51.742 vs 53.193 seconds). A 2800x1752 tablet screenshot confirmed
@@ -108,6 +109,23 @@ control), while leaving the largest 33.4-second game initialization boundary
 unchanged. The 2800x1752 screenshot is a full-screen Tomb Raider loading frame;
 Steam and X11 kept the same process identities. See the [compiled-cache
 result](evidence/steam-direct-appid-window-compiled-fex-20260824.json).
+
+After correcting the repeat-launch cache gate, the same warm-session test
+changed only the renderer from bundled DXVK to the already hash-pinned official
+x32 DXVK 2.4.1 payload:
+
+| Launch boundary | Bundled DXVK | DXVK 2.4.1 |
+| --- | ---: | ---: |
+| Session to runtime request | 12.000 | 11.000 |
+| Runtime request to game process | 18.775 | 17.434 |
+| Game process to stable window | 33.425 | 26.905 |
+| **Session to stable window** | **64.200** | **55.339** |
+
+The candidate saved 8.861 seconds (-13.8%) from the preceding control and
+26.403 seconds (-32.3%) from the original 81.742-second path. A 2800x1752
+screenshot proves the full-screen Tomb Raider loading UI. The overlay restored,
+four learned FEX maps remained available for refresh, and Steam/X11 identities
+were unchanged. This is one engineering A/B, not a latency distribution.
 
 ## Excluded measurements
 
