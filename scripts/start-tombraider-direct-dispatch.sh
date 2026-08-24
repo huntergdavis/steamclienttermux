@@ -12,6 +12,8 @@ prepare=${TOMB_RAIDER_DIRECT_PREPARE:-$base/compat-bin/prepare-proton-direct-win
 affinity=${TOMB_RAIDER_DIRECT_AFFINITY:-$base/compat-bin/set-tombraider-affinity.py}
 topology_checker=${TOMB_RAIDER_DIRECT_TOPOLOGY_CHECKER:-$base/compat-bin/configure-tombraider-cpu-topology.py}
 dxvk_overlay=${TOMB_RAIDER_DIRECT_DXVK_OVERLAY:-$base/compat-bin/manage-tombraider-dxvk-overlay.py}
+startup_prefetch_tool=${TOMB_RAIDER_STARTUP_PREFETCH_TOOL:-$base/compat-bin/prefetch-game-files.py}
+startup_prefetch_manifest=${TOMB_RAIDER_STARTUP_PREFETCH_MANIFEST:-$base/config/tombraider-startup-prefetch.json}
 mode=${TOMB_RAIDER_DIRECT_MODE:-tombraider}
 diagnostics=${TOMB_RAIDER_DIRECT_DIAGNOSTICS:-0}
 command_stream=${TOMB_RAIDER_BVB_COMMAND_STREAM:-strict}
@@ -30,6 +32,7 @@ dxvk_compiler_threads=${TOMB_RAIDER_DXVK_COMPILER_THREADS:-0}
 # the fastest measured AppID-to-window path. Keep bundled/1.10.3 as explicit
 # reverse controls rather than silently falling back if validation fails.
 dxvk_variant=${TOMB_RAIDER_DXVK_VARIANT:-dxvk-2.4.1-x32}
+startup_prefetch=${TOMB_RAIDER_STARTUP_PREFETCH:-off}
 benchmark_preset=${TOMB_RAIDER_BENCHMARK_PRESET:-registry}
 child_preload=${TOMB_RAIDER_DIRECT_CHILD_PRELOAD:-full}
 vulkan_trace=${TOMB_RAIDER_VULKAN_TRACE:-0}
@@ -79,6 +82,8 @@ fail() {
 [[ $dxvk_variant == bundled || $dxvk_variant == dxvk-1.10.3-x32 ||
     $dxvk_variant == dxvk-2.4.1-x32 ]] ||
     fail 'TOMB_RAIDER_DXVK_VARIANT must be bundled, dxvk-1.10.3-x32, or dxvk-2.4.1-x32'
+[[ $startup_prefetch == off || $startup_prefetch == on ]] ||
+    fail 'TOMB_RAIDER_STARTUP_PREFETCH must be off or on'
 [[ $benchmark_preset == registry ||
     $benchmark_preset =~ ^(720p|1080p)-(high|ultra|ultimate|ultra-no-tessellation|ultra-no-tessellation-ssao1|ultra-no-tessellation-ssao1-dof1|ultra-no-tessellation-ssao1-dof1-lod3|ultra-no-tessellation-ssao1-dof1-shadow1|ultra-no-tessellation-ssao1-dof1-shadow0)$ ]] ||
     fail 'TOMB_RAIDER_BENCHMARK_PRESET must be registry or a supported resolution-quality pair'
@@ -118,6 +123,8 @@ unset BVB_COMMAND_STREAM STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
     WINEDLLPATH STEAM_ARM64_DIRECT_DXVK_VARIANT \
     STEAM_ARM64_BWRAP_DXVK_VARIANT \
     TOMB_RAIDER_DXVK_VARIANT \
+    TOMB_RAIDER_STARTUP_PREFETCH TOMB_RAIDER_STARTUP_PREFETCH_TOOL \
+    TOMB_RAIDER_STARTUP_PREFETCH_MANIFEST \
     STEAM_ARM64_DIRECT_TOMBRAIDER_BENCHMARK_PRESET \
     TOMB_RAIDER_BENCHMARK_PRESET \
     STEAMCLIENTTERMUX_DXVK_COMPILER_THREADS \
@@ -191,6 +198,15 @@ fi
 if [[ $dxvk_variant != bundled && $mode == tombraider* ]]; then
     [[ -x $dxvk_overlay && ! -L $dxvk_overlay ]] ||
         fail "transactional DXVK overlay tool is unavailable: $dxvk_overlay"
+fi
+if [[ $startup_prefetch == on && $mode == tombraider* ]]; then
+    [[ -f $startup_prefetch_tool && ! -L $startup_prefetch_tool ]] ||
+        fail "startup prefetch tool is unavailable: $startup_prefetch_tool"
+    [[ -f $startup_prefetch_manifest && ! -L $startup_prefetch_manifest ]] ||
+        fail "startup prefetch manifest is unavailable: $startup_prefetch_manifest"
+    "$python" "$startup_prefetch_tool" \
+        --root "$base/removable-library/steamapps/common/Tomb Raider" \
+        --manifest "$startup_prefetch_manifest" --check >/dev/null
 fi
 
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
@@ -310,7 +326,16 @@ server_pid=
 affinity_pid=
 affinity_log=
 dxvk_overlay_active=0
+startup_prefetch_pid=
+startup_prefetch_log=
 cleanup() {
+    if [[ -n ${startup_prefetch_pid:-} ]]; then
+        if kill -0 "$startup_prefetch_pid" 2>/dev/null; then
+            kill -TERM "$startup_prefetch_pid" 2>/dev/null || true
+        fi
+        wait "$startup_prefetch_pid" 2>/dev/null || true
+        startup_prefetch_pid=
+    fi
     if [[ -n ${affinity_pid:-} ]] && kill -0 "$affinity_pid" 2>/dev/null; then
         kill -TERM "$affinity_pid" 2>/dev/null || true
         wait "$affinity_pid" 2>/dev/null || true
@@ -409,8 +434,8 @@ if [[ $mode == tombraider || $mode == tombraider-benchmark ||
     affinity_pid=$!
 fi
 
-printf 'pid=%s\nmode=%s\nchild_preload=%s\nraknet_recv_sleep_us=%s\nfex_code_cache=%s\nfex_smc_checks=%s\ndxvk_relaxed_graphics_barriers=%s\ndxvk_compiler_threads=%s\ndxvk_variant=%s\ngame_cpus=%s\nvulkan_trace_file=%s\ntiming_log=%s\nserver_pid=%s\nserver_log=%s\nlauncher_log=%s\naffinity_log=%s\nstatus=launching\n' \
-    "$$" "$mode" "$child_preload" "$raknet_recv_sleep_us" "$fex_code_cache" "$fex_smc_checks" "$dxvk_relaxed_graphics_barriers" "$dxvk_compiler_threads" "$dxvk_variant" "$game_cpus" "$vulkan_trace_file" \
+printf 'pid=%s\nmode=%s\nchild_preload=%s\nraknet_recv_sleep_us=%s\nfex_code_cache=%s\nfex_smc_checks=%s\ndxvk_relaxed_graphics_barriers=%s\ndxvk_compiler_threads=%s\ndxvk_variant=%s\nstartup_prefetch=%s\ngame_cpus=%s\nvulkan_trace_file=%s\ntiming_log=%s\nserver_pid=%s\nserver_log=%s\nlauncher_log=%s\naffinity_log=%s\nstatus=launching\n' \
+    "$$" "$mode" "$child_preload" "$raknet_recv_sleep_us" "$fex_code_cache" "$fex_smc_checks" "$dxvk_relaxed_graphics_barriers" "$dxvk_compiler_threads" "$dxvk_variant" "$startup_prefetch" "$game_cpus" "$vulkan_trace_file" \
     "$timing_log" "$server_pid" "$server_log" "$launcher_log" "$affinity_log" >"$state"
 
 set +e
@@ -424,6 +449,17 @@ if [[ $mode == tombraider-benchmark ]]; then
     fi
 elif [[ $mode == fex-offline-compile ]]; then
     skip_outer_affinity_guard=1
+fi
+if [[ $startup_prefetch == on && $mode == tombraider* ]]; then
+    startup_prefetch_log=$base/logs/tombraider-startup-prefetch-$stamp-$$.json
+    (set -o noclobber; : >"$startup_prefetch_log") 2>/dev/null ||
+        fail "could not create startup prefetch log: $startup_prefetch_log"
+    "$python" "$startup_prefetch_tool" \
+        --root "$base/removable-library/steamapps/common/Tomb Raider" \
+        --manifest "$startup_prefetch_manifest" \
+        >"$startup_prefetch_log" 2>&1 &
+    startup_prefetch_pid=$!
+    launch_phase startup_prefetch_start "pid=$startup_prefetch_pid"
 fi
 launch_phase steam_request_start "appid=203160"
 env -u BVB_COMMAND_STREAM -u STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
@@ -465,6 +501,19 @@ env -u BVB_COMMAND_STREAM -u STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
     "$launcher" --appid 203160 -- "${game_arguments[@]}" >"$launcher_log" 2>&1
 launcher_status=$?
 launch_phase steam_request_complete "status=$launcher_status"
+if [[ -n $startup_prefetch_pid ]]; then
+    set +e
+    wait "$startup_prefetch_pid"
+    startup_prefetch_status=$?
+    set -e
+    startup_prefetch_pid=
+    launch_phase startup_prefetch_complete "status=$startup_prefetch_status log=$startup_prefetch_log"
+    if (( startup_prefetch_status != 0 )); then
+        launcher_status=1
+        printf 'start-tombraider-direct-dispatch: startup prefetch failed; see %s\n' \
+            "$startup_prefetch_log" >>"$launcher_log"
+    fi
+fi
 if (( launcher_status == 0 )) && [[ -n $start_gate ]]; then
     for _ in $(seq 1 $((start_gate_ack_timeout * 20))); do
         [[ -L $start_gate_waiting || -f $start_gate_waiting ]] && break

@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "game": "Tomb Raider (2013)",
+  "maximum_total_bytes": 67108864,
+  "files": [
+    {"path": "TombRaider.exe", "expected_size": 19198000, "read_bytes": 19198000},
+    {"path": "EOSSDK-Win32-Shipping.dll", "expected_size": 16805328, "read_bytes": 16805328},
+    {"path": "patch3.000.tiger", "expected_size": 11413690, "read_bytes": 11413690},
+    {"path": "msvcp140.dll", "expected_size": 436600, "read_bytes": 436600},
+    {"path": "steam_api.dll", "expected_size": 227616, "read_bytes": 227616},
+    {"path": "binkw32.dll", "expected_size": 214016, "read_bytes": 214016},
+    {"path": "vcruntime140.dll", "expected_size": 76152, "read_bytes": 76152}
+  ]
+}

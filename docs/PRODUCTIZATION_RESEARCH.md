@@ -66,6 +66,11 @@ three relative symlinks, and promotes only a complete verified staging tree.
 Device profiles must be data, not forks of the installer. Unknown devices start
 with conservative defaults and no performance claims.
 
+Game-specific startup tuning follows the same rule. The generic prefetch helper
+accepts small reviewed manifests of relative paths, installed sizes, and byte
+budgets. Other games can ship different manifests without changing the engine
+or weakening its path, symlink, and size checks.
+
 ## Release gates
 
 | Gate | Pass condition |

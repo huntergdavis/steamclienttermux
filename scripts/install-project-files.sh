@@ -327,6 +327,8 @@ install_one "$repo_root/scripts/profile-live-game.py" \
     "$base/compat-bin/profile-live-game.py" 700
 install_one "$repo_root/scripts/time-steam-game-launch.py" \
     "$base/compat-bin/time-steam-game-launch.py" 700
+install_one "$repo_root/scripts/prefetch-game-files.py" \
+    "$base/compat-bin/prefetch-game-files.py" 700
 install_one "$repo_root/scripts/set-tombraider-affinity.py" \
     "$base/compat-bin/set-tombraider-affinity.py" 700
 install_one "$repo_root/scripts/set-gtaiv-affinity.py" \
@@ -347,6 +349,8 @@ native_lsof_stage=""
 trap - EXIT
 
 install_one "$repo_root/config/hosts-ipv4" "$base/config/hosts-ipv4" 600
+install_one "$repo_root/config/tombraider-startup-prefetch.json" \
+    "$base/config/tombraider-startup-prefetch.json" 600
 install_one "$repo_root/config/gtaiv-commandline-720p.txt" \
     "$base/gtaiv-exec-view-12210/commandline.txt" 600
 gtaiv_prefix="$base/removable-library-compatdata/12210/pfx"

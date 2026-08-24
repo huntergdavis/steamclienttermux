@@ -117,6 +117,9 @@ def main() -> None:
                 base / "run/native-runtime-dispatch/dispatch.sock"
             ),
             "STEAM_ARM64_BVB_VULKAN": "1",
+            # This generic launcher fixture does not install a DXVK overlay;
+            # the dedicated variant contract covers the promoted default.
+            "TOMB_RAIDER_DXVK_VARIANT": "bundled",
             "TOMB_RAIDER_BVB_COMMAND_STREAM": "shared",
             "TOMB_RAIDER_BVB_MAPPED_MEMORY": "direct",
             "TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL": "shared",

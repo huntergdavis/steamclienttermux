@@ -9660,3 +9660,16 @@ Vulkan at 28.560, D3D11 at 29.379, and the first window at 42.553. The
 normal Steam marker and one 400,992-byte Tomb Raider learning map for the next
 explicit refresh; it did not invalidate generation 6. This single pass proves
 a useful cache improvement, not a latency distribution.
+
+The next host gate targets the measured external-storage phase without adding
+game-specific code to the engine. `prefetch-game-files.py` accepts a bounded
+manifest, rejects absolute/traversing/duplicate/symlinked/size-mismatched files,
+issues best-effort `POSIX_FADV_WILLNEED`, and performs a real bounded read. The
+Tomb Raider manifest covers 48,371,402 bytes across the executable, early DLLs,
+and 11.4-MiB startup patch archive—close to the measured 49.4-MiB pre-Vulkan
+physical-read delta. Opt-in prefetch overlaps the existing Steam AppID handoff,
+logs exact bytes/time, and never enters the render path. The same engine can be
+packaged with reviewed per-game manifests. The required `deja` query returned
+no indexed implementation; this reuses the measured AppID phase timer,
+fail-closed path discipline, and launcher child cleanup. Host contracts pass;
+tablet timing is required before promotion.

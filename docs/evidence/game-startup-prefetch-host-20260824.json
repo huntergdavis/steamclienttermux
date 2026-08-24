@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-24",
+  "status": "host-pass-tablet-pending",
+  "operation": "bounded manifest-driven game startup prefetch",
+  "design": {
+    "generic_engine": "scripts/prefetch-game-files.py",
+    "game_manifest": "config/tombraider-startup-prefetch.json",
+    "tombraider_files": 7,
+    "tombraider_bytes": 48371402,
+    "execution": "asynchronous overlap with Steam AppID handoff",
+    "default": "off pending tablet A/B"
+  },
+  "validation": {
+    "bounded_read": "pass",
+    "check_only": "pass",
+    "symlink_rejection": "pass",
+    "path_escape_rejection": "pass",
+    "launcher_lifecycle": "pass",
+    "installer_wiring": "pass",
+    "complete_project_tests": "pass"
+  },
+  "recall": {
+    "query": "Steam game startup hot file prefetch external storage FUSE overlap AppID handoff manifest posix_fadvise",
+    "result": "no indexed match",
+    "reused": [
+      "measured AppID process CPU/I/O milestones",
+      "fail-closed path and symlink validation",
+      "exact child-process cleanup"
+    ]
+  },
+  "claim_boundary": "Host implementation only. Prefetch remains opt-in until the same warm AppID-to-window timer shows a tablet benefit."
+}
