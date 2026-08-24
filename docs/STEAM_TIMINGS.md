@@ -14,14 +14,28 @@ Same authenticated native ARM64 Steam/X11 session on the Galaxy Tab S8+.
 | Identity-bound affinity cache hit | `a50e861` | 12.678 | -53.6% | Superseded |
 | Native process discovery + warm window gate | `d2e1bde` | 9.889 | -63.8% | Superseded |
 | Exact X11 top-app fast path | `506080c` | 4.887 | -82.1% | Superseded |
-| Built-in `/proc` validation | `73a9b02` | **2.254** | **-91.8%** | Current |
+| Built-in `/proc` validation | `73a9b02` | 2.254 | -91.8% | Superseded |
+| Phase-instrumented confirmation | `e0f34b5` | **2.220** | **-91.9%** | Current; within run noise |
 
 The authenticated dispatcher itself measured about 0.33-0.35 seconds. The
-2.254-second run returned 0, preserved exact Steam/X11/PulseAudio identities,
-kept 11 CEF helpers on CPUs 0-3, and reproduced the populated 2800x1752 frame
-hash. This is an engineering sequence from one live session, not a randomized
-latency distribution. See
-[`native-steam-warm-ui-20260823.json`](evidence/native-steam-warm-ui-20260823.json).
+2.220-second confirmation returned 0, preserved exact Steam/X11 identities,
+and produced a populated 2800x1752 Steam Store screenshot. It is effectively
+equal to the prior 2.254-second run rather than a claimed material speedup.
+
+| Confirmed warm phase | Seconds |
+| --- | ---: |
+| X11 readiness | 0.58 |
+| Audio readiness | 0.17 |
+| Steam discovery | 0.15 |
+| Affinity validation | 0.35 |
+| Visible-window validation | **0.86** |
+| **Internal total** | **2.11** |
+| **External wrapper total** | **2.22** |
+
+This is an engineering sequence from one live session, not a randomized
+latency distribution. See the [original optimization
+sequence](evidence/native-steam-warm-ui-20260823.json) and the [phase-timed
+confirmation](evidence/native-steam-warm-ui-phases-20260824.json).
 
 ## Steam-to-game launch architecture
 

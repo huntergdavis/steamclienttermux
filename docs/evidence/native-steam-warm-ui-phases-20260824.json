@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "date_pdt": "2026-08-24",
+  "target": {
+    "device": "Samsung Galaxy Tab S8+",
+    "x11_root": "2800x1752",
+    "route": "native ARM64 glibc Steam with Termux:X11, no PRoot, no KDE"
+  },
+  "candidate": {
+    "source_commit": "e0f34b5c4808b88a10f09e687e3f84d62c789f74",
+    "installed_launcher_sha256": "d576573bd382bff404355a262f3cd389367814a31828d4fc4b20d95b4a0470f3",
+    "returncode": 0,
+    "external_elapsed_seconds": 2.22,
+    "internal_elapsed_seconds": 2.11,
+    "phase_log": "start-steam-phases-1787579701603010-9043.log",
+    "phases_seconds": {
+      "wrapper_to_x11_ready": 0.58,
+      "x11_to_audio_ready": 0.17,
+      "audio_to_steam_discovery": 0.15,
+      "steam_discovery_to_affinity_ready": 0.35,
+      "affinity_ready_to_window_ready": 0.86
+    },
+    "screenshot": {
+      "sha256": "07c8b574a16a06b7357c14b93fb6649f092930bfd5f240a09e25fec3d1aa4a29",
+      "dimensions": "2800x1752",
+      "visual_result": "pass: populated Steam Store, navigation, account controls, artwork, and footer visible"
+    }
+  },
+  "transition_run": {
+    "external_elapsed_seconds": 5.37,
+    "phase_log": "start-steam-phases-1787579665075594-8857.log",
+    "affinity_transition_seconds": 1.98,
+    "window_validation_seconds": 2.22,
+    "classification": "excluded from steady warm comparison because it changed CEF affinity state"
+  },
+  "comparison": {
+    "initial_warm_seconds": 27.329,
+    "prior_best_seconds": 2.254,
+    "candidate_seconds": 2.22,
+    "reduction_from_initial_percent": 91.9,
+    "change_from_prior_best_percent": -1.5,
+    "claim": "The candidate confirms the prior warm result within run-to-run noise; it is not a material speedup claim."
+  },
+  "protected_processes_after_run": {
+    "steam": {"pid": 15575, "start_ticks": 128118834},
+    "termux_x11": {"pid": 13643, "start_ticks": 121863492}
+  },
+  "instrumentation": {
+    "clock": "Bash EPOCHREALTIME",
+    "subprocesses_per_phase_record": 0,
+    "scope": "launcher lifecycle only; never enters the rendering or per-frame path"
+  },
+  "recall": {
+    "query": "start-steam wrapper phase timing log X11 audio affinity forwarding window zero subprocess EPOCHREALTIME",
+    "indexed_match": false,
+    "reused": [
+      "authenticated forwarding discipline",
+      "identity-bound affinity stamp",
+      "visible-window validation gate",
+      "existing warm Steam timing methodology"
+    ]
+  },
+  "limitations": [
+    "One steady warm confirmation on one authenticated live session is not a latency distribution.",
+    "The screenshot proves visible populated UI, not interaction or scroll latency.",
+    "The phase intervals identify optimization targets but do not by themselves attribute CPU cost."
+  ]
+}
