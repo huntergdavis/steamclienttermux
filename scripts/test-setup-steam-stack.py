@@ -7,6 +7,7 @@ import importlib.util
 import json
 from pathlib import Path
 import stat
+import subprocess
 import tempfile
 import zipfile
 
@@ -94,6 +95,35 @@ def expect_failure(callback, phrase: str) -> None:
 
 
 def main() -> None:
+    phases = MODULE.INSTALL_SHAPE["phases"]
+    assert MODULE.INSTALL_SHAPE["shape_id"] == "two-apks-one-termux-command"
+    assert MODULE.INSTALL_SHAPE["recommendation"] == "option-a-now-option-b-long-term"
+    assert MODULE.INSTALL_SHAPE["delivery"] == {
+        "current": "signed-checksummed-release-archive",
+        "long_term": "signed-termux-package-repository",
+        "package_format": "deb",
+        "invariant": "the archive and package invoke the same setup engine and locks",
+    }
+    assert "thin Android control-panel APK using RUN_COMMAND" in MODULE.INSTALL_SHAPE["out_of_scope"]
+    assert "ADB-assisted installation as the consumer product path" in MODULE.INSTALL_SHAPE["out_of_scope"]
+    assert [phase["owner"] for phase in phases[:2]] == ["user-or-adb"] * 2
+    assert [phase["state"] for phase in phases] == [
+        "manual-prerequisite",
+        "manual-prerequisite",
+        "planned",
+        "implemented",
+        "planned",
+        "manual-required",
+    ]
+    assert "INSTALL_SHAPE=two-apks-one-termux-command" in MODULE.render_install_plan()
+    planned = subprocess.run(
+        [str(SCRIPT), "plan", "--json"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert json.loads(planned.stdout) == MODULE.INSTALL_SHAPE
+
     with tempfile.TemporaryDirectory(prefix="steam-stack-setup-test.") as directory:
         root = Path(directory)
         archive, lock, seed = fixture(root)

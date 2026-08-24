@@ -24,10 +24,90 @@ DEFAULT_LOCK = REPO_ROOT / "config/steam-arm64-bootstrap-lock.json"
 STATE_DIRECTORY = ".steamclienttermux"
 RECEIPT_NAME = "steam-seed-receipt.json"
 TRANSACTION_NAME = "steam-seed-transaction.json"
+INSTALL_SHAPE = {
+    "schema_version": 1,
+    "shape_id": "two-apks-one-termux-command",
+    "recommendation": "option-a-now-option-b-long-term",
+    "summary": "Install Termux and Termux:X11, then run one Termux setup command.",
+    "delivery": {
+        "current": "signed-checksummed-release-archive",
+        "long_term": "signed-termux-package-repository",
+        "package_format": "deb",
+        "invariant": "the archive and package invoke the same setup engine and locks",
+    },
+    "phases": [
+        {
+            "id": "termux-apk",
+            "owner": "user-or-adb",
+            "state": "manual-prerequisite",
+            "action": "Install official Termux from one trusted signing source.",
+        },
+        {
+            "id": "termux-x11-apk",
+            "owner": "user-or-adb",
+            "state": "manual-prerequisite",
+            "action": "Install the compatible official Termux:X11 Android app.",
+        },
+        {
+            "id": "termux-packages",
+            "owner": "setup-command",
+            "state": "planned",
+            "action": "Install the Termux:X11 companion and locked build/runtime dependencies.",
+        },
+        {
+            "id": "steam-seed",
+            "owner": "setup-command",
+            "state": "implemented",
+            "action": "Fetch, verify, receipt, and safely roll back Valve's ARM64 Steam seed.",
+        },
+        {
+            "id": "open-source-runtime",
+            "owner": "setup-command",
+            "state": "planned",
+            "action": "Install glibc, Turnip, FEX, launchers, audio, profiles, and diagnostics.",
+        },
+        {
+            "id": "steam-account",
+            "owner": "user",
+            "state": "manual-required",
+            "action": "Sign in to Valve Steam and complete Steam Guard inside Valve's client.",
+        },
+    ],
+    "out_of_scope": [
+        "thin Android control-panel APK using RUN_COMMAND",
+        "standalone APK that claims to control an unconfigured Termux install",
+        "shared-UID add-on signed independently from the installed Termux app",
+        "monolithic privately signed Termux and Termux:X11 fork",
+        "ADB-assisted installation as the consumer product path",
+        "archive or APK that redistributes Valve, Proton, game, or account payloads",
+    ],
+}
 
 
 class SetupError(RuntimeError):
     pass
+
+
+def render_install_plan() -> str:
+    lines = [
+        "+----+----------------------+---------------------+--------------------------+",
+        "| #  | Phase                | Owner               | State                    |",
+        "+----+----------------------+---------------------+--------------------------+",
+    ]
+    for index, phase in enumerate(INSTALL_SHAPE["phases"], 1):
+        assert isinstance(phase, dict)
+        lines.append(
+            f"| {index:<2} | {str(phase['id'])[:20]:<20} | "
+            f"{str(phase['owner'])[:19]:<19} | {str(phase['state'])[:24]:<24} |"
+        )
+    lines.extend(
+        [
+            "+----+----------------------+---------------------+--------------------------+",
+            f"INSTALL_SHAPE={INSTALL_SHAPE['shape_id']}",
+            "USER_FLOW=install two Android apps, run one Termux command, sign in to Steam",
+        ]
+    )
+    return "\n".join(lines)
 
 
 def load_bootstrap() -> Any:
@@ -396,6 +476,10 @@ def main() -> int:
     parser.add_argument("--lock", type=Path, default=DEFAULT_LOCK)
     subparsers = parser.add_subparsers(dest="command", required=True)
     default_base = Path(os.environ.get("HOME", "")) / "steam-arm64"
+    plan_parser = subparsers.add_parser(
+        "plan", help="show the authoritative manual and automated setup boundary"
+    )
+    plan_parser.add_argument("--json", action="store_true", dest="as_json")
     prepare_parser = subparsers.add_parser("prepare", help="doctor, acquire, verify, and receipt the Steam seed")
     prepare_parser.add_argument("--base", type=Path, default=default_base)
     prepare_parser.add_argument("--archive", type=Path)
@@ -407,7 +491,12 @@ def main() -> int:
     rollback_parser.add_argument("--label")
     arguments = parser.parse_args()
     try:
-        if arguments.command == "prepare":
+        if arguments.command == "plan":
+            if arguments.as_json:
+                print(json.dumps(INSTALL_SHAPE, indent=2, sort_keys=True))
+            else:
+                print(render_install_plan())
+        elif arguments.command == "prepare":
             run_doctor(arguments.base.resolve(), arguments.min_free_bytes)
             result = prepare(arguments.base, arguments.lock, arguments.archive)
             print(f"STEAM_STACK_PREPARE={result}")

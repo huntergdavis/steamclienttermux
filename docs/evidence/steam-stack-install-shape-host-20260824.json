@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-24",
+  "gate": "easiest honest installation shape",
+  "source_base_commit": "3c615ef06602af5c91c6e3c3bfdee2320f3417aa",
+  "result": "pass",
+  "recommended_shape": "two-apks-one-termux-command",
+  "delivery": {
+    "current": "Option A: signed/checksummed archive and one Termux command",
+    "long_term": "Option B: signed Termux package repository and deb",
+    "shared_engine_and_locks": true
+  },
+  "manual_boundaries": [
+    "install Termux through Android Package Manager or ADB",
+    "install the compatible Termux:X11 Android app through Android Package Manager or ADB",
+    "grant RUN_COMMAND and enable allow-external-apps only if the optional UI is used",
+    "complete Valve login and Steam Guard inside Valve's client"
+  ],
+  "automated_owner": "scripts/setup-steam-stack.py",
+  "implemented_automated_phase": "locked Steam ARM64 seed acquisition, receipt, status, recovery, and rollback",
+  "planned_automated_phases": [
+    "Termux package dependencies and Termux:X11 companion",
+    "glibc compatibility runtime",
+    "Mesa Turnip",
+    "FEX, DXVK, audio, launchers, profiles, diagnostics, update, and uninstall"
+  ],
+  "cli_contract": {
+    "text": "scripts/setup-steam-stack.py plan",
+    "json": "scripts/setup-steam-stack.py plan --json",
+    "focused_test": "scripts/test-setup-steam-stack.py"
+  },
+  "official_sources": [
+    "https://github.com/termux/termux-x11",
+    "https://github.com/termux/termux-app/wiki/RUN_COMMAND-Intent/7c2a42556426b29e0b5b0d60035fbd538dd7b7e5",
+    "https://github.com/termux/termux-app/blob/master/README.md"
+  ],
+  "rejected_claims": [
+    "one independently signed APK can silently control any Termux installation",
+    "an APK can silently install Android prerequisites without user, ADB, or privileged authority",
+    "the current Phase-1 command installs the complete runtime",
+    "Valve binaries or credentials belong in the project release",
+    "a control-panel APK, monolithic APK suite, or ADB flow remains on the product roadmap"
+  ],
+  "recall": "The required deja query for a one-command Termux/RUN_COMMAND/APK product shape returned no indexed implementation. This map reuses the existing doctor, locked downloader, receipt/rollback entry point, deterministic archive, and official Termux interfaces."
+}

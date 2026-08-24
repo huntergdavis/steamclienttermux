@@ -84,6 +84,7 @@ The first restartable setup phase checks the device, fetches the ARM64 Steam
 seed directly from Valve, verifies it, and writes an exact receipt:
 
 ```sh
+python3 scripts/setup-steam-stack.py plan
 python3 scripts/setup-steam-stack.py prepare
 python3 scripts/setup-steam-stack.py status
 ```

@@ -10,10 +10,50 @@ bootstrap without redistributing Valve software or handling user credentials.
 | Shape | Decision | Reason |
 | --- | --- | --- |
 | Signed/checksummed Termux bootstrap archive | **Archive + Phase-1 setup work** | Small, auditable, compatible with official Termux tooling |
-| Optional Android setup UI using Termux `RUN_COMMAND` | Later | Improves onboarding without sharing Termux's UID |
+| Optional Android setup UI using Termux `RUN_COMMAND` | **Out of scope** | The Termux CLI/package remains the only product surface |
 | Shared-UID add-on APK | Reject | Cannot join arbitrary Termux installs without the same signing key |
 | Monolithic Termux + X11 + Steam APK | Reject for MVP | Large maintenance, signing, target-SDK, and executable/JIT burden |
 | Bundle Valve/Proton/game payloads | Reject | Users fetch proprietary content from official sources |
+
+## Easiest honest install shape
+
+The release target is **two Android apps plus one Termux command**. The command
+is the single source of truth for package installation, verified downloads,
+runtime construction, configuration, updates, diagnostics, and rollback.
+
+```sh
+python3 scripts/setup-steam-stack.py plan
+python3 scripts/setup-steam-stack.py plan --json
+```
+
+| Step | Owner | Automation | Current state |
+| --- | --- | --- | --- |
+| Install Termux APK | User or ADB | Android Package Manager | Manual prerequisite |
+| Install Termux:X11 APK | User or ADB | Android Package Manager | Manual prerequisite |
+| Install Termux:X11 companion and dependencies | Setup command | `pkg`/locked recipes | Planned |
+| Acquire and receipt Valve's ARM64 seed | Setup command | Locked HTTPS + safe extractor | Implemented |
+| Install glibc, Turnip, FEX, audio, launchers, profiles | Setup command | Transactional runtime installer | Planned |
+| Steam login and Steam Guard | User | Valve client | Always manual |
+
+This boundary is architectural, not just documentation: the CLI exports the
+same map as JSON for packaging and verification. Option A is the current
+signed/checksummed archive plus one command. Option B is the long-term signed
+Termux repository and `.deb`; both invoke the same setup engine and locks.
+
+| Alternative | Why it is not the MVP |
+| --- | --- |
+| One ZIP and one pasted command | **Option A now**; fastest honest route to a repeatable release |
+| Signed Termux package repository | **Option B goal**; adds package-manager updates and uninstall |
+| Thin control-panel APK | Out of scope; the CLI/package is the product surface |
+| Shared-UID add-on APK | Cannot join independently signed Termux installations |
+| Monolithic Termux/X11 fork | Requires private signing, bootstrap/package rebuilds, and permanent Android maintenance |
+| ADB installer | Excellent developer path, too technical as the consumer default |
+
+Official boundaries: [Termux:X11 requires an Android app and companion
+package](https://github.com/termux/termux-x11), [RUN_COMMAND requires explicit
+permission and `allow-external-apps`](https://github.com/termux/termux-app/wiki/RUN_COMMAND-Intent/7c2a42556426b29e0b5b0d60035fbd538dd7b7e5),
+and [Termux add-ons must use compatible signing identities while forks must
+rebuild their bootstrap](https://github.com/termux/termux-app/blob/master/README.md).
 
 ## Proven acquisition boundary
 
@@ -130,6 +170,8 @@ locked Valve seed, writes an exact inventory receipt, recognizes an unchanged
 rerun, recovers an interrupted promotion, and quarantines only an unchanged
 receipted seed on rollback. It deliberately does not claim that the glibc,
 Turnip, FEX, Proton, or launcher install is one-command yet.
+[Install-shape evidence](evidence/steam-stack-install-shape-host-20260824.json)
+records the manual/automatic boundary and its CLI contract.
 
 ## License decision
 
@@ -180,7 +222,7 @@ Primary references: [GPLv3 guide](https://www.gnu.org/licenses/quick-guide-gplv3
 3. Hardware validation on the Tab S8+ with exact artifact identity.
 4. Project-owner license selection and tracked license text.
 5. Signed release process and compatibility matrix.
-6. Optional setup UI only after the command-line product is repeatable.
+6. Publish the same setup engine as a signed-repository `.deb`.
 
 ## Research provenance
 

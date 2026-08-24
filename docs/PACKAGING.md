@@ -1,7 +1,8 @@
 # Packaging the native Steam stack
 
-The near-term deliverable is a signed, reproducible Termux bootstrap package,
-not a private game-service clone and not an APK containing Valve binaries.
+The near-term deliverable is Option A: a signed, reproducible Termux bootstrap
+archive and one command. Option B packages the same engine and locks as a
+signed-repository `.deb`. APK and ADB product paths are out of scope.
 
 ## Supported product shape
 
@@ -31,6 +32,7 @@ The human-facing Phase-1 command runs the doctor, downloads/verifies the locked
 seed, writes an exact receipt, and can recover after interruption:
 
 ```sh
+python3 scripts/setup-steam-stack.py plan
 python3 scripts/setup-steam-stack.py prepare
 python3 scripts/setup-steam-stack.py status
 python3 scripts/setup-steam-stack.py rollback
@@ -42,6 +44,12 @@ deletes the download cache or user libraries. An interrupted prepare or
 rollback retains a durable transaction that the same command resumes.
 [Host evidence](evidence/steam-stack-phase1-setup-host-20260824.json) records
 the exact proof boundary; no fresh-device or full-runtime claim is made yet.
+
+The authoritative plan calls the product shape
+`two-apks-one-termux-command`: Android Package Manager installs Termux and the
+Termux:X11 app; the setup command owns every automatable step afterward; Valve
+owns login. Text and JSON output share one tested data structure so later UI
+work cannot overstate the automation boundary.
 
 The lower-level verifier can also use an already-downloaded archive:
 

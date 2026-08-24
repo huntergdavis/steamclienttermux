@@ -9958,3 +9958,23 @@ The required packaging `deja` query returned no indexed implementation. The
 gate reuses the locked downloader/extractor, doctor, deterministic archive, and
 the project's earlier exact-identity/no-clobber rollback discipline.
 [Evidence](evidence/steam-stack-phase1-setup-host-20260824.json)
+
+## 2026-08-24: easiest honest installation shape
+
+The product boundary is now explicit and executable as
+`setup-steam-stack.py plan`: install the Termux and Termux:X11 Android apps
+through Package Installer or ADB, run one Termux setup command for every
+automatable stack phase, then authenticate only inside Valve's client. The same
+six-phase map renders as a compact table or stable JSON for a future UI.
+
+The map keeps the current truth visible: locked Steam-seed setup is implemented;
+Termux package dependencies and the open-source glibc/Turnip/FEX runtime remain
+planned. A future thin APK is a controller, not a silent installer: official
+Termux requires the RUN_COMMAND permission plus `allow-external-apps=true`.
+An independently signed shared-UID add-on, a monolithic Termux/X11 fork, a thin
+control APK, and ADB as a consumer flow are out of scope. Option A is the
+archive/one-command path; Option B distributes that same engine and locks as a
+signed-repository `.deb`. The required focused `deja` query returned no indexed
+implementation; this work reuses the current doctor, receipt/rollback flow,
+deterministic archive, and official Termux interface boundaries.
+[Evidence](evidence/steam-stack-install-shape-host-20260824.json)
