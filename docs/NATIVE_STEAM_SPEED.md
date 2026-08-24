@@ -132,6 +132,13 @@ the original Activity handoff, top-app wait, and Binder log gate. The focused
 deja query `Termux X11 already top-app skip am start binder health warm Steam
 launcher` returned no indexed implementation.
 
+The accepted top-app tablet run completed in 4.887 seconds with return code 0,
+the exact Steam/X11/PulseAudio identities unchanged, all 11 CEF helpers on CPUs
+0-3, and a populated 2800x1752 screenshot. This is an 82.1% reduction from the
+initial 27.329-second warm wrapper measurement. Exact artifacts, intermediate
+measurements, identities, and no-claim boundaries are recorded in
+`evidence/native-steam-warm-ui-20260823.json`.
+
 ## Later, separate A/Bs
 
 1. Reclaim safe non-profile disk space; the audited tablet filesystem was 98%

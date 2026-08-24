@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "date_pdt": "2026-08-23",
+  "target": {
+    "device": "Samsung Galaxy Tab S8+",
+    "x11_root": "2800x1752",
+    "steam_window": "2800x1586",
+    "route": "native ARM64 glibc Steam with Termux:X11, no PRoot, no KDE"
+  },
+  "accepted_current_run": {
+    "source_commit": "506080c",
+    "installed_launcher_sha256": "d1ccb9f53913a821e77fa223ad17aa056db95367b1a4eff7604fa2bc8368d42f",
+    "start_epoch_realtime": 1787552357.030606,
+    "end_epoch_realtime": 1787552361.917363,
+    "elapsed_seconds": 4.887,
+    "returncode": 0,
+    "cef_affinity": "0-3",
+    "cef_processes": 11,
+    "visible_window_id": 27263492,
+    "screenshot_sha256": "b909385f2c700e7bf99e43f429e1e2644be0a5ca9d5b146eab32059f3182bf1e",
+    "screenshot_dimensions": "2800x1752"
+  },
+  "protected_processes_after_run": {
+    "steam": {"pid": 15575, "start_ticks": 128118834},
+    "termux_x11": {"pid": 13643, "start_ticks": 121863492},
+    "pulseaudio": {"pid": 13923, "start_ticks": 121863956}
+  },
+  "engineering_sequence_seconds": [
+    {"label": "initial warm wrapper", "elapsed": 27.329},
+    {"label": "identity-bound affinity cache hit", "elapsed": 12.678},
+    {"label": "native candidate discovery plus warm window gate", "elapsed": 9.889},
+    {"label": "exact X11 top-app fast path", "elapsed": 4.887}
+  ],
+  "result": {
+    "reduction_from_initial_percent": 82.1,
+    "authenticated_dispatcher_seconds_observed": "0.33-0.35",
+    "render_check": "pass",
+    "distribution_claim": false,
+    "ui_latency_claim": false,
+    "fps_claim": false
+  },
+  "recall": {
+    "reused": [
+      "019ff310-e8ac-7212-9f2f-5ba9005b97bd",
+      "019fe348-1247-7530-bc25-8a573aaf4252"
+    ],
+    "new_work_queries_with_no_indexed_implementation": [
+      "Steam CEF responsive affinity UI CPU0 cache warm launch optimization",
+      "cache X11 Steam steamwebhelper PID discovery affinity stamp start ticks proc scan",
+      "warm existing Steam window five second stability hidden CEF window scan xdotool",
+      "Termux X11 already top-app skip am start binder health warm Steam launcher"
+    ]
+  },
+  "limitations": [
+    "The sequence consists of engineering measurements on one authenticated live session, not a randomized timing distribution.",
+    "The top-app shortcut applies only when the exact X11 process is already in both top-app cgroups; all other paths retain the Activity and Binder gates.",
+    "The screenshot proves a fully populated Steam frame at the measurement boundary but does not quantify interaction latency or scrolling smoothness."
+  ]
+}
