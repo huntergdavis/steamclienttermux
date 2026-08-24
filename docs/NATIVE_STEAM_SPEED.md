@@ -40,11 +40,22 @@ added, removed, re-cgrouped, or stale process forces the complete validation
 and repin before atomically replacing the stamp.
 
 `STEAM_ARM64_CEF_AFFINITY=auto` is the default UI policy. A visible Steam
-Library/Store request gives CEF CPUs 0-3 for responsiveness; an AppID launch or
-background request confines CEF to CPU 0 to preserve game resources. Explicit
-`responsive` and `compact` modes are available for A/B work. The selected CEF
-mask is part of the affinity stamp, so switching modes forces an exact repin
-and subsequent launches of the same mode become cache hits.
+Library/Store request gives CEF CPUs 0-3 for responsiveness. A warm AppID launch
+now also uses CPUs 0-3 while Steam processes its launch UI, then automatically
+compacts CEF to CPU 0 after the AppID acknowledgement so the game retains the
+measured CPU layout. Explicit `responsive`, `compact`, and `launch-boost` modes
+remain available for A/B work. The selected CEF mask is part of the affinity
+stamp, so switching modes forces an exact repin and subsequent launches of the
+same mode become cache hits.
+
+The first direct AppID phase trace isolated a roughly 29.5-second delay inside
+Steam after the authenticated dispatcher completed in 0.410 seconds. It
+coincided with 10.371- and 11.438-second SteamUI stalls and repeated SDL
+HIDAPI/udev discovery messages. SDL documents `SDL_JOYSTICK_HIDAPI=0` as the
+global HIDAPI-driver off switch, but that requires a cold Steam environment and
+changes controller behavior. The warm launch-boost is therefore tested first;
+the HIDAPI control remains a separate cold-start A/B rather than an inferred
+fix.
 
 The code reuses the exact loader-process model and remembered-profile rules
 established in indexed sessions `019ff310-e8ac-7212-9f2f-5ba9005b97bd` and

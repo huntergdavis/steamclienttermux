@@ -49,6 +49,10 @@ def main():
     assert 'signature="version=1 x11=$x11_pid:$start_ticks:0-3"' in source
     assert '$(<"$steam_affinity_stamp") == "$signature"' in source
     assert 'cef_affinity=${STEAM_ARM64_CEF_AFFINITY:-auto}' in source
+    assert "cef_launch_boost=0" in source
+    assert "cef_launch_boost=1" in source
+    assert "finish_app_launch_affinity()" in source
+    assert source.count("finish_app_launch_affinity") == 3
     assert 'cef_cpu_mask=0-3' in source
     assert 'process_mask_is "$helper_pid" "$cef_cpu_mask"' in source
     assert 'apply_uniform_affinity Steam-helper "$helper_pid" "$cef_cpu_mask"' in source
@@ -161,9 +165,21 @@ def main():
     )
     assert invalid_cef_affinity.returncode != 0
     assert (
-        "STEAM_ARM64_CEF_AFFINITY must be auto, compact, or responsive"
+        "STEAM_ARM64_CEF_AFFINITY must be auto, compact, responsive, or launch-boost"
         in invalid_cef_affinity.stderr
     )
+    invalid_launch_boost = subprocess.run(
+        ["bash", str(SCRIPT)],
+        env={
+            **os.environ,
+            "START_STEAM_PARSE_ONLY": "1",
+            "STEAM_ARM64_CEF_AFFINITY": "launch-boost",
+        },
+        text=True,
+        capture_output=True,
+    )
+    assert invalid_launch_boost.returncode != 0
+    assert "launch-boost CEF affinity requires an AppID" in invalid_launch_boost.stderr
     print("start-steam argument tests: ok")
 
 

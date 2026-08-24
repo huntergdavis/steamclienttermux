@@ -62,15 +62,24 @@ forward_bootstrap=${STEAM_ARM64_FORWARD_BOOTSTRAP:-fast}
 }
 cef_affinity=${STEAM_ARM64_CEF_AFFINITY:-auto}
 [[ $cef_affinity == auto || $cef_affinity == compact ||
-        $cef_affinity == responsive ]] || {
-    printf 'start-steam: STEAM_ARM64_CEF_AFFINITY must be auto, compact, or responsive\n' >&2
+        $cef_affinity == responsive || $cef_affinity == launch-boost ]] || {
+    printf 'start-steam: STEAM_ARM64_CEF_AFFINITY must be auto, compact, responsive, or launch-boost\n' >&2
     exit 1
 }
+if [[ $cef_affinity == launch-boost && -z $requested_appid ]]; then
+    printf 'start-steam: launch-boost CEF affinity requires an AppID\n' >&2
+    exit 1
+fi
+cef_launch_boost=0
 cef_cpu_mask=0
 if [[ $cef_affinity == responsive ||
         ($cef_affinity == auto && -z $requested_appid &&
             $background_mode == 0) ]]; then
     cef_cpu_mask=0-3
+elif [[ $cef_affinity == launch-boost ||
+        ($cef_affinity == auto && -n $requested_appid) ]]; then
+    cef_cpu_mask=0-3
+    cef_launch_boost=1
 fi
 if [[ "$background_mode" == 1 ]]; then
     has_silent=0
@@ -533,6 +542,14 @@ apply_steam_session_affinity() {
     mv -- "$stamp_tmp" "$steam_affinity_stamp"
 }
 
+finish_app_launch_affinity() {
+    local x11_pid="$1" steam_pid="$2"
+    if [[ $cef_launch_boost == 1 ]]; then
+        cef_cpu_mask=0
+    fi
+    apply_steam_session_affinity "$x11_pid" "$steam_pid"
+}
+
 start_tomb_raider_affinity_guard() {
     local stamp guard_log guard_pid
     [[ -x "$affinity_helper" ]] ||
@@ -829,7 +846,7 @@ if [[ "${#steam_pids[@]}" -eq 1 ]]; then
                 fail "Steam exited before AppID $requested_appid launched"
             fail "Steam did not acknowledge AppID $requested_appid in ${app_timeout}s"
         fi
-        apply_steam_session_affinity "${x11_pids[0]}" "${steam_pids[0]}"
+        finish_app_launch_affinity "${x11_pids[0]}" "${steam_pids[0]}"
         printf 'start-steam: AppID %s accepted in background; X11 PID %s CPUs 0-3, Steam PID %s CPUs 0-3, CEF CPUs %s, PulseAudio sink, no Steam window focus, no KDE\n' \
             "$requested_appid" "${x11_pids[0]}" "${steam_pids[0]}" \
             "$cef_cpu_mask"
@@ -915,9 +932,10 @@ if [[ -n "$requested_appid" && "$background_mode" == 1 ]]; then
             fail "Steam exited before AppID $requested_appid launched; inspect $steam_log"
         fail "Steam did not acknowledge AppID $requested_appid in ${app_timeout}s; inspect $steam_log"
     fi
-    apply_steam_session_affinity "${x11_pids[0]}" "${steam_pids[0]}"
-    printf 'start-steam: AppID %s accepted in background; X11 PID %s CPUs 0-3, Steam PID %s CPUs 0-3, CEF CPU 0, PulseAudio sink, FEX %s, no Steam window focus, no KDE\n' \
-        "$requested_appid" "${x11_pids[0]}" "${steam_pids[0]}" "$profile"
+    finish_app_launch_affinity "${x11_pids[0]}" "${steam_pids[0]}"
+    printf 'start-steam: AppID %s accepted in background; X11 PID %s CPUs 0-3, Steam PID %s CPUs 0-3, CEF CPUs %s, PulseAudio sink, FEX %s, no Steam window focus, no KDE\n' \
+        "$requested_appid" "${x11_pids[0]}" "${steam_pids[0]}" \
+        "$cef_cpu_mask" "$profile"
     exit 0
 fi
 if ! steam_window="$(wait_for_steam_window "${steam_pids[0]}")"; then
