@@ -83,13 +83,31 @@ the AppID handoff and restored them to CPU 0 after acknowledgement:
 | AppID-to-window mode | Seconds | Change |
 | --- | ---: | ---: |
 | Compact CEF throughout | 81.742 | baseline |
-| **Transient CEF launch boost** | **65.193** | **-20.2%** |
+| Transient CEF launch boost | 65.193 | -20.2% |
+| **Launch boost + compiled FEX cache** | **64.200** | **-21.5%** |
 
 Session-to-runtime fell from 30 to 12 seconds while runtime-to-window remained
 roughly flat (51.742 vs 53.193 seconds). A 2800x1752 tablet screenshot confirmed
 Tomb Raider's rendered terms UI; the game was then terminated without restarting
 Steam or X11. This is one controlled engineering A/B, not a latency distribution.
 See [the result](evidence/steam-direct-appid-window-launch-boost-20260824.json).
+
+The next same-session A/B changed only the direct game launcher's default FEX
+cache mode from `on` to `compiled`:
+
+| Launch boundary | Launch boost | Compiled cache |
+| --- | ---: | ---: |
+| Session to runtime request | 12.000 | 12.000 |
+| Runtime request to Proton | 11.367 | 9.313 |
+| Runtime request to game process | 19.762 | 18.775 |
+| Game process to stable window | 33.431 | 33.425 |
+| **Session to stable window** | **65.193** | **64.200** |
+
+The compiled cache saved 0.993 seconds overall (-1.5% from the preceding
+control), while leaving the largest 33.4-second game initialization boundary
+unchanged. The 2800x1752 screenshot is a full-screen Tomb Raider loading frame;
+Steam and X11 kept the same process identities. See the [compiled-cache
+result](evidence/steam-direct-appid-window-compiled-fex-20260824.json).
 
 ## Excluded measurements
 

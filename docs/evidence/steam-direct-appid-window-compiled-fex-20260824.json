@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-24",
+  "commit": "35611b2cd22a89e7a0334e92ce118ee859dbc7d6",
+  "device": "Samsung Galaxy Tab S8+",
+  "operation": "warm direct-glibc AppID launch with the compiled FEX cache default",
+  "status": "pass",
+  "control_evidence": "steam-direct-appid-window-launch-boost-20260824.json",
+  "changed_variable": "Tomb Raider direct dispatch defaults FEX code caching from on to compiled",
+  "seconds": {
+    "initial_session_to_first_visible_window": 81.742,
+    "control_session_to_first_visible_window": 65.193,
+    "candidate_session_to_first_visible_window": 64.2,
+    "candidate_improvement_from_initial": 17.542,
+    "candidate_reduction_from_initial_percent": 21.46,
+    "candidate_improvement_from_control": 0.993,
+    "candidate_reduction_from_control_percent": 1.52,
+    "control_session_to_runtime_request": 12.0,
+    "candidate_session_to_runtime_request": 12.0,
+    "control_runtime_request_to_proton": 11.367,
+    "candidate_runtime_request_to_proton": 9.313,
+    "control_runtime_request_to_game_process": 19.762,
+    "candidate_runtime_request_to_game_process": 18.775,
+    "control_game_process_to_first_visible_window": 33.431,
+    "candidate_game_process_to_first_visible_window": 33.425
+  },
+  "configuration": {
+    "appid": 203160,
+    "route": "native ARM64 Steam -> direct dispatcher -> Proton ARM64/FEX/DXVK",
+    "child_preload": "lean",
+    "cef_affinity": "launch-boost",
+    "raknet_recvfrom_sleep_us": 1000,
+    "fex_cache": "compiled",
+    "fex_smc": "mtrack",
+    "dxvk": "bundled",
+    "game_cpu_set": "1-7"
+  },
+  "runtime_environment": {
+    "FEX_ENABLECODECACHINGWIP": "1",
+    "FEX_SMC_CHECKS": "mtrack",
+    "STEAM_ARM64_FEX_PROFILE": "safe",
+    "TGCOMPAT_RAKNET_RECV_SLEEP_US": "1000"
+  },
+  "artifacts": {
+    "tombraider_direct_dispatch_sha256": "7b34c846533061f6e22900ec26a92aee763a5631df355004f27694c5168005c3",
+    "screen_sha256": "096d7c0045154a2ffa6869ab3caf83c212abff3df77457c19575075e82f076a6"
+  },
+  "screen_validation": {
+    "resolution": "2800x1752",
+    "capture": "Full-screen Tomb Raider loading frame",
+    "not_steam_or_blank_x11": true
+  },
+  "protected_processes": {
+    "steam": {
+      "pid": 15575,
+      "start_ticks_before": 128118834,
+      "start_ticks_after": 128118834
+    },
+    "x11": {
+      "pid": 13643,
+      "start_ticks_before": 121863492,
+      "start_ticks_after": 121863492
+    }
+  },
+  "excluded_attempt": "A preceding invocation bypassed the direct-service wrapper and failed because its authenticated socket did not exist. It produced no game window and is not a candidate measurement.",
+  "cleanup": "The measured Tomb Raider process exited on its own after the capture. Steam and X11 identities were preserved.",
+  "finding": "Compiled FEX caching reduced early Proton/game-process startup by about one to two seconds, but the dominant game-process-to-window interval remained 33.4 seconds.",
+  "scope": "One controlled engineering A/B in one warm session. It establishes a promoted default and a next bottleneck, not a latency distribution."
+}
