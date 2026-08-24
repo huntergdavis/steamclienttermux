@@ -60,6 +60,9 @@ def main():
     assert 'required_stable_count="${2:-$window_stable_seconds}"' in source
     assert '[[ -z "$window" && "$background_mode" == 0 ]]' in source
     assert 'wait_for_steam_window "${steam_pids[0]}" 1' in source
+    assert "process_is_top_app()" in source
+    assert 'if ! process_is_top_app "${x11_pids[0]}"; then' in source
+    assert 'if [[ $x11_foreground_handoff == 1 ]]; then' in source
     assert '--steam-start-ticks "$steam_start_ticks"' in source
     reused_x11 = source.index('    1)\n        # A prior native Activity')
     foreground = source.index("        foreground_x11", reused_x11)

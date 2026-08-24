@@ -413,12 +413,16 @@ require_top_app() {
         fail "$label PID $pid is cpuset=${cpuset:-unknown}, cpu=${cpu:-unknown}; refusing a four-core background launch. Open Termux visibly and run ~/start-steam.sh there"
 }
 
+process_is_top_app() {
+    local pid="$1"
+    [[ $(cgroup_class "$pid" cpuset) == /top-app &&
+            $(cgroup_class "$pid" cpu) == /top-app ]]
+}
+
 wait_for_top_app() {
-    local pid="$1" _ cpuset cpu
+    local pid="$1" _
     for _ in $(seq 1 100); do
-        cpuset="$(cgroup_class "$pid" cpuset)"
-        cpu="$(cgroup_class "$pid" cpu)"
-        [[ "$cpuset" == /top-app && "$cpu" == /top-app ]] && return 0
+        process_is_top_app "$pid" && return 0
         sleep 0.05
     done
     return 1
@@ -626,6 +630,7 @@ x11_uid="$(package_uid com.termux.x11)"
     fail "Termux and Termux:X11 do not share a UID ($termux_uid != $x11_uid)"
 
 x11_cold_start=0
+x11_foreground_handoff=0
 mapfile -t x11_pids < <(matching_pids x11)
 case "${#x11_pids[@]}" in
     0)
@@ -653,6 +658,7 @@ case "${#x11_pids[@]}" in
         # verify persisted preferences directly. Broadcast only if they are
         # missing: a live preference reload is unsafe while Steam is rendering.
         foreground_x11
+        x11_foreground_handoff=1
         if ! x11_preferences_are_configured; then
             if ! configure_x11_preferences; then
                 fail 'unable to configure Termux:X11 input and idle behavior'
@@ -677,9 +683,12 @@ case "${#x11_pids[@]}" in
         # A prior native Activity (including BVB) can leave this shared-UID
         # X server backgrounded. Ask Android to foreground its visible Activity
         # before enforcing the performance cgroup invariant.
-        foreground_x11
-        wait_for_top_app "${x11_pids[0]}" ||
-            require_top_app X11 "${x11_pids[0]}"
+        if ! process_is_top_app "${x11_pids[0]}"; then
+            foreground_x11
+            x11_foreground_handoff=1
+            wait_for_top_app "${x11_pids[0]}" ||
+                require_top_app X11 "${x11_pids[0]}"
+        fi
         require_top_app X11 "${x11_pids[0]}"
         wait_for_x11 || fail "existing X server ${x11_pids[0]} is unreachable"
         ;;
@@ -698,12 +707,14 @@ if [[ $x11_cold_start == 1 ]]; then
     foreground_x11
 fi
 
-if x11_bridge_has_dead_binder "${x11_pids[0]}"; then
-    fail "X server ${x11_pids[0]} has a stale Android Binder bridge; X clients cannot migrate, so stop them and restart this server"
-else
-    bridge_status=$?
-    [[ "$bridge_status" -ne 2 ]] ||
-        fail 'unable to inspect the Termux:X11 Android bridge log'
+if [[ $x11_foreground_handoff == 1 ]]; then
+    if x11_bridge_has_dead_binder "${x11_pids[0]}"; then
+        fail "X server ${x11_pids[0]} has a stale Android Binder bridge; X clients cannot migrate, so stop them and restart this server"
+    else
+        bridge_status=$?
+        [[ "$bridge_status" -ne 2 ]] ||
+            fail 'unable to inspect the Termux:X11 Android bridge log'
+    fi
 fi
 
 if ! x11_input="$(DISPLAY="$display" timeout 5 \

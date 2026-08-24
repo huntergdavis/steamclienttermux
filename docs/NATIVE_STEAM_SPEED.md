@@ -123,6 +123,15 @@ visible window exists. Cold startup retains the complete stability gate. The
 focused deja query `warm existing Steam window five second stability hidden CEF
 window scan xdotool` returned no indexed implementation.
 
+The reused-X11 path also spent about 2.4 seconds asking Android to start an
+Activity that was already topmost, followed by the two-second Binder failure
+observation required after a real handoff. The launcher can directly read the
+exact X11 PID's `cpuset` and `cpu` cgroups. It now skips both operations only
+when both are already `/top-app`; a backgrounded, cold, or restarted X11 keeps
+the original Activity handoff, top-app wait, and Binder log gate. The focused
+deja query `Termux X11 already top-app skip am start binder health warm Steam
+launcher` returned no indexed implementation.
+
 ## Later, separate A/Bs
 
 1. Reclaim safe non-profile disk space; the audited tablet filesystem was 98%
