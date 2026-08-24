@@ -23,6 +23,16 @@ def main():
     assert module.parse_benchmark_result(
         b"MinFPS: 15.8\r\nMaxFPS: 29.8\r\nAverage FPS: 23.2\r\n"
     ) == {"minimum_fps": 15.8, "maximum_fps": 29.8, "average_fps": 23.2}
+    quality = module.parse_benchmark_quality_settings(
+        b"Quality settings:\r\n\r\n"
+        b"Fullscreen = 1\r\nExclusiveFullscreen = 1\r\nVSyncMode = 0\r\n"
+        b"FullscreenWidth = 1280\r\nFullscreenHeight = 720\r\n"
+        b"FullscreenRefreshRate = 60\r\nEnableMotionBlur = 0\r\n"
+        b"TextureQuality = 1\r\n"
+    )
+    module.validate_benchmark_quality_settings(
+        quality, module.GAME_PROFILES["720p-high"]
+    )
     assert module.parse_benchmark_result(
         "Minimum FPS = 19.0\nMaximum FPS = 36.0\nAvgFPS = 25.7\n".encode("utf-16")
     ) == {"minimum_fps": 19.0, "maximum_fps": 36.0, "average_fps": 25.7}
@@ -167,6 +177,8 @@ def main():
     assert module.GAME_PROFILES[normal.game_profile] == {
         "resolution": "1280x720",
         "graphics": "Normal",
+        "registry_profile": "720p-normal",
+        "benchmark_preset": "registry",
     }
     normal_1080p = module.build_parser().parse_args(
         ["--game-profile", "1080p-normal"]
@@ -175,7 +187,34 @@ def main():
     assert module.GAME_PROFILES[normal_1080p.game_profile] == {
         "resolution": "1920x1080",
         "graphics": "Normal",
+        "registry_profile": "1080p-normal",
+        "benchmark_preset": "registry",
     }
+    high = module.build_parser().parse_args(["--game-profile", "720p-high"])
+    assert module.GAME_PROFILES[high.game_profile] == {
+        "resolution": "1280x720",
+        "graphics": "High",
+        "registry_profile": "720p-normal",
+        "benchmark_preset": "720p-high",
+        "quality_level": 2,
+    }
+    high_1080p = module.build_parser().parse_args(
+        ["--game-profile", "1080p-high"]
+    )
+    assert module.GAME_PROFILES[high_1080p.game_profile] == {
+        "resolution": "1920x1080",
+        "graphics": "High",
+        "registry_profile": "1080p-normal",
+        "benchmark_preset": "1080p-high",
+        "quality_level": 2,
+    }
+    assert module.GAME_PROFILES["720p-ultra"]["quality_level"] == 3
+    assert module.GAME_PROFILES["1080p-ultra"]["graphics"] == "Ultra"
+    assert module.GAME_PROFILES["720p-ultimate"]["quality_level"] == 4
+    assert module.GAME_PROFILES["1080p-ultimate"]["graphics"] == "Ultimate"
+    assert module.quality_benchmark_ini(
+        module.GAME_PROFILES["1080p-ultimate"]
+    ).startswith("QualityLevel = 4\n")
     assert "TOMB_RAIDER_PROFILE_CHECKER" in TOOL.read_text(encoding="utf-8")
     fixed = module.build_parser().parse_args(
         ["--profile", "proton", "--start-temperature-ceiling-c", "40"]

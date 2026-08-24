@@ -24,6 +24,7 @@ fex_smc_checks=${TOMB_RAIDER_FEX_SMC_CHECKS:-mtrack}
 dxvk_relaxed_graphics_barriers=${TOMB_RAIDER_DXVK_RELAXED_GRAPHICS_BARRIERS:-off}
 dxvk_compiler_threads=${TOMB_RAIDER_DXVK_COMPILER_THREADS:-0}
 dxvk_variant=${TOMB_RAIDER_DXVK_VARIANT:-bundled}
+benchmark_preset=${TOMB_RAIDER_BENCHMARK_PRESET:-registry}
 child_preload=${TOMB_RAIDER_DIRECT_CHILD_PRELOAD:-full}
 vulkan_trace=${TOMB_RAIDER_VULKAN_TRACE:-0}
 vulkan_trace_preload=${TOMB_RAIDER_VULKAN_TRACE_PRELOAD:-$HOME/bionic-vulkan-bridge/out/glibc/libbvb-vulkan-resolve-trace.so}
@@ -72,6 +73,12 @@ fail() {
 [[ $dxvk_variant == bundled || $dxvk_variant == dxvk-1.10.3-x32 ||
     $dxvk_variant == dxvk-2.4.1-x32 ]] ||
     fail 'TOMB_RAIDER_DXVK_VARIANT must be bundled, dxvk-1.10.3-x32, or dxvk-2.4.1-x32'
+[[ $benchmark_preset == registry ||
+    $benchmark_preset =~ ^(720p|1080p)-(high|ultra|ultimate)$ ]] ||
+    fail 'TOMB_RAIDER_BENCHMARK_PRESET must be registry or a supported resolution-quality pair'
+if [[ $mode != tombraider-benchmark && $benchmark_preset != registry ]]; then
+    fail 'a Tomb Raider benchmark preset is valid only in tombraider-benchmark mode'
+fi
 if [[ $command_stream == shared && ${STEAM_ARM64_BVB_VULKAN:-0} != 1 ]]; then
     fail 'shared BVB command stream requires STEAM_ARM64_BVB_VULKAN=1'
 fi
@@ -105,6 +112,8 @@ unset BVB_COMMAND_STREAM STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
     WINEDLLPATH STEAM_ARM64_DIRECT_DXVK_VARIANT \
     STEAM_ARM64_BWRAP_DXVK_VARIANT \
     TOMB_RAIDER_DXVK_VARIANT \
+    STEAM_ARM64_DIRECT_TOMBRAIDER_BENCHMARK_PRESET \
+    TOMB_RAIDER_BENCHMARK_PRESET \
     STEAMCLIENTTERMUX_DXVK_COMPILER_THREADS \
     STEAM_ARM64_DIRECT_DXVK_COMPILER_THREADS \
     STEAM_ARM64_BWRAP_DXVK_COMPILER_THREADS \
@@ -180,6 +189,40 @@ fi
 
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
 vulkan_trace_file=
+benchmark_ini=
+benchmark_ini_windows=
+if [[ $benchmark_preset != registry ]]; then
+    benchmark_ini=$base/run/tombraider-benchmark-$benchmark_preset.ini
+    [[ ! -e $benchmark_ini && ! -L $benchmark_ini ]] ||
+        fail "controlled Tomb Raider benchmark INI already exists: $benchmark_ini"
+    case $benchmark_preset in
+        720p-*)
+            benchmark_width=1280
+            benchmark_height=720
+            ;;
+        1080p-*)
+            benchmark_width=1920
+            benchmark_height=1080
+            ;;
+    esac
+    case $benchmark_preset in
+        *-high) benchmark_quality_level=2 ;;
+        *-ultra) benchmark_quality_level=3 ;;
+        *-ultimate) benchmark_quality_level=4 ;;
+    esac
+    (set -o noclobber; printf '%s\n' \
+        "QualityLevel = $benchmark_quality_level" \
+        'Fullscreen = 1' \
+        'ExclusiveFullscreen = 1' \
+        'VSyncMode = 0' \
+        "FullscreenWidth = $benchmark_width" \
+        "FullscreenHeight = $benchmark_height" \
+        'FullscreenRefreshRate = 60' \
+        'EnableMotionBlur = 0' >"$benchmark_ini") 2>/dev/null ||
+        fail "could not create controlled Tomb Raider benchmark INI: $benchmark_ini"
+    chmod 600 "$benchmark_ini"
+    benchmark_ini_windows=Z:${benchmark_ini//\//\\}
+fi
 if [[ $vulkan_trace == 1 ]]; then
     vulkan_trace_file=$base/logs/tombraider-vulkan-resolve-$stamp-$$.tsv
     (set -o noclobber; : >"$vulkan_trace_file") 2>/dev/null ||
@@ -205,6 +248,9 @@ cleanup() {
             printf 'start-tombraider-direct-dispatch: DXVK overlay recovery failed; retained state requires explicit recovery\n' >&2
         dxvk_overlay_active=0
     fi
+    if [[ -n ${benchmark_ini:-} && -f $benchmark_ini && ! -L $benchmark_ini ]]; then
+        rm -f -- "$benchmark_ini"
+    fi
 }
 trap cleanup EXIT HUP INT TERM
 
@@ -227,6 +273,7 @@ dispatcher_environment=(
     "STEAM_ARM64_DIRECT_DXVK_RELAXED_GRAPHICS_BARRIERS=$dxvk_relaxed_graphics_barriers"
     "STEAM_ARM64_DIRECT_DXVK_COMPILER_THREADS=$dxvk_compiler_threads"
     "STEAM_ARM64_DIRECT_DXVK_VARIANT=$dxvk_variant"
+    "STEAM_ARM64_DIRECT_TOMBRAIDER_BENCHMARK_PRESET=$benchmark_preset"
 )
 if [[ $vulkan_trace == 1 ]]; then
     dispatcher_environment+=(
@@ -251,6 +298,7 @@ env -u BVB_COMMAND_STREAM -u TOMB_RAIDER_BVB_COMMAND_STREAM \
     -u TOMB_RAIDER_DXVK_COMPILER_THREADS \
     -u STEAM_ARM64_BWRAP_DXVK_VARIANT \
     -u TOMB_RAIDER_DXVK_VARIANT \
+    -u TOMB_RAIDER_BENCHMARK_PRESET \
     -u TOMB_RAIDER_DXVK_RELAXED_GRAPHICS_BARRIERS \
     "${dispatcher_environment[@]}" \
     "$python" "$dispatcher" serve --base "$base" --mode "$mode" \
@@ -289,7 +337,11 @@ set +e
 game_arguments=(-nolauncher)
 skip_outer_affinity_guard=0
 if [[ $mode == tombraider-benchmark ]]; then
-    game_arguments+=(-benchmark)
+    if [[ $benchmark_preset == registry ]]; then
+        game_arguments+=(-benchmark)
+    else
+        game_arguments+=(-benchmarkini "$benchmark_ini_windows")
+    fi
 elif [[ $mode == fex-offline-compile ]]; then
     skip_outer_affinity_guard=1
 fi
@@ -319,6 +371,8 @@ env -u BVB_COMMAND_STREAM -u STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
     -u STEAM_ARM64_DIRECT_DXVK_VARIANT \
     -u STEAM_ARM64_BWRAP_DXVK_VARIANT \
     -u TOMB_RAIDER_DXVK_VARIANT \
+    -u STEAM_ARM64_DIRECT_TOMBRAIDER_BENCHMARK_PRESET \
+    -u TOMB_RAIDER_BENCHMARK_PRESET \
     -u STEAM_ARM64_DIRECT_DXVK_RELAXED_GRAPHICS_BARRIERS \
     -u TOMB_RAIDER_DXVK_RELAXED_GRAPHICS_BARRIERS \
     STEAM_ARM64_BWRAP_DIRECT=1 \

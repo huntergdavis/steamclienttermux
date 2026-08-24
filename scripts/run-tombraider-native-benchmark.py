@@ -20,10 +20,81 @@ import time
 
 PANEL_GEOMETRY = "2800x1752"
 GAME_PROFILES = {
-    "native-low": {"resolution": PANEL_GEOMETRY, "graphics": "Low"},
-    "720p-normal": {"resolution": "1280x720", "graphics": "Normal"},
-    "1080p-normal": {"resolution": "1920x1080", "graphics": "Normal"},
+    "native-low": {
+        "resolution": PANEL_GEOMETRY,
+        "graphics": "Low",
+        "registry_profile": "native-low",
+        "benchmark_preset": "registry",
+    },
+    "720p-normal": {
+        "resolution": "1280x720",
+        "graphics": "Normal",
+        "registry_profile": "720p-normal",
+        "benchmark_preset": "registry",
+    },
+    "1080p-normal": {
+        "resolution": "1920x1080",
+        "graphics": "Normal",
+        "registry_profile": "1080p-normal",
+        "benchmark_preset": "registry",
+    },
+    "720p-high": {
+        "resolution": "1280x720",
+        "graphics": "High",
+        "registry_profile": "720p-normal",
+        "benchmark_preset": "720p-high",
+        "quality_level": 2,
+    },
+    "1080p-high": {
+        "resolution": "1920x1080",
+        "graphics": "High",
+        "registry_profile": "1080p-normal",
+        "benchmark_preset": "1080p-high",
+        "quality_level": 2,
+    },
+    "720p-ultra": {
+        "resolution": "1280x720",
+        "graphics": "Ultra",
+        "registry_profile": "720p-normal",
+        "benchmark_preset": "720p-ultra",
+        "quality_level": 3,
+    },
+    "1080p-ultra": {
+        "resolution": "1920x1080",
+        "graphics": "Ultra",
+        "registry_profile": "1080p-normal",
+        "benchmark_preset": "1080p-ultra",
+        "quality_level": 3,
+    },
+    "720p-ultimate": {
+        "resolution": "1280x720",
+        "graphics": "Ultimate",
+        "registry_profile": "720p-normal",
+        "benchmark_preset": "720p-ultimate",
+        "quality_level": 4,
+    },
+    "1080p-ultimate": {
+        "resolution": "1920x1080",
+        "graphics": "Ultimate",
+        "registry_profile": "1080p-normal",
+        "benchmark_preset": "1080p-ultimate",
+        "quality_level": 4,
+    },
 }
+
+
+def quality_benchmark_ini(profile: dict[str, object]) -> str:
+    width, height = (int(value) for value in profile["resolution"].split("x"))
+    return (
+        f"QualityLevel = {profile['quality_level']}\n"
+        "Fullscreen = 1\n"
+        "ExclusiveFullscreen = 1\n"
+        "VSyncMode = 0\n"
+        f"FullscreenWidth = {width}\n"
+        f"FullscreenHeight = {height}\n"
+        "FullscreenRefreshRate = 60\n"
+        "EnableMotionBlur = 0\n"
+    )
 RESULT_GLOB = "benchmarkresults*.txt"
 PROOT_GUARD_GLOB = "tomb-raider-affinity-*.log"
 DIRECT_GUARD_GLOB = "tombraider-direct-affinity-*.log"
@@ -276,6 +347,59 @@ def parse_benchmark_result(data: bytes) -> dict[str, float]:
             raise RuntimeError(f"benchmark result does not contain {name}")
         result[name] = float(match.group(1))
     return result
+
+
+def parse_benchmark_quality_settings(data: bytes) -> dict[str, int]:
+    text = decode_result(data)
+    _, separator, quality = text.partition("Quality settings:")
+    if not separator:
+        raise RuntimeError("benchmark result does not contain quality settings")
+    result = {}
+    for line in quality.splitlines():
+        match = re.fullmatch(r"\s*([A-Za-z][A-Za-z0-9]*)\s*=\s*(-?[0-9]+)\s*", line)
+        if match:
+            result[match.group(1)] = int(match.group(2))
+    required = {
+        "Fullscreen",
+        "ExclusiveFullscreen",
+        "VSyncMode",
+        "FullscreenWidth",
+        "FullscreenHeight",
+        "FullscreenRefreshRate",
+        "EnableMotionBlur",
+    }
+    missing = sorted(required - result.keys())
+    if missing:
+        raise RuntimeError(
+            "benchmark result is missing required quality settings: "
+            + ", ".join(missing)
+        )
+    return result
+
+
+def validate_benchmark_quality_settings(
+    settings: dict[str, int], game_profile: dict[str, object]
+) -> None:
+    width, height = (int(value) for value in game_profile["resolution"].split("x"))
+    expected = {
+        "Fullscreen": 1,
+        "ExclusiveFullscreen": 1,
+        "VSyncMode": 0,
+        "FullscreenWidth": width,
+        "FullscreenHeight": height,
+        "FullscreenRefreshRate": 60,
+        "EnableMotionBlur": 0,
+    }
+    mismatches = {
+        key: {"expected": value, "actual": settings.get(key)}
+        for key, value in expected.items()
+        if settings.get(key) != value
+    }
+    if mismatches:
+        raise RuntimeError(
+            "benchmark result does not match the controlled display profile: "
+            + repr(mismatches)
+        )
 
 
 def parse_topology_fix_status(output: str) -> str:
@@ -1294,6 +1418,9 @@ def main() -> int:
         if arguments.raknet_nice is not None:
             environment["TOMB_RAIDER_RAKNET_NICE"] = str(arguments.raknet_nice)
         game_profile = GAME_PROFILES[arguments.game_profile]
+        environment["TOMB_RAIDER_BENCHMARK_PRESET"] = game_profile[
+            "benchmark_preset"
+        ]
         series = {
             "schema_version": 1,
             "status": "initializing",
@@ -1309,6 +1436,8 @@ def main() -> int:
                 "resolution": game_profile["resolution"],
                 "graphics": game_profile["graphics"],
                 "game_profile": arguments.game_profile,
+                "benchmark_preset": game_profile["benchmark_preset"],
+                "quality_level": game_profile.get("quality_level"),
                 "vsync": "off",
                 "motion_blur": "off",
                 "fex_profile": arguments.profile,
@@ -1352,6 +1481,12 @@ def main() -> int:
             "started_at": dt.datetime.now(dt.timezone.utc).isoformat(),
             "runs": [],
         }
+        if game_profile["benchmark_preset"] != "registry":
+            benchmark_ini = quality_benchmark_ini(game_profile)
+            series["target"]["benchmark_ini"] = benchmark_ini.splitlines()
+            series["target"]["benchmark_ini_sha256"] = hashlib.sha256(
+                benchmark_ini.encode()
+            ).hexdigest()
         set_series_phase(series, "initializing")
         atomic_json(output_directory / "series.json", series)
 
@@ -1361,7 +1496,10 @@ def main() -> int:
         # Reuse the already-resolved absolute Python interpreter instead.
         run_logged(
             python_tool_command(
-                profile_checker, "--check", "--profile", arguments.game_profile
+                profile_checker,
+                "--check",
+                "--profile",
+                game_profile["registry_profile"],
             ),
             environment,
             profile_log,
@@ -1630,6 +1768,8 @@ def main() -> int:
 
             raw = result_files[0].read_bytes()
             metrics = parse_benchmark_result(raw)
+            quality_settings = parse_benchmark_quality_settings(raw)
+            validate_benchmark_quality_settings(quality_settings, game_profile)
             accepted_post_result_exit = None
             if launch_return_code != 0:
                 if arguments.backend != "direct":
@@ -1648,6 +1788,7 @@ def main() -> int:
                 "kind": kind,
                 "number": number,
                 "metrics": metrics,
+                "quality_settings": quality_settings,
                 "elapsed_seconds": round(elapsed, 3),
                 "launch_return_code": launch_return_code,
                 "accepted_post_result_exit": accepted_post_result_exit,

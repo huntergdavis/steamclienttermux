@@ -9163,3 +9163,37 @@ The post-run maps were preserved at
 `runtime-delta-rejected-dxvk-compiler4-1080p-20260824T0104Z`; the pending
 directory is empty. Exact evidence is
 `docs/benchmark-series/tombraider-direct-glibc-dxvk-241-compiler4-1080p-normal-fullscreen-60hz-40c-20260824.json`.
+
+## 2026-08-23: exact High-through-Ultimate matrix runner
+
+The comparison matrix now has fail-closed targets for Tomb Raider's three
+quality levels above Normal at both 1280x720 and 1920x1080. Rather than infer
+the launcher's individual registry values, the runner uses the game's native
+`-benchmarkini` interface and its documented aggregate `QualityLevel`: 2 for
+High, 3 for Ultra, and 4 for Ultimate. The exact private INI also forces
+fullscreen, exclusive fullscreen, 60 Hz, V-Sync off, motion blur off, and the
+selected resolution. PCGamingWiki and the retained Nixxes command-option list
+both document `QualityLevel` 0 through 4 as Low through Ultimate:
+
+- https://www.pcgamingwiki.com/wiki/Tomb_Raider_%282013%29
+- https://www.forum-3dcenter.org/vbulletin/archive/index.php/t-539497.html
+
+The launcher creates one mode-0600 INI under the private runtime directory,
+refuses residue or a symlink, passes its exact Wine `Z:` path, and removes it
+during bounded cleanup. The direct dispatcher independently validates the
+selector, file ownership/mode, byte-exact contents, resolution, and quality
+level before accepting the Proton command. The selector is stripped from
+Steam/CEF and the captured payload. The benchmark runner records the INI
+lines/hash and all game-authored effective quality settings, and rejects a
+result unless fullscreen, exclusive fullscreen, resolution, 60 Hz, V-Sync,
+and motion blur match the controlled target.
+
+Six single-pass wrappers retain the established official x32 DXVK 2.4.1,
+Safe FEX, offline-compiled cache, full startup topology, 40 C thermal ceiling,
+and exact foreground-controller handoff. Full `check-project.sh` validation
+passed after the generalization. No FPS is claimed by this implementation
+gate; each matrix cell still requires a real fullscreen tablet run and
+game-authored result. The required `deja` query for prior High registry/preset
+work returned no indexed session, so this reuses the repository's existing
+controlled runner, private transient-file, final-process containment, and
+fullscreen validation disciplines rather than a prior preset implementation.

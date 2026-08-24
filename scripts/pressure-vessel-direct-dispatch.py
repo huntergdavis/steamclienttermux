@@ -1154,13 +1154,61 @@ def request_environment(payload: dict[str, object]) -> dict[str, str]:
         "STEAM_ARM64_DIRECT_DXVK_VARIANT",
         "STEAM_ARM64_BWRAP_DXVK_VARIANT",
         "TOMB_RAIDER_DXVK_VARIANT",
+        "STEAM_ARM64_DIRECT_TOMBRAIDER_BENCHMARK_PRESET",
+        "TOMB_RAIDER_BENCHMARK_PRESET",
     ):
         environment.pop(name, None)
     return environment
 
 
+def tombraider_benchmark_arguments(base: Path, preset: str) -> list[str]:
+    if preset == "registry":
+        return ["-benchmark"]
+    try:
+        resolution, quality = preset.split("-", 1)
+        width, height = {
+            "720p": (1280, 720),
+            "1080p": (1920, 1080),
+        }[resolution]
+        quality_level = {"high": 2, "ultra": 3, "ultimate": 4}[quality]
+    except (KeyError, ValueError):
+        fail(
+            "STEAM_ARM64_DIRECT_TOMBRAIDER_BENCHMARK_PRESET must be "
+            "registry or a supported resolution-quality pair"
+        )
+    benchmark_ini = base / "run" / f"tombraider-benchmark-{preset}.ini"
+    try:
+        metadata = benchmark_ini.lstat()
+        contents = benchmark_ini.read_bytes()
+    except OSError as error:
+        fail(f"controlled Tomb Raider benchmark INI is unavailable: {error}")
+    expected = (
+        f"QualityLevel = {quality_level}\n"
+        "Fullscreen = 1\n"
+        "ExclusiveFullscreen = 1\n"
+        "VSyncMode = 0\n"
+        f"FullscreenWidth = {width}\n"
+        f"FullscreenHeight = {height}\n"
+        "FullscreenRefreshRate = 60\n"
+        "EnableMotionBlur = 0\n"
+    ).encode()
+    if (
+        not stat.S_ISREG(metadata.st_mode)
+        or benchmark_ini.is_symlink()
+        or metadata.st_uid != os.geteuid()
+        or metadata.st_mode & 0o077
+        or contents != expected
+    ):
+        fail(f"controlled Tomb Raider benchmark INI failed validation: {benchmark_ini}")
+    windows_path = "Z:" + str(benchmark_ini).replace("/", "\\")
+    return ["-benchmarkini", windows_path]
+
+
 def validated_tombraider_command(
-    base: Path, payload_arguments: list[str], benchmark: bool = False
+    base: Path,
+    payload_arguments: list[str],
+    benchmark: bool = False,
+    benchmark_preset: str | None = None,
 ) -> tuple[Path, Path]:
     if "--" not in payload_arguments:
         fail("Tomb Raider payload has no command boundary")
@@ -1176,7 +1224,13 @@ def validated_tombraider_command(
     )
     game_arguments = ["-nolauncher"]
     if benchmark:
-        game_arguments.append("-benchmark")
+        if benchmark_preset is None:
+            benchmark_preset = os.environ.get(
+                "STEAM_ARM64_DIRECT_TOMBRAIDER_BENCHMARK_PRESET", "registry"
+            )
+        game_arguments.extend(
+            tombraider_benchmark_arguments(base, benchmark_preset)
+        )
     expected = [str(proton), "waitforexitandrun", str(game), *game_arguments]
     if command != expected:
         fail("direct Proton smoke received an unexpected game command")
@@ -1605,8 +1659,14 @@ def pv_smoke_invocation(
         "tombraider-benchmark",
     ):
         benchmark = command_mode == "tombraider-benchmark"
+        benchmark_preset = os.environ.get(
+            "STEAM_ARM64_DIRECT_TOMBRAIDER_BENCHMARK_PRESET", "registry"
+        )
         proton, game = validated_tombraider_command(
-            base, payload_arguments, benchmark=benchmark
+            base,
+            payload_arguments,
+            benchmark=benchmark,
+            benchmark_preset=benchmark_preset,
         )
         final_path_prefix = proton.parent
         if command_mode in ("tombraider", "tombraider-benchmark"):
@@ -1622,7 +1682,11 @@ def pv_smoke_invocation(
                 "waitforexitandrun",
                 str(game),
                 "-nolauncher",
-                *(["-benchmark"] if benchmark else []),
+                *(
+                    tombraider_benchmark_arguments(base, benchmark_preset)
+                    if benchmark
+                    else []
+                ),
             ]
             preserve_assignments = True
         elif command_mode == "fex-offline-compile":

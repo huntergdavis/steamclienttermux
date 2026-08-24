@@ -416,6 +416,57 @@ def main() -> None:
     assert MODULE.validated_tombraider_command(
         tablet_base, benchmark_payload, benchmark=True
     ) == (proton, game)
+    with tempfile.TemporaryDirectory(prefix="tombraider-high-ini.") as directory:
+        high_base = Path(directory)
+        (high_base / "run").mkdir()
+        high_ini = high_base / "run/tombraider-benchmark-720p-high.ini"
+        high_ini.write_text(
+            "QualityLevel = 2\n"
+            "Fullscreen = 1\n"
+            "ExclusiveFullscreen = 1\n"
+            "VSyncMode = 0\n"
+            "FullscreenWidth = 1280\n"
+            "FullscreenHeight = 720\n"
+            "FullscreenRefreshRate = 60\n"
+            "EnableMotionBlur = 0\n"
+        )
+        high_ini.chmod(0o600)
+        high_proton = (
+            high_base
+            / "client/steamapps/common/Proton 11.0 (ARM64)/proton"
+        )
+        high_game = (
+            high_base
+            / "removable-library/steamapps/common/Tomb Raider/TombRaider.exe"
+        )
+        high_windows_ini = "Z:" + str(high_ini).replace("/", "\\")
+        high_payload = [
+            "--",
+            str(high_proton),
+            "waitforexitandrun",
+            str(high_game),
+            "-nolauncher",
+            "-benchmarkini",
+            high_windows_ini,
+        ]
+        assert MODULE.validated_tombraider_command(
+            high_base,
+            high_payload,
+            benchmark=True,
+            benchmark_preset="720p-high",
+        ) == (high_proton, high_game)
+        high_ini.write_text(high_ini.read_text().replace("QualityLevel = 2", "QualityLevel = 4"))
+        try:
+            MODULE.validated_tombraider_command(
+                high_base,
+                high_payload,
+                benchmark=True,
+                benchmark_preset="720p-high",
+            )
+        except MODULE.DispatchError:
+            pass
+        else:
+            raise AssertionError("modified High benchmark INI was accepted")
     try:
         MODULE.validated_tombraider_command(
             tablet_base, benchmark_payload, benchmark=False

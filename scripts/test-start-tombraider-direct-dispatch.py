@@ -249,6 +249,27 @@ def main() -> None:
         assert "child_preload=lean" in benchmark_state
 
         (base / "run/native-runtime-dispatch/dispatch.sock").unlink()
+        high_environment = {
+            **benchmark_environment,
+            "TOMB_RAIDER_BENCHMARK_PRESET": "720p-high",
+        }
+        high = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env=high_environment,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        assert high.returncode == 1, high.stderr
+        high_ini = base / "run/tombraider-benchmark-720p-high.ini"
+        high_ini_windows = "Z:" + str(high_ini).replace("/", "\\")
+        assert result_file.read_text().splitlines() == [
+            "1",
+            f"--appid 203160 -- -nolauncher -benchmarkini {high_ini_windows}",
+        ]
+        assert not high_ini.exists() and not high_ini.is_symlink()
+
+        (base / "run/native-runtime-dispatch/dispatch.sock").unlink()
         priority_environment = {
             **benchmark_environment,
             "TOMB_RAIDER_RAKNET_NICE": "19",
