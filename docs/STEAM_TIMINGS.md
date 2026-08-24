@@ -59,6 +59,20 @@ elapsed inside Steam before the request returned, coinciding with 10.371- and
 makes Steam UI/input work—not the dispatcher—the next measured launch target.
 See [the compact evidence](evidence/steam-direct-appid-window-20260824.json).
 
+The next same-session A/B temporarily gave Steam's CEF helpers CPUs 0-3 during
+the AppID handoff and restored them to CPU 0 after acknowledgement:
+
+| AppID-to-window mode | Seconds | Change |
+| --- | ---: | ---: |
+| Compact CEF throughout | 81.742 | baseline |
+| **Transient CEF launch boost** | **65.193** | **-20.2%** |
+
+Session-to-runtime fell from 30 to 12 seconds while runtime-to-window remained
+roughly flat (51.742 vs 53.193 seconds). A 2800x1752 tablet screenshot confirmed
+Tomb Raider's rendered terms UI; the game was then terminated without restarting
+Steam or X11. This is one controlled engineering A/B, not a latency distribution.
+See [the result](evidence/steam-direct-appid-window-launch-boost-20260824.json).
+
 ## Excluded measurements
 
 | Date | Route | Observation | Why excluded |

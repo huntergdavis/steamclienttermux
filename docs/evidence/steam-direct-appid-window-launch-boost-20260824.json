@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-24",
+  "commit": "7ec2f77dd36daecec671b7b49da417b6ce47fa96",
+  "device": "Samsung Galaxy Tab S8+",
+  "operation": "warm direct-glibc AppID launch with transient CEF launch boost",
+  "status": "pass",
+  "control_evidence": "steam-direct-appid-window-20260824.json",
+  "changed_variable": "CEF helpers use CPUs 0-3 during AppID handoff and return to CPU 0 after acknowledgement",
+  "seconds": {
+    "control_session_to_first_visible_window": 81.742,
+    "candidate_session_to_first_visible_window": 65.193,
+    "improvement": 16.549,
+    "relative_reduction_percent": 20.2,
+    "control_session_to_runtime_request": 30.0,
+    "candidate_session_to_runtime_request": 12.0,
+    "control_runtime_request_to_first_visible_window": 51.742,
+    "candidate_runtime_request_to_first_visible_window": 53.193,
+    "preparation": 1.17,
+    "bridge_service_startup": 0.54,
+    "authenticated_fast_dispatch": 0.5,
+    "steam_request_wrapper": 19.18
+  },
+  "configuration": {
+    "appid": 203160,
+    "route": "native ARM64 Steam -> direct dispatcher -> Proton ARM64/FEX/DXVK",
+    "child_preload": "lean",
+    "raknet_recvfrom_sleep_us": 1000,
+    "fex_cache": true,
+    "fex_smc": "mtrack",
+    "dxvk": "bundled",
+    "game_cpu_set": "1-7"
+  },
+  "artifacts": {
+    "steam_launcher_sha256": "d57f49fdc8e461c61674d594268cd42c54563f3db8f9ade49ead387c86440796",
+    "screen_sha256": "184ca1318edef9617db496693fd9dd31fbb7ce7821d1d7c87e06e4b517dacbb8"
+  },
+  "screen_validation": {
+    "resolution": "2800x1752",
+    "first_capture": "Tomb Raider loading screen",
+    "confirmation_capture": "Square Enix terms UI rendered by Tomb Raider",
+    "cef_after_ack": "all 11 authoritative existing Steam web helpers retained CPU 0"
+  },
+  "protected_processes": {
+    "steam": {
+      "pid": 15575,
+      "start_ticks_before": 128118834,
+      "start_ticks_after": 128118834
+    },
+    "x11": {
+      "pid": 13643,
+      "start_ticks_before": 121863492,
+      "start_ticks_after": 121863492
+    }
+  },
+  "cleanup": "After the timer and screenshots passed, the exact AppID-owned game PID received TERM and exited. Steam and X11 identities were preserved.",
+  "scope": "One controlled engineering A/B in one warm session. It establishes a promoted improvement, not a latency distribution."
+}
