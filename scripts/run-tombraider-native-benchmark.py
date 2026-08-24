@@ -138,8 +138,8 @@ GAME_PROFILES = {
     "1080p-ultra-no-tessellation-ssao1-dof1-lod3": {
         "resolution": "1920x1080",
         "graphics": "Ultra without tessellation, SSAO 1, DOF 1, LOD 3",
-        "registry_profile": "1080p-normal",
-        "benchmark_preset": "1080p-ultra-no-tessellation-ssao1-dof1-lod3",
+        "registry_profile": "1080p-ultra-tuned-lod3",
+        "benchmark_preset": "registry",
         "quality_level": 3,
         "benchmark_overrides": {
             "EnableTessellation": 0,

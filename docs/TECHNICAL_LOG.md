@@ -9427,3 +9427,21 @@ INI and final-dispatch allow list are independently validated, and a mutated
 LOD value fails closed. The required `deja` query found no prior LOD override
 implementation; this reuses the accepted custom-profile and recoverable-map
 pipeline. No performance claim is made before a controlled tablet pass.
+## 2026-08-23: LOD override moves from benchmark INI to the registry
+
+The first 1080p cumulative tuned-Ultra pass used the exact accepted
+tessellation-off, SSAO-mode-1, and DOF-quality-1 settings and averaged 27.5
+FPS.  A follow-up attempted to lower only `LODScale` from 4 to 3 through the
+game's `-benchmarkini` interface.  Tomb Raider rendered the fullscreen scene
+and wrote 22.0/36.0/29.0 FPS, but its own result reported `LODScale = 4`.
+The runner therefore rejected the pass instead of attributing the 29.0 FPS
+result to LOD3.
+
+The exact `deja "Tomb Raider LOD3 fullscreen rendered benchmark controller
+status 1 result validation"` query returned no indexed implementation.  The
+replacement reuses the project's existing atomic Wine-registry backup/profile
+writer and the benchmark runner's game-authored effective-setting validation.
+Profile `1080p-ultra-tuned-lod3` writes the complete effective 1080p tuned
+Ultra state—including texture/filter, shadow, reflection, high-precision RT,
+tessellation, SSAO, DOF, and LOD DWORDs—before launching ordinary `-benchmark`.
+It does not weaken validation or accept the rejected 29.0 FPS measurement.

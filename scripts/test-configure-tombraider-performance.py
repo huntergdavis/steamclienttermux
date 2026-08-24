@@ -74,6 +74,22 @@ def test_render(module):
     assert normal_1080p[b"EnableMotionBlur"] == b"00000000"
     assert normal_1080p[b"VSyncMode"] == b"00000000"
 
+    tuned_ultra_lod3 = module.TUNED_ULTRA_LOD3_1080P_DWORDS
+    tuned_rendered, tuned_changed = module.render_profile(
+        fixture(module, tuned_ultra_lod3), tuned_ultra_lod3
+    )
+    assert tuned_changed
+    assert_targets(module, tuned_rendered, tuned_ultra_lod3)
+    assert tuned_ultra_lod3[b"FullscreenWidth"] == b"00000780"
+    assert tuned_ultra_lod3[b"FullscreenHeight"] == b"00000438"
+    assert tuned_ultra_lod3[b"TextureQuality"] == b"00000004"
+    assert tuned_ultra_lod3[b"BestTextureFilter"] == b"00000012"
+    assert tuned_ultra_lod3[b"LODScale"] == b"00000003"
+    assert tuned_ultra_lod3[b"EnableTessellation"] == b"00000000"
+    assert tuned_ultra_lod3[b"SSAOMode"] == b"00000001"
+    assert tuned_ultra_lod3[b"DOFQuality"] == b"00000001"
+    assert tuned_ultra_lod3[b"EnableHighPrecisionRT"] == b"00000001"
+
 
 def test_refusals(module):
     original = fixture(module)

@@ -57,10 +57,21 @@ NORMAL_1080P_DWORDS = {
     b"FullscreenHeight": b"00000438",
     b"FullscreenWidth": b"00000780",
 }
+TUNED_ULTRA_LOD3_1080P_DWORDS = {
+    **NORMAL_1080P_DWORDS,
+    b"BestTextureFilter": b"00000012",
+    b"EnableHighPrecisionRT": b"00000001",
+    b"EnableTessellation": b"00000000",
+    b"LODScale": b"00000003",
+    b"ReflectionQuality": b"00000002",
+    b"ShadowResolution": b"00000002",
+    b"TextureQuality": b"00000004",
+}
 PROFILES = {
     "native-low": TARGET_DWORDS,
     "720p-normal": NORMAL_720P_DWORDS,
     "1080p-normal": NORMAL_1080P_DWORDS,
+    "1080p-ultra-tuned-lod3": TUNED_ULTRA_LOD3_1080P_DWORDS,
 }
 RUNNING_COMMS = {
     "fexinterpreter",

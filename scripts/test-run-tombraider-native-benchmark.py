@@ -296,6 +296,21 @@ def main():
         assert "LODScale" in str(error)
     else:
         raise AssertionError("modified LOD scale passed the custom profile")
+    lod_tuned_1080p = module.GAME_PROFILES[
+        "1080p-ultra-no-tessellation-ssao1-dof1-lod3"
+    ]
+    assert lod_tuned_1080p["registry_profile"] == "1080p-ultra-tuned-lod3"
+    assert lod_tuned_1080p["benchmark_preset"] == "registry"
+    assert lod_tuned_1080p["benchmark_overrides"] == {
+        "EnableTessellation": 0,
+        "SSAOMode": 1,
+        "DOFQuality": 1,
+        "LODScale": 3,
+    }
+    module.validate_benchmark_quality_settings(
+        {**lod_tuned_quality, "FullscreenWidth": 1920, "FullscreenHeight": 1080},
+        lod_tuned_1080p,
+    )
     assert module.GAME_PROFILES["720p-ultimate"]["quality_level"] == 4
     assert module.GAME_PROFILES["1080p-ultimate"]["graphics"] == "Ultimate"
     assert module.quality_benchmark_ini(
