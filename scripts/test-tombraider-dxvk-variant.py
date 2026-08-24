@@ -127,6 +127,7 @@ def main() -> None:
     )
     assert '"STEAM_ARM64_DIRECT_DXVK_VARIANT=$dxvk_variant"' in launcher
     assert "manage-tombraider-dxvk-overlay.py" in launcher
+    assert "if [[ $dxvk_variant != bundled && $mode == tombraider* ]]" in launcher
     assert 'activate --base "$base"' in launcher
     assert 'restore --base "$base"' in launcher
     assert launcher.count("-u WINEDLLPATH") == 2

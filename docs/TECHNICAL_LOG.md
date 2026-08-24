@@ -9632,3 +9632,8 @@ seconds but only 1,474,560 bytes of physical reads, identifying serialized
 translation/graphics initialization as the other major block. The next two
 bounded experiments are therefore the existing FEX learned-map refresh and an
 overlapped hot-file prefetch; neither is promoted until independently timed.
+
+Before the refresh, the direct launcher was tightened so its now-default DXVK
+2.4.1 overlay activates only for `tombraider*` game modes. Offline compilation
+and smoke modes do not load DXVK and now leave the game directory untouched.
+The focused DXVK/FEX contracts and complete project suite pass.

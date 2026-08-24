@@ -186,7 +186,9 @@ if [[ $mode == tombraider || $mode == tombraider-benchmark ||
     [[ $topology_status =~ ^Tomb\ Raider\ CPU\ topology\ fix:\ enabled\;\ SHA-256\ [0-9a-f]{64}$ ]] ||
         fail "Tomb Raider CPU-topology fix is not enabled: $topology_status"
 fi
-if [[ $dxvk_variant != bundled ]]; then
+# DXVK is game-local. Compiler/smoke modes never load it and must not mutate
+# the game directory merely because the game default selects an overlay.
+if [[ $dxvk_variant != bundled && $mode == tombraider* ]]; then
     [[ -x $dxvk_overlay && ! -L $dxvk_overlay ]] ||
         fail "transactional DXVK overlay tool is unavailable: $dxvk_overlay"
 fi
