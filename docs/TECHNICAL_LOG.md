@@ -9530,3 +9530,26 @@ generated FEX maps are preserved in
 `runtime-delta-valid-1080p-ultra-no-tessellation-ssao1-dof1-shadow1-20260824T0456Z`.
 Exact evidence is in
 `docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-1080p-ultra-no-tessellation-ssao1-dof1-shadow1-fullscreen-60hz-40c-20260824.json`.
+
+## 2026-08-23: minimum shadow resolution raises tuned Ultra to 30.7 FPS
+
+The next single-variable pass retained the complete accepted 1080p tuned-Ultra
+profile and changed only `ShadowResolution` from 1 to 0. Shadows remained
+enabled (`ShadowMode=1`), alongside Ultra texture quality 4, filter 18, LOD4,
+reflection quality 2, post-processing, high-precision rendering, SSAO1, and
+DOF1. The required `deja "Tomb Raider 2013 ShadowResolution 0 tuned Ultra
+1080p benchmark"` query returned no indexed implementation, so the gate reused
+the accepted shadow-1 benchmark-INI ordering, game-authored quality validation,
+direct-X11 `/top-app` foreground controller, and recoverable FEX archive.
+
+The first attempt failed closed before game launch because the new preset was
+missing from the shell wrapper's initial allowlist. No result was produced.
+After adding a regression assertion, the controlled pass completed at **17.3
+minimum, 39.8 maximum, and 30.7 average FPS**. This improves the 30.1-FPS
+shadow-1 result by 0.6 FPS / 2.0% and raises its minimum by 2.0 FPS / 13.1%.
+The run began at 37.0 C, used the same official DXVK 2.4.1 x32 BGRA swapchain,
+and preserved the exact Steam, X11, and PulseAudio process identities. Its two
+generated FEX maps are archived in
+`runtime-delta-valid-1080p-ultra-no-tessellation-ssao1-dof1-shadow0-20260824T0514Z`.
+Exact evidence is in
+`docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-1080p-ultra-no-tessellation-ssao1-dof1-shadow0-fullscreen-60hz-40c-20260824.json`.
