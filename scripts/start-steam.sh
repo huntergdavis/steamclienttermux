@@ -169,9 +169,10 @@ matching_pids() {
             x11)
                 arguments=()
                 mapfile -d '' -t arguments < "$process/cmdline" || continue
-                [[ ${arguments[0]:-} == termux-x11 &&
-                        ${arguments[1]:-} == com.termux.x11 &&
-                        ${arguments[2]:-} == "$display" ]] || continue
+                [[ ${arguments[0]:-} == "termux-x11 com.termux.x11 ${display} "* ||
+                        (${arguments[0]:-} == termux-x11 &&
+                            ${arguments[1]:-} == com.termux.x11 &&
+                            ${arguments[2]:-} == "$display") ]] || continue
                 ;;
             steam)
                 steam_arm64_process_matches "$pid" \

@@ -55,6 +55,7 @@ def main():
     assert 'pgrep -f -u "$(id -u)" -- "com.termux.x11 ${display}"' in source
     assert "'steamrtarm64/steam($| )'" in source
     assert "'steamrtarm64/steamwebhelper($| )'" in source
+    assert '"termux-x11 com.termux.x11 ${display} "*' in source
     assert "${arguments[0]:-} == termux-x11" in source
     assert '--steam-start-ticks "$steam_start_ticks"' in source
     reused_x11 = source.index('    1)\n        # A prior native Activity')

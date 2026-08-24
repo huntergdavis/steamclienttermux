@@ -107,8 +107,9 @@ native `pgrep` candidate narrowing for X11, Steam, and CEF, followed by the same
 exact command-line/process matcher as before. On the target, each native scan
 took roughly 0.08 seconds; false-positive candidates are expected and rejected
 by the authoritative matcher. X11 additionally decodes its NUL-delimited argv
-in Bash, removing one `tr` subprocess per process. Cold launcher discovery keeps
-the exhaustive fallback. The focused deja query
+in Bash, accepting both the Android setproctitle-style combined first argument
+and conventional split argv while removing one `tr` subprocess per process.
+Cold launcher discovery keeps the exhaustive fallback. The focused deja query
 `cache X11 Steam steamwebhelper PID discovery affinity stamp start ticks proc
 scan` returned no indexed implementation.
 
