@@ -537,7 +537,7 @@ def apply_dxvk_state_cache(
         except OSError as error:
             fail(f"internal DXVK state cache is unavailable: {error}")
         if (
-            re.fullmatch(r"[0-9a-f]{16}\.dxvk\.bin", path.name) is None
+            re.fullmatch(r"[0-9a-f]{16}\.dxvk\.(?:bin|lut)", path.name) is None
             or not stat.S_ISREG(metadata.st_mode)
             or path.is_symlink()
             or metadata.st_uid != os.geteuid()

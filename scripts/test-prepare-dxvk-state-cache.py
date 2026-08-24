@@ -35,6 +35,9 @@ def main() -> None:
         cache = source / "0123456789abcdef.dxvk.bin"
         cache.write_bytes(b"dxvk-cache" * 1024)
         cache.chmod(0o600)
+        lookup = source / "0123456789abcdef.dxvk.lut"
+        lookup.write_bytes(b"dxvk-lookup" * 128)
+        lookup.chmod(0o600)
         command = [
             sys.executable,
             str(SCRIPT),
@@ -49,6 +52,7 @@ def main() -> None:
         destination = base / "cache/dxvk-state/203160"
         assert "DXVK_STATE_CACHE_SEEDED=" in first.stdout
         assert (destination / cache.name).read_bytes() == cache.read_bytes()
+        assert (destination / lookup.name).read_bytes() == lookup.read_bytes()
         manifest = json.loads((destination / "seed.json").read_text())
         assert manifest["appid"] == 203160
         second = subprocess.run(command, text=True, capture_output=True, check=False)
@@ -68,6 +72,9 @@ def main() -> None:
         payload = root / "0123456789abcdef.dxvk.bin"
         payload.write_bytes(b"state")
         payload.chmod(0o600)
+        lookup = root / "0123456789abcdef.dxvk.lut"
+        lookup.write_bytes(b"lookup")
+        lookup.chmod(0o600)
         (root / "seed.json").write_text("{}\n", encoding="utf-8")
         (root / "seed.json").chmod(0o600)
         (root / ".lock").write_bytes(b"")

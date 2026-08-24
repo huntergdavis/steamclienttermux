@@ -9779,3 +9779,9 @@ injects the actual path only into the final Tomb Raider process. External is
 still the default pending tablet timing. Focused and complete project tests
 pass. The required recall query found no prior implementation; this reuses the
 manifest-backed AppID model and final-process-only selector boundary.
+
+The first tablet seed failed closed after discovering DXVK 2.4.1's legitimate
+782,369-byte `.dxvk.lut` companion beside the 22,334,048-byte `.dxvk.bin`.
+The allow-list now accepts exactly hash-named `bin|lut` pairs, and the focused
+contract copies and validates both shapes. No game launched during the rejected
+seed. A second required recall query found no indexed prior implementation.

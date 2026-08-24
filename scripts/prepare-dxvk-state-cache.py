@@ -16,7 +16,7 @@ import stat
 import tempfile
 
 
-CACHE_NAME = re.compile(r"^[0-9a-f]{16}\.dxvk\.bin$")
+CACHE_NAME = re.compile(r"^[0-9a-f]{16}\.dxvk\.(?:bin|lut)$")
 
 
 def fail(message: str) -> None:
