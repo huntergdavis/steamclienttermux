@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-24",
+  "source_base_commit": "2c80145",
+  "status": "host-and-tablet-pass",
+  "operation": "replace one-second whole-file AppID acknowledgement polling with one 100 ms incremental follower",
+  "design": {
+    "old_path": "once per second: process identity, stat, tail from offset, grep",
+    "new_path": "one bounded tail follower plus Bash line matching",
+    "poll_seconds": 0.1,
+    "steam_identity": "PID and start ticks checked throughout",
+    "log_identity": "absolute regular non-symlink",
+    "appid_match": "new bytes after the pre-launch offset only",
+    "scope": "Steam control plane only; no game or frame-path work"
+  },
+  "adjacent_tablet_pair": {
+    "control": {
+      "wrapper_to_appid_ready_seconds": 20.34,
+      "forward_complete_to_appid_ready_seconds": 15.51
+    },
+    "candidate": {
+      "wrapper_to_appid_ready_seconds": 20.05,
+      "forward_complete_to_appid_ready_seconds": 15.35
+    },
+    "observed_improvement_seconds": {
+      "wrapper_to_appid_ready": 0.29,
+      "forward_complete_to_appid_ready": 0.16
+    }
+  },
+  "correctness": {
+    "visible_window": "Tomb Raider",
+    "screenshot": "2800x1752 full-screen Square Enix Terms UI",
+    "screenshot_sha256": "184ca1318edef9617db496693fd9dd31fbb7ce7821d1d7c87e06e4b517dacbb8",
+    "game_pid_start_ticks": "27783:147165036",
+    "game_stopped_with_exact_term": true,
+    "steam_pid_start_ticks_preserved": "15575:128118834",
+    "x11_pid_start_ticks_preserved": "13643:121863492"
+  },
+  "artifacts": {
+    "waiter_sha256": "00a6c4b5379aadc933eddb9fbd1724e2ed176f612af4ff2cf1d3a680f618bab2",
+    "launcher_sha256": "3ebfa59f767ef79f502ce97972a5c8ac58f7960d73d8db613ad36c56bd14af32",
+    "candidate_phase_log_sha256": "ac061462077fd0a0faa9db62e2cc9d53ae03f8949c578af6bfb0c2ed3a2f7f84",
+    "candidate_forward_log_sha256": "ce76ef2ac690e99022a09aa626acae6cb76199862a8cdc2813bbb1e3cb347a5e",
+    "launcher_stdout_sha256": "6cfffbb46c692d2c9d3911d914d09d3874e43ec63715c1cae87b7833c40b7751"
+  },
+  "rollback": {
+    "path": "~/steam-arm64/backups/appid-incremental-wait-pre-20260824-1206/start-steam.sh",
+    "sha256": "bab052042cd5930171d5a0dc9c5a20ee1514304d5579f9202028728ed62853f5"
+  },
+  "validation": {
+    "focused_synthetic_contract": "pass",
+    "complete_project_suite": "pass",
+    "tablet_hash_and_syntax_gate": "pass",
+    "tablet_visual_inspection": "pass"
+  },
+  "recall": {
+    "query": "Steam AppID GameProcess log tail follow acknowledgement polling start-steam",
+    "result": "no indexed match",
+    "reused": [
+      "pre-launch byte offset",
+      "exact PID/start-time identity",
+      "AppID-specific GameProcess marker",
+      "protected Steam/X11 validation and visual screenshot gate"
+    ]
+  },
+  "claim_boundary": "One adjacent live pair shows a 0.29-second wrapper improvement. The main 15-second Steam AppID processing delay remains; this is not a latency distribution or a new AppID-to-window record."
+}

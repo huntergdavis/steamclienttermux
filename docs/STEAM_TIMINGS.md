@@ -54,6 +54,17 @@ includes both candidate passes and the screenshot proof.
 | Authenticated fast dispatcher | 0.340 | Current |
 | Complete warm background wrapper | **1.833** | Current; [evidence](evidence/steam-warm-fast-forward-default-20260824.json) |
 
+| Warm AppID acknowledgement | Control | Incremental follower | Change |
+| --- | ---: | ---: | ---: |
+| Wrapper start to accepted AppID | 20.34s | **20.05s** | **-0.29s** |
+| Forward complete to accepted AppID | 15.51s | **15.35s** | **-0.16s** |
+
+The incremental follower replaces repeated one-second `stat|tail|grep` scans
+with one 100 ms stream reader. A full-screen 2800x1752 Tomb Raider Terms frame
+passed visual inspection. This is one adjacent pair; the remaining 15.35
+seconds are Steam processing, not waiter overhead. See the [tablet
+evidence](evidence/steam-appid-incremental-wait-tablet-20260824.json).
+
 The direct dispatcher removes the remaining hot PRoot boundary only for exact
 allow-listed commands. See [`launch-timings/`](launch-timings/) for artifacts.
 

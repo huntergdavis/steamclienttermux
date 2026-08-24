@@ -47,6 +47,10 @@ def main():
     assert 'steam_phase complete "route=warm-appid"' in source
     assert 'steam_phase complete "route=cold-visible"' in source
     assert '"$forward_dispatcher"' in source
+    assert 'app_launch_waiter="$base/compat-bin/wait-steam-app-launch.sh"' in source
+    assert '"$app_launch_waiter" \\' in source
+    assert '--steam-start-ticks "$expected_start_ticks"' in source
+    assert 'sleep 1' not in source[source.index("wait_for_app_launch()") : source.index("read_process_cgroups()")]
     assert 'if [[ $forward_bootstrap == fast ]]' in source
     assert 'fast_forward_authenticated=1' in source
     assert '[[ $fast_forward_authenticated == 0 ]]' in source

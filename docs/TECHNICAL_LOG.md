@@ -9845,3 +9845,16 @@ was recorded. Steam PID/start ticks `15575:128118834` and X11
 `13643:121863492` were preserved. This agrees with the earlier Wine allocator
 crash that established the final mprotect shim as a correctness dependency, so
 the production `lean` preload remains unchanged. [Evidence](evidence/tombraider-lean-tmp-only-rejected-20260824.json)
+
+## 2026-08-24: AppID acknowledgement becomes incremental
+
+The required recall query found no prior incremental Steam GameProcess-log
+waiter. The wrapper previously spawned `stat`, `tail`, and `grep` once per
+second until Steam appended the requested AppID marker. A single bounded
+follower now reads only post-request bytes every 100 ms while retaining exact
+Steam PID/start-time, regular-file, offset, and AppID checks. The adjacent
+tablet pair moved wrapper-to-AppID-ready from 20.34 to 20.05 seconds. Visual
+inspection confirmed the real 2800x1752 Tomb Raider Terms UI; the exact game
+child was then terminated while Steam/X11 identities remained unchanged. This
+is a 0.29-second control-plane improvement, not a new game-window record.
+[Evidence](evidence/steam-appid-incremental-wait-tablet-20260824.json)

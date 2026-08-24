@@ -123,6 +123,16 @@ The focused deja query
 no indexed implementation, so the responsive/compact split is new work built on
 the exact authenticated fast-forward and affinity-stamp boundaries above.
 
+The AppID acknowledgement waiter previously rescanned the growing
+`gameprocess_log.txt` once per second with new `stat`, `tail`, and `grep`
+processes. It now follows only bytes after the captured pre-launch offset at
+100 ms resolution, matches the requested AppID in Bash, and continuously binds
+the wait to the exact Steam PID/start ticks. One adjacent tablet pair improved
+wrapper-to-acknowledgement from 20.34 to 20.05 seconds and produced a real
+full-screen game frame. This removes polling quantization; it does not solve
+the remaining 15.35 seconds of Steam-side launch processing. The required
+recall query found no prior implementation. [Evidence](evidence/steam-appid-incremental-wait-tablet-20260824.json)
+
 The following warm-path slice replaces three Bash-wide `/proc` scans with
 native `pgrep` candidate narrowing for X11, Steam, and CEF, followed by the same
 exact command-line/process matcher as before. On the target, each native scan

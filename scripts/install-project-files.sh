@@ -123,6 +123,8 @@ install_one "$repo_root/scripts/prepare-proton-direct-wine.py" \
     "$base/compat-bin/prepare-proton-direct-wine.py" 700
 install_one "$repo_root/scripts/guard-wine-startup-window.sh" \
     "$base/compat-bin/guard-wine-startup-window.sh" 700
+install_one "$repo_root/scripts/wait-steam-app-launch.sh" \
+    "$base/compat-bin/wait-steam-app-launch.sh" 700
 install_one "$native_entry_stage" \
     "$base/compat-bin/steam-arm64-native-bwrap-entry" 700
 install_one "$native_entry_stage" \

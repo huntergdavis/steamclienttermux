@@ -113,6 +113,7 @@ affinity_helper="$base/compat-bin/set-tombraider-affinity.py"
 gtaiv_affinity_helper="$base/compat-bin/set-gtaiv-affinity.py"
 process_match_helper="$base/compat-bin/steam-arm64-process-match.sh"
 forward_dispatcher="$base/compat-bin/steam-arm64-forward-dispatch"
+app_launch_waiter="$base/compat-bin/wait-steam-app-launch.sh"
 affinity_lock="$base/runtime/tomb-raider-affinity.lock"
 gtaiv_affinity_lock="$base/runtime/gtaiv-affinity.lock"
 steam_affinity_stamp="$base/runtime/steam-session-affinity-v1"
@@ -432,25 +433,19 @@ wait_for_remembered_login() {
     return 1
 }
 
-app_launch_seen() {
-    local appid="$1" offset="$2" size
-    [[ -f "$gameprocess_log" && ! -L "$gameprocess_log" ]] || return 1
-    size="$(stat -c %s -- "$gameprocess_log" 2>/dev/null || true)"
-    [[ "$size" =~ ^[0-9]+$ && "$size" -ge "$offset" ]] || return 1
-    tail -c "+$((offset + 1))" -- "$gameprocess_log" |
-        grep -F "AppID $appid adding PID" >/dev/null
-}
-
 wait_for_app_launch() {
-    local expected_pid="$1" appid="$2" offset="$3" _
+    local expected_pid="$1" appid="$2" offset="$3" expected_start_ticks
     printf 'start-steam: waiting for Steam AppID %s launch acknowledgement\n' \
         "$appid" >&2
-    for _ in $(seq 1 "$app_timeout"); do
-        steam_pid_is_current "$expected_pid" || return 1
-        app_launch_seen "$appid" "$offset" && return 0
-        sleep 1
-    done
-    return 1
+    expected_start_ticks="$(steam_arm64_process_start_ticks "$expected_pid" || true)"
+    [[ $expected_start_ticks =~ ^[1-9][0-9]*$ ]] || return 1
+    "$app_launch_waiter" \
+        --steam-pid "$expected_pid" \
+        --steam-start-ticks "$expected_start_ticks" \
+        --appid "$appid" \
+        --log "$gameprocess_log" \
+        --offset "$offset" \
+        --timeout "$app_timeout"
 }
 
 read_process_cgroups() {
@@ -703,6 +698,8 @@ done
     fail "process matcher is unavailable: $process_match_helper"
 [[ -x $forward_dispatcher && ! -L $forward_dispatcher ]] ||
     fail "forward dispatcher is unavailable: $forward_dispatcher"
+[[ -x $app_launch_waiter && ! -L $app_launch_waiter ]] ||
+    fail "AppID launch waiter is unavailable: $app_launch_waiter"
 # shellcheck source=/dev/null
 source "$process_match_helper"
 mkdir -p "$base/logs"
