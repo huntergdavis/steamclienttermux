@@ -9281,3 +9281,19 @@ identities. Both new FEX maps were archived rather than discarded.
 High loses 16.1 FPS / 35.9% versus the 44.8 FPS 1080p Normal control and lands
 1.3 FPS below the desired 30 FPS floor. Exact evidence is retained in
 `docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-1080p-high-fullscreen-60hz-40c-20260824.json`.
+
+## 2026-08-23: 1080p Ultra falls to 10.0 FPS
+
+The 1080p Ultra cell completed at **7.2 minimum, 12.8 maximum, and 10.0
+average FPS**. The runner, game result, DXVK, full-display controller, and live
+scene screenshot agree on exclusive 1920x1080 at 60 Hz. It began at 37.0 C,
+used DXVK 2.4.1 with seven automatic compiler threads, and reached affinity
+ready for PID 6310 with 53 threads. Protected Steam, X11, and audio identities
+were unchanged, and both new FEX maps were archived.
+
+Ultra costs 18.7 FPS / 65.2% against 1080p High, versus 28.1 FPS / 59.2%
+against 720p High. The slightly larger proportional collapse at 1080p is
+evidence that the aggregate tessellation/SSAO/DOF/LOD/texture transition is
+substantially sensitive to pixel work, not solely fixed translation overhead.
+It does not yet identify which member dominates. Exact hashes are in
+`docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-1080p-ultra-fullscreen-60hz-40c-20260824.json`.

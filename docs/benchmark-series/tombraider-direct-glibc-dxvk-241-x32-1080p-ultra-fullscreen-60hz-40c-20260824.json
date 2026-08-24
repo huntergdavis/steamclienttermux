@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "status": "accepted_single_run_baseline",
+  "game": "Tomb Raider (2013)",
+  "appid": 203160,
+  "target": {
+    "backend": "direct native-glibc Steam host",
+    "resolution": "1920x1080",
+    "graphics": "Ultra",
+    "quality_level": 3,
+    "benchmark_ini_sha256": "e6a8e2a9755ee2e814fa57225a4d3ac02b3922aabaf53cbd6a97c064af1df5aa",
+    "exclusive_fullscreen": true,
+    "fullscreen_refresh_hz": 60,
+    "vsync": false,
+    "motion_blur": false,
+    "termux_x11_surface": "borderless 2800x1752 at 59.97 Hz",
+    "fex_profile": "safe",
+    "fex_code_cache": "offline-compiled generation 5",
+    "fex_smc_checks": "mtrack",
+    "dxvk_variant": "official DXVK 2.4.1 x32",
+    "dxvk_compiler_threads": "automatic (runtime selected 7)"
+  },
+  "comparison": {
+    "high_control_average_fps": 28.7,
+    "normal_control_average_fps": 44.8,
+    "candidate_average_fps": 10.0,
+    "change_from_high_fps": -18.7,
+    "change_from_high_percent": -65.1567944250871,
+    "change_from_normal_fps": -34.8,
+    "change_from_normal_percent": -77.67857142857143
+  },
+  "run": {
+    "series_id": "20260824T021358Z-safe",
+    "minimum_fps": 7.2,
+    "maximum_fps": 12.8,
+    "average_fps": 10.0,
+    "initial_max_temperature_millidegrees_c": 37000,
+    "cooldown_seconds": 30.339,
+    "elapsed_seconds": 162.907,
+    "game_result": "~/steam-arm64/removable-library/steamapps/common/Tomb Raider/benchmarkresults 2026-08-24 02-17-11.txt",
+    "game_result_sha256": "2031008160e490be77376b8d4b0156b961e6b4d70b02dfd63c5a299a9f0f3587",
+    "series": "~/steam-arm64/logs/tombraider-benchmarks/20260824T021358Z-safe/series.json",
+    "series_sha256": "fb8850a704121426b99a4d98b5adb85514474b38afb6dba635b588de18692ae8",
+    "affinity_log_sha256": "7736fb01ca9ccc2e59f668e1ed52619e94ffa3728071e84acc736a62462f8967",
+    "affinity_ready": "PID 6310, 53 threads, CPUs 1-7, RakNet CPU 1, Steam helpers CPU 0"
+  },
+  "resolved_quality_settings": {
+    "TextureQuality": 4,
+    "BestTextureFilter": 18,
+    "HairQuality": 0,
+    "AntiAliasingMode": 1,
+    "ShadowMode": 1,
+    "ShadowResolution": 2,
+    "SSAOMode": 2,
+    "DOFQuality": 2,
+    "ReflectionQuality": 2,
+    "LODScale": 4,
+    "EnablePostProcess": 1,
+    "EnableMotionBlur": 0,
+    "EnableScreenEffects": 0,
+    "EnableHighPrecisionRT": 1,
+    "EnableTessellation": 1
+  },
+  "presentation": {
+    "controller_log": "~/steam-arm64/logs/tombraider-bvb-foreground-20260824T021345Z-4380.log",
+    "controller_log_sha256": "058402182f6a0505e6b7c081377d3f04d3882c2038b21ceb51a673801e0e0898",
+    "task_id": 2852,
+    "task_bounds": "0,0,2800,1752",
+    "controller_cgroup": "/top-app",
+    "android_polling_during_timed_scene": false,
+    "controller_exit_status": 0,
+    "live_scene_screenshot_sha256": "6418dde9064cae094a837810102041963503c707d17844bdab6c5d63bb98c878"
+  },
+  "dxvk": {
+    "log_directory": "~/steam-arm64/logs/dxvk-direct-vspgd121",
+    "version": "2.4.1",
+    "swapchain_extent": "1920x1080",
+    "display_mode": "1920x1080@60",
+    "graphics_pipeline_libraries": true,
+    "compiler_threads": 7,
+    "log_sha256": {
+      "TombRaider_d3d11.log": "2724c17f9b2e68e33ada15cadf6a2ab5db9bc4c6d77cedde239816a241a19420",
+      "TombRaider_d3d9.log": "7a6277e6712d6f4ca7008a60e814f0b4ff851ed7663a0774292c90026e8a8071",
+      "TombRaider_dxgi.log": "1e06f4f6f487b36b80b6737af0a99f1e76ad6412f9836423f4fb470e1e5a8a48"
+    }
+  },
+  "fex_runtime_delta": {
+    "archive": "~/steam-arm64/cache/fex-code-cache/tombraider-203160-offline-7efb8f8e/runtime-delta-valid-1080p-ultra-20260824T0218Z",
+    "sha256sums_sha256": "bdbc9ece4ad1f71c6a9778a8bdb24fd3dbd6e6f11f8c59dea074e606db3ba0f6",
+    "pending_directory_empty_after_archive": true
+  },
+  "validation": {
+    "profile_check_sha256": "740ad8035258025023a718906c75b8f06c56d13d43e3812a76adef7db615ab8e",
+    "topology_check_sha256": "84c3407f4f99dc2a2060e9d3e5db0240ed79fe76da94ecd9dcd05e87a80377a2",
+    "protected_processes_unchanged": {
+      "steam": {"pid": 15575, "start_ticks": 128118834},
+      "termux_x11": {"pid": 13643, "start_ticks": 121863492},
+      "pulseaudio": {"pid": 13923, "start_ticks": 121863956}
+    }
+  },
+  "recall": {
+    "query": "Tomb Raider 2013 High graphics registry preset settings 720p 1080p benchmark",
+    "result": "no indexed match",
+    "reused": [
+      "controlled 40 C fullscreen runner",
+      "hash-pinned DXVK overlay",
+      "recoverable FEX runtime-delta archive"
+    ]
+  },
+  "claim_boundary": "One runner-accepted thermally valid 1920x1080 Ultra pass establishes 10.0 average FPS; it is not yet a replicated mean or per-setting isolation."
+}
