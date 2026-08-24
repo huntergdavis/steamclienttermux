@@ -297,7 +297,8 @@ surface_steam_window() {
 }
 
 wait_for_steam_window() {
-    local expected_pid="$1" _ window candidate stable_window='' stable_count=0
+    local expected_pid="$1" required_stable_count="${2:-$window_stable_seconds}"
+    local _ window candidate stable_window='' stable_count=0
     for _ in $(seq 1 "$window_timeout"); do
         steam_pid_is_current "$expected_pid" || return 1
         window="$(largest_steam_window visible || true)"
@@ -308,7 +309,7 @@ wait_for_steam_window() {
                 stable_window="$window"
                 stable_count=1
             fi
-            if (( stable_count >= window_stable_seconds )); then
+            if (( stable_count >= required_stable_count )); then
                 printf '%s\n' "$window"
                 return 0
             fi
@@ -320,7 +321,7 @@ wait_for_steam_window() {
         # Steam can create its full-size CEF window without mapping it when no
         # desktop session exists. A live process and responsive DISPLAY are not
         # enough: expose that existing window, then verify it became visible.
-        if [[ "$background_mode" == 0 ]]; then
+        if [[ -z "$window" && "$background_mode" == 0 ]]; then
             candidate="$(largest_steam_window any || true)"
             if [[ -n "$candidate" ]]; then
                 surface_steam_window "$candidate" || true
@@ -783,8 +784,8 @@ if [[ "${#steam_pids[@]}" -eq 1 ]]; then
         fail "remembered Steam login did not complete in ${window_timeout}s"
     fi
     if [[ -z "$requested_appid" && "$background_mode" == 1 ]]; then
-        printf 'start-steam: existing Steam PID %s ready in background; X11 PID %s CPUs 0-3, Steam CPUs 0-3, CEF CPU 0, PulseAudio sink, no Steam window focus, no KDE\n' \
-            "${steam_pids[0]}" "${x11_pids[0]}"
+        printf 'start-steam: existing Steam PID %s ready in background; X11 PID %s CPUs 0-3, Steam CPUs 0-3, CEF CPUs %s, PulseAudio sink, no Steam window focus, no KDE\n' \
+            "${steam_pids[0]}" "${x11_pids[0]}" "$cef_cpu_mask"
         exit 0
     fi
     if [[ -n "$requested_appid" && "$background_mode" == 1 ]]; then
@@ -795,11 +796,12 @@ if [[ "${#steam_pids[@]}" -eq 1 ]]; then
             fail "Steam did not acknowledge AppID $requested_appid in ${app_timeout}s"
         fi
         apply_steam_session_affinity "${x11_pids[0]}" "${steam_pids[0]}"
-        printf 'start-steam: AppID %s accepted in background; X11 PID %s CPUs 0-3, Steam PID %s CPUs 0-3, CEF CPU 0, PulseAudio sink, no Steam window focus, no KDE\n' \
-            "$requested_appid" "${x11_pids[0]}" "${steam_pids[0]}"
+        printf 'start-steam: AppID %s accepted in background; X11 PID %s CPUs 0-3, Steam PID %s CPUs 0-3, CEF CPUs %s, PulseAudio sink, no Steam window focus, no KDE\n' \
+            "$requested_appid" "${x11_pids[0]}" "${steam_pids[0]}" \
+            "$cef_cpu_mask"
         exit 0
     fi
-    if ! steam_window="$(wait_for_steam_window "${steam_pids[0]}")"; then
+    if ! steam_window="$(wait_for_steam_window "${steam_pids[0]}" 1)"; then
         steam_pid_is_current "${steam_pids[0]}" ||
             fail "Steam PID ${steam_pids[0]} exited before a usable window appeared"
         fail "Steam PID ${steam_pids[0]} exists but no usable window became visible in ${window_timeout}s"
@@ -807,8 +809,9 @@ if [[ "${#steam_pids[@]}" -eq 1 ]]; then
     surface_steam_window "$steam_window" ||
         fail "Steam window $steam_window could not be mapped, raised, and focused"
     apply_steam_session_affinity "${x11_pids[0]}" "${steam_pids[0]}"
-    printf 'start-steam: ready; X11 PID %s CPUs 0-3, Steam PID %s CPUs 0-3, CEF CPU 0, window %s visible, PulseAudio sink, Lorie mouse/touch/keyboard, no KDE\n' \
-        "${x11_pids[0]}" "${steam_pids[0]}" "$steam_window"
+    printf 'start-steam: ready; X11 PID %s CPUs 0-3, Steam PID %s CPUs 0-3, CEF CPUs %s, window %s visible, PulseAudio sink, Lorie mouse/touch/keyboard, no KDE\n' \
+        "${x11_pids[0]}" "${steam_pids[0]}" "$cef_cpu_mask" \
+        "$steam_window"
     exit 0
 fi
 

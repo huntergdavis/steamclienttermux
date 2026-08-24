@@ -113,6 +113,16 @@ Cold launcher discovery keeps the exhaustive fallback. The focused deja query
 `cache X11 Steam steamwebhelper PID discovery affinity stamp start ticks proc
 scan` returned no indexed implementation.
 
+A timestamped tablet trace then showed a separate warm-UI cost: after finding a
+valid visible 2800x1586 Steam window, each stability iteration still scanned
+every hidden 64x24 CEF utility window. Four redundant fallback scans cost about
+8.6 seconds. The existing-process path also inherited the cold-start five-second
+window-stability delay. Warm authenticated Steam now accepts the first valid
+visible full-size window and invokes hidden-window recovery only when no valid
+visible window exists. Cold startup retains the complete stability gate. The
+focused deja query `warm existing Steam window five second stability hidden CEF
+window scan xdotool` returned no indexed implementation.
+
 ## Later, separate A/Bs
 
 1. Reclaim safe non-profile disk space; the audited tablet filesystem was 98%

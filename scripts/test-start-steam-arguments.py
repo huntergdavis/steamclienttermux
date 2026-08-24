@@ -57,6 +57,9 @@ def main():
     assert "'steamrtarm64/steamwebhelper($| )'" in source
     assert '"termux-x11 com.termux.x11 ${display} "*' in source
     assert "${arguments[0]:-} == termux-x11" in source
+    assert 'required_stable_count="${2:-$window_stable_seconds}"' in source
+    assert '[[ -z "$window" && "$background_mode" == 0 ]]' in source
+    assert 'wait_for_steam_window "${steam_pids[0]}" 1' in source
     assert '--steam-start-ticks "$steam_start_ticks"' in source
     reused_x11 = source.index('    1)\n        # A prior native Activity')
     foreground = source.index("        foreground_x11", reused_x11)
