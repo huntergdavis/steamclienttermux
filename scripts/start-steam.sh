@@ -395,6 +395,12 @@ apply_uniform_affinity() {
     local label="$1" pid="$2" mask="$3"
     [[ "$pid" =~ ^[0-9]+$ && -r "/proc/$pid/status" ]] ||
         fail "$label PID is no longer alive: $pid"
+    # Warm forwarding commonly revisits the same X11, Steam, and CEF process
+    # identities. Reading their masks is much cheaper than asking taskset to
+    # rewrite every thread twice per request.
+    if thread_masks_are "$pid" "$mask"; then
+        return 0
+    fi
     taskset -apc "$mask" "$pid" >/dev/null ||
         fail "unable to place $label PID $pid on CPUs $mask"
     thread_masks_are "$pid" "$mask" ||
@@ -534,9 +540,11 @@ x11_uid="$(package_uid com.termux.x11)"
 [[ "$termux_uid" == "$x11_uid" ]] ||
     fail "Termux and Termux:X11 do not share a UID ($termux_uid != $x11_uid)"
 
+x11_cold_start=0
 mapfile -t x11_pids < <(matching_pids x11)
 case "${#x11_pids[@]}" in
     0)
+        x11_cold_start=1
         require_top_app launcher "$$"
         if x11_is_ready; then
             fail "display $display responds without a validated Termux:X11 server"
@@ -598,10 +606,12 @@ esac
 require_top_app X11 "${x11_pids[0]}"
 apply_uniform_affinity X11 "${x11_pids[0]}" 0-3
 
-# One handoff after server readiness exposes either a reused or cold display.
-# A cold start deliberately performs this second handoff because opening the
-# activity before the server can otherwise leave a black Android surface.
-foreground_x11
+# A cold start deliberately performs a second handoff after server readiness
+# because opening the Activity before the server can otherwise leave a black
+# Android surface. A reused server was already foregrounded above.
+if [[ $x11_cold_start == 1 ]]; then
+    foreground_x11
+fi
 
 if x11_bridge_has_dead_binder "${x11_pids[0]}"; then
     fail "X server ${x11_pids[0]} has a stale Android Binder bridge; X clients cannot migrate, so stop them and restart this server"
@@ -689,7 +699,6 @@ if [[ "${#steam_pids[@]}" -eq 1 ]]; then
         fail "remembered Steam login did not complete in ${window_timeout}s"
     fi
     if [[ -z "$requested_appid" && "$background_mode" == 1 ]]; then
-        apply_steam_session_affinity "${x11_pids[0]}" "${steam_pids[0]}"
         printf 'start-steam: existing Steam PID %s ready in background; X11 PID %s CPUs 0-3, Steam CPUs 0-3, CEF CPU 0, PulseAudio sink, no Steam window focus, no KDE\n' \
             "${steam_pids[0]}" "${x11_pids[0]}"
         exit 0

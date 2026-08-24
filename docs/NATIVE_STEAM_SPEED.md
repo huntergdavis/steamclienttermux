@@ -23,6 +23,15 @@ runs fast forwarding synchronously: only an exact `session_valid`,
 login-log heuristic. Window presentation and AppID acknowledgement waits remain
 unchanged.
 
+The first wrapper trace measured 28.337 seconds despite a roughly 0.5-second
+forward: reused-X11 discovery/foregrounding cost about 6.1 seconds, Binder
+health 2.7, Steam discovery 1.7, and two full affinity passes about 8 seconds
+each. The warm path now treats already-correct thread masks as a no-op, avoids
+the second Android Activity handoff for a reused X11 server, and omits the
+duplicate post-forward affinity pass when no AppID was requested. Cold X11,
+game-launch, window-surfacing, and incorrect-mask paths retain their checks and
+repinning behavior.
+
 The code reuses the exact loader-process model and remembered-profile rules
 established in indexed sessions `019ff310-e8ac-7212-9f2f-5ba9005b97bd` and
 `019fe348-1247-7530-bc25-8a573aaf4252`. A focused deja query for an existing
