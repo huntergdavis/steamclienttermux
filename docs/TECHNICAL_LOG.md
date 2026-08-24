@@ -9222,3 +9222,25 @@ cost. The two runtime FEX maps were preserved, not deleted, in
 `runtime-delta-valid-720p-high-20260824T0143Z`; its manifest hash is retained
 in the compact evidence. The authoritative artifact is
 `docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-720p-high-fullscreen-60hz-40c-20260824.json`.
+
+## 2026-08-23: 720p Ultra exposes a 19.4 FPS quality cliff
+
+The next exact matrix cell completed at **16.3 minimum, 22.0 maximum, and
+19.4 average FPS**. The runner and game independently agree on exclusive
+1280x720 at 60 Hz, V-Sync off, and motion blur off. The private
+`QualityLevel=3` benchmark INI resolved to texture quality 4, filter code 18,
+SSAO 2, depth of field 2, LOD 4, and tessellation enabled; TressFX remained
+off. That is a large bundle of changes, so this pass identifies a cliff but
+does not yet attribute it to any one setting.
+
+The run began unthrottled at 37.0 C after 30.302 seconds of cooldown. DXVK
+reported official 2.4.1, a 1280x720 swapchain, graphics pipeline libraries,
+and six automatic compiler threads. Affinity reached ready for PID 26845 with
+55 threads on CPUs1-7, RakNet CPU1, and Steam helpers CPU0. Steam, Termux:X11,
+and PulseAudio retained their protected PID/start-tick identities.
+
+Ultra loses 28.1 FPS / 59.2% versus 720p High and 39.7 FPS / 67.2% versus
+720p Normal. The two runtime FEX maps were preserved in
+`runtime-delta-valid-720p-ultra-20260824T0150Z`. Exact hashes and the
+single-run claim boundary are in
+`docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-720p-ultra-fullscreen-60hz-40c-20260824.json`.

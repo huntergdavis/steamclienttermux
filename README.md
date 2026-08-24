@@ -59,6 +59,7 @@ DXVK 2.4.1 both averaged 59.1 FPS.
 | --- | --- | --- | --- | ---: | --- |
 | official 2.4.1 x32 | `safe`, offline-compiled cache generation 5 | 1280x720 Normal, exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 35.8 / 74.4 / **59.1**; repeat 15.7 / 72.5 / **59.1** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-720p-normal-fullscreen-60hz-20260823.json) |
 | official 2.4.1 x32 | `safe`, offline-compiled cache generation 5 | 1280x720 High (`QualityLevel=2`), exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 31.4 / 59.4 / **47.5** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-720p-high-fullscreen-60hz-40c-20260824.json) |
+| official 2.4.1 x32 | `safe`, offline-compiled cache generation 5 | 1280x720 Ultra (`QualityLevel=3`), exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 16.3 / 22.0 / **19.4** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-720p-ultra-fullscreen-60hz-40c-20260824.json) |
 | official 2.4.1 x32 | `safe`, offline-compiled cache generation 5 | 1920x1080 Normal, exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 29.2 / 65.5 / **44.8** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-1080p-normal-fullscreen-60hz-40c-20260824.json) |
 | official 2.4.1 x32, 4 compiler workers (rejected) | `safe`, offline-compiled cache generation 5 | 1920x1080 Normal, exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 27.7 / 63.1 / **44.3** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-compiler4-1080p-normal-fullscreen-60hz-40c-20260824.json) |
 | official 1.10.3 x32 | `safe`, offline-compiled cache generation 5 | 1280x720 Normal, exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 27.9 / 70.3 / **55.6** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-1103-x32-720p-normal-fullscreen-60hz-40c-20260824.json) |
@@ -81,6 +82,12 @@ The first exact 720p High pass averaged 47.5 FPS and held a 31.4 FPS minimum.
 High costs 11.6 FPS / 19.6% versus 720p Normal; its game-authored settings
 raise texture filtering, shadow resolution, reflections, LOD, and enable the
 high-precision render target while leaving TressFX and tessellation off.
+
+Ultra averaged 19.4 FPS, losing 28.1 FPS / 59.2% versus High. Its aggregate
+preset simultaneously enables tessellation and raises texture quality,
+anisotropic filtering, SSAO, depth of field, and LOD. This is the first clear
+quality-setting cliff; the matrix must separate those changes before assigning
+the cost to one feature.
 
 Forcing four DXVK compiler workers reduced the 1080p result to 44.3 FPS,
 1.1% below DXVK's automatic seven-worker choice, with lower minimum and maximum
