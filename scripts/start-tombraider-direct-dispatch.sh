@@ -330,7 +330,7 @@ cleanup() {
 }
 trap cleanup EXIT HUP INT TERM
 
-if [[ $dxvk_variant != bundled ]]; then
+if [[ $dxvk_variant != bundled && $mode == tombraider* ]]; then
     launch_phase dxvk_overlay_start "variant=$dxvk_variant"
     "$python" "$dxvk_overlay" activate --base "$base" \
         --variant "$dxvk_variant"

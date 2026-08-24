@@ -9634,6 +9634,19 @@ bounded experiments are therefore the existing FEX learned-map refresh and an
 overlapped hot-file prefetch; neither is promoted until independently timed.
 
 Before the refresh, the direct launcher was tightened so its now-default DXVK
-2.4.1 overlay activates only for `tombraider*` game modes. Offline compilation
-and smoke modes do not load DXVK and now leave the game directory untouched.
-The focused DXVK/FEX contracts and complete project suite pass.
+2.4.1 overlay activates only for `tombraider*` game modes. The first edit
+guarded tool validation but missed the separate activation condition; the
+generation-6 run exposed that duplication, activated one overlay, and restored
+it cleanly. Both conditions are now guarded and the contract requires exactly
+two guarded sites. Offline compilation and smoke modes no longer touch the game
+directory. The focused DXVK/FEX contracts and complete project suite pass.
+
+The tablet refresh then consumed ten bounded runtime maps, advanced the
+verified cache from generation 5 to 6, increased compiled files from 73 to 74,
+and left `codemap/new` empty. The direct compiler dispatch took 75.05 seconds.
+The previous generation is retained as a 142,305,280-byte external-storage tar
+with SHA-256 `b456e571572138f324be3294eb6cd58bb08f2d05b9edb1d29e97e24d1de4dcf9`.
+The new `result.json` SHA-256 is
+`02a4eda6237e2c28230be74a60042797f175921bc599d8ece3af5b9289bc7228`.
+Steam and X11 identities survived unchanged. A repeated AppID-to-window run is
+required before attributing any launch-time improvement to generation 6.
