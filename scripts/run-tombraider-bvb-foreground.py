@@ -532,6 +532,7 @@ def expand_x11_full_display(
     serial: str,
     task_id: int,
     bounds: tuple[int, int, int, int],
+    settle_timeout_seconds: float = 10.0,
 ) -> tuple[int, int]:
     left, top, right, bottom = bounds
     width = right - left
@@ -551,15 +552,6 @@ def expand_x11_full_display(
     toggle_x = right - round(width * 0.061)
     toggle_y = top + round(height * 0.060)
     adb_shell(adb, serial, "input", "tap", str(toggle_x), str(toggle_y))
-    time.sleep(1.0)
-    window_dump = adb_shell(adb, serial, "dumpsys", "window", "windows")
-    marker = f"taskId={task_id} "
-    start = window_dump.find(marker)
-    if start < 0:
-        fail("Termux:X11 full-display window is absent")
-    block_start = window_dump.rfind("  Window #", 0, start)
-    block_end = window_dump.find("\n  Window #", start)
-    block = window_dump[block_start : block_end if block_end >= 0 else None]
     expected = (
         f"Requested w={width} h={height}",
         f"mBounds=Rect({left}, {top} - {right}, {bottom})",
@@ -567,13 +559,28 @@ def expand_x11_full_display(
         "mGivenContentInsets=[0,0][0,0]",
         "mSystemDecorRect=[0,0][0,0]",
     )
-    missing = [item for item in expected if item not in block]
-    if missing:
-        fail(
-            "Termux:X11 did not enter verified borderless full-display mode: "
-            + ", ".join(missing)
-        )
-    return toggle_x, toggle_y
+    deadline = time.monotonic() + settle_timeout_seconds
+    missing = list(expected)
+    while time.monotonic() < deadline:
+        window_dump = adb_shell(adb, serial, "dumpsys", "window", "windows")
+        marker = f"taskId={task_id} "
+        start = window_dump.find(marker)
+        if start >= 0:
+            block_start = window_dump.rfind("  Window #", 0, start)
+            block_end = window_dump.find("\n  Window #", start)
+            block = window_dump[
+                block_start : block_end if block_end >= 0 else None
+            ]
+            missing = [item for item in expected if item not in block]
+            if not missing:
+                return toggle_x, toggle_y
+        time.sleep(0.1)
+    if start < 0:
+        fail("Termux:X11 full-display window is absent")
+    fail(
+        "Termux:X11 did not enter verified borderless full-display mode: "
+        + ", ".join(missing)
+    )
 
 
 def restore_x11(adb: Path, serial: str) -> None:

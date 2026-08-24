@@ -60,11 +60,22 @@ def main() -> None:
       mSystemDecorRect=[0,0][0,0]
   Window #11 Window{def u0 other/other.Activity}:
 """
-    module.adb_shell = lambda _adb, _serial, *parts: (
-        commands.append(parts) or window_dump
-        if parts == ("dumpsys", "window", "windows")
-        else commands.append(parts) or ""
+    stale_window_dump = window_dump.replace(
+        "mBounds=Rect(0, 0 - 2800, 1752)",
+        "mBounds=Rect(40, 40 - 520, 360)",
+    ).replace(
+        "frame=[0,0][2800,1752]",
+        "frame=[40,40][520,360]",
     )
+    window_dumps = [stale_window_dump, window_dump]
+
+    def fake_adb_shell(_adb, _serial, *parts):
+        commands.append(parts)
+        if parts == ("dumpsys", "window", "windows"):
+            return window_dumps.pop(0) if len(window_dumps) > 1 else window_dumps[0]
+        return ""
+
+    module.adb_shell = fake_adb_shell
     module.time.sleep = lambda _seconds: None
     try:
         assert module.expand_x11_full_display(
@@ -75,6 +86,10 @@ def main() -> None:
         module.time.sleep = original_sleep
     assert commands[0] == ("am", "task", "resize", "2852", "0", "0", "2800", "1752")
     assert commands[1] == ("input", "tap", "2629", "105")
+    assert commands[2:4] == [
+        ("dumpsys", "window", "windows"),
+        ("dumpsys", "window", "windows"),
+    ]
     assert module.find_x11_task_id(
         task_dump.replace(
             "realActivity={com.termux.x11/com.termux.x11.MainActivity}",
