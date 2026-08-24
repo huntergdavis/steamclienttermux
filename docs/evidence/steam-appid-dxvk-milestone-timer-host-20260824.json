@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-24",
+  "source_base_commit": "c0d74cf",
+  "status": "host-pass-tablet-runtime-pending",
+  "operation": "external DXVK startup milestone timing for Steam AppID launches",
+  "events": [
+    "dxvk_state_cache",
+    "dxvk_swapchain",
+    "dxvk_compiler"
+  ],
+  "design": {
+    "scope": "Only dxvk-direct-* directories created after timer startup are followed.",
+    "game_instrumentation": false,
+    "per_frame_work": false,
+    "observation": "Each event is the timer's first external observation and includes its source log and exact marker."
+  },
+  "validation": {
+    "preexisting_logs_ignored": true,
+    "delayed_log_creation_supported": true,
+    "incremental_lines_not_replayed": true,
+    "focused_contract": "pass",
+    "complete_project_suite": "pass"
+  },
+  "recall": {
+    "query": "Tomb Raider process to visible window 33 seconds DXVK shader cache startup bundled official 2.4.1",
+    "result": "no indexed match",
+    "reused": [
+      "existing AppID/process/window timer",
+      "DXVK info-log containment",
+      "first-observation timing semantics"
+    ]
+  },
+  "claim_boundary": "Host behavior only. A tablet AppID run is required to locate the remaining 26.905-second startup delay."
+}

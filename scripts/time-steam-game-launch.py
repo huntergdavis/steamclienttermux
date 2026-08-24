@@ -16,6 +16,11 @@ import time
 
 
 LOG_TIME = re.compile(r"^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]")
+DXVK_MILESTONES = (
+    ("dxvk_state_cache", "Found cache file:"),
+    ("dxvk_swapchain", "Presenter: Actual swapchain properties:"),
+    ("dxvk_compiler", "DXVK: Using "),
+)
 
 
 @dataclass(frozen=True)
@@ -46,6 +51,55 @@ class LogFollower:
             text = handle.read()
             self.offset = handle.tell()
         return text.splitlines()
+
+
+class DxvkMilestoneFollower:
+    """Follow only DXVK log directories created after this timer starts."""
+
+    def __init__(self, root: Path) -> None:
+        self.root = root
+        try:
+            self.known_directories = {
+                path for path in root.glob("dxvk-direct-*") if path.is_dir()
+            }
+        except OSError:
+            self.known_directories = set()
+        self.active_directories: set[Path] = set()
+        self.followers: dict[Path, LogFollower] = {}
+
+    def read(self) -> list[tuple[str, Path, str]]:
+        try:
+            directories = sorted(
+                path for path in self.root.glob("dxvk-direct-*") if path.is_dir()
+            )
+        except OSError:
+            return []
+        for directory in directories:
+            if directory in self.known_directories:
+                continue
+            self.known_directories.add(directory)
+            self.active_directories.add(directory)
+        for directory in sorted(self.active_directories):
+            try:
+                logs = sorted(directory.glob("*.log"))
+            except OSError:
+                continue
+            for path in logs:
+                if path in self.followers:
+                    continue
+                follower = LogFollower(path)
+                # New logs must be consumed from byte zero. LogFollower's
+                # normal behavior deliberately starts at the current end.
+                follower.offset = 0
+                self.followers[path] = follower
+
+        records = []
+        for path, follower in sorted(self.followers.items()):
+            for line in follower.read():
+                for event, marker in DXVK_MILESTONES:
+                    if marker in line:
+                        records.append((event, path, line.strip()))
+        return records
 
 
 def utc_now() -> datetime:
@@ -214,6 +268,11 @@ def atomic_json(path: Path, report: dict[str, object]) -> None:
 def measure(arguments: argparse.Namespace) -> tuple[int, dict[str, object]]:
     console = LogFollower(arguments.console_log)
     compat = LogFollower(arguments.compat_log)
+    dxvk = (
+        DxvkMilestoneFollower(arguments.dxvk_log_root)
+        if arguments.dxvk_log_root is not None
+        else None
+    )
     started = utc_now()
     deadline = time.monotonic() + arguments.timeout
     runtime_launch = None
@@ -267,6 +326,15 @@ def measure(arguments: argparse.Namespace) -> tuple[int, dict[str, object]]:
                         process_name=process.name,
                         executable=process.executable,
                     )
+            if dxvk is not None:
+                for stage, path, line in dxvk.read():
+                    if stage not in events:
+                        events[stage] = event_record(
+                            utc_now(),
+                            runtime_launch,
+                            log=str(path),
+                            marker=line,
+                        )
             title = None
             if "target_process" in current_stages:
                 title = first_visible_window(
@@ -314,6 +382,11 @@ def measure(arguments: argparse.Namespace) -> tuple[int, dict[str, object]]:
         "process_name": arguments.process_name,
         "window_regex": arguments.window_regex,
         "display": arguments.display,
+        "dxvk_log_root": (
+            str(arguments.dxvk_log_root)
+            if arguments.dxvk_log_root is not None
+            else None
+        ),
         "poll_seconds": arguments.poll,
         "window_stable_seconds": arguments.window_stable_seconds,
         "timer_started_at": iso_time(started),
@@ -333,6 +406,8 @@ def measure(arguments: argparse.Namespace) -> tuple[int, dict[str, object]]:
             "first observations at the configured polling interval. "
             "A game window is complete only after the target and matching visible "
             "window remain continuously present for window_stable_seconds. "
+            "Optional DXVK milestones are external first-observation times and "
+            "do not instrument the game process. "
             "A later StartSession for the same AppID closes the incomplete attempt "
             "and resets process/window attribution for the retry."
         ),
@@ -354,6 +429,11 @@ def main() -> int:
     parser.add_argument("--timeout", type=float, default=900.0)
     parser.add_argument("--window-stable-seconds", type=float, default=30.0)
     parser.add_argument("--proc-root", type=Path, default=Path("/proc"))
+    parser.add_argument(
+        "--dxvk-log-root",
+        type=Path,
+        help="watch new dxvk-direct-* directories for startup milestones",
+    )
     parser.add_argument(
         "--console-log", type=Path, default=base / "client/logs/console_log.txt"
     )

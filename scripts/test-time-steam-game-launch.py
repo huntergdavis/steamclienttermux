@@ -4,6 +4,7 @@ import importlib.util
 from datetime import datetime, timezone
 from pathlib import Path
 import sys
+import tempfile
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -68,6 +69,35 @@ def main():
     assert module.update_window_stability(
         first_seen, title, later, False, None, 10.0
     ) == (None, None, False)
+
+    with tempfile.TemporaryDirectory(prefix="dxvk-milestones.") as directory:
+        root = Path(directory)
+        old = root / "dxvk-direct-old"
+        old.mkdir()
+        (old / "TombRaider_d3d11.log").write_text(
+            "info: Found cache file: ignored\n", encoding="utf-8"
+        )
+        follower = module.DxvkMilestoneFollower(root)
+        assert follower.read() == []
+
+        current = root / "dxvk-direct-current"
+        current.mkdir()
+        assert follower.read() == []
+        log = current / "TombRaider_d3d11.log"
+        log.write_text(
+            "info: Found cache file: state.dxvk.bin\n"
+            "info: Presenter: Actual swapchain properties:\n",
+            encoding="utf-8",
+        )
+        observed = follower.read()
+        assert [(event, path.name) for event, path, _ in observed] == [
+            ("dxvk_state_cache", "TombRaider_d3d11.log"),
+            ("dxvk_swapchain", "TombRaider_d3d11.log"),
+        ]
+        assert follower.read() == []
+        with log.open("a", encoding="utf-8") as stream:
+            stream.write("info: DXVK: Using 6 compiler threads\n")
+        assert [event for event, _, _ in follower.read()] == ["dxvk_compiler"]
     first_attempt = module.attempt_record(
         1,
         "superseded_by_retry",

@@ -9581,3 +9581,11 @@ the Steam handoff. The transactional overlay restored, four runtime maps were
 retained, and exact Steam/X11 identities survived. DXVK 2.4.1 is now the
 Tomb Raider direct-launch default; bundled DXVK and 1.10.3 remain explicit
 controls. The result is one engineering pass, not a latency distribution.
+
+The next host gate extends the existing AppID timer with optional, external
+DXVK milestone observation. It ignores preexisting log directories and records
+the first new state-cache, swapchain, and compiler markers with their source
+files and runtime-relative observation times. No code is injected into the
+game and no per-frame work is added. Focused delayed-file/incremental-follow
+coverage and the complete project suite pass. A tablet run is still required
+to partition the remaining 26.905-second game-process-to-window interval.

@@ -156,3 +156,8 @@ Every full Steam wrapper invocation also writes `start-steam-phases-*.log` with
 zero-subprocess timestamps for X11, audio, process discovery, affinity,
 forwarding, login, AppID, and visible-window boundaries. This is lifecycle-only
 instrumentation; it does not sample Steam or enter any game/rendering path.
+
+For startup diagnosis, `time-steam-game-launch.py --dxvk-log-root DIR` can also
+timestamp first state-cache, swapchain, and compiler markers from only the new
+DXVK log directory created by that run. This is an external polling sidecar,
+not game instrumentation, and remains outside the render/frame path.
