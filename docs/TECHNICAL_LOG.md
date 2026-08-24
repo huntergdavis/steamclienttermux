@@ -9739,3 +9739,11 @@ Focused tests prove repeatable success and byte-tamper rejection; the complete
 project suite passes. This reuses the existing backup-first cache identity and
 fail-closed path-validation rules; the required recall query found no prior
 implementation.
+
+The tablet audit then authenticated all 74 generation-6 cache files after an
+atomic swap; generation 7 remains recoverable both internally and in its
+external archive. A public AppID launch reached a stable window in 59.381
+seconds. The first capture was black, so it was not accepted as visual proof;
+the later capture showed the real full-screen Square Enix Terms UI. This is a
+restore/repeatability pass, not a speed record. Generation 6 remains selected
+because its earlier 53.553-second result is still the fastest verified run.

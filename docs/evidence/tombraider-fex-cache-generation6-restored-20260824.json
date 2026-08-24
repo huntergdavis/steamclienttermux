@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-24",
+  "status": "tablet-pass-restored-no-speed-record",
+  "operation": "restore and audit verified FEX generation 6",
+  "cache": {
+    "active_generation": 6,
+    "compiled_cache_files": 74,
+    "pending_maps_before_launch": 0,
+    "pending_maps_after_launch": 2,
+    "result_sha256": "02a4eda6237e2c28230be74a60042797f175921bc599d8ece3af5b9289bc7228",
+    "audit": "pass"
+  },
+  "rollback": {
+    "generation6_archive": "/storage/7376-B000/steam-arm64-evidence/fex-cache-generation6-pre-refresh-20260824.tar",
+    "generation6_archive_bytes": 144506880,
+    "generation6_archive_sha256": "8d53573107a20dac21ccae5af078dbe834b9dcd39416f88eb146ab5702dbb09c",
+    "generation7_archive": "/storage/7376-B000/steam-arm64-evidence/fex-cache-generation7-rejected-20260824.tar",
+    "generation7_archive_bytes": 145643520,
+    "generation7_archive_sha256": "57eaaed4a35b2ca6e792e86c6a33c0ebe3f3aac731b453065868692e2ba7680f",
+    "generation7_result_sha256": "6cda25348292eca9f8e76af981cc38f0bea3d899b95ec60bc72bf6171a545f5c"
+  },
+  "launch": {
+    "command": "~/start-steam-game 203160",
+    "session_to_runtime_seconds": 14.0,
+    "runtime_to_target_seconds": 19.426,
+    "runtime_to_winevulkan_seconds": 31.745,
+    "runtime_to_d3d11_seconds": 32.158,
+    "runtime_to_window_seconds": 45.381,
+    "appid_to_window_seconds": 59.381,
+    "current_best_seconds": 53.553,
+    "performance_record": false,
+    "dxvk_compiler_threads": 4
+  },
+  "validation": {
+    "timer_status": "complete",
+    "window_title": "Tomb Raider",
+    "first_screenshot": "black-rejected",
+    "first_screenshot_sha256": "b4623a77209d795aec063aa0e1f71d6bd7fb02e5fa8060ae275c94bceefdd499",
+    "late_screenshot": "full-screen-square-enix-terms-ui-pass",
+    "late_screenshot_sha256": "184ca1318edef9617db496693fd9dd31fbb7ce7821d1d7c87e06e4b517dacbb8",
+    "timing_json_sha256": "bcc1f2f1ddbda37a1cf1d717250427949fd3a74bccb3f713b941e47c298272cb",
+    "launcher_log_sha256": "2afeb71019937d22a7f55352b6c24af81cdd06788363c27e120f57c11afb7d99",
+    "steam_pid_start_ticks_preserved": "15575:128118834",
+    "x11_pid_start_ticks_preserved": "13643:121863492"
+  },
+  "recall": {
+    "queries": [
+      "idempotent verify finalized FEX cache refresh manifest generation",
+      "Tomb Raider direct AppID black screen after DXVK overlay active no window"
+    ],
+    "result": "no indexed match",
+    "reused": [
+      "backup-first cache rollback",
+      "bounded same-filesystem swap",
+      "post-swap identity audit",
+      "timer plus screenshot acceptance boundary"
+    ]
+  },
+  "claim_boundary": "The restored generation is authentic and rendered a real full-screen game UI. One 59.381-second confirmation does not replace the earlier 53.553-second generation-6 record."
+}
