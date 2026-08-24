@@ -245,6 +245,33 @@ def main():
     module.validate_benchmark_quality_settings(
         {**custom_quality, "SSAOMode": 1}, tuned_ultra
     )
+    dof_tuned_ultra = module.GAME_PROFILES[
+        "720p-ultra-no-tessellation-ssao1-dof1"
+    ]
+    assert dof_tuned_ultra["benchmark_overrides"] == {
+        "EnableTessellation": 0,
+        "SSAOMode": 1,
+        "DOFQuality": 1,
+    }
+    assert module.quality_benchmark_ini(dof_tuned_ultra).endswith(
+        "EnableTessellation = 0\nSSAOMode = 1\nDOFQuality = 1\n"
+    )
+    dof_tuned_quality = {
+        **custom_quality,
+        "SSAOMode": 1,
+        "DOFQuality": 1,
+    }
+    module.validate_benchmark_quality_settings(
+        dof_tuned_quality, dof_tuned_ultra
+    )
+    try:
+        module.validate_benchmark_quality_settings(
+            {**dof_tuned_quality, "DOFQuality": 2}, dof_tuned_ultra
+        )
+    except RuntimeError as error:
+        assert "DOFQuality" in str(error)
+    else:
+        raise AssertionError("modified DOF quality passed the custom profile")
     assert module.GAME_PROFILES["720p-ultimate"]["quality_level"] == 4
     assert module.GAME_PROFILES["1080p-ultimate"]["graphics"] == "Ultimate"
     assert module.quality_benchmark_ini(

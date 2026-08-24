@@ -9384,3 +9384,17 @@ to the recoverable
 `runtime-delta-valid-720p-ultra-no-tessellation-ssao1-20260824T0254Z`
 archive. Exact evidence is in
 `docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-720p-ultra-no-tessellation-ssao1-fullscreen-60hz-40c-20260824.json`.
+
+## 2026-08-23: isolate Ultra depth of field after SSAO
+
+The next cumulative 720p and 1080p profiles keep the accepted tessellation
+disable and SSAO mode 1, then reduce only `DOFQuality` from 2 to 1. Dedicated
+wrappers retain official DXVK 2.4.1, Safe FEX, the compiled cache, full startup
+topology, fullscreen control, and the 40 C start gate.
+
+The benchmark controller, transient-INI launcher, and final dispatcher require
+the same three ordered overrides. Focused tests prove the exact file and reject
+a mutated `DOFQuality=2` payload. The required `deja` query found no prior DOF
+implementation; this reuses the accepted SSAO isolation pipeline and its
+fail-closed game-result validation. No FPS claim is made until a real tablet
+pass completes.

@@ -323,6 +323,33 @@ def main() -> None:
         assert not tuned_ini.exists() and not tuned_ini.is_symlink()
 
         (base / "run/native-runtime-dispatch/dispatch.sock").unlink()
+        dof_tuned_environment = {
+            **benchmark_environment,
+            "TOMB_RAIDER_BENCHMARK_PRESET": (
+                "720p-ultra-no-tessellation-ssao1-dof1"
+            ),
+        }
+        dof_tuned = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env=dof_tuned_environment,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        assert dof_tuned.returncode == 1, dof_tuned.stderr
+        dof_tuned_ini = (
+            base
+            / "run/tombraider-benchmark-720p-ultra-no-tessellation-ssao1-dof1.ini"
+        )
+        dof_tuned_ini_windows = "Z:" + str(dof_tuned_ini).replace("/", "\\")
+        assert result_file.read_text().splitlines() == [
+            "1",
+            "--appid 203160 -- -nolauncher -benchmarkini "
+            + dof_tuned_ini_windows,
+        ]
+        assert not dof_tuned_ini.exists() and not dof_tuned_ini.is_symlink()
+
+        (base / "run/native-runtime-dispatch/dispatch.sock").unlink()
         priority_environment = {
             **benchmark_environment,
             "TOMB_RAIDER_RAKNET_NICE": "19",
