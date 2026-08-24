@@ -348,6 +348,27 @@ def main():
         },
         shadow_tuned_1080p,
     )
+    shadow0_tuned_1080p = module.GAME_PROFILES[
+        "1080p-ultra-no-tessellation-ssao1-dof1-shadow0"
+    ]
+    assert shadow0_tuned_1080p["benchmark_overrides"] == {
+        "EnableTessellation": 0,
+        "SSAOMode": 1,
+        "DOFQuality": 1,
+        "ShadowResolution": 0,
+    }
+    assert module.quality_benchmark_ini(shadow0_tuned_1080p).endswith(
+        "DOFQuality = 1\nShadowResolution = 0\n"
+    )
+    module.validate_benchmark_quality_settings(
+        {
+            **dof_tuned_quality,
+            "FullscreenWidth": 1920,
+            "FullscreenHeight": 1080,
+            "ShadowResolution": 0,
+        },
+        shadow0_tuned_1080p,
+    )
     assert module.GAME_PROFILES["720p-ultimate"]["quality_level"] == 4
     assert module.GAME_PROFILES["1080p-ultimate"]["graphics"] == "Ultimate"
     assert module.quality_benchmark_ini(

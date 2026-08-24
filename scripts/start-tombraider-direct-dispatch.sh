@@ -213,6 +213,7 @@ if [[ $benchmark_preset != registry ]]; then
         *-ultra-no-tessellation-ssao1-dof1) benchmark_quality_level=3 ;;
         *-ultra-no-tessellation-ssao1-dof1-lod3) benchmark_quality_level=3 ;;
         *-ultra-no-tessellation-ssao1-dof1-shadow1) benchmark_quality_level=3 ;;
+        *-ultra-no-tessellation-ssao1-dof1-shadow0) benchmark_quality_level=3 ;;
         *-ultimate) benchmark_quality_level=4 ;;
     esac
     benchmark_extra_lines=()
@@ -220,18 +221,21 @@ if [[ $benchmark_preset != registry ]]; then
         $benchmark_preset == *-ultra-no-tessellation-ssao1 ||
         $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1 ||
         $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1-lod3 ||
-        $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1-shadow1 ]]; then
+        $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1-shadow1 ||
+        $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1-shadow0 ]]; then
         benchmark_extra_lines+=('EnableTessellation = 0')
     fi
     if [[ $benchmark_preset == *-ultra-no-tessellation-ssao1 ||
         $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1 ||
         $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1-lod3 ||
-        $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1-shadow1 ]]; then
+        $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1-shadow1 ||
+        $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1-shadow0 ]]; then
         benchmark_extra_lines+=('SSAOMode = 1')
     fi
     if [[ $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1 ||
         $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1-lod3 ||
-        $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1-shadow1 ]]; then
+        $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1-shadow1 ||
+        $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1-shadow0 ]]; then
         benchmark_extra_lines+=('DOFQuality = 1')
     fi
     if [[ $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1-lod3 ]]; then
@@ -239,6 +243,9 @@ if [[ $benchmark_preset != registry ]]; then
     fi
     if [[ $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1-shadow1 ]]; then
         benchmark_extra_lines+=('ShadowResolution = 1')
+    fi
+    if [[ $benchmark_preset == *-ultra-no-tessellation-ssao1-dof1-shadow0 ]]; then
+        benchmark_extra_lines+=('ShadowResolution = 0')
     fi
     benchmark_ini_lines=( \
         "QualityLevel = $benchmark_quality_level" \

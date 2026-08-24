@@ -165,6 +165,23 @@ GAME_PROFILES = {
             "ShadowResolution": 1,
         },
     },
+    "1080p-ultra-no-tessellation-ssao1-dof1-shadow0": {
+        "resolution": "1920x1080",
+        "graphics": (
+            "Ultra without tessellation, SSAO 1, DOF 1, shadow resolution 0"
+        ),
+        "registry_profile": "1080p-normal",
+        "benchmark_preset": (
+            "1080p-ultra-no-tessellation-ssao1-dof1-shadow0"
+        ),
+        "quality_level": 3,
+        "benchmark_overrides": {
+            "EnableTessellation": 0,
+            "SSAOMode": 1,
+            "DOFQuality": 1,
+            "ShadowResolution": 0,
+        },
+    },
     "720p-ultimate": {
         "resolution": "1280x720",
         "graphics": "Ultimate",
