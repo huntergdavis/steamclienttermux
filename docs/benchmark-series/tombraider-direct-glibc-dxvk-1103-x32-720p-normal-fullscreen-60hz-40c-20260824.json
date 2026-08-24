@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "status": "complete_not_promoted",
+  "game": "Tomb Raider (2013)",
+  "appid": 203160,
+  "target": {
+    "backend": "direct native-glibc Steam host",
+    "resolution": "1280x720",
+    "graphics": "Normal",
+    "exclusive_fullscreen": true,
+    "fullscreen_refresh_hz": 60,
+    "vsync": false,
+    "motion_blur": false,
+    "termux_x11_surface": "borderless 2800x1752 at 59.97 Hz",
+    "fex_profile": "safe",
+    "fex_code_cache": "offline-compiled generation 5",
+    "fex_smc_checks": "mtrack",
+    "dxvk_variant": "official DXVK 1.10.3 x32",
+    "start_temperature_ceiling_c": 40.0,
+    "initial_max_temperature_c": 37.0
+  },
+  "result": {
+    "minimum_fps": 27.9,
+    "maximum_fps": 70.3,
+    "average_fps": 55.6,
+    "elapsed_seconds": 123.992,
+    "cooldown_seconds": 30.318,
+    "launch_return_code": 0,
+    "series_status": "complete"
+  },
+  "comparison": {
+    "bundled_dxvk_control_average_fps": 52.0,
+    "gain_over_bundled_fps": 3.6,
+    "gain_over_bundled_percent": 6.923076923076923,
+    "dxvk_2_4_1_average_fps": 59.1,
+    "loss_to_dxvk_2_4_1_fps": 3.5,
+    "loss_to_dxvk_2_4_1_percent": 5.922165820642979,
+    "decision": "retain DXVK 2.4.1 x32 as the optimized default; preserve 1.10.3 as a valid fallback and experiment"
+  },
+  "artifacts": {
+    "series": {
+      "path": "~/steam-arm64/logs/tombraider-benchmarks/20260824T000711Z-safe/series.json",
+      "sha256": "2a8c05980b1048a8c7477fce04197a9e673d8af6d378c3535b4fe67851fb2d13"
+    },
+    "game_result": {
+      "path": "~/steam-arm64/removable-library/steamapps/common/Tomb Raider/benchmarkresults 2026-08-24 00-09-46.txt",
+      "sha256": "4e590f7422cf9bdd92f371047cb05563aac8906153b2bcad8581d808132e79fa"
+    },
+    "foreground_log": {
+      "path": "~/steam-arm64/logs/tombraider-bvb-foreground-20260824T000659Z-28633.log",
+      "sha256": "d2a9eb7b802c193f93f87a58ac7d9ba5191b8ff425e98aeeb11a67cf79e2998b"
+    },
+    "affinity_log": {
+      "path": "~/steam-arm64/logs/tombraider-direct-affinity-20260824T000744Z.log",
+      "sha256": "515ae9c6a749a726d8a28835e98981db6adc3d1c0eb0469aa947a68c6d49b06b",
+      "ready": "PID 30490, 48 threads, CPUs 1-7, RakNet CPU 1, Steam helpers CPU 0"
+    },
+    "dxvk_log_directory": "~/steam-arm64/logs/dxvk-direct-dztn9n2e",
+    "dxvk_log_sha256": {
+      "TombRaider_d3d11.log": "e89734ff36a23f2c2ed707b1ddafe6d9d18e4a1e01ecf44e4e0e834bd3615620",
+      "TombRaider_d3d9.log": "585e21afd116a4f15061795da58d6015394f3eb88715dde4beeba874d0303c7d",
+      "TombRaider_dxgi.log": "ee08bf77b86e1efb01dcc7aa39cfbb1127a0d63332f6f52f085900ae5550b026"
+    },
+    "fex_runtime_delta": {
+      "path": "~/steam-arm64/cache/fex-code-cache/tombraider-203160-offline-7efb8f8e/runtime-delta-valid-dxvk-1103-20260824T0010Z",
+      "sha256sums_sha256": "4274b61ec0c4b095d10d7f2d5e15540d6fa4422e140443c34e559dc36f60c4b6"
+    }
+  },
+  "validation": {
+    "dxvk_log_version": "1.10.3",
+    "dxvk_swapchain_extent": "1280x720",
+    "transactional_overlay_restored": true,
+    "pending_fex_map_directory_empty_after_archive": true,
+    "protected_processes_unchanged": {
+      "steam": { "pid": 15575, "start_ticks": 128118834 },
+      "termux_x11": { "pid": 13643, "start_ticks": 121863492 },
+      "pulseaudio": { "pid": 13923, "start_ticks": 121863956 }
+    }
+  }
+}

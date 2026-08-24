@@ -58,14 +58,15 @@ DXVK 2.4.1 both averaged 59.1 FPS.
 | DXVK | FEX profile | Game resolution/profile | X11 surface | Min/max/average FPS | Evidence |
 | --- | --- | --- | --- | ---: | --- |
 | official 2.4.1 x32 | `safe`, offline-compiled cache generation 5 | 1280x720 Normal, exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 35.8 / 74.4 / **59.1**; repeat 15.7 / 72.5 / **59.1** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-720p-normal-fullscreen-60hz-20260823.json) |
+| official 1.10.3 x32 | `safe`, offline-compiled cache generation 5 | 1280x720 Normal, exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 27.9 / 70.3 / **55.6** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-1103-x32-720p-normal-fullscreen-60hz-40c-20260824.json) |
 | Proton 11 bundled DXVK | `safe`, offline-compiled cache generation 5 | 1280x720 Normal, exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 33.7 / 61.6 / **52.0** | [JSON](docs/benchmark-series/tombraider-direct-glibc-safe-offline-compiled-720p-normal-fullscreen-60hz-40c-first-20260823.json) |
 
 The earlier 34.1 and 29.7 FPS 720p attempts are excluded because the Android
 controller left Termux:X11 in a 520x320 floating window. The coherent 2.4.1
 swap improves the validated 52.0 FPS control by 7.1 FPS, or 13.7%. Its two
 minimum-FPS readings differ substantially, so 59.1 is the promoted throughput
-result rather than a frame-pacing claim. The next A/B keeps this topology and
-tests official DXVK 1.10.3 x32.
+result rather than a frame-pacing claim. Official 1.10.3 x32 was also valid at
+55.6 FPS: 6.9% faster than bundled, but 5.9% slower than 2.4.1.
 
 ### Historical panel-native Low target
 

@@ -1333,3 +1333,11 @@ was interrupted while Steam delayed its acknowledgement before the detached
 game completed. The exact average replicated, but the 35.8 versus 15.7 minimum
 spread remains a pacing caveat. The compact raw authority is
 [`tombraider-direct-glibc-dxvk-241-x32-720p-normal-fullscreen-60hz-20260823.json`](benchmark-series/tombraider-direct-glibc-dxvk-241-x32-720p-normal-fullscreen-60hz-20260823.json).
+
+The immediate official 1.10.3 x32 A/B completed as a fully runner-accepted
+sample: **27.9 minimum, 70.3 maximum, and 55.6 average FPS**. It started at the
+same 37.0 C ceiling sample, used exact 1280x720 exclusive fullscreen and the
+same FEX/topology controls, returned zero, and restored the overlay. This is
+3.6 FPS / 6.9% faster than bundled DXVK, but 3.5 FPS / 5.9% slower than 2.4.1,
+so 2.4.1 remains the promoted variant. Exact evidence is
+[`tombraider-direct-glibc-dxvk-1103-x32-720p-normal-fullscreen-60hz-40c-20260824.json`](benchmark-series/tombraider-direct-glibc-dxvk-1103-x32-720p-normal-fullscreen-60hz-40c-20260824.json).

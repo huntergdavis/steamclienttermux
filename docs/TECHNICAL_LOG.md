@@ -9061,3 +9061,29 @@ archive pattern. Upstream DXVK's documented rule—x32 DLLs for a 32-bit game,
 placed beside the executable with native Wine overrides—supplies the external
 design boundary. The next exact A/B is official DXVK 1.10.3 x32 under the same
 720p Normal fullscreen target.
+
+## 2026-08-23: official x32 DXVK 1.10.3 reaches 55.6 FPS but trails 2.4.1
+
+The first 1.10.3 A/B stopped before the game because the verified offline-FEX
+directory contained the two runtime maps created by the preceding 2.4.1 pass.
+The fail-closed message identified the exact unsafe path. Both maps were moved,
+not deleted, to
+`runtime-delta-confirmed-dxvk-241-20260824T0006Z` with a verified
+`SHA256SUMS`; the pending directory was then empty. The required focused recall
+query returned no indexed match, so this reused the repository's established
+recoverable offline-FEX archive pattern.
+
+The clean retry completed with status zero. Its game-authored result was
+**27.9 minimum, 70.3 maximum, and 55.6 average FPS**. The runner recorded a
+37.0 C initial maximum, 30.318 seconds of cooldown, 123.992 seconds elapsed,
+full-panel 2800x1752/59.97 Hz X11, 1280x720 Normal exclusive fullscreen, and
+affinity ready for PID 30490 with 48 threads on CPUs1-7, RakNet CPU1, and Steam
+helpers CPU0. The isolated logs identify DXVK 1.10.3 and a 1280x720 swapchain.
+Overlay restoration, Steam/X11/PulseAudio identity, and FEX-map archival all
+passed.
+
+This puts 1.10.3 3.6 FPS / 6.9% above the bundled 52.0 FPS control, but 3.5 FPS
+/ 5.9% below 2.4.1's repeated 59.1. Version choice therefore matters, but
+"older is faster" is false on this target: official 2.4.1 remains promoted and
+1.10.3 remains an exact fallback. The compact artifact authority is
+`docs/benchmark-series/tombraider-direct-glibc-dxvk-1103-x32-720p-normal-fullscreen-60hz-40c-20260824.json`.
