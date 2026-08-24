@@ -9813,5 +9813,13 @@ prefix explicitly set `Control Panel\\Colors\\Window` to white.
 Prefix preparation now changes only that managed color to black before launch.
 It stores a private original receipt/backup, uses an atomic same-directory
 replacement, refuses active prefixes or unexpected color changes, and supports
-exact check/restore paths. This removes the distracting white flash; it does
-not claim to shorten DXVK initialization.
+exact check/restore paths. A 12-frame tablet screenshot burst then disproved
+the initial visual claim: the real Wine surface was white for the first sample
+and black for the next eleven. The registry change controls the waiting color,
+but not the first mapped sample.
+
+The follow-up guard therefore watches for the real `steam_app_203160` window,
+briefly unmaps that same window during its two-second initialization paint, and
+then maps, raises, and focuses it. It adds no overlay/debug window and runs in
+parallel with launch. `TOMB_RAIDER_STARTUP_WINDOW_GUARD=off` is the exact
+reverse control. Screenshot proof is required before calling the flash fixed.

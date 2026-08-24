@@ -53,6 +53,7 @@ def main() -> None:
         result_file = root / "launcher-environment"
         launcher_control_environment = root / "launcher-control-environment"
         prepare_result = root / "prepare-result"
+        startup_window_guard_result = root / "startup-window-guard-result"
         affinity_result = root / "affinity-result"
         topology_result = root / "topology-result"
         prepare = root / "prepare"
@@ -62,6 +63,13 @@ def main() -> None:
             "from pathlib import Path\n"
             "import os, sys\n"
             "Path(os.environ['FIXTURE_PREPARE_RESULT']).write_text(' '.join(sys.argv[1:]) + '\\n')\n",
+        )
+        startup_window_guard = root / "startup-window-guard"
+        executable(
+            startup_window_guard,
+            "#!/bin/bash\n"
+            "printf '%s\\n' \"$*\" >\"$FIXTURE_STARTUP_WINDOW_GUARD_RESULT\"\n"
+            "sleep 30\n",
         )
         launcher = root / "launcher"
         executable(
@@ -103,6 +111,7 @@ def main() -> None:
             "TOMB_RAIDER_DIRECT_PYTHON": str(Path(os.sys.executable).resolve()),
             "TOMB_RAIDER_DIRECT_LAUNCHER": str(launcher),
             "TOMB_RAIDER_DIRECT_PREPARE": str(prepare),
+            "TOMB_RAIDER_STARTUP_WINDOW_GUARD_TOOL": str(startup_window_guard),
             "TOMB_RAIDER_DIRECT_AFFINITY": str(affinity),
             "TOMB_RAIDER_DIRECT_TOPOLOGY_CHECKER": str(topology_checker),
             "FIXTURE_RESULT": str(result_file),
@@ -112,6 +121,9 @@ def main() -> None:
             ),
             "FIXTURE_AFFINITY_RESULT": str(affinity_result),
             "FIXTURE_PREPARE_RESULT": str(prepare_result),
+            "FIXTURE_STARTUP_WINDOW_GUARD_RESULT": str(
+                startup_window_guard_result
+            ),
             "FIXTURE_TOPOLOGY_RESULT": str(topology_result),
             "FIXTURE_SOCKET": str(
                 base / "run/native-runtime-dispatch/dispatch.sock"
@@ -148,6 +160,9 @@ def main() -> None:
             "--window-background 0 0 0"
         ]
         assert topology_result.read_text().splitlines() == ["--check"]
+        assert startup_window_guard_result.read_text().splitlines() == [
+            "--display :0 --class steam_app_203160 --hold-seconds 2 --timeout 300"
+        ]
         assert result_file.read_text().splitlines() == [
             "1",
             "--appid 203160 -- -nolauncher",
@@ -208,6 +223,7 @@ def main() -> None:
             "service_start",
             "service_ready",
             "steam_request_start",
+            "startup_window_guard_start",
             "steam_request_complete",
             "service_complete",
         ]

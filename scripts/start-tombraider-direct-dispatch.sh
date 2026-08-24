@@ -9,6 +9,7 @@ default_python=/data/data/com.termux/files/usr/bin/python3
 python=${TOMB_RAIDER_DIRECT_PYTHON:-$default_python}
 launcher=${TOMB_RAIDER_DIRECT_LAUNCHER:-$HOME/start-steam-native.sh}
 prepare=${TOMB_RAIDER_DIRECT_PREPARE:-$base/compat-bin/prepare-proton-direct-wine.py}
+startup_window_guard_tool=${TOMB_RAIDER_STARTUP_WINDOW_GUARD_TOOL:-$base/compat-bin/guard-wine-startup-window.sh}
 affinity=${TOMB_RAIDER_DIRECT_AFFINITY:-$base/compat-bin/set-tombraider-affinity.py}
 topology_checker=${TOMB_RAIDER_DIRECT_TOPOLOGY_CHECKER:-$base/compat-bin/configure-tombraider-cpu-topology.py}
 dxvk_overlay=${TOMB_RAIDER_DIRECT_DXVK_OVERLAY:-$base/compat-bin/manage-tombraider-dxvk-overlay.py}
@@ -35,6 +36,7 @@ dxvk_compiler_threads=${TOMB_RAIDER_DXVK_COMPILER_THREADS:-0}
 dxvk_variant=${TOMB_RAIDER_DXVK_VARIANT:-dxvk-2.4.1-x32}
 dxvk_state_cache=${TOMB_RAIDER_DXVK_STATE_CACHE:-external}
 startup_prefetch=${TOMB_RAIDER_STARTUP_PREFETCH:-off}
+startup_window_guard=${TOMB_RAIDER_STARTUP_WINDOW_GUARD:-on}
 benchmark_preset=${TOMB_RAIDER_BENCHMARK_PRESET:-registry}
 child_preload=${TOMB_RAIDER_DIRECT_CHILD_PRELOAD:-full}
 vulkan_trace=${TOMB_RAIDER_VULKAN_TRACE:-0}
@@ -88,6 +90,8 @@ fail() {
     fail 'TOMB_RAIDER_DXVK_STATE_CACHE must be external or internal'
 [[ $startup_prefetch == off || $startup_prefetch == on ]] ||
     fail 'TOMB_RAIDER_STARTUP_PREFETCH must be off or on'
+[[ $startup_window_guard == off || $startup_window_guard == on ]] ||
+    fail 'TOMB_RAIDER_STARTUP_WINDOW_GUARD must be off or on'
 [[ $benchmark_preset == registry ||
     $benchmark_preset =~ ^(720p|1080p)-(high|ultra|ultimate|ultra-no-tessellation|ultra-no-tessellation-ssao1|ultra-no-tessellation-ssao1-dof1|ultra-no-tessellation-ssao1-dof1-lod3|ultra-no-tessellation-ssao1-dof1-shadow1|ultra-no-tessellation-ssao1-dof1-shadow0)$ ]] ||
     fail 'TOMB_RAIDER_BENCHMARK_PRESET must be registry or a supported resolution-quality pair'
@@ -213,6 +217,10 @@ if [[ $startup_prefetch == on && $mode == tombraider* ]]; then
     "$python" "$startup_prefetch_tool" \
         --root "$base/removable-library/steamapps/common/Tomb Raider" \
         --manifest "$startup_prefetch_manifest" --check >/dev/null
+fi
+if [[ $startup_window_guard == on && $mode == tombraider* ]]; then
+    [[ -x $startup_window_guard_tool && ! -L $startup_window_guard_tool ]] ||
+        fail "Wine startup-window guard is unavailable: $startup_window_guard_tool"
 fi
 
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
@@ -347,7 +355,16 @@ affinity_log=
 dxvk_overlay_active=0
 startup_prefetch_pid=
 startup_prefetch_log=
+startup_window_guard_pid=
+startup_window_guard_log=
 cleanup() {
+    if [[ -n ${startup_window_guard_pid:-} ]]; then
+        if kill -0 "$startup_window_guard_pid" 2>/dev/null; then
+            kill -TERM "$startup_window_guard_pid" 2>/dev/null || true
+        fi
+        wait "$startup_window_guard_pid" 2>/dev/null || true
+        startup_window_guard_pid=
+    fi
     if [[ -n ${startup_prefetch_pid:-} ]]; then
         if kill -0 "$startup_prefetch_pid" 2>/dev/null; then
             kill -TERM "$startup_prefetch_pid" 2>/dev/null || true
@@ -483,6 +500,16 @@ if [[ $startup_prefetch == on && $mode == tombraider* ]]; then
     launch_phase startup_prefetch_start "pid=$startup_prefetch_pid"
 fi
 launch_phase steam_request_start "appid=203160"
+if [[ $startup_window_guard == on && $mode == tombraider* ]]; then
+    startup_window_guard_log=$base/logs/tombraider-startup-window-$stamp-$$.log
+    (set -o noclobber; : >"$startup_window_guard_log") 2>/dev/null ||
+        fail "could not create startup-window guard log: $startup_window_guard_log"
+    "$startup_window_guard_tool" --display "${DISPLAY:-:0}" \
+        --class steam_app_203160 --hold-seconds 2 --timeout 300 \
+        >"$startup_window_guard_log" 2>&1 &
+    startup_window_guard_pid=$!
+    launch_phase startup_window_guard_start "pid=$startup_window_guard_pid"
+fi
 env -u BVB_COMMAND_STREAM -u STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
     -u TOMB_RAIDER_BVB_COMMAND_STREAM \
     -u BVB_MAPPED_MEMORY -u STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY \
