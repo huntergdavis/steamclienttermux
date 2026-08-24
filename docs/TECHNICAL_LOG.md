@@ -9398,3 +9398,23 @@ a mutated `DOFQuality=2` payload. The required `deja` query found no prior DOF
 implementation; this reuses the accepted SSAO isolation pipeline and its
 fail-closed game-result validation. No FPS claim is made until a real tablet
 pass completes.
+
+## 2026-08-23: DOF quality 1 is throughput-neutral but improves the minimum
+
+The accepted rerun completed at **28.1 minimum, 57.9 maximum, and 44.5
+average FPS**. Relative to the 44.3 FPS SSAO control, average throughput gains
+only 0.2 FPS / 0.45%, so lowering depth-of-field quality is not a meaningful
+average-FPS optimization. The minimum rises by 12.6 FPS / 81.3%, which is
+promising but remains a single observation rather than a percentile or
+replicated pacing claim.
+
+The first attempt generated a valid 36.0 FPS game result but was correctly
+rejected because its affinity guard reached startup topology without emitting
+the final CPUs1-7 ready state. Its result, screenshot, affinity log, series,
+and both FEX maps were preserved in rejected evidence. The unchanged rerun
+began at 37.0 C, reached affinity ready for PID 25591 with 52 threads, used the
+exact 1280x720 DXVK 2.4.1 swapchain with six compiler threads, and preserved
+all protected process identities. Its two maps were archived recoverably in
+`runtime-delta-valid-720p-ultra-no-tessellation-ssao1-dof1-20260824T0312Z`.
+Exact evidence is in
+`docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-720p-ultra-no-tessellation-ssao1-dof1-fullscreen-60hz-40c-20260824.json`.
