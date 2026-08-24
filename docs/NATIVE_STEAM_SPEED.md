@@ -53,8 +53,9 @@ authenticated fast-forward implementation returned no match.
 
 ## Strict/fast A/B
 
-`STEAM_ARM64_FORWARD_BOOTSTRAP` accepts `strict` or `fast` and defaults to
-`strict`:
+`STEAM_ARM64_FORWARD_BOOTSTRAP` accepts `strict` or `fast`. The public Steam
+wrapper now defaults warm requests to `fast`; the lower-level dispatcher keeps
+its defensive `strict` default when invoked directly:
 
 ```sh
 STEAM_ARM64_FORWARD_BOOTSTRAP=strict ~/start-steam-native.sh --appid 203160 -- -nolauncher

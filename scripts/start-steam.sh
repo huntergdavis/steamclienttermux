@@ -55,7 +55,7 @@ if [[ $skip_game_affinity_guard == 1 && $requested_appid != 203160 ]]; then
     printf 'start-steam: affinity-guard suppression is valid only for AppID 203160\n' >&2
     exit 1
 fi
-forward_bootstrap=${STEAM_ARM64_FORWARD_BOOTSTRAP:-strict}
+forward_bootstrap=${STEAM_ARM64_FORWARD_BOOTSTRAP:-fast}
 [[ $forward_bootstrap == strict || $forward_bootstrap == fast ]] || {
     printf 'start-steam: STEAM_ARM64_FORWARD_BOOTSTRAP must be strict or fast\n' >&2
     exit 1

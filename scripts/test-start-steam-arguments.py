@@ -35,7 +35,7 @@ def main():
     assert source.count("--wait-for-cpu-log") == 1
     assert "multiple Steam main processes remained" in source
     assert "wait_for_top_app()" in source
-    assert 'forward_bootstrap=${STEAM_ARM64_FORWARD_BOOTSTRAP:-strict}' in source
+    assert 'forward_bootstrap=${STEAM_ARM64_FORWARD_BOOTSTRAP:-fast}' in source
     assert '"$forward_dispatcher"' in source
     assert 'if [[ $forward_bootstrap == fast ]]' in source
     assert 'fast_forward_authenticated=1' in source

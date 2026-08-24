@@ -46,6 +46,12 @@ added until the structured timer measures it on the tablet.
 | --- | --- | --- | --- |
 | 2026-08-24 | Ordinary Steam/PRoot game route | Duplicate readiness pass removed; strict forwards took 12.38s and 11.12s | Both accepted containers exited before the game process; [evidence](evidence/steam-warm-appid-single-pass-excluded-20260824.txt) |
 
+Those strict controls motivated promoting the already-proven authenticated
+fast forward as the wrapper default. It previously measured about 0.33--0.35
+seconds at the dispatcher boundary. Cold starts remain complete launches, and
+failed authentication retains the strict fallback; a new end-to-end AppID
+timing is still required before claiming the control-to-game delta.
+
 ## Logging rule
 
 Append only promoted or diagnostically useful measurements. Record the commit,
