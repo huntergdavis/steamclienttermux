@@ -47,7 +47,7 @@ the bridge repository.
 
 ## Tomb Raider benchmark snapshot
 
-### 720p Normal apples-to-apples target
+### Validated Normal-quality comparison targets
 
 The first DXVK optimization at the new comparison target is complete. Tomb Raider
 rendered internally at 1280x720 Normal in exclusive fullscreen while
@@ -58,6 +58,7 @@ DXVK 2.4.1 both averaged 59.1 FPS.
 | DXVK | FEX profile | Game resolution/profile | X11 surface | Min/max/average FPS | Evidence |
 | --- | --- | --- | --- | ---: | --- |
 | official 2.4.1 x32 | `safe`, offline-compiled cache generation 5 | 1280x720 Normal, exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 35.8 / 74.4 / **59.1**; repeat 15.7 / 72.5 / **59.1** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-720p-normal-fullscreen-60hz-20260823.json) |
+| official 2.4.1 x32 | `safe`, offline-compiled cache generation 5 | 1920x1080 Normal, exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 29.2 / 65.5 / **44.8** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-1080p-normal-fullscreen-60hz-40c-20260824.json) |
 | official 1.10.3 x32 | `safe`, offline-compiled cache generation 5 | 1280x720 Normal, exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 27.9 / 70.3 / **55.6** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-1103-x32-720p-normal-fullscreen-60hz-40c-20260824.json) |
 | Proton 11 bundled DXVK | `safe`, offline-compiled cache generation 5 | 1280x720 Normal, exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 33.7 / 61.6 / **52.0** | [JSON](docs/benchmark-series/tombraider-direct-glibc-safe-offline-compiled-720p-normal-fullscreen-60hz-40c-first-20260823.json) |
 
@@ -67,6 +68,12 @@ swap improves the validated 52.0 FPS control by 7.1 FPS, or 13.7%. Its two
 minimum-FPS readings differ substantially, so 59.1 is the promoted throughput
 result rather than a frame-pacing claim. Official 1.10.3 x32 was also valid at
 55.6 FPS: 6.9% faster than bundled, but 5.9% slower than 2.4.1.
+
+The first controlled 1080p Normal pass averaged 44.8 FPS and held a 29.2 FPS
+minimum. Rendering 2.25x as many pixels reduced average throughput by only
+24.2% versus 720p, confirming that pixel fill alone does not dominate this
+stack. It is one thermally valid sample, so it is a baseline rather than a
+replicated promotion.
 
 ### Historical panel-native Low target
 

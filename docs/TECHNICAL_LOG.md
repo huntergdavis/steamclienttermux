@@ -9087,3 +9087,52 @@ This puts 1.10.3 3.6 FPS / 6.9% above the bundled 52.0 FPS control, but 3.5 FPS
 "older is faster" is false on this target: official 2.4.1 remains promoted and
 1.10.3 remains an exact fallback. The compact artifact authority is
 `docs/benchmark-series/tombraider-direct-glibc-dxvk-1103-x32-720p-normal-fullscreen-60hz-40c-20260824.json`.
+
+## 2026-08-23: 1080p Normal reaches 44.8 FPS in validated fullscreen
+
+The optimization target moved from 1280x720 Normal to 1920x1080 Normal while
+retaining official x32 DXVK 2.4.1, Safe FEX, the verified offline-compiled
+generation-5 cache, `mtrack`, V-Sync off, motion blur off, the 40 C start gate,
+and full startup topology. A new fail-closed `1080p-normal` profile changes
+only the game width and height relative to the established Normal preset.
+
+The first game-authored pass reported 31.7 minimum, 64.5 maximum, and 45.0
+average FPS, but it is excluded from the comparison chart. Its new wrapper
+printed `Starting Tomb Raider probe:` instead of the foreground controller's
+exact `Starting Tomb Raider BVB probe:` handoff marker. The game itself used
+exclusive 1920x1080, but the Android Termux:X11 task remained in its small
+bootstrap window and the controller explicitly reported that the benchmark
+exited before full-display expansion. Both new wrappers and their tests now
+require the exact marker; the correction is pushed as commit `760a7e9`.
+
+The first corrected retry proved borderless Android task bounds
+`0,0,2800,1752`, controller `/top-app`, and zero Android polling during the
+timed scene, but stopped before game creation because the preceding excluded
+pass left two new FEX maps in `codemap/new`. This was a deliberate fail-closed
+boundary, not a game crash. The two maps were moved intact to
+`runtime-delta-valid-1080p-windowed-20260824T0047Z`; the pending directory was
+recreated empty.
+
+The clean fullscreen retry was runner-accepted at **29.2 minimum, 65.5
+maximum, and 44.8 average FPS**. It began at 37.0 C with full CPU/GPU policy
+ceilings and GPU thermal power level zero, cooled for 30.309 seconds, and
+completed in 121.326 seconds. The game result and DXVK logs independently
+record exclusive 1920x1080 at 60 Hz; DXVK reports version 2.4.1, a 1920x1080
+swapchain, graphics pipeline libraries, 352 state-cache entries read, and its
+automatic choice of seven compiler threads. Affinity reached ready for PID
+8879 with 53 threads on CPUs1-7, RakNet CPU1, and Steam helpers CPU0. Steam,
+Termux:X11, and PulseAudio retained their protected PID/start-tick identities,
+the four-DLL overlay restored, and the resulting two FEX maps were archived to
+`runtime-delta-valid-1080p-fullscreen-20260824T0055Z` rather than deleted.
+
+Against the 59.1 FPS 720p Normal result, 2.25x the pixels reduced average FPS
+by only 14.3 FPS / 24.2%. The current stack is therefore not governed by pixel
+fill alone. The 44.8 result is a strong single-pass 1080p baseline, not yet a
+replicated mean. Exact hashes and the excluded-run boundary are retained in
+`docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-1080p-normal-fullscreen-60hz-40c-20260824.json`.
+
+The required `deja` searches for a prior 1080p Normal implementation and the
+zero-result fullscreen retry returned no indexed match. This work reused the
+hash-pinned candidate, transactional DXVK overlay, top-app fullscreen
+controller, and recoverable FEX-delta archive disciplines already established
+in this repository.
