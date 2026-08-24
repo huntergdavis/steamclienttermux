@@ -64,3 +64,8 @@ control-to-game delta.
 Append only promoted or diagnostically useful measurements. Record the commit,
 route, start state, elapsed time, result status, and evidence link. Keep rejected
 or thermally invalid data in machine-readable evidence with an exclusion reason.
+
+Direct game launches now write one compact phase record at preparation, service,
+Steam/AppID, optional external-gate, and completion boundaries. These records
+use Bash's built-in clock and never enter the per-frame path. They are the source
+for the next AppID-to-window optimization rather than a new performance claim.

@@ -180,6 +180,34 @@ def main() -> None:
         assert "launcher_status=1" in state
         assert "server_status=0" in state
         assert "launcher_log=" in state
+        timing_log = Path(
+            next(
+                line.removeprefix("timing_log=")
+                for line in state.splitlines()
+                if line.startswith("timing_log=")
+            )
+        )
+        timing_events = [
+            part.removeprefix("event=")
+            for line in timing_log.read_text().splitlines()
+            for part in line.split()
+            if part.startswith("event=")
+        ]
+        assert timing_events == [
+            "wrapper_start",
+            "prepare_start",
+            "prepare_complete",
+            "service_start",
+            "service_ready",
+            "steam_request_start",
+            "steam_request_complete",
+            "service_complete",
+        ]
+        assert all(
+            line.startswith("steam-arm64-launch-phase version=1 route=direct ")
+            and " clock=realtime timestamp_cs=" in line
+            for line in timing_log.read_text().splitlines()
+        )
         assert affinity_result.read_text().splitlines() == [
             f"--watch --raknet-cpu1 --steam-base {base} --game-cpus 1-7 "
             "--wait-for-cpu-log "
@@ -227,6 +255,17 @@ def main() -> None:
         launcher_ready = Path(f"{start_gate}.launcher-ready")
         assert launcher_ready.is_file() and not launcher_ready.is_symlink()
         assert launcher_ready.stat().st_mode & 0o077 == 0
+        gated_state = (
+            base / "run/tombraider-direct-dispatch.state"
+        ).read_text()
+        gated_timing = Path(
+            next(
+                line.removeprefix("timing_log=")
+                for line in gated_state.splitlines()
+                if line.startswith("timing_log=")
+            )
+        )
+        assert "event=start_gate_ready " in gated_timing.read_text()
         waiting.unlink()
         launcher_ready.unlink()
         executable(launcher, failing_launcher_body)

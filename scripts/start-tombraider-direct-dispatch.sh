@@ -185,9 +185,37 @@ if [[ $dxvk_variant != bundled ]]; then
         fail "transactional DXVK overlay tool is unavailable: $dxvk_overlay"
 fi
 
-"$python" "$prepare" prepare --base "$base"
-
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
+timing_log=$base/logs/tombraider-direct-launch-timing-$stamp-$$.log
+(set -o noclobber; : >"$timing_log") 2>/dev/null ||
+    fail "could not create direct-launch timing log: $timing_log"
+chmod 600 "$timing_log"
+
+launch_phase() {
+    local event=$1 detail=${2:-none} clock_value whole fraction
+    [[ $event =~ ^[a-z][a-z0-9_]*$ &&
+       $detail =~ ^[A-Za-z0-9_.:/=-]+$ ]] ||
+        fail "invalid direct-launch phase: $event $detail"
+    clock_value=${EPOCHREALTIME:-}
+    [[ $clock_value =~ ^[0-9]+([.][0-9]+)?$ ]] ||
+        fail 'Bash realtime clock is unavailable'
+    whole=${clock_value%%.*}
+    if [[ $clock_value == *.* ]]; then
+        fraction=${clock_value#*.}00
+        fraction=${fraction:0:2}
+    else
+        fraction=00
+    fi
+    printf 'steam-arm64-launch-phase version=1 route=direct event=%s clock=realtime timestamp_cs=%s detail=%s\n' \
+        "$event" "$((10#$whole * 100 + 10#$fraction))" "$detail" \
+        >>"$timing_log"
+}
+
+launch_phase wrapper_start "mode=$mode"
+launch_phase prepare_start
+"$python" "$prepare" prepare --base "$base"
+launch_phase prepare_complete
+
 vulkan_trace_file=
 benchmark_ini=
 benchmark_ini_windows=
@@ -295,9 +323,11 @@ cleanup() {
 trap cleanup EXIT HUP INT TERM
 
 if [[ $dxvk_variant != bundled ]]; then
+    launch_phase dxvk_overlay_start "variant=$dxvk_variant"
     "$python" "$dxvk_overlay" activate --base "$base" \
         --variant "$dxvk_variant"
     dxvk_overlay_active=1
+    launch_phase dxvk_overlay_complete "variant=$dxvk_variant"
 fi
 
 dispatcher_environment=(
@@ -321,6 +351,7 @@ if [[ $vulkan_trace == 1 ]]; then
         "STEAM_ARM64_VULKAN_TRACE_FILE=$vulkan_trace_file"
     )
 fi
+launch_phase service_start
 env -u BVB_COMMAND_STREAM -u TOMB_RAIDER_BVB_COMMAND_STREAM \
     -u BVB_MAPPED_MEMORY -u TOMB_RAIDER_BVB_MAPPED_MEMORY \
     -u BVB_DESCRIPTOR_JOURNAL -u TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL \
@@ -353,6 +384,7 @@ done
     sed -n '1,80p' "$server_log" >&2 || true
     fail 'direct dispatcher did not create its socket'
 }
+launch_phase service_ready "pid=$server_pid"
 
 if [[ $mode == tombraider || $mode == tombraider-benchmark ||
     $mode == tombraider-diagnostic ]]; then
@@ -369,9 +401,9 @@ if [[ $mode == tombraider || $mode == tombraider-benchmark ||
     affinity_pid=$!
 fi
 
-printf 'pid=%s\nmode=%s\nchild_preload=%s\nraknet_recv_sleep_us=%s\nfex_code_cache=%s\nfex_smc_checks=%s\ndxvk_relaxed_graphics_barriers=%s\ndxvk_compiler_threads=%s\ndxvk_variant=%s\ngame_cpus=%s\nvulkan_trace_file=%s\nserver_pid=%s\nserver_log=%s\nlauncher_log=%s\naffinity_log=%s\nstatus=launching\n' \
+printf 'pid=%s\nmode=%s\nchild_preload=%s\nraknet_recv_sleep_us=%s\nfex_code_cache=%s\nfex_smc_checks=%s\ndxvk_relaxed_graphics_barriers=%s\ndxvk_compiler_threads=%s\ndxvk_variant=%s\ngame_cpus=%s\nvulkan_trace_file=%s\ntiming_log=%s\nserver_pid=%s\nserver_log=%s\nlauncher_log=%s\naffinity_log=%s\nstatus=launching\n' \
     "$$" "$mode" "$child_preload" "$raknet_recv_sleep_us" "$fex_code_cache" "$fex_smc_checks" "$dxvk_relaxed_graphics_barriers" "$dxvk_compiler_threads" "$dxvk_variant" "$game_cpus" "$vulkan_trace_file" \
-    "$server_pid" "$server_log" "$launcher_log" "$affinity_log" >"$state"
+    "$timing_log" "$server_pid" "$server_log" "$launcher_log" "$affinity_log" >"$state"
 
 set +e
 game_arguments=(-nolauncher)
@@ -385,6 +417,7 @@ if [[ $mode == tombraider-benchmark ]]; then
 elif [[ $mode == fex-offline-compile ]]; then
     skip_outer_affinity_guard=1
 fi
+launch_phase steam_request_start "appid=203160"
 env -u BVB_COMMAND_STREAM -u STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
     -u TOMB_RAIDER_BVB_COMMAND_STREAM \
     -u BVB_MAPPED_MEMORY -u STEAM_ARM64_DIRECT_BVB_MAPPED_MEMORY \
@@ -423,6 +456,7 @@ env -u BVB_COMMAND_STREAM -u STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
     STEAM_APP_TIMEOUT=${STEAM_APP_TIMEOUT:-300} \
     "$launcher" --appid 203160 -- "${game_arguments[@]}" >"$launcher_log" 2>&1
 launcher_status=$?
+launch_phase steam_request_complete "status=$launcher_status"
 if (( launcher_status == 0 )) && [[ -n $start_gate ]]; then
     for _ in $(seq 1 $((start_gate_ack_timeout * 20))); do
         [[ -L $start_gate_waiting || -f $start_gate_waiting ]] && break
@@ -431,7 +465,7 @@ if (( launcher_status == 0 )) && [[ -n $start_gate ]]; then
     done
     if [[ -f $start_gate_waiting && ! -L $start_gate_waiting ]] &&
        (set -o noclobber; : >"$start_gate_launcher_ready") 2>/dev/null; then
-        :
+        launch_phase start_gate_ready
     else
         printf 'start-tombraider-direct-dispatch: direct dispatch did not reach the launch gate within %ss after Steam acknowledgement\n' \
             "$start_gate_ack_timeout" \
@@ -444,6 +478,7 @@ if (( launcher_status != 0 )) && kill -0 "$server_pid" 2>/dev/null; then
 fi
 wait "$server_pid"
 server_status=$?
+launch_phase service_complete "status=$server_status"
 set -e
 server_pid=
 if [[ -n ${affinity_pid:-} ]] && kill -0 "$affinity_pid" 2>/dev/null; then
@@ -452,9 +487,9 @@ if [[ -n ${affinity_pid:-} ]] && kill -0 "$affinity_pid" 2>/dev/null; then
 fi
 affinity_pid=
 
-printf 'pid=%s\nmode=%s\nchild_preload=%s\nraknet_recv_sleep_us=%s\nfex_code_cache=%s\nfex_smc_checks=%s\ndxvk_relaxed_graphics_barriers=%s\ndxvk_compiler_threads=%s\ndxvk_variant=%s\ngame_cpus=%s\nvulkan_trace_file=%s\nserver_log=%s\nlauncher_log=%s\naffinity_log=%s\nstatus=complete\nlauncher_status=%s\nserver_status=%s\n' \
+printf 'pid=%s\nmode=%s\nchild_preload=%s\nraknet_recv_sleep_us=%s\nfex_code_cache=%s\nfex_smc_checks=%s\ndxvk_relaxed_graphics_barriers=%s\ndxvk_compiler_threads=%s\ndxvk_variant=%s\ngame_cpus=%s\nvulkan_trace_file=%s\ntiming_log=%s\nserver_log=%s\nlauncher_log=%s\naffinity_log=%s\nstatus=complete\nlauncher_status=%s\nserver_status=%s\n' \
     "$$" "$mode" "$child_preload" "$raknet_recv_sleep_us" "$fex_code_cache" "$fex_smc_checks" "$dxvk_relaxed_graphics_barriers" "$dxvk_compiler_threads" "$dxvk_variant" "$game_cpus" "$vulkan_trace_file" \
-    "$server_log" "$launcher_log" "$affinity_log" "$launcher_status" \
+    "$timing_log" "$server_log" "$launcher_log" "$affinity_log" "$launcher_status" \
     "$server_status" >"$state"
 printf 'Tomb Raider direct dispatch completed: mode=%s child_preload=%s launcher=%s server=%s trace=%s server_log=%s launcher_log=%s\n' \
     "$mode" "$child_preload" "$launcher_status" "$server_status" \

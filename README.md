@@ -14,7 +14,7 @@ contain Valve binaries, games, credentials, or account state.
 | Goal | Best verified result | Next gate |
 | --- | --- | --- |
 | Tomb Raider performance | 1080p tuned Ultra: **30.7 FPS average** | Replicate and generalize the profile |
-| Steam startup | Visible UI **2.254s**; warm background forward **1.833s** | Measure AppID-to-window and UI latency |
+| Steam startup | Visible UI **2.254s**; background forward **1.833s** | Profile direct AppID-to-window phases |
 | Easy distribution | Locked Valve bootstrap + deterministic 3.3 MiB project ZIP | Bootstrap/doctor/rollback workflow |
 
 | Component | Verified |
