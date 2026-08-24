@@ -74,7 +74,7 @@ fail() {
     $dxvk_variant == dxvk-2.4.1-x32 ]] ||
     fail 'TOMB_RAIDER_DXVK_VARIANT must be bundled, dxvk-1.10.3-x32, or dxvk-2.4.1-x32'
 [[ $benchmark_preset == registry ||
-    $benchmark_preset =~ ^(720p|1080p)-(high|ultra|ultimate|ultra-no-tessellation|ultra-no-tessellation-ssao1|ultra-no-tessellation-ssao1-dof1|ultra-no-tessellation-ssao1-dof1-lod3)$ ]] ||
+    $benchmark_preset =~ ^(720p|1080p)-(high|ultra|ultimate|ultra-no-tessellation|ultra-no-tessellation-ssao1|ultra-no-tessellation-ssao1-dof1|ultra-no-tessellation-ssao1-dof1-lod3|ultra-no-tessellation-ssao1-dof1-shadow1)$ ]] ||
     fail 'TOMB_RAIDER_BENCHMARK_PRESET must be registry or a supported resolution-quality pair'
 if [[ $mode != tombraider-benchmark && $benchmark_preset != registry ]]; then
     fail 'a Tomb Raider benchmark preset is valid only in tombraider-benchmark mode'
