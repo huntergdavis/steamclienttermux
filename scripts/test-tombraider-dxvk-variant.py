@@ -152,6 +152,7 @@ def main() -> None:
     assert WRAPPER.name in installer
 
     wrapper_1080p = WRAPPER_1080P.read_text(encoding="utf-8")
+    assert "Starting Tomb Raider BVB probe:" in wrapper_1080p
     assert "--game-profile 1080p-normal" in wrapper_1080p
     assert "--dxvk-variant dxvk-2.4.1-x32" in wrapper_1080p
     assert "--warmups 0" in wrapper_1080p and "--runs 1" in wrapper_1080p

@@ -115,6 +115,7 @@ def main() -> None:
     assert '"--dxvk-compiler-threads"' in runner
     assert '"dxvk_compiler_threads": arguments.dxvk_compiler_threads' in runner
     wrapper = WRAPPER.read_text(encoding="utf-8")
+    assert "Starting Tomb Raider BVB probe:" in wrapper
     assert "--game-profile 720p-normal" in wrapper
     assert "--dxvk-variant dxvk-2.4.1-x32" in wrapper
     assert "--dxvk-compiler-threads 4" in wrapper

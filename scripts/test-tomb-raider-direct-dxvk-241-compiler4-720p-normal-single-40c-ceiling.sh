@@ -17,7 +17,7 @@ if [[ ! -f "$benchmark_python" || -L "$benchmark_python" || ! -x "$benchmark_pyt
     exit 1
 fi
 
-printf 'Starting Tomb Raider probe: workload=glibc-dxvk-241-x32-compiler4-720p-normal-benchmark\n'
+printf 'Starting Tomb Raider BVB probe: workload=glibc-dxvk-241-x32-compiler4-720p-normal-benchmark\n'
 "$benchmark_python" "$benchmark_runner" \
     --backend direct \
     --profile safe \
