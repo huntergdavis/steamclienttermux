@@ -37,6 +37,11 @@ def main():
     assert "wait_for_top_app()" in source
     assert 'forward_bootstrap=${STEAM_ARM64_FORWARD_BOOTSTRAP:-strict}' in source
     assert '"$forward_dispatcher"' in source
+    assert 'if [[ $forward_bootstrap == fast ]]' in source
+    assert 'fast_forward_authenticated=1' in source
+    assert '[[ $fast_forward_authenticated == 0 ]]' in source
+    assert 'event=session_valid' in source
+    assert 'event=fast_fallback' in source
     assert '--steam-start-ticks "$steam_start_ticks"' in source
     reused_x11 = source.index('    1)\n        # A prior native Activity')
     foreground = source.index("        foreground_x11", reused_x11)

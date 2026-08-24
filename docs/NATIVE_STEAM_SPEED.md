@@ -14,6 +14,15 @@ was 3.372 seconds. The log filenames have whole-second setup resolution and the
 population includes busy/game states, so these measurements define the A/B
 baseline rather than a claimed speedup.
 
+The first tablet fast-path proof completed the authenticated dispatcher in 350
+ms. Its strict control remained inside the legacy PRoot launcher beyond 60
+seconds and was deliberately censored, so that pair proves the architectural
+cliff but is not a completed strict timing distribution. A second wrapper gate
+runs fast forwarding synchronously: only an exact `session_valid`,
+`fast_launch`, and successful `complete` sequence may bypass the older mutable
+login-log heuristic. Window presentation and AppID acknowledgement waits remain
+unchanged.
+
 The code reuses the exact loader-process model and remembered-profile rules
 established in indexed sessions `019ff310-e8ac-7212-9f2f-5ba9005b97bd` and
 `019fe348-1247-7530-bc25-8a573aaf4252`. A focused deja query for an existing

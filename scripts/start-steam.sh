@@ -637,6 +637,7 @@ if [[ "${#steam_pids[@]}" -gt 1 ]]; then
         fail "multiple Steam main processes remained for ${duplicate_process_timeout}s: ${steam_pids[*]}"
 fi
 if [[ "${#steam_pids[@]}" -eq 1 ]]; then
+    fast_forward_authenticated=0
     require_top_app Steam "${steam_pids[0]}"
     apply_steam_session_affinity "${x11_pids[0]}" "${steam_pids[0]}"
     maybe_start_game_affinity_guard
@@ -644,18 +645,45 @@ if [[ "${#steam_pids[@]}" -eq 1 ]]; then
         steam_start_ticks="$(steam_arm64_process_start_ticks "${steam_pids[0]}" || true)"
         [[ $steam_start_ticks =~ ^[1-9][0-9]*$ ]] || steam_start_ticks=0
         forward_log="$base/logs/start-steam-forward-$(date +%Y%m%d-%H%M%S).log"
-        nohup env DISPLAY="$display" \
-            STEAM_ARM64_FORWARD_BOOTSTRAP="$forward_bootstrap" \
-            "$forward_dispatcher" \
-                --steam-pid "${steam_pids[0]}" \
-                --steam-start-ticks "$steam_start_ticks" \
-                --strict-launcher "$steam_launcher" -- \
-                "${steam_arguments[@]}" \
-            >"$forward_log" 2>&1 </dev/null &
+        if [[ $forward_bootstrap == fast ]]; then
+            set +e
+            env DISPLAY="$display" \
+                STEAM_ARM64_FORWARD_BOOTSTRAP="$forward_bootstrap" \
+                "$forward_dispatcher" \
+                    --steam-pid "${steam_pids[0]}" \
+                    --steam-start-ticks "$steam_start_ticks" \
+                    --strict-launcher "$steam_launcher" -- \
+                    "${steam_arguments[@]}" \
+                >"$forward_log" 2>&1 </dev/null
+            forward_status=$?
+            set -e
+            (( forward_status == 0 )) ||
+                fail "Steam fast forwarding failed with status $forward_status; inspect $forward_log"
+            if grep -Eq '^steam-arm64-forward-phase version=2 mode=fast event=session_valid ' \
+                    "$forward_log" &&
+                    grep -Eq '^steam-arm64-forward-phase version=2 mode=fast event=fast_launch ' \
+                    "$forward_log" &&
+                    grep -Eq '^steam-arm64-forward-phase version=2 mode=fast event=complete .* detail=status=0$' \
+                    "$forward_log" &&
+                    ! grep -Eq '^steam-arm64-forward-phase version=2 mode=fast event=fast_fallback ' \
+                    "$forward_log"; then
+                fast_forward_authenticated=1
+            fi
+        else
+            nohup env DISPLAY="$display" \
+                STEAM_ARM64_FORWARD_BOOTSTRAP="$forward_bootstrap" \
+                "$forward_dispatcher" \
+                    --steam-pid "${steam_pids[0]}" \
+                    --steam-start-ticks "$steam_start_ticks" \
+                    --strict-launcher "$steam_launcher" -- \
+                    "${steam_arguments[@]}" \
+                >"$forward_log" 2>&1 </dev/null &
+        fi
         printf 'start-steam: forwarded request to Steam PID %s; log %s\n' \
             "${steam_pids[0]}" "$forward_log"
     fi
-    if ! wait_for_remembered_login "${steam_pids[0]}"; then
+    if [[ $fast_forward_authenticated == 0 ]] &&
+            ! wait_for_remembered_login "${steam_pids[0]}"; then
         steam_pid_is_current "${steam_pids[0]}" ||
             fail "Steam PID ${steam_pids[0]} exited before remembered login completed"
         fail "remembered Steam login did not complete in ${window_timeout}s"
