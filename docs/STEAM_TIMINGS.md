@@ -60,6 +60,33 @@ distribution. The external game timer independently measured 22.213 seconds
 from the runtime request to the first window. Exact evidence and hashes are in
 [`steam-cold-appid-acceptance-20260824.json`](evidence/steam-cold-appid-acceptance-20260824.json).
 
+### Deterministic X11 and matched HIDAPI control
+
+The cold launcher now starts one authoritative CLI X server, waits for its
+short-lived launcher PID to settle, and only then attaches the Android
+Activity. This removes the build-dependent race where the Activity and manual
+fallback could both claim `:0`.
+
+| Cold boundary | Earlier default | Current default | Change |
+| --- | ---: | ---: | ---: |
+| X11 ready | 9.38s | **4.44s** | -4.94s / -52.7% |
+| Wrapper to AppID accepted | 40.08s | **21.80s** | -18.28s / -45.6% |
+
+The AppID result is one pass and includes variable proprietary Steam work, so
+only the X11 boundary is attributed to the launcher change. A matched adjacent
+control found no HIDAPI speed gain:
+
+| Mode | Controller to AppID | Wrapper to AppID | Login to AppID |
+| --- | ---: | ---: | ---: |
+| Default | **30.798s** | **21.80s** | **5.02s** |
+| HIDAPI disabled | 30.865s | 21.85s | 6.25s |
+
+Disabling SDL HIDAPI was 0.067 seconds slower end to end and changes controller
+behavior, so the controller-safe default remains. Both screenshots were
+byte-identical black X11 surfaces: these runs prove AppID acceptance and X11
+health, not a rendered game window. Exact hashes and exclusions are in
+[`steam-cold-appid-x11-hidapi-20260824.json`](evidence/steam-cold-appid-x11-hidapi-20260824.json).
+
 ## Steam AppID acceptance profile
 
 The warm acceptance boundary is native ARM64, not an emulation bottleneck:

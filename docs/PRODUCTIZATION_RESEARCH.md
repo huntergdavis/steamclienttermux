@@ -100,6 +100,11 @@ fallback remains available; an unsafe path, owner, mode, link count, or inode
 change fails closed. This removes redundant Steam process startup for every
 reviewed AppID rather than embedding a Tomb Raider special case.
 
+Controller support stays enabled in the general profile. A matched tablet A/B
+found no AppID-acceptance benefit from disabling SDL HIDAPI, so packaging must
+not trade controller compatibility for an unmeasured or workload-specific
+speed claim. The diagnostic selector remains explicit and cold-session-only.
+
 ## Release gates
 
 | Gate | Pass condition |

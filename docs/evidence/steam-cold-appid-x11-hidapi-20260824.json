@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-24",
+  "device": "Samsung Galaxy Tab S8+",
+  "target": {
+    "appid": 203160,
+    "name": "Tomb Raider (2013)"
+  },
+  "deterministic_x11": {
+    "design": "one authoritative CLI server, bounded singleton PID settlement, then Android Activity attachment",
+    "previous_x11_ready_seconds": 9.38,
+    "current_x11_ready_seconds": 4.44,
+    "improvement_seconds": 4.94,
+    "improvement_percent": 52.7
+  },
+  "matched_hidapi_control": {
+    "default": {
+      "controller_to_appid_seconds": 30.798,
+      "wrapper_to_x11_seconds": 4.44,
+      "wrapper_to_steam_process_seconds": 9.47,
+      "wrapper_to_login_seconds": 16.78,
+      "wrapper_to_appid_seconds": 21.80,
+      "login_to_appid_seconds": 5.02,
+      "control_sha256": "8063955f7f1b8c9ae395e90b3f6f84f6bcf89e13933932e2756b7320ddb1fe44",
+      "phase_sha256": "f7d848a3fa88cd9abdcfc430fffe70618c0e083b08b772939b0935fc817cb00b"
+    },
+    "disabled": {
+      "controller_to_appid_seconds": 30.865,
+      "wrapper_to_x11_seconds": 4.31,
+      "wrapper_to_steam_process_seconds": 9.31,
+      "wrapper_to_login_seconds": 15.60,
+      "wrapper_to_appid_seconds": 21.85,
+      "login_to_appid_seconds": 6.25,
+      "control_sha256": "ef95712e9ca32d73f38583029f308105a87df0068330c04975ea2f7ef77567b1",
+      "phase_sha256": "71db99224cc6a6368c7c38e2bbfb303c8031256d045b545cffd85da0d5c14787"
+    },
+    "difference_seconds_disabled_minus_default": 0.067,
+    "decision": "reject HIDAPI disabling as a speed default; preserve controller-safe behavior"
+  },
+  "runtime_validation": {
+    "steam_hidapi_control": "disabled",
+    "sdl_joystick_hidapi": "0",
+    "screenshot_sha256_default": "a5714549246e0a0f7b72ad9df83225aa7dc547fb74438447f832b16e17c46710",
+    "screenshot_sha256_disabled": "a5714549246e0a0f7b72ad9df83225aa7dc547fb74438447f832b16e17c46710",
+    "visible_result": "byte-identical black X11 surface with cursor",
+    "game_frame_observed": false
+  },
+  "storage_cleanup": {
+    "removed_regular_file_count": 8,
+    "removed_bytes": 1807872298,
+    "open_target_count": 0,
+    "sha256_manifest": "d2828e6acd1d0a36900df721b97aded5e6115c26831284276eeb0f6237c1b8c6"
+  },
+  "installed_candidate_hashes": {
+    "start_steam": "cdee75daed1d6480d66de61656c101e55176672605fe0527c45262af2a872841",
+    "steam_arm_native": "34e27868c7f9adff11466a4f6e7278e157e3adac36da3d409b12e1b1863ee13f"
+  },
+  "claim_boundary": "Single adjacent cold engineering passes. They prove deterministic X11 readiness, exact HIDAPI environment selection, and AppID acceptance. The proprietary game action exited before rendering; no game-window, gameplay, or FPS claim is made."
+}

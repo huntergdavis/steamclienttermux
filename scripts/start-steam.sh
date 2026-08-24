@@ -765,12 +765,9 @@ case "${#x11_pids[@]}" in
             fi
         fi
 
-        # Upstream separates the foreground Android activity from the server.
-        # Open it first only on a cold start. The shared-UID build lets us
-        # verify persisted preferences directly. Broadcast only if they are
-        # missing: a live preference reload is unsafe while Steam is rendering.
-        foreground_x11
-        x11_foreground_handoff=1
+        # Upstream separates the foreground Android Activity from the X
+        # server. Configure persisted preferences before starting either
+        # component; a live preference reload is unsafe while Steam renders.
         if ! x11_preferences_are_configured; then
             if ! configure_x11_preferences; then
                 fail 'unable to configure Termux:X11 input and idle behavior'
@@ -782,27 +779,24 @@ case "${#x11_pids[@]}" in
             x11_preferences_are_configured ||
                 fail 'Termux:X11 did not persist input and idle preferences'
         fi
-        # Current Termux:X11 builds can create the server as a consequence of
-        # opening their Activity. Give that exact server a bounded opportunity
-        # to appear before starting the traditional CLI server; launching both
-        # races the same display and makes a legitimate cold start fail.
-        for _ in $(seq 1 30); do
-            mapfile -t x11_pids < <(matching_pids x11)
-            ((${#x11_pids[@]} > 0)) && break
-            sleep 0.1
-        done
-        if ((${#x11_pids[@]} == 0)); then
-            nohup termux-x11 "$display" -ac >"$x11_log" 2>&1 </dev/null &
-            x11_pid=$!
-            x11_start_source=manual
-        else
-            x11_pid=${x11_pids[0]}
-            x11_start_source=activity
-        fi
+        # Start exactly one authoritative server, wait for it, and only then
+        # attach the Android Activity below. Opening the Activity first is
+        # ambiguous across Termux:X11 builds: some create a second server a
+        # few seconds later while others never create one.
+        nohup termux-x11 "$display" -ac >"$x11_log" 2>&1 </dev/null &
+        x11_pid=$!
+        x11_start_source=manual
         if ! wait_for_x11; then
             fail "X server $x11_pid did not become ready; inspect $x11_log"
         fi
-        mapfile -t x11_pids < <(matching_pids x11)
+        # The CLI can briefly expose both its launcher and final server after
+        # the display becomes reachable. Accept only the settled singleton,
+        # never the transient pair or an arbitrary first PID.
+        for _ in $(seq 1 50); do
+            mapfile -t x11_pids < <(matching_pids x11)
+            ((${#x11_pids[@]} == 1)) && break
+            sleep 0.1
+        done
         [[ "${#x11_pids[@]}" -eq 1 ]] ||
             fail "expected one X server after startup, found ${#x11_pids[@]}"
         ;;
@@ -832,6 +826,7 @@ apply_uniform_affinity X11 "${x11_pids[0]}" 0-3
 # Android surface. A reused server was already foregrounded above.
 if [[ $x11_cold_start == 1 ]]; then
     foreground_x11
+    x11_foreground_handoff=1
 fi
 
 if [[ $x11_foreground_handoff == 1 ]]; then
@@ -996,7 +991,9 @@ else
     steam_phase steam_launch_start "profile=$profile"
     nohup env -u STEAM_ARM64_FORWARD_BOOTSTRAP \
         DISPLAY="$display" PULSE_SERVER="$pulse_server" \
-        STEAM_ARM64_FEX_PROFILE="$profile" "$steam_launcher" -noshaders \
+        STEAM_ARM64_FEX_PROFILE="$profile" \
+        STEAM_ARM64_HIDAPI="$hidapi_mode" \
+        "$steam_launcher" -noshaders \
         "${steam_arguments[@]}" \
         >"$steam_log" 2>&1 </dev/null &
     launcher_pid=$!

@@ -37,6 +37,7 @@ def main():
     assert "wait_for_top_app()" in source
     assert 'forward_bootstrap=${STEAM_ARM64_FORWARD_BOOTSTRAP:-fast}' in source
     assert 'hidapi_mode=${STEAM_ARM64_HIDAPI:-default}' in source
+    assert 'STEAM_ARM64_HIDAPI="$hidapi_mode"' in source
     assert "steam_hidapi_mode_matches()" in source
     assert "cold-start-only control" in source
     assert "steam_phase()" in source
@@ -60,13 +61,12 @@ def main():
     assert 'if thread_masks_are "$pid" "$mask"' in source
     assert 'x11_cold_start=0' in source
     assert 'x11_start_source=reused' in source
-    assert 'x11_start_source=activity' in source
     assert 'x11_start_source=manual' in source
-    assert 'for _ in $(seq 1 30); do' in source
-    activity_wait = source.index("# Current Termux:X11 builds can create the server")
-    activity_source = source.index("x11_start_source=activity", activity_wait)
-    manual_launch = source.index('nohup termux-x11 "$display" -ac', activity_wait)
-    assert activity_wait < manual_launch < activity_source
+    authoritative = source.index("# Start exactly one authoritative server")
+    manual_launch = source.index('nohup termux-x11 "$display" -ac', authoritative)
+    settle = source.index("# The CLI can briefly expose both its launcher", manual_launch)
+    cold_activity = source.index('if [[ $x11_cold_start == 1 ]]', manual_launch)
+    assert authoritative < manual_launch < settle < cold_activity
     assert 'if [[ $x11_cold_start == 1 ]]' in source
     assert 'steam_affinity_stamp="$base/runtime/steam-session-affinity-v1"' in source
     assert 'signature="version=1 x11=$x11_pid:$start_ticks:0-3"' in source

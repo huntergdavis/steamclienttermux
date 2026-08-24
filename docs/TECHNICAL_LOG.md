@@ -9885,6 +9885,33 @@ timer. Valve's public Linux issue tracker corroborates `steam://rungameid`
 launch handling, but the exact FIFO argv wire used here was measured from this
 tablet's build rather than inferred from resolver or URI order.
 
+## 2026-08-24: deterministic cold X11 and HIDAPI negative result
+
+Three excluded cold attempts exposed independent fail-closed gates rather than
+timings: SSH launched in Android's background cgroup, Activity/manual X11
+startup briefly produced two candidates, and only 735 MiB free remained. The
+cleanup enumerated eight unopened regular raw logs over 100 MiB, retained their
+SHA-256 manifest, and removed exactly 1,807,872,298 bytes.
+
+The final launcher starts one CLI X server, settles its transient launcher PID,
+then attaches the Android Activity. X11 readiness fell from 9.38 to **4.44
+seconds**. The installed low-level Steam launcher was also found stale; after
+installing the already-reviewed source, `STEAM_ARM64_HIDAPI` and
+`SDL_JOYSTICK_HIDAPI` were both observed in the intended Steam process.
+
+A matched adjacent cold control rejected HIDAPI disabling as an optimization:
+default reached AppID acceptance in 30.798 seconds from the Activity-owned
+controller request and 21.80 seconds from wrapper start; disabled took 30.865
+and 21.85 seconds. Screenshots were byte-identical black X11 surfaces and the
+Steam game action exited before rendering, so this is an AppID/X11 result only.
+Controller-safe behavior remains the default. The next gate is the accepted
+AppID-to-direct-game handoff.
+
+The required focused `deja` queries for the HIDAPI acceptance path and the
+Termux:X11 Activity/manual race returned no indexed implementation. The work
+reused the existing top-app controller, exact process matcher, phase records,
+input-device checks, session environment guard, and screenshot protocol.
+
 ## 2026-08-24: frame-rate capture corrects the white-surface gate
 
 The required `deja` query for the pre-class X11 white flash returned no indexed
