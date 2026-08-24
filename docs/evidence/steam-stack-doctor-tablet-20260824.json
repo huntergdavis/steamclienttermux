@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-24",
+  "commit": "e8ef74a8a9b98b52be73f52f81b80d663fe837f2",
+  "device": "Samsung Galaxy Tab S8+",
+  "doctor_sha256": "71c934d9b8323d856804c7fada58cad32834ca4fc6728c1d87a250c512ef619d",
+  "bootstrap": {
+    "status": "fail",
+    "failed": ["free storage"],
+    "warned": ["project license"],
+    "free_gib": 1.65,
+    "required_gib": 4.0,
+    "output_sha256": "6e00b01e852238cd36791a00ae3f7d564ae0f493737acd29d1cea420957fbc41"
+  },
+  "runtime": {
+    "status": "pass",
+    "minimum_free_gib_override": 1.0,
+    "failed": [],
+    "warned": ["project license"],
+    "output_sha256": "051d37206442f24108b0adcda4bac9fc7d9e50e40bb7b43f312a029c9fbedc52",
+    "verified": [
+      "aarch64",
+      "arm64-v8a",
+      "Termux",
+      "Termux:X11",
+      "GNU Make backend",
+      "Steam ARM64 client",
+      "Turnip manifest",
+      "PulseAudio helper",
+      "native launcher",
+      "native glibc"
+    ]
+  },
+  "protected_processes": {
+    "steam": {"pid": 15575, "start_ticks_after": 128118834},
+    "x11": {"pid": 13643, "start_ticks_after": 121863492}
+  },
+  "scope": "Read-only hardware validation. The 1 GiB override proves the installed runtime; the default 4 GiB threshold remains authoritative for a fresh bootstrap."
+}

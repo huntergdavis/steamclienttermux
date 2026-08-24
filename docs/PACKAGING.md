@@ -70,6 +70,14 @@ The doctor changes nothing and does not read Steam credentials. Use `--json`
 for installer/UI integration. Missing project licensing is a warning for local
 research; any missing runtime prerequisite fails closed.
 
+| Tab S8+ hardware check | Result |
+| --- | --- |
+| Installed runtime at 1 GiB floor | Pass; all runtime components verified |
+| Fresh bootstrap at default 4 GiB floor | Refused; only 1.65 GiB free |
+| Steam/X11 disruption | None; process identities preserved |
+
+See [the compact hardware evidence](evidence/steam-stack-doctor-tablet-20260824.json).
+
 ## Release and trust plan
 
 - Build a deterministic package from an exact Git commit and stack lock.
