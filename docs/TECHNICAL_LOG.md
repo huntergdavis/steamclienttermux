@@ -9136,3 +9136,30 @@ zero-result fullscreen retry returned no indexed match. This work reused the
 hash-pinned candidate, transactional DXVK overlay, top-app fullscreen
 controller, and recoverable FEX-delta archive disciplines already established
 in this repository.
+
+## 2026-08-23: four DXVK compiler workers do not improve 1080p
+
+DXVK 2.4.1 selected seven compiler threads automatically in the accepted
+44.8 FPS 1080p Normal baseline. Upstream documents
+`dxvk.numCompilerThreads` as the exact compiler-worker control, so a reusable
+final-game-only selector now supports `0` (automatic) through `16`. It is
+stripped from Steam/CEF and captured Pressure Vessel environments, validated
+twice, composed with the existing DXVK configuration, and recorded in series
+metadata. The first bounded candidate forced four workers while holding every
+other 1080p variable constant.
+
+The candidate completed at **27.7 minimum, 63.1 maximum, and 44.3 average
+FPS**, versus 29.2 / 65.5 / 44.8 for automatic/seven. All three metrics moved
+down; average changed by -0.5 FPS / -1.1%. The difference may be normal
+single-run variance, but it is not evidence of a gain, so four workers is
+rejected and DXVK automatic remains the default. The logs prove the exact
+effective configuration `dxvk.numCompilerThreads = 4`, DXVK 2.4.1, a
+1920x1080 swapchain, 352 state-cache entries read, graphics pipeline
+libraries, full-display Android/X11 bounds, an unthrottled 37.0 C start, and
+affinity ready for PID 13831 with 50 threads on CPUs1-7, RakNet CPU1, and
+Steam helpers CPU0.
+
+The post-run maps were preserved at
+`runtime-delta-rejected-dxvk-compiler4-1080p-20260824T0104Z`; the pending
+directory is empty. Exact evidence is
+`docs/benchmark-series/tombraider-direct-glibc-dxvk-241-compiler4-1080p-normal-fullscreen-60hz-40c-20260824.json`.

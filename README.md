@@ -59,6 +59,7 @@ DXVK 2.4.1 both averaged 59.1 FPS.
 | --- | --- | --- | --- | ---: | --- |
 | official 2.4.1 x32 | `safe`, offline-compiled cache generation 5 | 1280x720 Normal, exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 35.8 / 74.4 / **59.1**; repeat 15.7 / 72.5 / **59.1** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-720p-normal-fullscreen-60hz-20260823.json) |
 | official 2.4.1 x32 | `safe`, offline-compiled cache generation 5 | 1920x1080 Normal, exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 29.2 / 65.5 / **44.8** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-1080p-normal-fullscreen-60hz-40c-20260824.json) |
+| official 2.4.1 x32, 4 compiler workers (rejected) | `safe`, offline-compiled cache generation 5 | 1920x1080 Normal, exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 27.7 / 63.1 / **44.3** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-compiler4-1080p-normal-fullscreen-60hz-40c-20260824.json) |
 | official 1.10.3 x32 | `safe`, offline-compiled cache generation 5 | 1280x720 Normal, exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 27.9 / 70.3 / **55.6** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-1103-x32-720p-normal-fullscreen-60hz-40c-20260824.json) |
 | Proton 11 bundled DXVK | `safe`, offline-compiled cache generation 5 | 1280x720 Normal, exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 33.7 / 61.6 / **52.0** | [JSON](docs/benchmark-series/tombraider-direct-glibc-safe-offline-compiled-720p-normal-fullscreen-60hz-40c-first-20260823.json) |
 
@@ -74,6 +75,10 @@ minimum. Rendering 2.25x as many pixels reduced average throughput by only
 24.2% versus 720p, confirming that pixel fill alone does not dominate this
 stack. It is one thermally valid sample, so it is a baseline rather than a
 replicated promotion.
+
+Forcing four DXVK compiler workers reduced the 1080p result to 44.3 FPS,
+1.1% below DXVK's automatic seven-worker choice, with lower minimum and maximum
+FPS as well. Automatic selection remains the 1080p default.
 
 ### Historical panel-native Low target
 

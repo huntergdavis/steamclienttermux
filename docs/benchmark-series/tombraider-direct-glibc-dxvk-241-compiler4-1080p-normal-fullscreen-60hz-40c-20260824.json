@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "status": "rejected_no_measured_gain",
+  "game": "Tomb Raider (2013)",
+  "appid": 203160,
+  "target": {
+    "backend": "direct native-glibc Steam host",
+    "resolution": "1920x1080",
+    "graphics": "Normal",
+    "exclusive_fullscreen": true,
+    "fullscreen_refresh_hz": 60,
+    "vsync": false,
+    "motion_blur": false,
+    "termux_x11_surface": "borderless 2800x1752 at 59.97 Hz",
+    "fex_profile": "safe",
+    "fex_code_cache": "offline-compiled generation 5",
+    "fex_smc_checks": "mtrack",
+    "dxvk_variant": "official DXVK 2.4.1 x32",
+    "dxvk_compiler_threads": 4
+  },
+  "control": {
+    "dxvk_compiler_threads": "automatic (runtime selected 7)",
+    "minimum_fps": 29.2,
+    "maximum_fps": 65.5,
+    "average_fps": 44.8,
+    "source": "docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-1080p-normal-fullscreen-60hz-40c-20260824.json"
+  },
+  "candidate": {
+    "series_id": "20260824T010208Z-safe",
+    "result_time_utc": "2026-08-24T01:04:44Z",
+    "minimum_fps": 27.7,
+    "maximum_fps": 63.1,
+    "average_fps": 44.3,
+    "absolute_average_change_fps": -0.5,
+    "relative_average_change_percent": -1.1160714285714286,
+    "initial_max_temperature_millidegrees_c": 37000,
+    "cooldown_seconds": 30.304,
+    "elapsed_seconds": 126.062,
+    "game_result": "~/steam-arm64/removable-library/steamapps/common/Tomb Raider/benchmarkresults 2026-08-24 01-04-44.txt",
+    "game_result_sha256": "f8f139ebfec0ee2e30ef058adb23d282e5064898f25b25e61cedd6b31cdce19a",
+    "series": "~/steam-arm64/logs/tombraider-benchmarks/20260824T010208Z-safe/series.json",
+    "series_sha256": "286cee5c8630ccb8644091890ccbf5c149f5a2780edf7e8faf8e5da8007b89c0",
+    "affinity_log": "~/steam-arm64/logs/tombraider-direct-affinity-20260824T010241Z.log",
+    "affinity_ready": "PID 13831, 50 threads, CPUs 1-7, RakNet CPU 1, Steam helpers CPU 0"
+  },
+  "presentation": {
+    "controller_log": "~/steam-arm64/logs/tombraider-1080p-normal-dxvk241-compiler4-controller-20260823T1819PDT.log",
+    "controller_log_sha256": "6ef57ba29ca75369559c34dd86e9f01b5078e96e434f312ff17b7dab094c8f8a",
+    "task_bounds": "0,0,2800,1752",
+    "controller_cgroup": "/top-app",
+    "android_polling_during_timed_scene": false,
+    "controller_exit_status": 0,
+    "xrandr_sha256": "7d3d333aa1bf9c737f28a1636474c1ed4a17a15241afb093f1b778ebb495deb5"
+  },
+  "dxvk": {
+    "log_directory": "~/steam-arm64/logs/dxvk-direct-dyaswgnk",
+    "version": "2.4.1",
+    "effective_configuration": "dxvk.numCompilerThreads = 4",
+    "compiler_threads": 4,
+    "swapchain_extent": "1920x1080",
+    "display_mode": "1920x1080@60",
+    "state_cache_entries_read": 352,
+    "graphics_pipeline_libraries": true,
+    "log_sha256": {
+      "TombRaider_d3d11.log": "1cb59944fb98f69e3f9c41e5cc51cc44b65970bd5c22df95933f20894264ee99",
+      "TombRaider_d3d9.log": "3b2caa415bcec1231ecd30fa21d3258af06e78fc6c5bcc8689b96f5c24961d35",
+      "TombRaider_dxgi.log": "f3a7188303a1045e654717d060db42e65255a1d43829780591139b2dce4fcbbd"
+    }
+  },
+  "fex_runtime_delta": {
+    "archive": "~/steam-arm64/cache/fex-code-cache/tombraider-203160-offline-7efb8f8e/runtime-delta-rejected-dxvk-compiler4-1080p-20260824T0104Z",
+    "sha256sums_sha256": "a1aba8db3ccfa84b2ac100787611c6fadd613c0519459de085822002df21ac4c",
+    "pending_directory_empty_after_archive": true
+  },
+  "validation": {
+    "profile_check_sha256": "8544835269b513f8e1966324fafeb255ed3aecc455640359beba32237b9812fc",
+    "transactional_overlay_restored": true,
+    "protected_processes_unchanged": {
+      "steam": {
+        "pid": 15575,
+        "start_ticks": 128118834
+      },
+      "termux_x11": {
+        "pid": 13643,
+        "start_ticks": 121863492
+      },
+      "pulseaudio": {
+        "pid": 13923,
+        "start_ticks": 121863956
+      }
+    }
+  },
+  "decision": "Reject the explicit four-worker override. It did not improve average FPS and also lowered the measured minimum and maximum. Retain DXVK automatic compiler-worker selection.",
+  "claim_boundary": "This is one thermally valid A/B sample per mode. The 1.1% average difference may be ordinary run variance, but it provides no evidence for promoting four workers."
+}
