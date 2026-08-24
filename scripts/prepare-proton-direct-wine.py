@@ -15,6 +15,9 @@ import tempfile
 
 
 ORIGINAL_INTERPRETER = "/lib/ld-linux-aarch64.so.1"
+CONTROL_PANEL_COLORS = re.compile(
+    r"(?ms)^\[Control Panel\\\\Colors\][^\n]*\n(?P<body>.*?)(?=^\[|\Z)"
+)
 WINDOW_BACKGROUND = re.compile(r'(?m)^"Window"="([0-9]+ [0-9]+ [0-9]+)"$')
 TARGET_RELATIVES = (
     Path("client/steamapps/common/Proton 11.0 (ARM64)/files/bin-arm64/wine"),
@@ -171,15 +174,34 @@ def write_state(
     )
 
 
+def window_background(document: str) -> tuple[str, tuple[int, int]]:
+    sections = list(CONTROL_PANEL_COLORS.finditer(document))
+    if len(sections) != 1:
+        raise PrepareError("Wine user registry does not contain one Colors section")
+    section = sections[0]
+    body = section.group("body")
+    matches = list(WINDOW_BACKGROUND.finditer(body))
+    if len(matches) != 1:
+        raise PrepareError("Wine Colors section does not contain one Window color")
+    match = matches[0]
+    start = section.start("body") + match.start()
+    end = section.start("body") + match.end()
+    return match.group(1), (start, end)
+
+
 def read_window_background(user_registry: Path) -> tuple[str, str]:
     regular_owned_file(user_registry, "Wine user registry")
     document = user_registry.read_text(encoding="utf-8")
-    matches = list(WINDOW_BACKGROUND.finditer(document))
-    if len(matches) != 1:
-        raise PrepareError(
-            f"Wine user registry does not contain one Window color: {user_registry}"
-        )
-    return document, matches[0].group(1)
+    try:
+        current, _ = window_background(document)
+    except PrepareError as error:
+        raise PrepareError(f"{error}: {user_registry}") from error
+    return document, current
+
+
+def replace_window_background(document: str, value: str) -> str:
+    _, (start, end) = window_background(document)
+    return document[:start] + f'"Window"="{value}"' + document[end:]
 
 
 def wine_prefix_is_active(prefix: Path) -> bool:
@@ -273,7 +295,7 @@ def configure_window_background(base: Path, prefix: Path, value: str) -> None:
         )
     if wine_prefix_is_active(prefix):
         raise PrepareError(f"refusing to edit an active Wine prefix: {prefix}")
-    configured = WINDOW_BACKGROUND.sub(f'"Window"="{value}"', document, count=1)
+    configured = replace_window_background(document, value)
     write_text_atomic(user_registry, configured)
     _, installed = read_window_background(user_registry)
     if installed != value:
@@ -317,7 +339,7 @@ def restore_window_background(base: Path, prefix: Path, value: str) -> None:
         )
     if wine_prefix_is_active(prefix):
         raise PrepareError(f"refusing to edit an active Wine prefix: {prefix}")
-    restored = WINDOW_BACKGROUND.sub(f'"Window"="{original}"', document, count=1)
+    restored = replace_window_background(document, original)
     write_text_atomic(user_registry, restored)
     print(f"Restored Wine startup background: {user_registry} value={original}")
 

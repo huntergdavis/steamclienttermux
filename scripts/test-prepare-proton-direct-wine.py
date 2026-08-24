@@ -76,6 +76,8 @@ def main() -> None:
             "[Control Panel\\\\Colors] 1\n"
             '"Window"="255 255 255"\n'
             '"WindowText"="0 0 0"\n'
+            "\n[Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\ThemeManager\\\\Control Panel\\\\Colors] 1\n"
+            '"Window"="255 255 255"\n'
         )
         user_registry.write_text(original_registry, encoding="utf-8")
         user_registry.chmod(0o600)
@@ -111,6 +113,9 @@ def main() -> None:
         assert len(state["targets"]) == len(TARGETS)
         assert not list((base / "backups/proton-direct-wine").glob(".backup.*"))
         assert '"Window"="0 0 0"' in user_registry.read_text(encoding="utf-8")
+        assert user_registry.read_text(encoding="utf-8").count(
+            '"Window"="255 255 255"'
+        ) == 1
         appearance_states = list(
             (base / "backups/wine-prefix-appearance").glob("*/state.json")
         )
@@ -151,6 +156,9 @@ def main() -> None:
             target = base / relative
             assert target.read_text().splitlines()[0] == f"INTERP={loader}"
         assert '"Window"="0 0 0"' in user_registry.read_text(encoding="utf-8")
+        assert user_registry.read_text(encoding="utf-8").count(
+            '"Window"="255 255 255"'
+        ) == 1
         state = json.loads(
             (base / "backups/proton-direct-wine/state.json").read_text()
         )
