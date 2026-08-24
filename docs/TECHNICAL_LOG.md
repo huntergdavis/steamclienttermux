@@ -9330,3 +9330,19 @@ one. The required `deja` query found no prior custom-profile implementation;
 this reuses the established transient-INI and fail-closed result-validation
 architecture. No performance claim is made until a real fullscreen tablet run
 proves the resolved settings and game-authored FPS.
+
+## 2026-08-23: disabling tessellation lifts 720p Ultra to 22.9 FPS
+
+The first custom profile passed every runtime gate and completed at **17.0
+minimum, 26.0 maximum, and 22.9 average FPS**. The game-authored quality block
+confirms all measured Ultra settings remain in place while
+`EnableTessellation` alone changes from one to zero. The exact 1280x720
+swapchain, full-display screenshot, 37.0 C start, affinity, DXVK 2.4.1,
+protected process identities, and recoverable FEX-map archive all passed.
+
+Against the 19.4 FPS Ultra control, disabling tessellation gains 3.5 FPS /
+18.0%. It is a real and useful improvement, but it recovers only 12.5% of the
+28.1 FPS absolute High-to-Ultra loss. The next cumulative isolation keeps
+tessellation off and lowers Ultra SSAO from mode 2 to mode 1. Exact evidence
+is retained in
+`docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-720p-ultra-no-tessellation-fullscreen-60hz-40c-20260824.json`.
