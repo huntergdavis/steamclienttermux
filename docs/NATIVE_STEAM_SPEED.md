@@ -187,3 +187,11 @@ boundaries are recorded in `evidence/native-steam-warm-ui-20260823.json`.
 
 FEX tuning remains a game-process optimization, not a Steam/Library startup
 optimization.
+
+For Tomb Raider, the ordinary direct launcher defaults to the verified,
+binary-hash-keyed FEX-2605 generation-5 compiled cache. The dispatcher checks
+its manifest, embedded FEX identity, cache format, and files before exposing
+it only to the final game process. `TOMB_RAIDER_FEX_CODE_CACHE=on` remains the
+recording/max-buffer reverse control; `off` disables both modes. Other games
+must build and validate their own binary-specific cache before adopting this
+pattern.

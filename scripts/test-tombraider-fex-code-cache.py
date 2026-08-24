@@ -152,7 +152,7 @@ def main() -> None:
         assert sanitized == {"KEEP_ME": "yes"}
 
     launcher_source = LAUNCHER.read_text(encoding="utf-8")
-    assert "fex_code_cache=${TOMB_RAIDER_FEX_CODE_CACHE:-on}" in launcher_source
+    assert "fex_code_cache=${TOMB_RAIDER_FEX_CODE_CACHE:-compiled}" in launcher_source
     assert "$fex_code_cache == compiled" in launcher_source
     assert '"STEAM_ARM64_DIRECT_FEX_CODE_CACHE=$fex_code_cache"' in launcher_source
     assert launcher_source.count("-u FEX_ENABLECODECACHINGWIP") == 2

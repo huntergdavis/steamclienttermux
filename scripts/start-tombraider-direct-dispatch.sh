@@ -19,7 +19,10 @@ mapped_memory=${TOMB_RAIDER_BVB_MAPPED_MEMORY:-strict}
 descriptor_journal=${TOMB_RAIDER_BVB_DESCRIPTOR_JOURNAL:-strict}
 first_rejection_diagnostic=${TOMB_RAIDER_BVB_FIRST_REJECTION_DIAGNOSTIC-0}
 raknet_recv_sleep_us=${TOMB_RAIDER_RAKNET_RECV_SLEEP_US:-0}
-fex_code_cache=${TOMB_RAIDER_FEX_CODE_CACHE:-on}
+# Generation 5 is an exact FEX-2605, binary-hash-keyed cache validated again
+# by the dispatcher before it reaches the final game process. Keep the
+# recording/max-buffer mode as an explicit reverse control.
+fex_code_cache=${TOMB_RAIDER_FEX_CODE_CACHE:-compiled}
 fex_smc_checks=${TOMB_RAIDER_FEX_SMC_CHECKS:-mtrack}
 dxvk_relaxed_graphics_barriers=${TOMB_RAIDER_DXVK_RELAXED_GRAPHICS_BARRIERS:-off}
 dxvk_compiler_threads=${TOMB_RAIDER_DXVK_COMPILER_THREADS:-0}
