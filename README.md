@@ -67,6 +67,7 @@ DXVK 2.4.1 both averaged 59.1 FPS.
 | official 2.4.1 x32 | `safe`, offline-compiled cache generation 5 | 1920x1080 Normal, exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 29.2 / 65.5 / **44.8** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-1080p-normal-fullscreen-60hz-40c-20260824.json) |
 | official 2.4.1 x32 | `safe`, offline-compiled cache generation 5 | 1920x1080 High (`QualityLevel=2`), exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 17.2 / 37.3 / **28.7** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-1080p-high-fullscreen-60hz-40c-20260824.json) |
 | official 2.4.1 x32 | `safe`, offline-compiled cache generation 5 | 1920x1080 Ultra (`QualityLevel=3`), exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 7.2 / 12.8 / **10.0** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-1080p-ultra-fullscreen-60hz-40c-20260824.json) |
+| official 2.4.1 x32 | `safe`, offline-compiled cache generation 5 | 1920x1080 tuned Ultra: tessellation off, SSAO1, DOF1, shadow resolution 1 | Borderless 2800x1752 at 59.97 Hz | 15.3 / 39.8 / **30.1** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-1080p-ultra-no-tessellation-ssao1-dof1-shadow1-fullscreen-60hz-40c-20260824.json) |
 | official 2.4.1 x32 | `safe`, offline-compiled cache generation 5 | 1920x1080 Ultimate (`QualityLevel=4`), exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 4.3 / 10.0 / **7.4** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-1080p-ultimate-fullscreen-60hz-40c-20260824.json) |
 | official 2.4.1 x32, 4 compiler workers (rejected) | `safe`, offline-compiled cache generation 5 | 1920x1080 Normal, exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 27.7 / 63.1 / **44.3** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-compiler4-1080p-normal-fullscreen-60hz-40c-20260824.json) |
 | official 1.10.3 x32 | `safe`, offline-compiled cache generation 5 | 1280x720 Normal, exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 27.9 / 70.3 / **55.6** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-1103-x32-720p-normal-fullscreen-60hz-40c-20260824.json) |
@@ -124,6 +125,15 @@ count rises from 720p to 1080p.
 1080p Ultra averaged 10.0 FPS, 18.7 FPS / 65.2% below 1080p High. Because the
 same transition costs 59.2% at 720p, the Ultra bundle grows more expensive
 with pixel count and is substantially GPU/shader/bandwidth sensitive.
+
+The cumulative 1080p tuned-Ultra profile crosses the target at **30.1 FPS**
+average: Ultra textures/filtering, LOD4, reflections, and high-precision
+rendering remain enabled; tessellation is off, SSAO and DOF use mode 1, and
+shadow resolution is reduced from 2 to 1. Against the otherwise identical
+27.5-FPS control, the shadow change gains 2.6 FPS / 9.5% and raises the
+single-pass minimum from 9.9 to 15.3 FPS. The game-authored result validates
+every effective field; this remains a single run rather than a replicated
+mean.
 
 1080p Ultimate averaged 7.4 FPS, 2.6 FPS / 26.0% below Ultra. The nearly
 identical 26.8% TressFX cost at 720p makes hair the cleanly isolated second

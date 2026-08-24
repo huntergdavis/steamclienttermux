@@ -9504,3 +9504,29 @@ exact ordered override and reject a mutated shadow value. The required
 Adreno 730 1080p"` query found no indexed implementation; this reuses the
 accepted custom-INI and game-authored result-validation pipeline. No FPS
 claim is made before a controlled tablet pass.
+
+## 2026-08-23: 1080p tuned Ultra crosses 30 FPS
+
+The first two shadow attempts were invalid because the foreground controller
+still defaulted to `start-tombraider-bvb-probe`; they rendered only the BVB
+triangle and were archived as rejected experiments. Comparing the exact
+27.5-FPS control proved the accepted route instead sets
+`TOMB_RAIDER_FOREGROUND_PROBE` directly to the benchmark wrapper. That keeps
+the Termux RunCommand `/top-app` lineage and verified borderless X11 task but
+does not start the BVB Activity or service.
+
+The corrected direct-X11 run completed at **15.3 minimum, 39.8 maximum, and
+30.1 average FPS**. Its game-authored quality block proves
+`ShadowResolution=1` while retaining Ultra texture quality 4, filter 18,
+LOD4, reflection quality 2, high-precision rendering, tessellation off,
+SSAO1, and DOF1. This gains 2.6 FPS / 9.5% over the otherwise identical 27.5
+FPS control and raises the minimum by 5.4 FPS / 54.5%.
+
+The run started from 37.0 C after 30.287 seconds of cooldown, used official
+DXVK 2.4.1 x32 with a 1920x1080 BGRA four-image swapchain and six compiler
+threads, and reached affinity ready for PID 21677 with 52 threads on CPUs1-7.
+Steam, X11, and PulseAudio retained their exact start identities. The two
+generated FEX maps are preserved in
+`runtime-delta-valid-1080p-ultra-no-tessellation-ssao1-dof1-shadow1-20260824T0456Z`.
+Exact evidence is in
+`docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-1080p-ultra-no-tessellation-ssao1-dof1-shadow1-fullscreen-60hz-40c-20260824.json`.

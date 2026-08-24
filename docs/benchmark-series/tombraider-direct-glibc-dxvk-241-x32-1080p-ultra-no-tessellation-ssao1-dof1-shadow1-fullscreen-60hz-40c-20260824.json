@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "status": "accepted_single_run_target_pass",
+  "game": "Tomb Raider (2013)",
+  "appid": 203160,
+  "target": {
+    "backend": "direct native-glibc Steam host to Termux:X11",
+    "resolution": "1920x1080",
+    "graphics": "Ultra without tessellation, SSAO mode 1, DOF quality 1, shadow resolution 1",
+    "quality_level": 3,
+    "benchmark_overrides": {
+      "EnableTessellation": 0,
+      "SSAOMode": 1,
+      "DOFQuality": 1,
+      "ShadowResolution": 1
+    },
+    "exclusive_fullscreen": true,
+    "termux_x11_surface": "borderless 2800x1752 at 59.97 Hz",
+    "dxvk": "official DXVK 2.4.1 x32",
+    "fex": "Safe with offline-compiled cache generation 5",
+    "start_temperature_ceiling_c": 40
+  },
+  "comparison": {
+    "control": "1920x1080 tuned Ultra with ShadowResolution 2",
+    "control_minimum_fps": 9.9,
+    "control_average_fps": 27.5,
+    "candidate_minimum_fps": 15.3,
+    "candidate_average_fps": 30.1,
+    "absolute_average_change_fps": 2.6,
+    "relative_average_change_percent": 9.454545454545455,
+    "absolute_minimum_change_fps": 5.4,
+    "relative_minimum_change_percent": 54.54545454545455
+  },
+  "run": {
+    "series_id": "20260824T045401Z-safe",
+    "minimum_fps": 15.3,
+    "maximum_fps": 39.8,
+    "average_fps": 30.1,
+    "initial_max_temperature_millidegrees_c": 37000,
+    "cooldown_seconds": 30.287,
+    "elapsed_seconds": 128.997,
+    "game_result": "~/steam-arm64/removable-library/steamapps/common/Tomb Raider/benchmarkresults 2026-08-24 04-56-40.txt",
+    "game_result_sha256": "a0366a0e5e0bfac021b45da356bf15bd8a9807c6f825fde34eebccbb663f60ec",
+    "series": "~/steam-arm64/logs/tombraider-benchmarks/20260824T045401Z-safe/series.json",
+    "series_sha256": "28414696483e650637556172014385e2d8b815f23510ef7a73160467b956a4dc",
+    "affinity_log_sha256": "3d1e025a7ba2eb28564932b7f97f316f2ea61745efc523d7a8a8c04824ec2e36",
+    "affinity_ready": "PID 21677, 52 threads, CPUs 1-7, RakNet CPU 1, Steam helpers CPU 0"
+  },
+  "resolved_quality_settings": {
+    "TextureQuality": 4,
+    "BestTextureFilter": 18,
+    "HairQuality": 0,
+    "AntiAliasingMode": 1,
+    "ShadowMode": 1,
+    "ShadowResolution": 1,
+    "SSAOMode": 1,
+    "DOFQuality": 1,
+    "ReflectionQuality": 2,
+    "LODScale": 4,
+    "EnablePostProcess": 1,
+    "EnableMotionBlur": 0,
+    "EnableScreenEffects": 0,
+    "EnableHighPrecisionRT": 1,
+    "EnableTessellation": 0
+  },
+  "presentation": {
+    "foreground_probe": "direct benchmark wrapper; BVB Activity and service absent",
+    "controller_log": "~/steam-arm64/logs/tombraider-bvb-foreground-20260824T045345Z-19064.log",
+    "controller_log_sha256": "cd458f2e6f3e3b60dfa4bf62a06d8e33573878052394fc9515d2359e0c6d1d24",
+    "task_id": 2852,
+    "task_bounds": "0,0,2800,1752",
+    "controller_cgroup": "/top-app",
+    "android_polling_during_timed_scene": false,
+    "controller_exit_status": 0,
+    "screenshot": null,
+    "screenshot_boundary": "Two live ADB checks captured the black game-loading surface before the timed scene; no screenshot is claimed for the measured scene. Game-authored output and exit status prove benchmark completion."
+  },
+  "dxvk": {
+    "log_directory": "~/steam-arm64/logs/dxvk-direct-q826kkmw",
+    "version": "2.4.1",
+    "swapchain_format": "VK_FORMAT_B8G8R8A8_UNORM",
+    "swapchain_extent": "1920x1080",
+    "image_count": 4,
+    "compiler_threads": 6,
+    "log_sha256": {
+      "TombRaider_d3d11.log": "2cc5d4a2bc86d74ec47f306bbfdf41dfabaf92a6a1eb41799d2b91ebb23c2957",
+      "TombRaider_d3d9.log": "7a6277e6712d6f4ca7008a60e814f0b4ff851ed7663a0774292c90026e8a8071",
+      "TombRaider_dxgi.log": "64aed5fc06b44cef16cf667b88181074b346f324dfd9ab1f951353b5b09c1caf"
+    }
+  },
+  "fex_runtime_delta": {
+    "archive": "~/steam-arm64/cache/fex-code-cache/tombraider-203160-offline-7efb8f8e/runtime-delta-valid-1080p-ultra-no-tessellation-ssao1-dof1-shadow1-20260824T0456Z",
+    "sha256sums_sha256": "030a51832568a88928640808c0a7fd77a93dfd6ae0a7887870e39d53ff735f35",
+    "pending_directory_empty_after_archive": true
+  },
+  "validation": {
+    "benchmark_ini_sha256": "897f4281219bf26e016e019454c8e519940559eca609b5f5c3e394355299b29b",
+    "profile_check_sha256": "6e03e22c05bca002d5cd2c160043bd5b5a0ce1d53cac3fc2c4b2f78b9fbf6d8e",
+    "topology_check_sha256": "84c3407f4f99dc2a2060e9d3e5db0240ed79fe76da94ecd9dcd05e87a80377a2",
+    "protected_processes_unchanged": {
+      "steam": {"pid": 15575, "start_ticks": 128118834},
+      "termux_x11": {"pid": 13643, "start_ticks": 121863492},
+      "pulseaudio": {"pid": 13923, "start_ticks": 121863956}
+    }
+  },
+  "recall": {
+    "query": "Tomb Raider 2013 Ultra ShadowResolution benchmarkini performance Adreno 730 1080p",
+    "result": "no indexed matches",
+    "reused": [
+      "accepted custom benchmark-INI ordering and game-result validation",
+      "direct-X11 foreground/top-app controller contract",
+      "recoverable FEX delta archive"
+    ]
+  },
+  "claim_boundary": "One runner-accepted thermally valid pass crosses the 30 FPS target at 30.1 average and improves the single-pass minimum to 15.3. The FPS result is game-authored but not yet a replicated mean."
+}
