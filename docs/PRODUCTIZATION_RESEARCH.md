@@ -71,6 +71,11 @@ accepts small reviewed manifests of relative paths, installed sizes, and byte
 budgets. Other games can ship different manifests without changing the engine
 or weakening its path, symlink, and size checks.
 
+Optimized launch selection is data-driven too. `start-steam-game APPID` resolves
+the AppID and named mode through a reviewed manifest, then enters that game's
+specialized direct launcher. Unknown games and malformed or linked launchers
+fail closed; the ordinary Steam route is never selected silently.
+
 ## Release gates
 
 | Gate | Pass condition |

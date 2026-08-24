@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-24",
+  "status": "host-and-tablet-pass",
+  "operation": "manifest-backed optimized Steam AppID launcher",
+  "interface": {
+    "command": "~/start-steam-game 203160",
+    "profile": "config/game-launch-profiles.json",
+    "resolved_launcher": "~/start-tombraider-direct-dispatch",
+    "shortcut": "~/start-tombraider.sh",
+    "stock_control": "~/start-tombraider.sh --stock"
+  },
+  "validation": {
+    "complete_project_suite": "pass",
+    "dry_run_profile_resolution": "pass",
+    "unknown_appid_rejection": "pass",
+    "linked_launcher_rejection": "pass",
+    "tablet_direct_dispatch": "pass",
+    "real_fullscreen_2800x1752_terms_ui": "pass",
+    "steam_pid_start_ticks_preserved": "15575:128118834",
+    "x11_pid_start_ticks_preserved": "13643:121863492"
+  },
+  "tablet_timing": {
+    "session_to_runtime_seconds": 11.0,
+    "runtime_to_target_seconds": 21.528,
+    "runtime_to_window_seconds": 47.688,
+    "appid_to_window_seconds": 58.688,
+    "performance_record": false,
+    "current_best_seconds": 53.553
+  },
+  "artifacts": {
+    "launcher_sha256": "4541ac23d4153f27333a80141fbd03c4cb876368d2e504b06ff27990f0d844ee",
+    "shortcut_sha256": "9a848c9867cbb4012305d444bb017f02ef17222f018e6dba5503d6cd4be7dd81",
+    "profile_sha256": "438c1e79389c5254bd28b8e45e1911a63b8e381aae73465ffb9670f84e1cfcc3",
+    "timer_sha256": "e5859e0be62f05fe57afce9da43f87db958b9e943c3c9df71fee047dddac2f1c",
+    "launcher_stdout_sha256": "ee76ec6fb89449bc2ce9d28bbcccdce404959055db26253607f88c303562e1ff",
+    "screenshot_sha256": "675c42db359a6f183d3cfb66009fbd8c3e57bcfcfe746fac6f2d37ae354b1d52"
+  },
+  "rollback": {
+    "path": "~/steam-arm64/backups/appid-launcher-pre-20260824-0914/start-tombraider.sh",
+    "sha256": "487bd7309dba3553b5a052c1f9b5d9f6a7b647796da713c57bd46eee010c53bb"
+  },
+  "recall": {
+    "query": "generic Steam AppID direct launcher manifest game profiles Termux",
+    "result": "no indexed match",
+    "reused": [
+      "allow-listed authenticated direct dispatcher",
+      "fail-closed launcher validation",
+      "data-driven per-game manifest pattern"
+    ]
+  },
+  "claim_boundary": "This proves reliable profile resolution and a real game window. The 58.688-second acceptance run is not a launch-speed promotion."
+}

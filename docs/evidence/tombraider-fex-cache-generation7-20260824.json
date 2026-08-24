@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-24",
+  "status": "tablet-pass-no-improvement-not-promoted",
+  "operation": "refresh verified FEX-2605 Tomb Raider offline cache",
+  "input": {
+    "generation": 6,
+    "compiled_cache_files": 74,
+    "pending_maps": 6
+  },
+  "output": {
+    "generation": 7,
+    "compiled_cache_files": 74,
+    "pending_maps": 0,
+    "result_sha256": "6cda25348292eca9f8e76af981cc38f0bea3d899b95ec60bc72bf6171a545f5c",
+    "compile_wrapper_seconds": 62.17
+  },
+  "performance": {
+    "appid_to_window_seconds": 55.303,
+    "generation6_best_seconds": 53.553,
+    "delta_seconds": 1.75,
+    "promotion": "rejected",
+    "runtime_to_target_seconds": 17.585,
+    "runtime_to_winevulkan_seconds": 29.492,
+    "runtime_to_d3d11_seconds": 30.312,
+    "runtime_to_window_seconds": 43.303,
+    "screenshot_sha256": "5db511bbb8cd71778ddf4ad0b2397ccfb6edd171f8c50de43d43f1b3dc9064bf"
+  },
+  "rollback": {
+    "path": "/storage/7376-B000/steam-arm64-evidence/fex-cache-generation6-pre-refresh-20260824.tar",
+    "bytes": 144506880,
+    "sha256": "8d53573107a20dac21ccae5af078dbe834b9dcd39416f88eb146ab5702dbb09c"
+  },
+  "artifacts": {
+    "timer_sha256": "bcb805ede0c27458809e9faf7c9b7bc98f3e73bf7c3b2f81235fe8de960736f1",
+    "phase_log_sha256": "e73c496ae6d685b6f298915b376df84c77c6b8170813613549944674477172f8",
+    "launcher_stdout_sha256": "58c94bd5d43c4ac6bda56ccac63bf65673d0ba5f20e85975c2901ff5a4edbc35"
+  },
+  "excluded_attempts": [
+    {
+      "arguments": "-nolauncher -benchmark",
+      "reason": "ordinary Steam wrapper was invoked; outer process exited before the direct dispatcher"
+    },
+    {
+      "arguments": "-nolauncher",
+      "reason": "ordinary Steam wrapper was invoked; outer process exited before the direct dispatcher"
+    }
+  ],
+  "validation": {
+    "verified_result": "pass",
+    "pending_directory_empty_after_compile": "pass",
+    "real_fullscreen_2800x1752_loading_frame": "pass",
+    "dxvk_overlay_absent_during_compile": "pass",
+    "steam_pid_start_ticks_preserved": "15575:128118834",
+    "x11_pid_start_ticks_preserved": "13643:121863492"
+  },
+  "recall": {
+    "queries": [
+      "FEX generation 7 refresh Tomb Raider learned maps AppID startup",
+      "Steam AppID outer process exits before authenticated direct dispatcher Tomb Raider",
+      "generic Steam AppID direct launcher manifest game profiles Termux"
+    ],
+    "result": "no indexed match",
+    "reused": [
+      "verified generation identity and rollback workflow",
+      "bounded pending-map validation",
+      "allow-listed authenticated direct dispatcher",
+      "data-driven fail-closed game profiles"
+    ]
+  },
+  "claim_boundary": "Generation 7 is a valid cache generation and produced a real game frame, but one pass was slower than the generation-6 best and is not a promoted speed result."
+}

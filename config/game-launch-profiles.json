@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "games": {
+    "203160": {
+      "name": "Tomb Raider (2013)",
+      "launcher": "start-tombraider-direct-dispatch",
+      "modes": {
+        "play": {},
+        "benchmark": {
+          "TOMB_RAIDER_DIRECT_MODE": "tombraider-benchmark"
+        }
+      }
+    }
+  }
+}

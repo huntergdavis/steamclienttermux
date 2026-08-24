@@ -9682,3 +9682,33 @@ a real full-screen Tomb Raider Terms window in 55.357 seconds. That is 1.804
 seconds slower than the 53.553-second best, so ordinary run variance is larger
 than any demonstrated benefit. The helper remains reusable and opt-in, the
 Tomb Raider default remains off, and the unreliable attempts are excluded.
+
+## 2026-08-24: generation 7 is valid but does not beat the launch record
+
+Six later runtime maps were compiled into verified FEX cache generation 7 after
+preserving generation 6 as a 144,506,880-byte external-storage tar. The cache
+again contained 74 compiled files, had no pending maps, and its result manifest
+SHA-256 became `6cda2534...45f5c`. The DXVK game overlay remained absent from
+the compile route.
+
+The correctly routed AppID pass reached a real 2800x1752 full-screen Tomb Raider
+loading frame in **55.303 seconds**. That is 1.750 seconds slower than the
+53.553-second generation-6 best, so generation 7 is not promoted as a launch
+improvement. Two earlier attempts were excluded because they used the ordinary
+Steam wrapper and never entered the authenticated direct dispatcher. That
+operator ambiguity motivated a generic manifest-backed `start-steam-game
+APPID` command; the Tomb Raider shortcut now selects it by default and retains
+the ordinary route only behind explicit `--stock`.
+
+The three required focused recall queries returned no indexed implementation.
+This work reused the verified cache generation/rollback pipeline, bounded map
+validation, authenticated direct dispatcher, and data-driven fail-closed
+profile pattern. Exact runtime evidence is in
+`docs/evidence/tombraider-fex-cache-generation7-20260824.json`.
+
+The installed generic entry point subsequently passed its tablet acceptance
+gate. `~/start-steam-game 203160` resolved the reviewed profile, entered the
+direct dispatcher, and produced a visually inspected 2800x1752 full-screen
+Square Enix Terms UI. The 58.688-second timing is recorded for repeatability
+but does not replace the 53.553-second performance best. Exact evidence is in
+`docs/evidence/generic-appid-launcher-tablet-20260824.json`.

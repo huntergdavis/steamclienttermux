@@ -14,7 +14,7 @@ contain Valve binaries, games, credentials, or account state.
 | Goal | Best verified result | Next gate |
 | --- | --- | --- |
 | Tomb Raider performance | 1080p tuned Ultra: **30.7 FPS average** | Replicate and generalize the profile |
-| Steam startup | UI **1.662s**; AppID-to-window **53.553s** | Validate generic startup prefetch; reduce CPU-bound graphics init |
+| Steam startup | UI **1.662s**; AppID-to-window **53.553s** | Reduce CPU-bound graphics init |
 | Easy distribution | Reproducible ZIP + tablet-tested read-only doctor | Bootstrap/rollback workflow |
 
 | Component | Verified |
@@ -60,17 +60,17 @@ Start the minimal Steam session from visible Termux:
 Launch or stop a game session:
 
 ```sh
-~/start-steam.sh --appid 203160 -- -nolauncher
-~/start-tombraider-direct-raknet-backoff
+~/start-steam-game 203160
+~/start-steam-game 203160 --mode benchmark
 ~/stop-steam-native.sh
 ```
 
-The direct Tomb Raider command is the current optimized path. The plain
-`start-tombraider-native.sh` route remains available as a compatibility
-control.
+The manifest-backed AppID command selects the reviewed optimized route and
+fails closed for unknown games. `~/start-tombraider.sh` is its Tomb Raider
+shortcut; `~/start-tombraider.sh --stock` is the explicit compatibility route.
 
-Startup tuning uses a shared bounded prefetch engine plus reviewed per-game
-manifests; it remains opt-in until its tablet A/B is conclusive.
+Startup prefetch is generic and manifest-driven, but remains off for Tomb Raider
+because its tablet timing did not improve the 53.553-second best.
 
 The launcher fails closed on stale X11 state, duplicate processes, background
 scheduling, unverified windows, or mismatched artifacts.

@@ -87,6 +87,7 @@ the AppID handoff and restored them to CPU 0 after acknowledgement:
 | Launch boost + compiled FEX cache | 64.200 | -21.5% |
 | **Compiled cache + DXVK 2.4.1 x32** | **55.339** | **-32.3%** |
 | **Refreshed FEX generation 6 + DXVK 2.4.1** | **53.553** | **-34.5%** |
+| FEX generation 7 + DXVK 2.4.1 | 55.303 | -32.3%; valid, not promoted |
 
 Session-to-runtime fell from 30 to 12 seconds while runtime-to-window remained
 roughly flat (51.742 vs 53.193 seconds). A 2800x1752 tablet screenshot confirmed
@@ -204,3 +205,18 @@ The screenshot was a genuine full-screen 2800x1752 Tomb Raider loading frame.
 These are cumulative `/proc` deltas from one run, not benchmark FPS or a
 latency distribution. Exact counters are in
 [the process-metrics evidence](evidence/steam-appid-process-metrics-host-20260824.json).
+
+Generation 7 compiled six later learning maps and passed full cache validation,
+but its correctly routed AppID run reached the same full-screen loading frame in
+55.303 seconds—1.750 seconds slower than generation 6's best. Generation 6
+therefore remains the published performance record. Two earlier attempts are
+excluded because they invoked the ordinary Steam wrapper rather than the direct
+dispatcher and never created a game process; that UX ambiguity motivated the
+manifest-backed `start-steam-game APPID` entry point.
+
+The new public command then passed end to end on the tablet: `start-steam-game
+203160` resolved the reviewed profile, entered the authenticated direct
+dispatcher, and reached the real full-screen Terms UI in 58.688 seconds. This
+is a repeatability/packaging acceptance result, not a performance promotion;
+53.553 seconds remains the launch record. See [the AppID launcher
+evidence](evidence/generic-appid-launcher-tablet-20260824.json).

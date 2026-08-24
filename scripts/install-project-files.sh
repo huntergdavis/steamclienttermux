@@ -144,6 +144,10 @@ install_one "$repo_root/scripts/capture-native-steam-backtrace.sh" \
     "$HOME/capture-native-steam-backtrace.sh" 700
 install_one "$repo_root/scripts/start-tombraider.sh" \
     "$HOME/start-tombraider.sh" 700
+install_one "$repo_root/scripts/start-steam-game.py" \
+    "$HOME/start-steam-game" 700
+install_one "$repo_root/config/game-launch-profiles.json" \
+    "$base/config/game-launch-profiles.json" 600
 install_one "$repo_root/scripts/start-tombraider-native.sh" \
     "$HOME/start-tombraider-native.sh" 700
 install_one "$repo_root/scripts/capture-tombraider-pressure-vessel-plan.sh" \
