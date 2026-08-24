@@ -22,6 +22,7 @@ PANEL_GEOMETRY = "2800x1752"
 GAME_PROFILES = {
     "native-low": {"resolution": PANEL_GEOMETRY, "graphics": "Low"},
     "720p-normal": {"resolution": "1280x720", "graphics": "Normal"},
+    "1080p-normal": {"resolution": "1920x1080", "graphics": "Normal"},
 }
 RESULT_GLOB = "benchmarkresults*.txt"
 PROOT_GUARD_GLOB = "tomb-raider-affinity-*.log"

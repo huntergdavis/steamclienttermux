@@ -52,9 +52,15 @@ NORMAL_720P_DWORDS = {
     b"ShadowResolution": b"00000001",
     b"SSAOMode": b"00000001",
 }
+NORMAL_1080P_DWORDS = {
+    **NORMAL_720P_DWORDS,
+    b"FullscreenHeight": b"00000438",
+    b"FullscreenWidth": b"00000780",
+}
 PROFILES = {
     "native-low": TARGET_DWORDS,
     "720p-normal": NORMAL_720P_DWORDS,
+    "1080p-normal": NORMAL_1080P_DWORDS,
 }
 RUNNING_COMMS = {
     "fexinterpreter",

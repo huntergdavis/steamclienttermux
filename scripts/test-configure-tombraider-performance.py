@@ -62,6 +62,18 @@ def test_render(module):
     assert normal[b"EnableMotionBlur"] == b"00000000"
     assert normal[b"VSyncMode"] == b"00000000"
 
+    normal_1080p = module.NORMAL_1080P_DWORDS
+    normal_1080p_rendered, normal_1080p_changed = module.render_profile(
+        original, normal_1080p
+    )
+    assert normal_1080p_changed
+    assert_targets(module, normal_1080p_rendered, normal_1080p)
+    assert normal_1080p[b"FullscreenWidth"] == b"00000780"
+    assert normal_1080p[b"FullscreenHeight"] == b"00000438"
+    assert normal_1080p[b"LODScale"] == b"00000002"
+    assert normal_1080p[b"EnableMotionBlur"] == b"00000000"
+    assert normal_1080p[b"VSyncMode"] == b"00000000"
+
 
 def test_refusals(module):
     original = fixture(module)

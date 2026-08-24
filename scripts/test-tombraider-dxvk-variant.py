@@ -17,6 +17,10 @@ WRAPPER = (
     ROOT
     / "scripts/test-tomb-raider-direct-dxvk-1103-x32-720p-normal-single-40c-ceiling.sh"
 )
+WRAPPER_1080P = (
+    ROOT
+    / "scripts/test-tomb-raider-direct-dxvk-241-x32-1080p-normal-single-40c-ceiling.sh"
+)
 
 
 def load_dispatcher():
@@ -146,6 +150,12 @@ def main() -> None:
         encoding="utf-8"
     )
     assert WRAPPER.name in installer
+
+    wrapper_1080p = WRAPPER_1080P.read_text(encoding="utf-8")
+    assert "--game-profile 1080p-normal" in wrapper_1080p
+    assert "--dxvk-variant dxvk-2.4.1-x32" in wrapper_1080p
+    assert "--warmups 0" in wrapper_1080p and "--runs 1" in wrapper_1080p
+    assert WRAPPER_1080P.name in installer
 
     assert selected["WINEDLLOVERRIDES"] == "d3d9,d3d10core,d3d11,dxgi=n"
 
