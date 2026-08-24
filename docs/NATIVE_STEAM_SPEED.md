@@ -132,12 +132,9 @@ the original Activity handoff, top-app wait, and Binder log gate. The focused
 deja query `Termux X11 already top-app skip am start binder health warm Steam
 launcher` returned no indexed implementation.
 
-The accepted top-app tablet run completed in 4.887 seconds with return code 0,
-the exact Steam/X11/PulseAudio identities unchanged, all 11 CEF helpers on CPUs
-0-3, and a populated 2800x1752 screenshot. This is an 82.1% reduction from the
-initial 27.329-second warm wrapper measurement. Exact artifacts, intermediate
-measurements, identities, and no-claim boundaries are recorded in
-`evidence/native-steam-warm-ui-20260823.json`.
+The intermediate top-app tablet run completed in 4.887 seconds with return code
+0, the exact Steam/X11/PulseAudio identities unchanged, all 11 CEF helpers on
+CPUs 0-3, and a populated 2800x1752 screenshot.
 
 The sub-five-second trace had no remaining blocking sleep. Most residual time
 was cumulative process creation: each of 11 CEF helpers triggered separate
@@ -147,6 +144,12 @@ builtins, preserving the exact top-app and CPU-mask assertions without those
 external processes. The focused deja query `Bash builtin parse proc pid cgroup
 status affinity eliminate sed head Steam helpers warm launcher` returned no
 indexed implementation.
+
+The accepted built-in-parser run completed in 2.254 seconds with return code 0
+and the same protected process identities and populated screenshot hash. This
+is a 91.8% reduction from the initial 27.329-second warm wrapper measurement.
+Exact artifacts, all intermediate measurements, identities, and no-claim
+boundaries are recorded in `evidence/native-steam-warm-ui-20260823.json`.
 
 ## Later, separate A/Bs
 

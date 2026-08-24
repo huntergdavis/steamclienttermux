@@ -8,11 +8,11 @@
     "route": "native ARM64 glibc Steam with Termux:X11, no PRoot, no KDE"
   },
   "accepted_current_run": {
-    "source_commit": "506080c",
-    "installed_launcher_sha256": "d1ccb9f53913a821e77fa223ad17aa056db95367b1a4eff7604fa2bc8368d42f",
-    "start_epoch_realtime": 1787552357.030606,
-    "end_epoch_realtime": 1787552361.917363,
-    "elapsed_seconds": 4.887,
+    "source_commit": "73a9b02",
+    "installed_launcher_sha256": "050836cc0127bf63736b82f25cd32ac315f54d19f741fa42b346318bf3e803ee",
+    "start_epoch_realtime": 1787552805.614404,
+    "end_epoch_realtime": 1787552807.868214,
+    "elapsed_seconds": 2.254,
     "returncode": 0,
     "cef_affinity": "0-3",
     "cef_processes": 11,
@@ -29,10 +29,11 @@
     {"label": "initial warm wrapper", "elapsed": 27.329},
     {"label": "identity-bound affinity cache hit", "elapsed": 12.678},
     {"label": "native candidate discovery plus warm window gate", "elapsed": 9.889},
-    {"label": "exact X11 top-app fast path", "elapsed": 4.887}
+    {"label": "exact X11 top-app fast path", "elapsed": 4.887},
+    {"label": "single-pass builtin proc validation", "elapsed": 2.254}
   ],
   "result": {
-    "reduction_from_initial_percent": 82.1,
+    "reduction_from_initial_percent": 91.8,
     "authenticated_dispatcher_seconds_observed": "0.33-0.35",
     "render_check": "pass",
     "distribution_claim": false,
@@ -48,7 +49,8 @@
       "Steam CEF responsive affinity UI CPU0 cache warm launch optimization",
       "cache X11 Steam steamwebhelper PID discovery affinity stamp start ticks proc scan",
       "warm existing Steam window five second stability hidden CEF window scan xdotool",
-      "Termux X11 already top-app skip am start binder health warm Steam launcher"
+      "Termux X11 already top-app skip am start binder health warm Steam launcher",
+      "Bash builtin parse proc pid cgroup status affinity eliminate sed head Steam helpers warm launcher"
     ]
   },
   "limitations": [
