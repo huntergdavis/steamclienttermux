@@ -63,6 +63,10 @@ def main():
     assert "process_is_top_app()" in source
     assert 'if ! process_is_top_app "${x11_pids[0]}"; then' in source
     assert 'if [[ $x11_foreground_handoff == 1 ]]; then' in source
+    assert "read_process_cgroups()" in source
+    assert 'done < "/proc/$pid/cgroup"' in source
+    assert "read_status_cpu_mask()" in source
+    assert 'done < "$status"' in source
     assert '--steam-start-ticks "$steam_start_ticks"' in source
     reused_x11 = source.index('    1)\n        # A prior native Activity')
     foreground = source.index("        foreground_x11", reused_x11)

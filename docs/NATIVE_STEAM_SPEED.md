@@ -139,6 +139,15 @@ initial 27.329-second warm wrapper measurement. Exact artifacts, intermediate
 measurements, identities, and no-claim boundaries are recorded in
 `evidence/native-steam-warm-ui-20260823.json`.
 
+The sub-five-second trace had no remaining blocking sleep. Most residual time
+was cumulative process creation: each of 11 CEF helpers triggered separate
+`sed|head` cgroup readers and a separate `sed` affinity reader. The warm path
+now parses each `/proc/PID/cgroup` and `/proc/PID/status` file once with Bash
+builtins, preserving the exact top-app and CPU-mask assertions without those
+external processes. The focused deja query `Bash builtin parse proc pid cgroup
+status affinity eliminate sed head Steam helpers warm launcher` returned no
+indexed implementation.
+
 ## Later, separate A/Bs
 
 1. Reclaim safe non-profile disk space; the audited tablet filesystem was 98%

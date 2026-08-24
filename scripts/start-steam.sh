@@ -399,24 +399,35 @@ wait_for_app_launch() {
     return 1
 }
 
-cgroup_class() {
-    local pid="$1" controller="$2"
-    sed -n "s#^[0-9][0-9]*:${controller}:##p" "/proc/$pid/cgroup" 2>/dev/null |
-        head -n 1
+read_process_cgroups() {
+    local pid="$1" hierarchy controllers path
+    steam_process_cpuset=
+    steam_process_cpu=
+    [[ $pid =~ ^[1-9][0-9]*$ && -r /proc/$pid/cgroup ]] || return 1
+    while IFS=: read -r hierarchy controllers path; do
+        [[ $hierarchy =~ ^[0-9]+$ && $path == /* ]] || continue
+        case ",$controllers," in
+            *,cpuset,*) [[ -n $steam_process_cpuset ]] ||
+                steam_process_cpuset=$path ;;
+        esac
+        case ",$controllers," in
+            *,cpu,*) [[ -n $steam_process_cpu ]] || steam_process_cpu=$path ;;
+        esac
+    done < "/proc/$pid/cgroup"
+    [[ -n $steam_process_cpuset && -n $steam_process_cpu ]]
 }
 
 require_top_app() {
-    local label="$1" pid="$2" cpuset cpu
-    cpuset="$(cgroup_class "$pid" cpuset)"
-    cpu="$(cgroup_class "$pid" cpu)"
-    [[ "$cpuset" == /top-app && "$cpu" == /top-app ]] ||
-        fail "$label PID $pid is cpuset=${cpuset:-unknown}, cpu=${cpu:-unknown}; refusing a four-core background launch. Open Termux visibly and run ~/start-steam.sh there"
+    local label="$1" pid="$2"
+    read_process_cgroups "$pid" || true
+    [[ $steam_process_cpuset == /top-app && $steam_process_cpu == /top-app ]] ||
+        fail "$label PID $pid is cpuset=${steam_process_cpuset:-unknown}, cpu=${steam_process_cpu:-unknown}; refusing a four-core background launch. Open Termux visibly and run ~/start-steam.sh there"
 }
 
 process_is_top_app() {
     local pid="$1"
-    [[ $(cgroup_class "$pid" cpuset) == /top-app &&
-            $(cgroup_class "$pid" cpu) == /top-app ]]
+    read_process_cgroups "$pid" &&
+        [[ $steam_process_cpuset == /top-app && $steam_process_cpu == /top-app ]]
 }
 
 wait_for_top_app() {
@@ -428,22 +439,34 @@ wait_for_top_app() {
     return 1
 }
 
+read_status_cpu_mask() {
+    local status="$1" key value
+    steam_status_cpu_mask=
+    [[ -r $status ]] || return 1
+    while IFS=: read -r key value; do
+        [[ $key == Cpus_allowed_list ]] || continue
+        value=${value#"${value%%[![:space:]]*}"}
+        [[ -n $value ]] || return 1
+        steam_status_cpu_mask=$value
+        return 0
+    done < "$status"
+    return 1
+}
+
 thread_masks_are() {
-    local pid="$1" expected="$2" status mask count=0
+    local pid="$1" expected="$2" status count=0
     for status in "/proc/$pid/task/"[0-9]*/status; do
-        [[ -r "$status" ]] || continue
-        mask="$(sed -n 's/^Cpus_allowed_list:[[:space:]]*//p' "$status")"
-        [[ "$mask" == "$expected" ]] || return 1
+        read_status_cpu_mask "$status" || continue
+        [[ $steam_status_cpu_mask == "$expected" ]] || return 1
         count=$((count + 1))
     done
     (( count > 0 ))
 }
 
 process_mask_is() {
-    local pid="$1" expected="$2" mask
-    mask=$(sed -n 's/^Cpus_allowed_list:[[:space:]]*//p' "/proc/$pid/status" \
-        2>/dev/null) || return 1
-    [[ $mask == "$expected" ]]
+    local pid="$1" expected="$2"
+    read_status_cpu_mask "/proc/$pid/status" &&
+        [[ $steam_status_cpu_mask == "$expected" ]]
 }
 
 apply_uniform_affinity() {
