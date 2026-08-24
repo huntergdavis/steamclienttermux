@@ -9766,3 +9766,16 @@ new run performed full validation and wrote receipts in 0.895338 seconds; three
 unchanged passes then measured 0.444746, 0.442977, and 0.434573 seconds. The
 median fast path is 0.443 seconds, saving 0.848 seconds / 65.7% per direct game
 launch. Steam and X11 process identities remained unchanged.
+
+## 2026-08-24: internal DXVK state-cache A/B prepared
+
+DXVK 2.4.1's exact x32 binary contains `DXVK_STATE_CACHE_PATH`. Tomb Raider's
+current 22,334,048-byte state cache lives under the removable compatdata
+prefix. A new generic AppID seeder transactionally copies bounded
+`*.dxvk.bin` files into private internal storage, records initial sizes and
+SHA-256, and performs metadata-only live validation thereafter. The new
+`external|internal` selector is scrubbed from captured/Steam environments and
+injects the actual path only into the final Tomb Raider process. External is
+still the default pending tablet timing. Focused and complete project tests
+pass. The required recall query found no prior implementation; this reuses the
+manifest-backed AppID model and final-process-only selector boundary.

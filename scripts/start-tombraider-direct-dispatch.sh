@@ -14,6 +14,7 @@ topology_checker=${TOMB_RAIDER_DIRECT_TOPOLOGY_CHECKER:-$base/compat-bin/configu
 dxvk_overlay=${TOMB_RAIDER_DIRECT_DXVK_OVERLAY:-$base/compat-bin/manage-tombraider-dxvk-overlay.py}
 startup_prefetch_tool=${TOMB_RAIDER_STARTUP_PREFETCH_TOOL:-$base/compat-bin/prefetch-game-files.py}
 startup_prefetch_manifest=${TOMB_RAIDER_STARTUP_PREFETCH_MANIFEST:-$base/config/tombraider-startup-prefetch.json}
+dxvk_state_cache_tool=${TOMB_RAIDER_DXVK_STATE_CACHE_TOOL:-$base/compat-bin/prepare-dxvk-state-cache.py}
 mode=${TOMB_RAIDER_DIRECT_MODE:-tombraider}
 diagnostics=${TOMB_RAIDER_DIRECT_DIAGNOSTICS:-0}
 command_stream=${TOMB_RAIDER_BVB_COMMAND_STREAM:-strict}
@@ -32,6 +33,7 @@ dxvk_compiler_threads=${TOMB_RAIDER_DXVK_COMPILER_THREADS:-0}
 # the fastest measured AppID-to-window path. Keep bundled/1.10.3 as explicit
 # reverse controls rather than silently falling back if validation fails.
 dxvk_variant=${TOMB_RAIDER_DXVK_VARIANT:-dxvk-2.4.1-x32}
+dxvk_state_cache=${TOMB_RAIDER_DXVK_STATE_CACHE:-external}
 startup_prefetch=${TOMB_RAIDER_STARTUP_PREFETCH:-off}
 benchmark_preset=${TOMB_RAIDER_BENCHMARK_PRESET:-registry}
 child_preload=${TOMB_RAIDER_DIRECT_CHILD_PRELOAD:-full}
@@ -82,6 +84,8 @@ fail() {
 [[ $dxvk_variant == bundled || $dxvk_variant == dxvk-1.10.3-x32 ||
     $dxvk_variant == dxvk-2.4.1-x32 ]] ||
     fail 'TOMB_RAIDER_DXVK_VARIANT must be bundled, dxvk-1.10.3-x32, or dxvk-2.4.1-x32'
+[[ $dxvk_state_cache == external || $dxvk_state_cache == internal ]] ||
+    fail 'TOMB_RAIDER_DXVK_STATE_CACHE must be external or internal'
 [[ $startup_prefetch == off || $startup_prefetch == on ]] ||
     fail 'TOMB_RAIDER_STARTUP_PREFETCH must be off or on'
 [[ $benchmark_preset == registry ||
@@ -123,6 +127,8 @@ unset BVB_COMMAND_STREAM STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
     WINEDLLPATH STEAM_ARM64_DIRECT_DXVK_VARIANT \
     STEAM_ARM64_BWRAP_DXVK_VARIANT \
     TOMB_RAIDER_DXVK_VARIANT \
+    DXVK_STATE_CACHE_PATH STEAM_ARM64_DIRECT_DXVK_STATE_CACHE \
+    TOMB_RAIDER_DXVK_STATE_CACHE TOMB_RAIDER_DXVK_STATE_CACHE_TOOL \
     TOMB_RAIDER_STARTUP_PREFETCH TOMB_RAIDER_STARTUP_PREFETCH_TOOL \
     TOMB_RAIDER_STARTUP_PREFETCH_MANIFEST \
     STEAM_ARM64_DIRECT_TOMBRAIDER_BENCHMARK_PRESET \
@@ -238,6 +244,11 @@ launch_phase() {
 launch_phase wrapper_start "mode=$mode"
 launch_phase prepare_start
 "$python" "$prepare" prepare --base "$base"
+if [[ $dxvk_state_cache == internal ]]; then
+    [[ -x $dxvk_state_cache_tool && ! -L $dxvk_state_cache_tool ]] ||
+        fail "DXVK state-cache tool is unavailable: $dxvk_state_cache_tool"
+    "$python" "$dxvk_state_cache_tool" prepare --base "$base" --appid 203160
+fi
 launch_phase prepare_complete
 
 vulkan_trace_file=
@@ -376,6 +387,7 @@ dispatcher_environment=(
     "STEAM_ARM64_DIRECT_DXVK_RELAXED_GRAPHICS_BARRIERS=$dxvk_relaxed_graphics_barriers"
     "STEAM_ARM64_DIRECT_DXVK_COMPILER_THREADS=$dxvk_compiler_threads"
     "STEAM_ARM64_DIRECT_DXVK_VARIANT=$dxvk_variant"
+    "STEAM_ARM64_DIRECT_DXVK_STATE_CACHE=$dxvk_state_cache"
     "STEAM_ARM64_DIRECT_TOMBRAIDER_BENCHMARK_PRESET=$benchmark_preset"
 )
 if [[ $vulkan_trace == 1 ]]; then
@@ -397,6 +409,7 @@ env -u BVB_COMMAND_STREAM -u TOMB_RAIDER_BVB_COMMAND_STREAM \
     -u TOMB_RAIDER_FEX_CODE_CACHE \
     -u FEX_SMC_CHECKS -u TOMB_RAIDER_FEX_SMC_CHECKS \
     -u DXVK_CONFIG -u DXVK_CONFIG_FILE -u WINEDLLPATH \
+    -u DXVK_STATE_CACHE_PATH -u TOMB_RAIDER_DXVK_STATE_CACHE \
     -u STEAMCLIENTTERMUX_DXVK_COMPILER_THREADS \
     -u STEAM_ARM64_BWRAP_DXVK_COMPILER_THREADS \
     -u TOMB_RAIDER_DXVK_COMPILER_THREADS \
@@ -481,6 +494,8 @@ env -u BVB_COMMAND_STREAM -u STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
     -u FEX_SMC_CHECKS -u STEAM_ARM64_DIRECT_FEX_SMC_CHECKS \
     -u TOMB_RAIDER_FEX_SMC_CHECKS \
     -u DXVK_CONFIG -u DXVK_CONFIG_FILE -u WINEDLLPATH \
+    -u DXVK_STATE_CACHE_PATH -u STEAM_ARM64_DIRECT_DXVK_STATE_CACHE \
+    -u TOMB_RAIDER_DXVK_STATE_CACHE \
     -u STEAMCLIENTTERMUX_DXVK_COMPILER_THREADS \
     -u STEAM_ARM64_DIRECT_DXVK_COMPILER_THREADS \
     -u STEAM_ARM64_BWRAP_DXVK_COMPILER_THREADS \

@@ -323,6 +323,8 @@ install_one "$repo_root/scripts/configure-tombraider-performance.py" \
     "$base/compat-bin/configure-tombraider-performance.py" 700
 install_one "$repo_root/scripts/manage-tombraider-dxvk-overlay.py" \
     "$base/compat-bin/manage-tombraider-dxvk-overlay.py" 700
+install_one "$repo_root/scripts/prepare-dxvk-state-cache.py" \
+    "$base/compat-bin/prepare-dxvk-state-cache.py" 700
 install_one "$repo_root/scripts/configure-tombraider-cpu-topology.py" \
     "$base/compat-bin/configure-tombraider-cpu-topology.py" 700
 install_one "$repo_root/scripts/configure-termux-x11-resolution.sh" \

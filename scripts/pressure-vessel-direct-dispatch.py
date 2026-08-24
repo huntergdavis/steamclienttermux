@@ -509,6 +509,45 @@ def apply_dxvk_compiler_threads(
     environment["STEAMCLIENTTERMUX_DXVK_COMPILER_THREADS"] = str(threads)
 
 
+def apply_dxvk_state_cache(
+    environment: dict[str, str], base: Path, command_mode: str
+) -> None:
+    selector = os.environ.get("STEAM_ARM64_DIRECT_DXVK_STATE_CACHE", "external")
+    if selector not in ("external", "internal"):
+        fail("STEAM_ARM64_DIRECT_DXVK_STATE_CACHE must be external or internal")
+    environment.pop("DXVK_STATE_CACHE_PATH", None)
+    if selector == "external":
+        return
+    if command_mode not in ("tombraider", "tombraider-benchmark"):
+        fail("internal DXVK state cache is valid only for Tomb Raider")
+    root = private_directory(
+        base / "cache/dxvk-state/203160", "internal DXVK state cache"
+    )
+    entries = sorted(root.iterdir())
+    caches = [path for path in entries if path.name not in {"seed.json", ".lock"}]
+    if not 1 <= len(caches) <= 64 or {path.name for path in entries} != {
+        "seed.json",
+        ".lock",
+        *(path.name for path in caches),
+    }:
+        fail("internal DXVK state cache has invalid contents")
+    for path in caches:
+        try:
+            metadata = path.lstat()
+        except OSError as error:
+            fail(f"internal DXVK state cache is unavailable: {error}")
+        if (
+            re.fullmatch(r"[0-9a-f]{16}\.dxvk\.bin", path.name) is None
+            or not stat.S_ISREG(metadata.st_mode)
+            or path.is_symlink()
+            or metadata.st_uid != os.geteuid()
+            or metadata.st_mode & 0o022
+            or not 1 <= metadata.st_size <= 256 * 1024 * 1024
+        ):
+            fail(f"internal DXVK state cache file is unsafe: {path}")
+    environment["DXVK_STATE_CACHE_PATH"] = str(root)
+
+
 def apply_dxvk_variant(
     environment: dict[str, str], base: Path, command_mode: str
 ) -> None:
@@ -1159,6 +1198,7 @@ def request_environment(payload: dict[str, object]) -> dict[str, str]:
         "TOMB_RAIDER_FEX_SMC_CHECKS",
         "DXVK_CONFIG",
         "DXVK_CONFIG_FILE",
+        "DXVK_STATE_CACHE_PATH",
         "WINEDLLPATH",
         "STEAMCLIENTTERMUX_DXVK_VARIANT",
         "STEAMCLIENTTERMUX_DXVK_COMPILER_THREADS",
@@ -1170,6 +1210,8 @@ def request_environment(payload: dict[str, object]) -> dict[str, str]:
         "STEAM_ARM64_DIRECT_DXVK_VARIANT",
         "STEAM_ARM64_BWRAP_DXVK_VARIANT",
         "TOMB_RAIDER_DXVK_VARIANT",
+        "STEAM_ARM64_DIRECT_DXVK_STATE_CACHE",
+        "TOMB_RAIDER_DXVK_STATE_CACHE",
         "STEAM_ARM64_DIRECT_TOMBRAIDER_BENCHMARK_PRESET",
         "TOMB_RAIDER_BENCHMARK_PRESET",
     ):
@@ -1865,6 +1907,7 @@ def pv_smoke_invocation(
         apply_dxvk_relaxed_graphics_barriers(environment, command_mode)
         apply_dxvk_compiler_threads(environment, command_mode)
         apply_dxvk_variant(environment, base, command_mode)
+        apply_dxvk_state_cache(environment, base, command_mode)
     prefix = os.environ.get("PREFIX", "")
     if not prefix.startswith("/"):
         fail("Termux PREFIX is unavailable to the direct dispatcher")

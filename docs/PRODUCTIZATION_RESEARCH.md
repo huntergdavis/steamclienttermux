@@ -68,6 +68,12 @@ launch path. Unchanged device/inode/size/time/mode/owner metadata avoids
 re-reading large binaries; any change falls back to full ELF and SHA-256
 validation. This keeps startup fast without turning a stale stamp into trust.
 
+DXVK state-cache placement is also AppID data. A generic seeder can copy an
+existing cache once from a removable game prefix into private internal storage,
+record the source hashes, and validate bounded cache shapes on reuse. The
+final-game-only selector prevents caller or Steam/CEF environment leakage;
+external placement remains the default until a device A/B proves improvement.
+
 Device profiles must be data, not forks of the installer. Unknown devices start
 with conservative defaults and no performance claims.
 
