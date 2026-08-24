@@ -87,6 +87,11 @@ byte-identical black X11 surfaces: these runs prove AppID acceptance and X11
 health, not a rendered game window. Exact hashes and exclusions are in
 [`steam-cold-appid-x11-hidapi-20260824.json`](evidence/steam-cold-appid-x11-hidapi-20260824.json).
 
+The boundary-matched [x86 PC and handheld comparison](research/STEAM_X86_HANDHELD_TIMINGS.md)
+finds the warm UI PC-class and the full cold launch inside normal handheld
+territory. It recommends stopping broad speed redesigns after one ten-run tail
+check, then prioritizing packaging and generic game support.
+
 ## Steam AppID acceptance profile
 
 The warm acceptance boundary is native ARM64, not an emulation bottleneck:
