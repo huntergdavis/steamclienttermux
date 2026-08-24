@@ -37,6 +37,8 @@ interval from **407.236 seconds to 58.256 seconds**: 85.7% shorter, or 6.99x as
 fast. The direct game dispatcher also removes the remaining hot PRoot boundary
 for its exact allow-listed commands. See the
 [launch artifacts](docs/launch-timings/) and [performance analysis](docs/PERFORMANCE.md).
+The next strict-default Steam-host optimization and its measured warm-forward
+baseline are documented in the [native Steam speed plan](docs/NATIVE_STEAM_SPEED.md).
 
 The experimental
 [`bionic-vulkan-bridge`](https://github.com/huntergdavis/bionic-vulkan-bridge)

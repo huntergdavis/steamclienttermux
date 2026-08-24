@@ -35,6 +35,9 @@ def main():
     assert source.count("--wait-for-cpu-log") == 1
     assert "multiple Steam main processes remained" in source
     assert "wait_for_top_app()" in source
+    assert 'forward_bootstrap=${STEAM_ARM64_FORWARD_BOOTSTRAP:-strict}' in source
+    assert '"$forward_dispatcher"' in source
+    assert '--steam-start-ticks "$steam_start_ticks"' in source
     reused_x11 = source.index('    1)\n        # A prior native Activity')
     foreground = source.index("        foreground_x11", reused_x11)
     wait_top = source.index('        wait_for_top_app "${x11_pids[0]}"', foreground)
@@ -104,6 +107,18 @@ def main():
     )
     assert wrong_app_suppression.returncode != 0
     assert "valid only for AppID 203160" in wrong_app_suppression.stderr
+    invalid_forward = subprocess.run(
+        ["bash", str(SCRIPT)],
+        env={
+            **os.environ,
+            "START_STEAM_PARSE_ONLY": "1",
+            "STEAM_ARM64_FORWARD_BOOTSTRAP": "invalid",
+        },
+        text=True,
+        capture_output=True,
+    )
+    assert invalid_forward.returncode != 0
+    assert "STEAM_ARM64_FORWARD_BOOTSTRAP must be strict or fast" in invalid_forward.stderr
     print("start-steam argument tests: ok")
 
 

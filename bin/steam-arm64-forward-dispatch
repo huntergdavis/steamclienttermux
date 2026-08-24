@@ -1,0 +1,179 @@
+#!/data/data/com.termux/files/usr/bin/bash
+
+set -euo pipefail
+umask 077
+
+base=${STEAM_ARM64_BASE:-$HOME/steam-arm64}
+client_root=$base/client
+client=$client_root/steamrtarm64
+target=$client/steam
+compat_bin=$base/compat-bin
+native_home=$base/native-home
+runtime_dir=$base/run/native-steam
+candidate_selector=${TGCOMPAT_GLIBC_ROOT:-$HOME/.local/share/tgcompat/glibc/current}
+linux_root_selector=${STEAM_ARM64_NATIVE_ROOTFS:-$PREFIX/var/lib/proot-distro/containers/debian/rootfs}
+mesa_lib=$base/mesa-kgsl/usr/lib/aarch64-linux-gnu
+icd=$base/mesa-kgsl/icd.d/freedreno-private.json
+exec_shim=${TGCOMPAT_EXEC_SHIM:-${TGCOMPAT_REPO:-$HOME/workspace/termux-glibc-compat}/build/libtgcompat-exec.so}
+robust_shim=${TGCOMPAT_ROBUST_SHIM:-${TGCOMPAT_REPO:-$HOME/workspace/termux-glibc-compat}/build/libtgcompat-robust.so}
+tmp_shim=${STEAM_ARM64_TMP_SHIM:-$compat_bin/steam-arm64-native-tmp.so}
+termux_exec_hook=${TERMUX_EXEC_GLIBC:-$PREFIX/glibc/lib/libtermux-exec.so}
+process_match_helper=$compat_bin/steam-arm64-process-match.sh
+mode=${STEAM_ARM64_FORWARD_BOOTSTRAP:-strict}
+expected_pid=
+expected_start_ticks=
+strict_launcher=
+
+fail() {
+    printf 'steam-arm64-forward-dispatch: %s\n' "$*" >&2
+    exit 1
+}
+
+while (( $# > 0 )); do
+    case $1 in
+        --steam-pid)
+            (( $# >= 2 )) || fail '--steam-pid needs a value'
+            expected_pid=$2
+            shift 2
+            ;;
+        --steam-start-ticks)
+            (( $# >= 2 )) || fail '--steam-start-ticks needs a value'
+            expected_start_ticks=$2
+            shift 2
+            ;;
+        --strict-launcher)
+            (( $# >= 2 )) || fail '--strict-launcher needs a value'
+            strict_launcher=$2
+            shift 2
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            fail "unknown argument: $1"
+            ;;
+    esac
+done
+
+[[ $mode == strict || $mode == fast ]] ||
+    fail "STEAM_ARM64_FORWARD_BOOTSTRAP must be strict or fast: $mode"
+[[ -x $strict_launcher && ! -L $strict_launcher ]] ||
+    fail "strict launcher is unavailable: $strict_launcher"
+[[ -f $process_match_helper && ! -L $process_match_helper ]] ||
+    fail "process matcher is unavailable: $process_match_helper"
+# shellcheck source=/dev/null
+source "$process_match_helper"
+
+phase() {
+    steam_arm64_forward_phase "$mode" "$1" "${2:-none}" >&2 ||
+        fail "unable to record monotonic phase: $1"
+}
+
+run_strict() {
+    local reason=$1 status
+    shift
+    phase strict_launch "reason=$reason"
+    set +e
+    env -u STEAM_ARM64_FORWARD_BOOTSTRAP \
+        "$strict_launcher" "$@"
+    status=$?
+    set -e
+    phase complete "status=$status"
+    exit "$status"
+}
+
+phase request
+if [[ $mode == strict ]]; then
+    run_strict selected "$@"
+fi
+
+phase fast_inspect
+if [[ ! $expected_pid =~ ^[1-9][0-9]*$ ||
+        ! $expected_start_ticks =~ ^[1-9][0-9]*$ ||
+        -z ${PREFIX:-} || $PREFIX != /* ||
+        ! ${DISPLAY:-:0} =~ ^:[0-9]+$ ]]; then
+    phase fast_fallback reason=arguments
+    run_strict arguments "$@"
+fi
+
+candidate_root=$(realpath -e "$candidate_selector" 2>/dev/null || true)
+linux_root=$(realpath -e "$linux_root_selector" 2>/dev/null || true)
+if [[ -z $candidate_root || $candidate_root != "$HOME"/* ||
+        ! -d $candidate_root || -L $candidate_root || -z $linux_root ||
+        ! -d $linux_root || -L $linux_root ]]; then
+    phase fast_fallback reason=context
+    run_strict context "$@"
+fi
+loader=$candidate_root/lib/ld-linux-aarch64.so.1
+candidate_lib=$candidate_root/lib
+linux_lib=$linux_root/usr/lib/aarch64-linux-gnu
+linux_pulse_lib=$linux_lib/pulseaudio
+linux_usr_lib=$linux_root/usr/lib
+library_path=$candidate_lib:$client:$client/libs:$client_root/linuxarm64:$mesa_lib:$linux_lib:$linux_pulse_lib:$linux_usr_lib
+preload=$tmp_shim:$robust_shim:$exec_shim:$termux_exec_hook
+if [[ ! -x $loader || -L $loader || ! -x $target ||
+        ! -d $linux_lib || ! -d $linux_pulse_lib ]]; then
+    phase fast_fallback reason=context
+    run_strict context "$@"
+fi
+
+candidate_count=0
+for process in "${STEAM_ARM64_PROC_ROOT:-/proc}"/[0-9]*; do
+    [[ -d $process ]] || continue
+    candidate_pid=${process##*/}
+    if steam_arm64_native_loader_process_matches \
+            "$candidate_pid" "$target" "$loader" "$library_path"; then
+        candidate_count=$((candidate_count + 1))
+    fi
+done
+if ((candidate_count != 1)); then
+    phase fast_fallback "reason=ambiguous_$candidate_count"
+    run_strict ambiguous "$@"
+fi
+
+if ! steam_arm64_authenticated_session \
+        "$expected_pid" "$target" "$loader" "$library_path" "$(id -u)" \
+        "$expected_start_ticks" \
+        "HOME=$native_home" \
+        "DISPLAY=${DISPLAY:-:0}" \
+        "STEAM_ARM64_BASE=$base" \
+        "TGCOMPAT_LD_SO=$loader" \
+        "TGCOMPAT_LIBRARY_PATH=$library_path" \
+        "TGCOMPAT_PROC_SELF_EXE=$target" \
+        "LD_PRELOAD=$preload" \
+        "TGCOMPAT_EXEC_LD_PRELOAD=$preload" \
+        "STEAM_COMPAT_CLIENT_INSTALL_PATH=$client_root" \
+        "XDG_RUNTIME_DIR=$runtime_dir" \
+        "VK_DRIVER_FILES=$icd"; then
+    reason=${STEAM_ARM64_SESSION_REASON:-identity}
+    phase fast_fallback "reason=$reason"
+    run_strict "$reason" "$@"
+fi
+
+# Never propagate dispatcher controls or fake-proc test inputs into Steam/CEF.
+declare -a forward_environment=()
+for entry in "${STEAM_ARM64_MATCHED_ENVIRONMENT[@]}"; do
+    case ${entry%%=*} in
+        STEAM_ARM64_FORWARD_BOOTSTRAP|STEAM_ARM64_PROC_ROOT|STEAM_ARM64_UPTIME_FILE)
+            ;;
+        *)
+            forward_environment+=("$entry")
+            ;;
+    esac
+done
+
+phase session_valid \
+    "pid=$STEAM_ARM64_MATCHED_PID:start=$STEAM_ARM64_MATCHED_START_TICKS"
+phase fast_launch
+cd "$client_root"
+set +e
+env -i "${forward_environment[@]}" \
+    "$loader" --inhibit-cache --library-path "$library_path" \
+        --argv0 "$target" "$target" \
+        -no-cef-sandbox -cef-disable-gpu -chromeosnopreallocate \
+        -noverifyfiles "$@"
+status=$?
+set -e
+phase complete "status=$status"
+exit "$status"

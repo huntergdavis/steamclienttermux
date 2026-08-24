@@ -55,6 +55,11 @@ if [[ $skip_game_affinity_guard == 1 && $requested_appid != 203160 ]]; then
     printf 'start-steam: affinity-guard suppression is valid only for AppID 203160\n' >&2
     exit 1
 fi
+forward_bootstrap=${STEAM_ARM64_FORWARD_BOOTSTRAP:-strict}
+[[ $forward_bootstrap == strict || $forward_bootstrap == fast ]] || {
+    printf 'start-steam: STEAM_ARM64_FORWARD_BOOTSTRAP must be strict or fast\n' >&2
+    exit 1
+}
 if [[ "$background_mode" == 1 ]]; then
     has_silent=0
     for argument in "${steam_arguments[@]}"; do
@@ -81,6 +86,7 @@ pulse_helper="$base/prepare-pulseaudio-tcp.sh"
 affinity_helper="$base/compat-bin/set-tombraider-affinity.py"
 gtaiv_affinity_helper="$base/compat-bin/set-gtaiv-affinity.py"
 process_match_helper="$base/compat-bin/steam-arm64-process-match.sh"
+forward_dispatcher="$base/compat-bin/steam-arm64-forward-dispatch"
 affinity_lock="$base/runtime/tomb-raider-affinity.lock"
 gtaiv_affinity_lock="$base/runtime/gtaiv-affinity.lock"
 x11_component="com.termux.x11/com.termux.x11.MainActivity"
@@ -515,6 +521,8 @@ done
     fail "GTA IV affinity helper is unavailable: $gtaiv_affinity_helper"
 [[ -f $process_match_helper && ! -L $process_match_helper ]] ||
     fail "process matcher is unavailable: $process_match_helper"
+[[ -x $forward_dispatcher && ! -L $forward_dispatcher ]] ||
+    fail "forward dispatcher is unavailable: $forward_dispatcher"
 # shellcheck source=/dev/null
 source "$process_match_helper"
 mkdir -p "$base/logs"
@@ -633,8 +641,16 @@ if [[ "${#steam_pids[@]}" -eq 1 ]]; then
     apply_steam_session_affinity "${x11_pids[0]}" "${steam_pids[0]}"
     maybe_start_game_affinity_guard
     if [[ "${#steam_arguments[@]}" -gt 0 ]]; then
+        steam_start_ticks="$(steam_arm64_process_start_ticks "${steam_pids[0]}" || true)"
+        [[ $steam_start_ticks =~ ^[1-9][0-9]*$ ]] || steam_start_ticks=0
         forward_log="$base/logs/start-steam-forward-$(date +%Y%m%d-%H%M%S).log"
-        nohup env DISPLAY="$display" "$steam_launcher" "${steam_arguments[@]}" \
+        nohup env DISPLAY="$display" \
+            STEAM_ARM64_FORWARD_BOOTSTRAP="$forward_bootstrap" \
+            "$forward_dispatcher" \
+                --steam-pid "${steam_pids[0]}" \
+                --steam-start-ticks "$steam_start_ticks" \
+                --strict-launcher "$steam_launcher" -- \
+                "${steam_arguments[@]}" \
             >"$forward_log" 2>&1 </dev/null &
         printf 'start-steam: forwarded request to Steam PID %s; log %s\n' \
             "${steam_pids[0]}" "$forward_log"
@@ -694,7 +710,8 @@ else
     require_top_app launcher "$$"
     maybe_start_game_affinity_guard
     steam_log="$base/logs/start-steam-$(date +%Y%m%d-%H%M%S).log"
-    nohup env DISPLAY="$display" PULSE_SERVER="$pulse_server" \
+    nohup env -u STEAM_ARM64_FORWARD_BOOTSTRAP \
+        DISPLAY="$display" PULSE_SERVER="$pulse_server" \
         STEAM_ARM64_FEX_PROFILE="$profile" "$steam_launcher" -noshaders \
         "${steam_arguments[@]}" \
         >"$steam_log" 2>&1 </dev/null &
