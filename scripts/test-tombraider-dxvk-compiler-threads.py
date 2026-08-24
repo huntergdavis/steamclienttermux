@@ -15,6 +15,10 @@ WRAPPER = (
     ROOT
     / "scripts/test-tomb-raider-direct-dxvk-241-compiler4-720p-normal-single-40c-ceiling.sh"
 )
+WRAPPER_1080P = (
+    ROOT
+    / "scripts/test-tomb-raider-direct-dxvk-241-compiler4-1080p-normal-single-40c-ceiling.sh"
+)
 
 
 def load_dispatcher():
@@ -127,6 +131,14 @@ def main() -> None:
         encoding="utf-8"
     )
     assert WRAPPER.name in installer
+
+    wrapper_1080p = WRAPPER_1080P.read_text(encoding="utf-8")
+    assert "Starting Tomb Raider BVB probe:" in wrapper_1080p
+    assert "--game-profile 1080p-normal" in wrapper_1080p
+    assert "--dxvk-variant dxvk-2.4.1-x32" in wrapper_1080p
+    assert "--dxvk-compiler-threads 4" in wrapper_1080p
+    assert "--warmups 0" in wrapper_1080p and "--runs 1" in wrapper_1080p
+    assert WRAPPER_1080P.name in installer
 
     print("Tomb Raider DXVK compiler-thread selector tests: PASS")
 

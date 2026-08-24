@@ -218,6 +218,8 @@ install_one "$repo_root/scripts/test-tomb-raider-direct-dxvk-241-x32-720p-normal
     "$HOME/test-tomb-raider-direct-dxvk-241-x32-720p-normal-single-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/test-tomb-raider-direct-dxvk-241-x32-1080p-normal-single-40c-ceiling.sh" \
     "$HOME/test-tomb-raider-direct-dxvk-241-x32-1080p-normal-single-40c-ceiling.sh" 700
+install_one "$repo_root/scripts/test-tomb-raider-direct-dxvk-241-compiler4-1080p-normal-single-40c-ceiling.sh" \
+    "$HOME/test-tomb-raider-direct-dxvk-241-compiler4-1080p-normal-single-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/test-tomb-raider-direct-dxvk-241-compiler4-720p-normal-single-40c-ceiling.sh" \
     "$HOME/test-tomb-raider-direct-dxvk-241-compiler4-720p-normal-single-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/test-tomb-raider-direct-fex-max-buffer-profile-excluded-40c-ceiling.sh" \
