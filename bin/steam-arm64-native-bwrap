@@ -182,6 +182,7 @@ if [[ -n ${STEAM_ARM64_REMOVABLE_SOURCE:-} ]]; then
             ;;
     esac
 fi
+
 pd_args+=(--work-dir "$bridge_work_dir")
 
 declare -a bridge_arguments=("$@")
@@ -212,7 +213,7 @@ while IFS= read -r -d '' entry; do
     [[ $name =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
     case $name in
         LD_PRELOAD|LD_LIBRARY_PATH|GLIBC_LD_LIBRARY_PATH|PATH|PREFIX|PWD|SHELL|\
-        TGCOMPAT_*|PRESSURE_VESSEL_BWRAP)
+        TGCOMPAT_*|PRESSURE_VESSEL_BWRAP|STEAM_ARM64_BWRAP_DXVK_VARIANT)
             continue
             ;;
     esac

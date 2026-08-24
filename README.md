@@ -49,21 +49,23 @@ the bridge repository.
 
 ### 720p Normal apples-to-apples target
 
-The first validated pass at the new comparison target is complete. Tomb Raider
+The first DXVK optimization at the new comparison target is complete. Tomb Raider
 rendered internally at 1280x720 Normal in exclusive fullscreen while
 Termux:X11 occupied the full 2800x1752 tablet panel at 59.97 Hz. V-Sync and
-motion blur were off. This is one game-authored sample, not yet a promoted
-multi-run mean.
+motion blur were off. Two independent game-authored passes with official x32
+DXVK 2.4.1 both averaged 59.1 FPS.
 
-| FEX profile | Game resolution/profile | X11 surface | Min/max/average FPS | Start condition | Raw data |
-| --- | --- | --- | ---: | --- | --- |
-| `safe`, offline-compiled cache generation 5 | 1280x720 Normal, exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 33.7 / 61.6 / **52.0** | Fixed 40 °C gate; observed 37.0 °C; first valid sample | [JSON](docs/benchmark-series/tombraider-direct-glibc-safe-offline-compiled-720p-normal-fullscreen-60hz-40c-first-20260823.json) |
+| DXVK | FEX profile | Game resolution/profile | X11 surface | Min/max/average FPS | Evidence |
+| --- | --- | --- | --- | ---: | --- |
+| official 2.4.1 x32 | `safe`, offline-compiled cache generation 5 | 1280x720 Normal, exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 35.8 / 74.4 / **59.1**; repeat 15.7 / 72.5 / **59.1** | [JSON](docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-720p-normal-fullscreen-60hz-20260823.json) |
+| Proton 11 bundled DXVK | `safe`, offline-compiled cache generation 5 | 1280x720 Normal, exclusive fullscreen | Borderless 2800x1752 at 59.97 Hz | 33.7 / 61.6 / **52.0** | [JSON](docs/benchmark-series/tombraider-direct-glibc-safe-offline-compiled-720p-normal-fullscreen-60hz-40c-first-20260823.json) |
 
 The earlier 34.1 and 29.7 FPS 720p attempts are excluded because the Android
-controller left Termux:X11 in a 520x320 floating window. The 52.0 FPS sample is
-the first pass whose retained window proof shows exact full-panel bounds and
-zero decoration/insets. The next experiment keeps this topology and swaps only
-the Tomb Raider-local DXVK payload.
+controller left Termux:X11 in a 520x320 floating window. The coherent 2.4.1
+swap improves the validated 52.0 FPS control by 7.1 FPS, or 13.7%. Its two
+minimum-FPS readings differ substantially, so 59.1 is the promoted throughput
+result rather than a frame-pacing claim. The next A/B keeps this topology and
+tests official DXVK 1.10.3 x32.
 
 ### Historical panel-native Low target
 

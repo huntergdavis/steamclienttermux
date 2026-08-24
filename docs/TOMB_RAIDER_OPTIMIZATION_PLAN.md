@@ -144,6 +144,7 @@ as a default-performance change but remains available for explicit experiments.
 | RakNet-exclusive CPU1 (rejected) | The direct profile measured the single `Raknet-RecvFrom` thread at 99% on CPU1 while the game used 313% total. | Three alternating pairs changed mean min/max/avg by -25.28%/+1.91%/-2.15%. Keep production game CPUs1-7 with RakNet on CPU1. |
 | RakNet empty-receive backoff | The retained syscall trace is the exact upstream empty-receive pattern: `RakSleep(0)` becomes Wine `NtDelayExecution(0)`, then `sched_yield`, while the receive thread consumes 99% CPU. | Promoted for lean Tomb Raider launches. The exact-thread 1 ms shim reduced RakNet from 98.2% to 3.0% CPU and completed 32.9/31.3/30.7 FPS recorded passes (31.633 mean). The complete historical control shows +2.37%; a same-session control accepted 30.4/28.9 before its third pass failed affinity validation, directionally +6.69% but not a complete claim. |
 | FEX maximal JIT buffer/code-map mode | Promoted. The WIP cache switch makes FEX allocate one 128 MiB code buffer instead of starting at 16 MiB. Three cooled passes averaged 34.000 FPS against a 33.000 immediate reverse control; paired changes were +2.0/+0.8/+0.2 FPS. | Keep it final-game-only and reversible. This Proton build lacks FEXOfflineCompiler, so treat recorded code maps as future compiler inputs rather than claiming a loaded persistent cache. |
+| Official DXVK 2.4.1 x32 app-local family | Promoted at the 720p Normal target. Two independent game-authored passes both averaged 59.1 FPS versus the 52.0 bundled-DXVK control (+13.7%). | Keep the four-DLL overlay transactional and game-local. Test official 1.10.3 x32 next under the identical fullscreen target; retain the bundled path as one-command rollback. Minimum-FPS variance remains open. |
 | FEX-2605 offline-compiled cache | The exact Proton-pinned compiler is built and the isolated no-clobber prepare/compile/verify/select pipeline passes host contracts. It validates cache format 1, embedded FEX commit, block count, compiler hash, and final result identity. | Run the compiler once against copies of the 15 retained maps, prove runtime cache loading, then compare a cooled three-pass native-resolution series with the accepted 34.0-FPS maximal-buffer mode. |
 | DXVK relaxed graphics UAV barriers | Rejected: two excluded readings reached 34.7 and 34.9 FPS, but the cooled recorded series averaged only 33.0 FPS versus the accepted 34.0 FPS build; minimum-FPS mean also fell 10.49%. | Keep default-off. Revisit only after a material DXVK or driver change. |
 | FEX SMC checks `none` | Rejected for average FPS: the candidate remained visually correct and improved minimum-FPS mean 10.32%, but averaged 33.2 FPS versus the accepted 34.0 FPS build (-2.35%). | Keep `mtrack` default. Retain `none` only as an explicit future frame-pacing retest after a material FEX change. |
@@ -184,12 +185,11 @@ discarded.
 
 - **Rewriting Python:** Python launches and records the session; it is absent
   from the game hot path. FEX, Wine/DXVK, and PRoot are native code already.
-- **Blind DXVK replacement:** the active prefix `dxgi.dll` and `d3d11.dll`
-  report `COFF-ARM64EC` / `IMAGE_FILE_MACHINE_ARM64EC`, and the installed DXVK
-  identifies as `v2.7.1-498-ga6764047e587178`. It is not a translated x86 DXVK
-  layer. Upstream leaves graphics-pipeline-library behavior on Auto and warns
-  that forcing it can increase stutter or degrade performance. An older
-  GPLAsync build is therefore not an evidence-backed first move.
+- **Blind DXVK replacement:** still avoid it. A *measured, hash-pinned,
+  transactional* official x32 2.4.1 family is now promoted at +13.7%, but this
+  does not justify arbitrary GPLAsync forks, partial DLL mixtures, or global
+  prefix changes. Keep every variant app-local, coherent, and immediately
+  reversible.
 - **Blind Turnip update:** the private driver is already Mesa 26.2-devel, newer
   by version than the 26.0 R1 same-chip recording. Version numbers alone do not
   establish a faster path.

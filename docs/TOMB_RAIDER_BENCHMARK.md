@@ -1301,3 +1301,35 @@ no indexed implementation. This work reuses the repository's 2026-08-14
 backup-first Tomb Raider profile controls, E135/E136 foreground-controller
 rules, and verified generation-5 cache. The next gate changes only the
 Tomb Raider-local DXVK version while preserving this profile and topology.
+
+## Official DXVK 2.4.1 x32 promotion (2026-08-23)
+
+The transactional app-local DXVK selector copies one coherent four-module x32
+family beside `TombRaider.exe`, validates every byte before launch, forces
+native Wine DLL selection, and moves all four files into a recoverable evidence
+directory on every normal or signaled exit. Tomb Raider uses D3D11 through
+DXGI; `d3d9`, `d3d10core`, `d3d11`, and `dxgi` therefore move together rather
+than mixing an app-local module with Proton's bundled family.
+
+| DXVK | Minimum FPS | Maximum FPS | Average FPS |
+| --- | ---: | ---: | ---: |
+| Proton 11 bundled control | 33.7 | 61.6 | **52.0** |
+| official 2.4.1 x32, pass 1 | 35.8 | 74.4 | **59.1** |
+| official 2.4.1 x32, pass 2 | 15.7 | 72.5 | **59.1** |
+
+The repeated average improves 7.1 FPS / 13.7%. Both result files independently
+record 1280x720, exclusive fullscreen, 60 Hz, Normal-equivalent settings,
+V-Sync off, and motion blur off. DXVK logs independently report version 2.4.1
+and the exclusive transition to a 1280x720 swapchain. The retained screenshot
+shows a Lara Croft benchmark frame scaled inside the full panel. The second
+affinity record reached ready with 50 threads on CPUs1-7, RakNet on CPU1, and
+Steam helpers on CPU0. Steam, Termux:X11, and PulseAudio retained their original
+PIDs and start ticks.
+
+This is a promoted app-local throughput result, not a thermally paired series:
+the first runner rejected its otherwise successful pass because a pre-existing
+affinity watcher logged into an older file, and the second outer orchestrator
+was interrupted while Steam delayed its acknowledgement before the detached
+game completed. The exact average replicated, but the 35.8 versus 15.7 minimum
+spread remains a pacing caveat. The compact raw authority is
+[`tombraider-direct-glibc-dxvk-241-x32-720p-normal-fullscreen-60hz-20260823.json`](benchmark-series/tombraider-direct-glibc-dxvk-241-x32-720p-normal-fullscreen-60hz-20260823.json).

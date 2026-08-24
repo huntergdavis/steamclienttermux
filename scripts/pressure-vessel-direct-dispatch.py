@@ -54,6 +54,27 @@ FEX_2605_OFFLINE_COMPILER_DLL_SHA256 = {
     "libunwind.dll": "535c6c8626c75f2b57cba17e0b550131d5fd699119d274290116fbe31e5b6046",
 }
 FEX_OFFLINE_CACHE_NAME = "tombraider-203160-offline-7efb8f8e"
+DXVK_X32_VARIANTS = {
+    "dxvk-1.10.3-x32": (
+        "tombraider-dxvk-1.10.3-x32-8d1a3c91",
+        {
+            "d3d10core.dll": (1114126, "83d3e6155c04f31aaaef92303e89f5065db0fee56ea0f09f6c433302b30da959"),
+            "d3d11.dll": (3526670, "da35effaadeb4d09455a315de7352320d5445aca386c0d8e0a1094a48d585246"),
+            "d3d9.dll": (3305486, "b6cfa2cd62af73b80d461085d126004b0e22dd3944c9246c58e3a68e747b56b6"),
+            "dxgi.dll": (2338830, "7674136f2e894cf5a2fbb24ff283215301c591e08b6fc787aff27654afe34c49"),
+        },
+    ),
+    "dxvk-2.4.1-x32": (
+        "tombraider-dxvk-2.4.1-x32-7b23db4e",
+        {
+            "d3d10core.dll": (196622, "e7a4d2b8d32124b3768e0c958fdcda4dcf97fcdd2b983917689c321d4e3c162c"),
+            "d3d11.dll": (4517902, "0b560b0d24b14ac2ee3dbc05a12d480eed341a575d713647305d7a040f33abb9"),
+            "d3d8.dll": (1662990, "e661906de521a5b0a44525b7eccc43ecf3556326326f900a6038341503f05811"),
+            "d3d9.dll": (4124686, "cc556331fc3388989749620bceead4c2da95c3932ed38cf5cc24f3f0a878866e"),
+            "dxgi.dll": (2998286, "4b5d6275d5987de5e64f6ce42f5f7b888fb75bd414326d2ecc792effd9a385da"),
+        },
+    ),
+}
 
 
 class DispatchError(RuntimeError):
@@ -454,6 +475,54 @@ def apply_dxvk_relaxed_graphics_barriers(
     if command_mode not in ("tombraider", "tombraider-benchmark"):
         fail("DXVK relaxed graphics barriers are valid only for Tomb Raider")
     environment["DXVK_CONFIG"] = "d3d11.relaxedGraphicsBarriers = True"
+
+
+def apply_dxvk_variant(
+    environment: dict[str, str], base: Path, command_mode: str
+) -> None:
+    selector = os.environ.get("STEAM_ARM64_DIRECT_DXVK_VARIANT", "bundled")
+    if selector != "bundled" and selector not in DXVK_X32_VARIANTS:
+        fail(
+            "STEAM_ARM64_DIRECT_DXVK_VARIANT must be bundled, "
+            "dxvk-1.10.3-x32, or dxvk-2.4.1-x32"
+        )
+    environment.pop("WINEDLLPATH", None)
+    if selector == "bundled":
+        return
+    if command_mode not in ("tombraider", "tombraider-benchmark"):
+        fail("DXVK variant override is valid only for Tomb Raider")
+
+    candidate_name, candidate_files = DXVK_X32_VARIANTS[selector]
+    candidate = private_directory(
+        base / "candidates" / candidate_name / "x32",
+        "Tomb Raider DXVK candidate",
+    )
+    for name, (expected_size, expected_sha256) in candidate_files.items():
+        path = candidate / name
+        try:
+            metadata = path.lstat()
+        except OSError as error:
+            fail(f"Tomb Raider DXVK candidate is unavailable: {error}")
+        if (
+            not stat.S_ISREG(metadata.st_mode)
+            or path.is_symlink()
+            or metadata.st_uid != os.geteuid()
+            or metadata.st_mode & 0o022
+            or metadata.st_size != expected_size
+            or sha256_file(path) != expected_sha256
+        ):
+            fail(f"Tomb Raider DXVK candidate failed validation: {path}")
+    # A selected candidate always gets a small DXVK info log. This proves the
+    # actual loaded version without enabling the enormous WINEDEBUG diagnostic
+    # trace that perturbs FPS and thermal state.
+    environment.update(direct_dxvk_environment(base))
+    environment["STEAMCLIENTTERMUX_DXVK_VARIANT"] = selector
+    # The transactional game-local overlay supplies one coherent x86 DXVK
+    # family. Tomb Raider's benchmark uses D3D11 through DXGI; retain D3D9 for
+    # its launcher and d3d10core so no module can fall back to bundled DXVK.
+    environment["WINEDLLOVERRIDES"] = (
+        "d3d9,d3d10core,d3d11,dxgi=n"
+    )
 
 
 def validated_vulkan_trace(base: Path) -> tuple[Path, Path] | None:
@@ -1056,8 +1125,13 @@ def request_environment(payload: dict[str, object]) -> dict[str, str]:
         "TOMB_RAIDER_FEX_SMC_CHECKS",
         "DXVK_CONFIG",
         "DXVK_CONFIG_FILE",
+        "WINEDLLPATH",
+        "STEAMCLIENTTERMUX_DXVK_VARIANT",
         "STEAM_ARM64_DIRECT_DXVK_RELAXED_GRAPHICS_BARRIERS",
         "TOMB_RAIDER_DXVK_RELAXED_GRAPHICS_BARRIERS",
+        "STEAM_ARM64_DIRECT_DXVK_VARIANT",
+        "STEAM_ARM64_BWRAP_DXVK_VARIANT",
+        "TOMB_RAIDER_DXVK_VARIANT",
     ):
         environment.pop(name, None)
     return environment
@@ -1648,6 +1722,7 @@ def pv_smoke_invocation(
         apply_fex_code_cache(environment, base, command_mode)
         apply_fex_smc_checks(environment, command_mode)
         apply_dxvk_relaxed_graphics_barriers(environment, command_mode)
+        apply_dxvk_variant(environment, base, command_mode)
     prefix = os.environ.get("PREFIX", "")
     if not prefix.startswith("/"):
         fail("Termux PREFIX is unavailable to the direct dispatcher")

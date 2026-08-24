@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "status": "promoted_matched_game_authored_replication",
+  "game": "Tomb Raider (2013)",
+  "appid": 203160,
+  "target": {
+    "backend": "direct native-glibc Steam host",
+    "resolution": "1280x720",
+    "graphics": "Normal",
+    "exclusive_fullscreen": true,
+    "fullscreen_refresh_hz": 60,
+    "vsync": false,
+    "motion_blur": false,
+    "termux_x11_surface": "borderless 2800x1752 at 59.97 Hz",
+    "fex_profile": "safe",
+    "fex_code_cache": "offline-compiled generation 5",
+    "fex_smc_checks": "mtrack",
+    "dxvk_variant": "official DXVK 2.4.1 x32",
+    "dxvk_modules": [
+      "d3d10core.dll",
+      "d3d11.dll",
+      "d3d9.dll",
+      "dxgi.dll"
+    ]
+  },
+  "control": {
+    "average_fps": 52.0,
+    "dxvk_variant": "Proton 11 bundled DXVK 2.7.1 development snapshot",
+    "source": "docs/benchmark-series/tombraider-direct-glibc-safe-offline-compiled-720p-normal-fullscreen-60hz-40c-first-20260823.json"
+  },
+  "candidate": {
+    "average_fps_values": [
+      59.1,
+      59.1
+    ],
+    "average_fps_mean": 59.1,
+    "minimum_fps_values": [
+      35.8,
+      15.7
+    ],
+    "maximum_fps_values": [
+      74.4,
+      72.5
+    ],
+    "absolute_average_gain_fps": 7.1,
+    "relative_average_gain_percent": 13.653846153846153
+  },
+  "runs": [
+    {
+      "result_time_utc": "2026-08-23T23:45:47Z",
+      "minimum_fps": 35.8,
+      "maximum_fps": 74.4,
+      "average_fps": 59.1,
+      "game_result": "~/steam-arm64/removable-library/steamapps/common/Tomb Raider/benchmarkresults 2026-08-23 23-45-47.txt",
+      "game_result_sha256": "418bef1cbc4ed6556b2a14a9977aa7cbdf0326b10cd05db9ff1c26a6a22c14a0",
+      "dxvk_log_directory": "~/steam-arm64/logs/dxvk-direct-dn0a8tgw",
+      "strict_series_accepted": false,
+      "strict_series_note": "The benchmark completed and the direct dispatcher returned zero, but the runner watched a fresh empty affinity log while the already-active authoritative guard recorded the game in its older log."
+    },
+    {
+      "result_time_utc": "2026-08-23T23:55:46Z",
+      "minimum_fps": 15.7,
+      "maximum_fps": 72.5,
+      "average_fps": 59.1,
+      "game_result": "~/steam-arm64/removable-library/steamapps/common/Tomb Raider/benchmarkresults 2026-08-23 23-55-46.txt",
+      "game_result_sha256": "1069b16aa4c54e5283d7bd53522a3ee31d7e839a72409c578e312af5042cfe57",
+      "dxvk_log_directory": "~/steam-arm64/logs/dxvk-direct-cjgej2mz",
+      "affinity_log": "~/steam-arm64/logs/tombraider-direct-affinity-20260823T234903Z.log",
+      "affinity_log_sha256": "e754851077b94be49f088fd8cca0ce7d14785a32bf130f0b97ba7969aca8c65a",
+      "affinity_ready": "PID 24176, 50 threads, CPUs 1-7, RakNet CPU 1, Steam helpers CPU 0",
+      "strict_series_accepted": false,
+      "strict_series_note": "The foreground SSH orchestrator was interrupted during Steam's delayed acknowledgement; the detached game then completed with exact DXVK, settings, and affinity evidence."
+    }
+  ],
+  "dxvk_log_sha256": {
+    "TombRaider_d3d11.log": "906e72be57b017e8f39ca4318e82942d85329a41e2dfe7f93f7a627dd9af99b0",
+    "TombRaider_d3d9.log": "7a6277e6712d6f4ca7008a60e814f0b4ff851ed7663a0774292c90026e8a8071",
+    "TombRaider_dxgi.log": "6cf4f30c8d5b805f9182bc47ab8bdb051aeadd88955bd345a74f417ca065bec9"
+  },
+  "visual_evidence": {
+    "path": "~/steam-arm64/logs/tombraider-dxvk-241-x32-live-20260823T2345Z.png",
+    "sha256": "d30f1135c3954a40f84a279f90c1b5d25b585bf84ebe0493122ba563a184fe25",
+    "observation": "Visible Lara Croft benchmark frame, 16:9 game image scaled inside the full 2800x1752 panel."
+  },
+  "validation": {
+    "dxvk_log_version": "2.4.1",
+    "dxvk_swapchain_extent": "1280x720",
+    "dxvk_present_mode_after_exclusive_transition": "VK_PRESENT_MODE_FIFO_KHR",
+    "transactional_overlay_restored": true,
+    "protected_processes_unchanged": {
+      "steam": {
+        "pid": 15575,
+        "start_ticks": 128118834
+      },
+      "termux_x11": {
+        "pid": 13643,
+        "start_ticks": 121863492
+      },
+      "pulseaudio": {
+        "pid": 13923,
+        "start_ticks": 121863956
+      }
+    }
+  },
+  "claim_boundary": "Two independent game-authored passes reproduced 59.1 average FPS with exact settings, DXVK, visible output, and affinity evidence. Neither was accepted as a complete runner-owned series, so the promotion is an app-local variant result rather than a thermally paired multi-run mean. Minimum-FPS variance remains unresolved."
+}

@@ -212,6 +212,10 @@ install_one "$repo_root/scripts/test-tomb-raider-direct-fex-offline-compiled-sin
     "$HOME/test-tomb-raider-direct-fex-offline-compiled-single-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/test-tomb-raider-direct-fex-offline-compiled-720p-normal-single-40c-ceiling.sh" \
     "$HOME/test-tomb-raider-direct-fex-offline-compiled-720p-normal-single-40c-ceiling.sh" 700
+install_one "$repo_root/scripts/test-tomb-raider-direct-dxvk-1103-x32-720p-normal-single-40c-ceiling.sh" \
+    "$HOME/test-tomb-raider-direct-dxvk-1103-x32-720p-normal-single-40c-ceiling.sh" 700
+install_one "$repo_root/scripts/test-tomb-raider-direct-dxvk-241-x32-720p-normal-single-40c-ceiling.sh" \
+    "$HOME/test-tomb-raider-direct-dxvk-241-x32-720p-normal-single-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/test-tomb-raider-direct-fex-max-buffer-profile-excluded-40c-ceiling.sh" \
     "$HOME/test-tomb-raider-direct-fex-max-buffer-profile-excluded-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/test-tomb-raider-direct-dxvk-relaxed-graphics-excluded-40c-ceiling.sh" \
@@ -277,6 +281,8 @@ install_one "$repo_root/scripts/configure-gtaiv-service-timeout.py" \
     "$base/compat-bin/configure-gtaiv-service-timeout.py" 700
 install_one "$repo_root/scripts/configure-tombraider-performance.py" \
     "$base/compat-bin/configure-tombraider-performance.py" 700
+install_one "$repo_root/scripts/manage-tombraider-dxvk-overlay.py" \
+    "$base/compat-bin/manage-tombraider-dxvk-overlay.py" 700
 install_one "$repo_root/scripts/configure-tombraider-cpu-topology.py" \
     "$base/compat-bin/configure-tombraider-cpu-topology.py" 700
 install_one "$repo_root/scripts/configure-termux-x11-resolution.sh" \

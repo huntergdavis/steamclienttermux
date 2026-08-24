@@ -957,6 +957,12 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--dxvk-variant",
+        choices=("bundled", "dxvk-1.10.3-x32", "dxvk-2.4.1-x32"),
+        default="bundled",
+        help="select a validated Tomb Raider-only 32-bit DXVK payload",
+    )
+    parser.add_argument(
         "--fex-smc-checks",
         choices=("mtrack", "none"),
         default="mtrack",
@@ -1262,10 +1268,12 @@ def main() -> int:
             environment["TOMB_RAIDER_DXVK_RELAXED_GRAPHICS_BARRIERS"] = (
                 arguments.dxvk_relaxed_graphics_barriers
             )
+            environment["TOMB_RAIDER_DXVK_VARIANT"] = arguments.dxvk_variant
         elif (
             arguments.fex_code_cache != "off"
             or arguments.fex_smc_checks != "mtrack"
             or arguments.dxvk_relaxed_graphics_barriers != "off"
+            or arguments.dxvk_variant != "bundled"
         ):
             raise RuntimeError(
                 "FEX code-cache, FEX SMC, and DXVK barrier experiments require "
@@ -1297,6 +1305,7 @@ def main() -> int:
                 "dxvk_relaxed_graphics_barriers": (
                     arguments.dxvk_relaxed_graphics_barriers
                 ),
+                "dxvk_variant": arguments.dxvk_variant,
                 "raknet_nice": arguments.raknet_nice,
                 "raknet_exclusive_recorded_passes": list(
                     arguments.raknet_exclusive_recorded_passes

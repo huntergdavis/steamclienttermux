@@ -9005,3 +9005,59 @@ implementation. The solution reuses the 2026-08-14 backup-first profile data,
 E135/E136 foreground-controller behavior, direct final-game containment, and
 the generation-5 verifier. The next experiment preserves every variable above
 and swaps only a private Tomb Raider-local DXVK payload.
+
+## 2026-08-23: official x32 DXVK 2.4.1 raises 720p Normal to 59.1 FPS
+
+The next contained optimization replaces Proton's bundled DXVK only for Tomb
+Raider. A new hash-pinned selector validates official x32 DXVK 1.10.3 and 2.4.1
+candidates, while a transactional game-directory overlay installs and removes
+`d3d9.dll`, `d3d10core.dll`, `d3d11.dll`, and `dxgi.dll` as one coherent unit.
+The final Wine environment uses native overrides for exactly those modules.
+Steam, CEF, unrelated games, and the persistent prefix receive no selector.
+Normal and signal cleanup move every app-local DLL into its manifest-backed
+evidence directory; no partial live overlay remained after either pass.
+
+The first implementation copied only `d3d9.dll`. A live process-map and DXVK
+log check caught that Tomb Raider's benchmark actually used bundled D3D11/DXGI
+2.7.1, so that result is excluded. A second wrong-topology attempt invoked the
+BVB foreground probe and showed the bridge triangle rather than the direct
+glibc game; it is also excluded. These failures established two reusable rules:
+swap the complete graphics family and point the Android foreground controller
+directly at the native benchmark wrapper, never through the BVB launcher.
+
+With those boundaries corrected, official DXVK 2.4.1 x32 produced two
+independent game-authored results:
+
+- 35.8 minimum, 74.4 maximum, **59.1 average FPS** at 23:45:47 UTC;
+- 15.7 minimum, 72.5 maximum, **59.1 average FPS** at 23:55:46 UTC.
+
+Both files record 1280x720, exclusive fullscreen, 60 Hz, Normal-equivalent
+quality, V-Sync off, and motion blur off. Both per-run DXVK directories report
+version 2.4.1; D3D11 transitions from the bootstrap 926x513 surface to a
+1280x720 swapchain. The visual evidence at
+`~/steam-arm64/logs/tombraider-dxvk-241-x32-live-20260823T2345Z.png`, SHA-256
+`d30f1135c3954a40f84a279f90c1b5d25b585bf84ebe0493122ba563a184fe25`,
+shows Lara Croft and the correct 16:9 image scaled within the full panel. The
+second affinity log reached ready with PID 24176, 50 threads, CPUs1-7, RakNet
+CPU1, and Steam helpers CPU0. Protected Steam PID 15575, Termux:X11 PID 13643,
+and PulseAudio PID 13923 retained start ticks 128118834, 121863492, and
+121863956 respectively.
+
+Against the valid bundled-DXVK 52.0 FPS control, the reproduced 59.1 average is
++7.1 FPS / **+13.7%**. The two minimums do not reproduce, so this is a promoted
+throughput result with an explicit pacing caveat, not a claim of improved
+minimum FPS. Neither pass became a runner-accepted thermal series: the first
+encountered a stale long-lived affinity-log routing check after successful
+game exit, while the second outer SSH controller was interrupted at Steam's
+delayed handoff boundary before the detached benchmark completed normally.
+The exact results, hashes, limitations, and rollback proof are retained in
+`docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-720p-normal-fullscreen-60hz-20260823.json`.
+
+The required `deja` queries for Tomb Raider x32 DXVK selection and final Wine
+override containment returned no indexed implementation. This work reuses the
+repository's private hash-pinned candidate staging, backup-first/recoverable
+overlay discipline, established top-app fullscreen controller, and offline-FEX
+archive pattern. Upstream DXVK's documented rule—x32 DLLs for a 32-bit game,
+placed beside the executable with native Wine overrides—supplies the external
+design boundary. The next exact A/B is official DXVK 1.10.3 x32 under the same
+720p Normal fullscreen target.

@@ -55,6 +55,27 @@ def prepare(root: Path) -> tuple[Path, Path]:
     (base / "client" / "steamapps" / "common" / "SteamLinuxRuntime_4-arm64").mkdir(
         parents=True
     )
+    proton_dxvk = (
+        base
+        / "client"
+        / "steamapps"
+        / "common"
+        / "Proton 11.0 (ARM64)"
+        / "files"
+        / "lib"
+        / "wine"
+        / "dxvk"
+        / "i386-windows"
+    )
+    proton_dxvk.mkdir(parents=True)
+    for name in (
+        "d3d10core.dll",
+        "d3d11.dll",
+        "d3d8.dll",
+        "d3d9.dll",
+        "dxgi.dll",
+    ):
+        (proton_dxvk / name).write_bytes(b"bundled fixture\n")
     (base / "client" / "linuxarm64").mkdir(parents=True)
     (base / "native-home" / ".steam").mkdir(parents=True)
     (base / "native-home" / ".steam" / "sdkarm64").symlink_to(
@@ -93,10 +114,11 @@ def run_bridge(
     mode: str,
     capture_plan: Path | None = None,
     bvb_vulkan: bool = False,
+    game_name: str = "Game",
 ) -> list[str]:
     removable_source = base.parent / "fixture-storage"
     removable_target = base / "removable-library"
-    game_directory = removable_source / "steamapps" / "common" / "Game"
+    game_directory = removable_source / "steamapps" / "common" / game_name
     game_directory.mkdir(parents=True, exist_ok=True)
     environment = os.environ.copy()
     environment.update(
@@ -125,6 +147,7 @@ def run_bridge(
         environment["STEAM_ARM64_BWRAP_CAPTURE_PLAN"] = str(capture_plan)
     if bvb_vulkan:
         environment["STEAM_ARM64_BVB_VULKAN"] = "1"
+    executable_name = "TombRaider.exe" if game_name == "Tomb Raider" else "Game.exe"
     result = subprocess.run(
         [
             "bash",
@@ -135,8 +158,8 @@ def run_bridge(
                 removable_source
                 / "steamapps"
                 / "common"
-                / "Game"
-                / "Game.exe"
+                / game_name
+                / executable_name
             ),
             f"{removable_source}-lookalike/Game.exe",
         ],
@@ -360,6 +383,7 @@ def main() -> None:
         assert '"TGCOMPAT_EXEC_PATH_FROM"' in entry_source
         assert '"TGCOMPAT_EXEC_PATH_TO"' in entry_source
         assert 'setenv ("PATH", safe_path, 1)' in entry_source
+        assert "tombraider-direct-dxvk-bind.state" not in bridge_source
 
         (selected_proot / "proot").write_text("changed after stamp\n", encoding="utf-8")
         changed = run_rejected_preflight(prefix, base, selected_proot)

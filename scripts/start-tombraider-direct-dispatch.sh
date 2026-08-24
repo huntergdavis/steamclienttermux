@@ -11,6 +11,7 @@ launcher=${TOMB_RAIDER_DIRECT_LAUNCHER:-$HOME/start-steam-native.sh}
 prepare=${TOMB_RAIDER_DIRECT_PREPARE:-$base/compat-bin/prepare-proton-direct-wine.py}
 affinity=${TOMB_RAIDER_DIRECT_AFFINITY:-$base/compat-bin/set-tombraider-affinity.py}
 topology_checker=${TOMB_RAIDER_DIRECT_TOPOLOGY_CHECKER:-$base/compat-bin/configure-tombraider-cpu-topology.py}
+dxvk_overlay=${TOMB_RAIDER_DIRECT_DXVK_OVERLAY:-$base/compat-bin/manage-tombraider-dxvk-overlay.py}
 mode=${TOMB_RAIDER_DIRECT_MODE:-tombraider}
 diagnostics=${TOMB_RAIDER_DIRECT_DIAGNOSTICS:-0}
 command_stream=${TOMB_RAIDER_BVB_COMMAND_STREAM:-strict}
@@ -21,6 +22,7 @@ raknet_recv_sleep_us=${TOMB_RAIDER_RAKNET_RECV_SLEEP_US:-0}
 fex_code_cache=${TOMB_RAIDER_FEX_CODE_CACHE:-on}
 fex_smc_checks=${TOMB_RAIDER_FEX_SMC_CHECKS:-mtrack}
 dxvk_relaxed_graphics_barriers=${TOMB_RAIDER_DXVK_RELAXED_GRAPHICS_BARRIERS:-off}
+dxvk_variant=${TOMB_RAIDER_DXVK_VARIANT:-bundled}
 child_preload=${TOMB_RAIDER_DIRECT_CHILD_PRELOAD:-full}
 vulkan_trace=${TOMB_RAIDER_VULKAN_TRACE:-0}
 vulkan_trace_preload=${TOMB_RAIDER_VULKAN_TRACE_PRELOAD:-$HOME/bionic-vulkan-bridge/out/glibc/libbvb-vulkan-resolve-trace.so}
@@ -64,6 +66,9 @@ fail() {
 [[ $dxvk_relaxed_graphics_barriers == off ||
     $dxvk_relaxed_graphics_barriers == on ]] ||
     fail 'TOMB_RAIDER_DXVK_RELAXED_GRAPHICS_BARRIERS must be off or on'
+[[ $dxvk_variant == bundled || $dxvk_variant == dxvk-1.10.3-x32 ||
+    $dxvk_variant == dxvk-2.4.1-x32 ]] ||
+    fail 'TOMB_RAIDER_DXVK_VARIANT must be bundled, dxvk-1.10.3-x32, or dxvk-2.4.1-x32'
 if [[ $command_stream == shared && ${STEAM_ARM64_BVB_VULKAN:-0} != 1 ]]; then
     fail 'shared BVB command stream requires STEAM_ARM64_BVB_VULKAN=1'
 fi
@@ -94,6 +99,9 @@ unset BVB_COMMAND_STREAM STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
     FEX_SMC_CHECKS STEAM_ARM64_DIRECT_FEX_SMC_CHECKS \
     TOMB_RAIDER_FEX_SMC_CHECKS \
     DXVK_CONFIG DXVK_CONFIG_FILE \
+    WINEDLLPATH STEAM_ARM64_DIRECT_DXVK_VARIANT \
+    STEAM_ARM64_BWRAP_DXVK_VARIANT \
+    TOMB_RAIDER_DXVK_VARIANT \
     STEAM_ARM64_DIRECT_DXVK_RELAXED_GRAPHICS_BARRIERS \
     TOMB_RAIDER_DXVK_RELAXED_GRAPHICS_BARRIERS
 [[ $vulkan_trace == 0 || $vulkan_trace == 1 ]] ||
@@ -156,6 +164,10 @@ if [[ $mode == tombraider || $mode == tombraider-benchmark ||
     [[ $topology_status =~ ^Tomb\ Raider\ CPU\ topology\ fix:\ enabled\;\ SHA-256\ [0-9a-f]{64}$ ]] ||
         fail "Tomb Raider CPU-topology fix is not enabled: $topology_status"
 fi
+if [[ $dxvk_variant != bundled ]]; then
+    [[ -x $dxvk_overlay && ! -L $dxvk_overlay ]] ||
+        fail "transactional DXVK overlay tool is unavailable: $dxvk_overlay"
+fi
 
 "$python" "$prepare" prepare --base "$base"
 
@@ -171,6 +183,7 @@ launcher_log=$base/logs/tombraider-direct-launcher-$mode-$child_preload-$stamp.l
 server_pid=
 affinity_pid=
 affinity_log=
+dxvk_overlay_active=0
 cleanup() {
     if [[ -n ${affinity_pid:-} ]] && kill -0 "$affinity_pid" 2>/dev/null; then
         kill -TERM "$affinity_pid" 2>/dev/null || true
@@ -180,8 +193,19 @@ cleanup() {
         kill -TERM "$server_pid" 2>/dev/null || true
         wait "$server_pid" 2>/dev/null || true
     fi
+    if (( dxvk_overlay_active )); then
+        "$python" "$dxvk_overlay" restore --base "$base" ||
+            printf 'start-tombraider-direct-dispatch: DXVK overlay recovery failed; retained state requires explicit recovery\n' >&2
+        dxvk_overlay_active=0
+    fi
 }
 trap cleanup EXIT HUP INT TERM
+
+if [[ $dxvk_variant != bundled ]]; then
+    "$python" "$dxvk_overlay" activate --base "$base" \
+        --variant "$dxvk_variant"
+    dxvk_overlay_active=1
+fi
 
 dispatcher_environment=(
     "STEAM_ARM64_DIRECT_DIAGNOSTICS=$diagnostics"
@@ -194,6 +218,7 @@ dispatcher_environment=(
     "STEAM_ARM64_DIRECT_FEX_CODE_CACHE=$fex_code_cache"
     "STEAM_ARM64_DIRECT_FEX_SMC_CHECKS=$fex_smc_checks"
     "STEAM_ARM64_DIRECT_DXVK_RELAXED_GRAPHICS_BARRIERS=$dxvk_relaxed_graphics_barriers"
+    "STEAM_ARM64_DIRECT_DXVK_VARIANT=$dxvk_variant"
 )
 if [[ $vulkan_trace == 1 ]]; then
     dispatcher_environment+=(
@@ -212,7 +237,9 @@ env -u BVB_COMMAND_STREAM -u TOMB_RAIDER_BVB_COMMAND_STREAM \
     -u FEX_ENABLECODECACHINGWIP -u FEX_APP_CACHE_LOCATION \
     -u TOMB_RAIDER_FEX_CODE_CACHE \
     -u FEX_SMC_CHECKS -u TOMB_RAIDER_FEX_SMC_CHECKS \
-    -u DXVK_CONFIG -u DXVK_CONFIG_FILE \
+    -u DXVK_CONFIG -u DXVK_CONFIG_FILE -u WINEDLLPATH \
+    -u STEAM_ARM64_BWRAP_DXVK_VARIANT \
+    -u TOMB_RAIDER_DXVK_VARIANT \
     -u TOMB_RAIDER_DXVK_RELAXED_GRAPHICS_BARRIERS \
     "${dispatcher_environment[@]}" \
     "$python" "$dispatcher" serve --base "$base" --mode "$mode" \
@@ -243,8 +270,8 @@ if [[ $mode == tombraider || $mode == tombraider-benchmark ||
     affinity_pid=$!
 fi
 
-printf 'pid=%s\nmode=%s\nchild_preload=%s\nraknet_recv_sleep_us=%s\nfex_code_cache=%s\nfex_smc_checks=%s\ndxvk_relaxed_graphics_barriers=%s\ngame_cpus=%s\nvulkan_trace_file=%s\nserver_pid=%s\nserver_log=%s\nlauncher_log=%s\naffinity_log=%s\nstatus=launching\n' \
-    "$$" "$mode" "$child_preload" "$raknet_recv_sleep_us" "$fex_code_cache" "$fex_smc_checks" "$dxvk_relaxed_graphics_barriers" "$game_cpus" "$vulkan_trace_file" \
+printf 'pid=%s\nmode=%s\nchild_preload=%s\nraknet_recv_sleep_us=%s\nfex_code_cache=%s\nfex_smc_checks=%s\ndxvk_relaxed_graphics_barriers=%s\ndxvk_variant=%s\ngame_cpus=%s\nvulkan_trace_file=%s\nserver_pid=%s\nserver_log=%s\nlauncher_log=%s\naffinity_log=%s\nstatus=launching\n' \
+    "$$" "$mode" "$child_preload" "$raknet_recv_sleep_us" "$fex_code_cache" "$fex_smc_checks" "$dxvk_relaxed_graphics_barriers" "$dxvk_variant" "$game_cpus" "$vulkan_trace_file" \
     "$server_pid" "$server_log" "$launcher_log" "$affinity_log" >"$state"
 
 set +e
@@ -273,7 +300,10 @@ env -u BVB_COMMAND_STREAM -u STEAM_ARM64_DIRECT_BVB_COMMAND_STREAM \
     -u TOMB_RAIDER_FEX_CODE_CACHE \
     -u FEX_SMC_CHECKS -u STEAM_ARM64_DIRECT_FEX_SMC_CHECKS \
     -u TOMB_RAIDER_FEX_SMC_CHECKS \
-    -u DXVK_CONFIG -u DXVK_CONFIG_FILE \
+    -u DXVK_CONFIG -u DXVK_CONFIG_FILE -u WINEDLLPATH \
+    -u STEAM_ARM64_DIRECT_DXVK_VARIANT \
+    -u STEAM_ARM64_BWRAP_DXVK_VARIANT \
+    -u TOMB_RAIDER_DXVK_VARIANT \
     -u STEAM_ARM64_DIRECT_DXVK_RELAXED_GRAPHICS_BARRIERS \
     -u TOMB_RAIDER_DXVK_RELAXED_GRAPHICS_BARRIERS \
     STEAM_ARM64_BWRAP_DIRECT=1 \
@@ -313,8 +343,8 @@ if [[ -n ${affinity_pid:-} ]] && kill -0 "$affinity_pid" 2>/dev/null; then
 fi
 affinity_pid=
 
-printf 'pid=%s\nmode=%s\nchild_preload=%s\nraknet_recv_sleep_us=%s\nfex_code_cache=%s\nfex_smc_checks=%s\ndxvk_relaxed_graphics_barriers=%s\ngame_cpus=%s\nvulkan_trace_file=%s\nserver_log=%s\nlauncher_log=%s\naffinity_log=%s\nstatus=complete\nlauncher_status=%s\nserver_status=%s\n' \
-    "$$" "$mode" "$child_preload" "$raknet_recv_sleep_us" "$fex_code_cache" "$fex_smc_checks" "$dxvk_relaxed_graphics_barriers" "$game_cpus" "$vulkan_trace_file" \
+printf 'pid=%s\nmode=%s\nchild_preload=%s\nraknet_recv_sleep_us=%s\nfex_code_cache=%s\nfex_smc_checks=%s\ndxvk_relaxed_graphics_barriers=%s\ndxvk_variant=%s\ngame_cpus=%s\nvulkan_trace_file=%s\nserver_log=%s\nlauncher_log=%s\naffinity_log=%s\nstatus=complete\nlauncher_status=%s\nserver_status=%s\n' \
+    "$$" "$mode" "$child_preload" "$raknet_recv_sleep_us" "$fex_code_cache" "$fex_smc_checks" "$dxvk_relaxed_graphics_barriers" "$dxvk_variant" "$game_cpus" "$vulkan_trace_file" \
     "$server_log" "$launcher_log" "$affinity_log" "$launcher_status" \
     "$server_status" >"$state"
 printf 'Tomb Raider direct dispatch completed: mode=%s child_preload=%s launcher=%s server=%s trace=%s server_log=%s launcher_log=%s\n' \
