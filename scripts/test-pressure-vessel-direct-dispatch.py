@@ -1033,6 +1033,8 @@ def main() -> None:
                 "VK_LOADER_DEBUG=all",
                 "BVB_FRAME_PROFILE=1",
                 "TOMB_RAIDER_BVB_FRAME_PROFILE=1",
+                "SDL_JOYSTICK_HIDAPI=0",
+                "STEAM_ARM64_HIDAPI=disabled",
             ]
         }
     ) == {"STEAM_COMPAT_APP_ID": "203160"}

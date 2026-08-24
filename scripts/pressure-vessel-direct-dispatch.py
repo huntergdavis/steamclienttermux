@@ -1106,6 +1106,8 @@ def request_environment(payload: dict[str, object]) -> dict[str, str]:
         "LD_PRELOAD",
         "LD_LIBRARY_PATH",
         "GLIBC_LD_LIBRARY_PATH",
+        "SDL_JOYSTICK_HIDAPI",
+        "STEAM_ARM64_HIDAPI",
         "TGCOMPAT_LD_SO",
         "TGCOMPAT_LIBRARY_PATH",
         "TGCOMPAT_EXEC_LD_PRELOAD",

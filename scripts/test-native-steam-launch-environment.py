@@ -16,6 +16,9 @@ def main() -> None:
     assert 'debug_pid_file=${STEAM_ARM64_DEBUG_PID_FILE:-}' in source
     assert 'debug_prefix=(run_stopped_for_debugger "$debug_pid_file")' in source
     assert '"${debug_prefix[@]}" env -u GLIBC_LD_LIBRARY_PATH -u LD_LIBRARY_PATH' in source
+    assert '-u SDL_JOYSTICK_HIDAPI -u STEAM_ARM64_HIDAPI' in source
+    assert 'STEAM_ARM64_HIDAPI="$hidapi_mode"' in source
+    assert 'steam_input_environment+=(SDL_JOYSTICK_HIDAPI=0)' in source
     assert 'set +e' in source
     assert 'SSL_CERT_FILE="$ssl_cert_file"' in source
     assert 'SSL_CERT_DIR="$ssl_cert_dir"' in source

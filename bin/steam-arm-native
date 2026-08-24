@@ -361,6 +361,18 @@ case $fex_profile in
         fail "STEAM_ARM64_FEX_PROFILE must be proton, safe, or fast: $fex_profile"
         ;;
 esac
+hidapi_mode=${STEAM_ARM64_HIDAPI:-default}
+declare -a steam_input_environment=()
+case $hidapi_mode in
+    default)
+        ;;
+    disabled)
+        steam_input_environment+=(SDL_JOYSTICK_HIDAPI=0)
+        ;;
+    *)
+        fail "STEAM_ARM64_HIDAPI must be default or disabled: $hidapi_mode"
+        ;;
+esac
 
 printf 'Starting no-PRoot ARM64 Steam on DISPLAY=%s (FEX %s)\nLog: %s\n' \
     "$display" "$fex_profile" "$log"
@@ -402,9 +414,12 @@ fi
 
 set +e
 "${debug_prefix[@]}" env -u GLIBC_LD_LIBRARY_PATH -u LD_LIBRARY_PATH \
+    -u SDL_JOYSTICK_HIDAPI -u STEAM_ARM64_HIDAPI \
     "${fex_profile_env[@]}" \
+    "${steam_input_environment[@]}" \
     "${removable_environment[@]}" \
     STEAM_ARM64_BASE="$base" \
+    STEAM_ARM64_HIDAPI="$hidapi_mode" \
     HOME="$native_home" \
     DISPLAY="$display" \
     LANG=C.UTF-8 \

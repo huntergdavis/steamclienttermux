@@ -57,6 +57,15 @@ changes controller behavior. The warm launch-boost is therefore tested first;
 the HIDAPI control remains a separate cold-start A/B rather than an inferred
 fix.
 
+For a later cold-session A/B, `STEAM_ARM64_HIDAPI=disabled` starts Steam with
+SDL's documented `SDL_JOYSTICK_HIDAPI=0`. The default is unchanged. The wrapper
+refuses to pretend the selector affected an already-running process, and both
+the ordinary and direct game boundaries strip the Steam-only control so it
+cannot disable SDL controller handling inside Proton or a game. This is a
+diagnostic control, not a promoted speed setting; disabling it trades away
+Steam's HIDAPI controller path. Upstream semantics:
+<https://wiki.libsdl.org/SDL2/SDL_HINT_JOYSTICK_HIDAPI>.
+
 The code reuses the exact loader-process model and remembered-profile rules
 established in indexed sessions `019ff310-e8ac-7212-9f2f-5ba9005b97bd` and
 `019fe348-1247-7530-bc25-8a573aaf4252`. A focused deja query for an existing

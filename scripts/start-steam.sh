@@ -60,6 +60,11 @@ forward_bootstrap=${STEAM_ARM64_FORWARD_BOOTSTRAP:-fast}
     printf 'start-steam: STEAM_ARM64_FORWARD_BOOTSTRAP must be strict or fast\n' >&2
     exit 1
 }
+hidapi_mode=${STEAM_ARM64_HIDAPI:-default}
+[[ $hidapi_mode == default || $hidapi_mode == disabled ]] || {
+    printf 'start-steam: STEAM_ARM64_HIDAPI must be default or disabled\n' >&2
+    exit 1
+}
 cef_affinity=${STEAM_ARM64_CEF_AFFINITY:-auto}
 [[ $cef_affinity == auto || $cef_affinity == compact ||
         $cef_affinity == responsive || $cef_affinity == launch-boost ]] || {
@@ -207,6 +212,21 @@ matching_pids() {
 
 steam_pid_is_current() {
     steam_arm64_process_matches "$1" "$base/client/steamrtarm64/steam"
+}
+
+steam_hidapi_mode_matches() {
+    local pid="$1" entry actual= control=default
+    [[ $pid =~ ^[1-9][0-9]*$ && -r /proc/$pid/environ ]] || return 1
+    while IFS= read -r -d '' entry; do
+        case $entry in
+            SDL_JOYSTICK_HIDAPI=*) actual=${entry#*=} ;;
+            STEAM_ARM64_HIDAPI=*) control=${entry#*=} ;;
+        esac
+    done < "/proc/$pid/environ"
+    case $hidapi_mode in
+        default) [[ $control == default && -z $actual ]] ;;
+        disabled) [[ $control == disabled && $actual == 0 ]] ;;
+    esac
 }
 
 settle_steam_processes() {
@@ -784,6 +804,8 @@ if [[ "${#steam_pids[@]}" -gt 1 ]]; then
 fi
 if [[ "${#steam_pids[@]}" -eq 1 ]]; then
     fast_forward_authenticated=0
+    steam_hidapi_mode_matches "${steam_pids[0]}" ||
+        fail "existing Steam input mode does not match STEAM_ARM64_HIDAPI=$hidapi_mode; restart Steam for this cold-start-only control"
     require_top_app Steam "${steam_pids[0]}"
     apply_steam_session_affinity "${x11_pids[0]}" "${steam_pids[0]}"
     maybe_start_game_affinity_guard
@@ -913,6 +935,8 @@ done
 
 [[ "${#steam_pids[@]}" -eq 1 ]] ||
     fail "Steam did not appear in ${process_timeout}s; inspect $steam_log"
+steam_hidapi_mode_matches "${steam_pids[0]}" ||
+    fail "launched Steam input mode does not match STEAM_ARM64_HIDAPI=$hidapi_mode; inspect $steam_log"
 require_top_app Steam "${steam_pids[0]}"
 if ! wait_for_remembered_login "${steam_pids[0]}" "$login_log_offset"; then
     steam_pid_is_current "${steam_pids[0]}" ||

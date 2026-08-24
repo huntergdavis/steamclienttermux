@@ -36,6 +36,9 @@ def main():
     assert "multiple Steam main processes remained" in source
     assert "wait_for_top_app()" in source
     assert 'forward_bootstrap=${STEAM_ARM64_FORWARD_BOOTSTRAP:-fast}' in source
+    assert 'hidapi_mode=${STEAM_ARM64_HIDAPI:-default}' in source
+    assert "steam_hidapi_mode_matches()" in source
+    assert "cold-start-only control" in source
     assert '"$forward_dispatcher"' in source
     assert 'if [[ $forward_bootstrap == fast ]]' in source
     assert 'fast_forward_authenticated=1' in source
@@ -153,6 +156,18 @@ def main():
     )
     assert invalid_forward.returncode != 0
     assert "STEAM_ARM64_FORWARD_BOOTSTRAP must be strict or fast" in invalid_forward.stderr
+    invalid_hidapi = subprocess.run(
+        ["bash", str(SCRIPT)],
+        env={
+            **os.environ,
+            "START_STEAM_PARSE_ONLY": "1",
+            "STEAM_ARM64_HIDAPI": "invalid",
+        },
+        text=True,
+        capture_output=True,
+    )
+    assert invalid_hidapi.returncode != 0
+    assert "STEAM_ARM64_HIDAPI must be default or disabled" in invalid_hidapi.stderr
     invalid_cef_affinity = subprocess.run(
         ["bash", str(SCRIPT)],
         env={

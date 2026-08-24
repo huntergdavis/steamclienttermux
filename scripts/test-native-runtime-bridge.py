@@ -127,6 +127,8 @@ def run_bridge(
             "STEAM_ARM64_BASE": str(base),
             "STEAM_ARM64_NATIVE_BRIDGE_MODE": mode,
             "GAME_OPTION_FIXTURE": "preserved value",
+            "SDL_JOYSTICK_HIDAPI": "0",
+            "STEAM_ARM64_HIDAPI": "disabled",
             "STEAM_ARM64_REMOVABLE_SOURCE": str(removable_source),
             "STEAM_ARM64_REMOVABLE_TARGET": str(removable_target),
             "STEAM_ARM64_REMOVABLE_STEAMAPPS": str(
@@ -270,6 +272,8 @@ def main() -> None:
         bwrap = run_bridge(prefix, base, "bwrap")
         assert "--env" in bwrap
         assert "GAME_OPTION_FIXTURE=preserved value" in bwrap
+        assert "SDL_JOYSTICK_HIDAPI=0" not in bwrap
+        assert "STEAM_ARM64_HIDAPI=disabled" not in bwrap
         assert route in bwrap
         guest_boundary = bwrap.index("--", bwrap.index("--shared-tmp"))
         assert bwrap[guest_boundary + 1 : guest_boundary + 5] == [
