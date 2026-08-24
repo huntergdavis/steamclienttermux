@@ -2,7 +2,7 @@
   "schema_version": 1,
   "date": "2026-08-24",
   "source_base_commit": "c0d74cf",
-  "status": "host-pass-tablet-runtime-pending",
+  "status": "tablet-pass",
   "operation": "external DXVK startup milestone timing for Steam AppID launches",
   "events": [
     "dxvk_state_cache",
@@ -20,7 +20,19 @@
     "delayed_log_creation_supported": true,
     "incremental_lines_not_replayed": true,
     "focused_contract": "pass",
-    "complete_project_suite": "pass"
+    "complete_project_suite": "pass",
+    "tablet_default_path": {
+      "session_to_runtime_seconds": 11.0,
+      "runtime_to_target_process_seconds": 19.529,
+      "target_process_to_visible_window_seconds": 26.791,
+      "session_to_visible_window_seconds": 57.32,
+      "dxvk_state_cache_observed_seconds": 46.22,
+      "dxvk_swapchain_observed_seconds": 47.405,
+      "dxvk_compiler_observed_seconds": 47.405,
+      "screenshot_sha256": "d7e08476b4c3c2faf044b7dfc1cc2e92d777b5d53ab7966fe4ae0cd964554d67",
+      "screenshot_resolution": "2800x1752",
+      "screenshot_content": "full-screen Tomb Raider loading frame"
+    }
   },
   "recall": {
     "query": "Tomb Raider process to visible window 33 seconds DXVK shader cache startup bundled official 2.4.1",
@@ -31,5 +43,5 @@
       "first-observation timing semantics"
     ]
   },
-  "claim_boundary": "Host behavior only. A tablet AppID run is required to locate the remaining 26.905-second startup delay."
+  "claim_boundary": "One promoted-default tablet confirmation. Buffered DXVK log markers locate the end of startup but cannot yet split the preceding 26.791-second process-to-window interval."
 }

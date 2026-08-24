@@ -127,6 +127,12 @@ screenshot proves the full-screen Tomb Raider loading UI. The overlay restored,
 four learned FEX maps remained available for refresh, and Steam/X11 identities
 were unchanged. This is one engineering A/B, not a latency distribution.
 
+The first no-override confirmation of the promoted defaults completed in
+57.320 seconds and again produced a full-screen loading frame. Its external
+timer first observed the DXVK cache marker at 46.220 seconds after the runtime
+request and the visible window at 46.320 seconds. Because DXVK buffers its log,
+these markers identify the end—not the internal shape—of the remaining delay.
+
 ## Excluded measurements
 
 | Date | Route | Observation | Why excluded |

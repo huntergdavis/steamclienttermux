@@ -9589,3 +9589,11 @@ files and runtime-relative observation times. No code is injected into the
 game and no per-frame work is added. Focused delayed-file/incremental-follow
 coverage and the complete project suite pass. A tablet run is still required
 to partition the remaining 26.905-second game-process-to-window interval.
+
+The promoted default then completed without any explicit DXVK selector in
+57.320 seconds, within 1.981 seconds of the 55.339-second candidate. Its
+full-screen loading frame was visually confirmed. The timer first observed
+the state-cache marker only 0.100 seconds before the first window and the
+swapchain/compiler markers after that first sighting, demonstrating DXVK log
+buffering rather than a causal ordering. The next diagnostic must therefore
+use unbuffered process-map milestones before changing another runtime option.
