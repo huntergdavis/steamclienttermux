@@ -165,6 +165,7 @@ engineering pass, not a latency distribution.
 | 2026-08-24 | Direct AppID + DXVK 2.4.1 | Service exited 125 before Wine | Expected FEX runtime deltas exposed a repeat-launch validation defect; no timing result |
 | 2026-08-24 | Integrated startup prefetch, two attempts | Steam outer process exited before dispatcher handoff | No game/window timing; prefetch itself completed in 0.255s |
 | 2026-08-24 | Manual 48.4-MB prefetch + normal path | 55.357s to game Terms window | Slower than 53.553s best; prefetch remains off |
+| 2026-08-24 | `lean-tmp-only` final preload | No game PID/window; service exit 225 | Required compatibility shims remain enabled; [evidence](evidence/tombraider-lean-tmp-only-rejected-20260824.json) |
 
 Those strict controls motivated promoting authenticated fast forwarding as the
 wrapper default. The first promoted tablet check measured 0.340 seconds in the

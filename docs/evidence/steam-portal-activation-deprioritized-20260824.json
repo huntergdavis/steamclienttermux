@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-24",
+  "status": "tablet-measured-deprioritized",
+  "operation": "isolated D-Bus desktop-portal activation and Ping timing",
+  "activation_ping_seconds": [
+    0.173,
+    0.121,
+    0.119
+  ],
+  "live_session": {
+    "desktop_portal_owner": true,
+    "kde_backend_owner": false,
+    "documents_owner": false,
+    "permission_store_owner": false,
+    "gtk_use_portal_set": false,
+    "xdg_current_desktop_set": false
+  },
+  "warnings_observed": [
+    "document portal unavailable",
+    "RealtimeKit connection refused",
+    "location/access/camera implementations unavailable"
+  ],
+  "finding": "The same warning-bearing activation path completes in about 0.12 to 0.17 seconds, so it cannot explain the multi-second AppID startup segments.",
+  "changes": {
+    "dbus_configuration": false,
+    "live_steam_session": false,
+    "installed_packages": false
+  },
+  "recall": {
+    "query": "Steam Termux missing portal DBus one second timeout xdg desktop portal startup",
+    "result": "no indexed match",
+    "reused": [
+      "isolated dbus-run-session measurement",
+      "live owner inspection without session mutation"
+    ]
+  },
+  "claim_boundary": "Three activation samples only. This rejects a large portal-startup target; it is not a full Steam UI latency distribution."
+}

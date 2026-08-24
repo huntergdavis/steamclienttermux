@@ -9832,3 +9832,16 @@ inspected black-screen variants: 85 frames of the pre-window black screen and
 not recur. This passes the visible-flash gate at the capture's roughly
 0.6-second sampling interval; it is UI polish, not a launch-time speed claim.
 [Evidence](evidence/tombraider-wine-startup-window-guard-20260824.json)
+
+## 2026-08-24: final-game preload cannot be reduced to the tmp shim
+
+The required recall queries found no prior `lean-tmp-only` Tomb Raider result.
+An otherwise unchanged warm AppID launch selected that existing experimental
+profile and disabled the startup-window guard for timing parity. The dispatcher
+was accepted, but the service exited 225 before creating a game PID or window;
+its final message was Proton's failed optional copy to
+`drive_c/windows/system32/amdxcffx64.dll`. The sidecar was stopped and no timing
+was recorded. Steam PID/start ticks `15575:128118834` and X11
+`13643:121863492` were preserved. This agrees with the earlier Wine allocator
+crash that established the final mprotect shim as a correctness dependency, so
+the production `lean` preload remains unchanged. [Evidence](evidence/tombraider-lean-tmp-only-rejected-20260824.json)

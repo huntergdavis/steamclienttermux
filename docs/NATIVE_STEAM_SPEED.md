@@ -178,8 +178,10 @@ boundaries are recorded in `evidence/native-steam-warm-ui-20260823.json`.
    full. Do not start by clearing authentication, HTML, or Library caches.
 2. Measure Library click-to-paint and scrolling after game affinity has restored
    CEF beyond CPU 0; distinguish responsiveness from merely hiding the UI.
-3. Remove the observed one-second missing-portal D-Bus timeout with a correct
-   portal/nonportal configuration.
+3. Keep the portal path unchanged. A fresh isolated D-Bus activation/Ping took
+   119--173 ms despite the same missing-backend warnings, so it cannot explain
+   a multi-second AppID delay and is not a useful optimization target. See the
+   [bounded measurement](evidence/steam-portal-activation-deprioritized-20260824.json).
 4. Test CEF GPU flags one at a time with stale/black-surface detection; prior
    GPU-composited Termux:X11 surfaces were unreliable.
 5. Cache immutable cold dependency/Runtime validation by content identity, then

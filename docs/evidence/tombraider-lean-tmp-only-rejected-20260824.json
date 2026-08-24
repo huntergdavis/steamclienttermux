@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-24",
+  "status": "tablet-rejected-before-game-process",
+  "operation": "Tomb Raider AppID launch with final preload reduced to temporary-directory shim only",
+  "changed_variable": "TOMB_RAIDER_DIRECT_CHILD_PRELOAD=lean-tmp-only",
+  "control": {
+    "best_appid_to_window_seconds": 53.553,
+    "final_preloads": [
+      "steam-arm64-native-tmp.so",
+      "libtgcompat-android-root.so",
+      "libtgcompat-robust.so",
+      "libtgcompat-mprotect.so",
+      "libtgcompat-raknet-recv.so"
+    ]
+  },
+  "candidate": {
+    "run_id": "lean-tmp-only-20260824T185710Z",
+    "final_preloads": [
+      "steam-arm64-native-tmp.so"
+    ],
+    "startup_window_guard": "off for timing parity",
+    "launcher_status": 0,
+    "service_status": 225,
+    "game_process_created": false,
+    "game_window_created": false,
+    "timing_result": null,
+    "last_service_message": "Proton: Error while copying to drive_c/windows/system32/amdxcffx64.dll: No such file or directory"
+  },
+  "artifacts": {
+    "launcher_stdout_bytes": 1326,
+    "launcher_stdout_sha256": "6ffa0abc5c88addcf414c815a9fd4c045b7ceaa5e33d9a3b3473c71552dc5f58",
+    "service_log_bytes": 980,
+    "service_log_sha256": "9d76d7d754b27487e06f50bc588cf7ca506dd2913a6f48c2711751bd6e9b030f",
+    "steam_launcher_log_bytes": 632,
+    "steam_launcher_log_sha256": "8f1c5f88e769d1ec76df05c796e3dfa3f05dc68fe91140a9daf10117fd0b6b70"
+  },
+  "validation": {
+    "steam_pid_start_ticks_preserved": "15575:128118834",
+    "x11_pid_start_ticks_preserved": "13643:121863492",
+    "external_timer_stopped_after_candidate_failure": true,
+    "installed_default_changed": false
+  },
+  "prior_correctness_evidence": "The mprotect compatibility shim previously removed a reproducible Wine allocator abort on executable file mappings; it is not safe to omit from the production final-process preload.",
+  "recall": {
+    "queries": [
+      "lean-tmp-only Tomb Raider final preload android-root robust mprotect performance",
+      "Tomb Raider lean preload android root robust mprotect tmp only Proton amdxcffx64 copy system32",
+      "termux glibc mprotect shim preload Tomb Raider performance lean profile"
+    ],
+    "result": "no indexed match",
+    "reused": [
+      "five-second stable-window sidecar",
+      "protected Steam/X11 process identity checks",
+      "exact reverse-control environment selector",
+      "prior mprotect crash proof"
+    ]
+  },
+  "claim_boundary": "This is a fail-closed compatibility result, not a timing or FPS measurement. The lean production preload remains selected."
+}
