@@ -66,6 +66,22 @@ GAME_PROFILES = {
         "benchmark_preset": "1080p-ultra",
         "quality_level": 3,
     },
+    "720p-ultra-no-tessellation": {
+        "resolution": "1280x720",
+        "graphics": "Ultra without tessellation",
+        "registry_profile": "720p-normal",
+        "benchmark_preset": "720p-ultra-no-tessellation",
+        "quality_level": 3,
+        "benchmark_overrides": {"EnableTessellation": 0},
+    },
+    "1080p-ultra-no-tessellation": {
+        "resolution": "1920x1080",
+        "graphics": "Ultra without tessellation",
+        "registry_profile": "1080p-normal",
+        "benchmark_preset": "1080p-ultra-no-tessellation",
+        "quality_level": 3,
+        "benchmark_overrides": {"EnableTessellation": 0},
+    },
     "720p-ultimate": {
         "resolution": "1280x720",
         "graphics": "Ultimate",
@@ -85,7 +101,7 @@ GAME_PROFILES = {
 
 def quality_benchmark_ini(profile: dict[str, object]) -> str:
     width, height = (int(value) for value in profile["resolution"].split("x"))
-    return (
+    contents = (
         f"QualityLevel = {profile['quality_level']}\n"
         "Fullscreen = 1\n"
         "ExclusiveFullscreen = 1\n"
@@ -95,6 +111,9 @@ def quality_benchmark_ini(profile: dict[str, object]) -> str:
         "FullscreenRefreshRate = 60\n"
         "EnableMotionBlur = 0\n"
     )
+    for name, value in profile.get("benchmark_overrides", {}).items():
+        contents += f"{name} = {value}\n"
+    return contents
 RESULT_GLOB = "benchmarkresults*.txt"
 PROOT_GUARD_GLOB = "tomb-raider-affinity-*.log"
 DIRECT_GUARD_GLOB = "tombraider-direct-affinity-*.log"
@@ -389,6 +408,7 @@ def validate_benchmark_quality_settings(
         "FullscreenHeight": height,
         "FullscreenRefreshRate": 60,
         "EnableMotionBlur": 0,
+        **game_profile.get("benchmark_overrides", {}),
     }
     mismatches = {
         key: {"expected": value, "actual": settings.get(key)}

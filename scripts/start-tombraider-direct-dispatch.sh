@@ -74,7 +74,7 @@ fail() {
     $dxvk_variant == dxvk-2.4.1-x32 ]] ||
     fail 'TOMB_RAIDER_DXVK_VARIANT must be bundled, dxvk-1.10.3-x32, or dxvk-2.4.1-x32'
 [[ $benchmark_preset == registry ||
-    $benchmark_preset =~ ^(720p|1080p)-(high|ultra|ultimate)$ ]] ||
+    $benchmark_preset =~ ^(720p|1080p)-(high|ultra|ultimate|ultra-no-tessellation)$ ]] ||
     fail 'TOMB_RAIDER_BENCHMARK_PRESET must be registry or a supported resolution-quality pair'
 if [[ $mode != tombraider-benchmark && $benchmark_preset != registry ]]; then
     fail 'a Tomb Raider benchmark preset is valid only in tombraider-benchmark mode'
@@ -208,8 +208,13 @@ if [[ $benchmark_preset != registry ]]; then
     case $benchmark_preset in
         *-high) benchmark_quality_level=2 ;;
         *-ultra) benchmark_quality_level=3 ;;
+        *-ultra-no-tessellation) benchmark_quality_level=3 ;;
         *-ultimate) benchmark_quality_level=4 ;;
     esac
+    benchmark_extra_lines=()
+    if [[ $benchmark_preset == *-ultra-no-tessellation ]]; then
+        benchmark_extra_lines+=('EnableTessellation = 0')
+    fi
     (set -o noclobber; printf '%s\n' \
         "QualityLevel = $benchmark_quality_level" \
         'Fullscreen = 1' \
@@ -218,7 +223,8 @@ if [[ $benchmark_preset != registry ]]; then
         "FullscreenWidth = $benchmark_width" \
         "FullscreenHeight = $benchmark_height" \
         'FullscreenRefreshRate = 60' \
-        'EnableMotionBlur = 0' >"$benchmark_ini") 2>/dev/null ||
+        'EnableMotionBlur = 0' \
+        "${benchmark_extra_lines[@]}" >"$benchmark_ini") 2>/dev/null ||
         fail "could not create controlled Tomb Raider benchmark INI: $benchmark_ini"
     chmod 600 "$benchmark_ini"
     benchmark_ini_windows=Z:${benchmark_ini//\//\\}

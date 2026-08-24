@@ -210,6 +210,28 @@ def main():
     }
     assert module.GAME_PROFILES["720p-ultra"]["quality_level"] == 3
     assert module.GAME_PROFILES["1080p-ultra"]["graphics"] == "Ultra"
+    ultra_no_tessellation = module.GAME_PROFILES[
+        "720p-ultra-no-tessellation"
+    ]
+    assert ultra_no_tessellation["benchmark_overrides"] == {
+        "EnableTessellation": 0
+    }
+    assert module.quality_benchmark_ini(ultra_no_tessellation).endswith(
+        "EnableMotionBlur = 0\nEnableTessellation = 0\n"
+    )
+    custom_quality = {**quality, "EnableTessellation": 0}
+    module.validate_benchmark_quality_settings(
+        custom_quality, ultra_no_tessellation
+    )
+    try:
+        module.validate_benchmark_quality_settings(
+            {**custom_quality, "EnableTessellation": 1},
+            ultra_no_tessellation,
+        )
+    except RuntimeError as error:
+        assert "EnableTessellation" in str(error)
+    else:
+        raise AssertionError("enabled tessellation passed the custom profile")
     assert module.GAME_PROFILES["720p-ultimate"]["quality_level"] == 4
     assert module.GAME_PROFILES["1080p-ultimate"]["graphics"] == "Ultimate"
     assert module.quality_benchmark_ini(

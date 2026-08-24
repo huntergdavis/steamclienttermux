@@ -9311,3 +9311,22 @@ consistent proportional cost makes it a clear optional feature to keep off,
 but the much larger High-to-Ultra drop remains the primary optimization
 target. Exact evidence is in
 `docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-1080p-ultimate-fullscreen-60hz-40c-20260824.json`.
+
+## 2026-08-23: isolate the Ultra tessellation cost
+
+The first targeted post-matrix experiment is implemented at both 1280x720
+and 1920x1080. It starts from native `QualityLevel=3` Ultra and appends the
+documented `EnableTessellation=0` benchmark override. The private INI remains
+mode 0600, byte-exact, final-game-only, and cleanup-bounded. The direct
+dispatcher independently validates the additional line before accepting the
+Proton payload, and the benchmark runner now rejects the game-authored result
+unless it reports tessellation disabled as well as the controlled fullscreen
+settings.
+
+Dedicated one-pass wrappers retain DXVK 2.4.1, Safe FEX, the compiled cache,
+full startup topology, and the 40 C start gate. Focused runner, dispatcher,
+and launch-wrapper tests pass, including mutation of the override from zero to
+one. The required `deja` query found no prior custom-profile implementation;
+this reuses the established transient-INI and fail-closed result-validation
+architecture. No performance claim is made until a real fullscreen tablet run
+proves the resolved settings and game-authored FPS.

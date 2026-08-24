@@ -1170,6 +1170,10 @@ def tombraider_benchmark_arguments(base: Path, preset: str) -> list[str]:
             "720p": (1280, 720),
             "1080p": (1920, 1080),
         }[resolution]
+        overrides = []
+        if quality == "ultra-no-tessellation":
+            quality = "ultra"
+            overrides = ["EnableTessellation = 0"]
         quality_level = {"high": 2, "ultra": 3, "ultimate": 4}[quality]
     except (KeyError, ValueError):
         fail(
@@ -1191,6 +1195,7 @@ def tombraider_benchmark_arguments(base: Path, preset: str) -> list[str]:
         f"FullscreenHeight = {height}\n"
         "FullscreenRefreshRate = 60\n"
         "EnableMotionBlur = 0\n"
+        + "".join(f"{line}\n" for line in overrides)
     ).encode()
     if (
         not stat.S_ISREG(metadata.st_mode)

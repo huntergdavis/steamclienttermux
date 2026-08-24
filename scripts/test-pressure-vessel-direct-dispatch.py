@@ -467,6 +467,57 @@ def main() -> None:
             pass
         else:
             raise AssertionError("modified High benchmark INI was accepted")
+
+        no_tessellation_ini = (
+            high_base
+            / "run/tombraider-benchmark-720p-ultra-no-tessellation.ini"
+        )
+        no_tessellation_ini.write_text(
+            "QualityLevel = 3\n"
+            "Fullscreen = 1\n"
+            "ExclusiveFullscreen = 1\n"
+            "VSyncMode = 0\n"
+            "FullscreenWidth = 1280\n"
+            "FullscreenHeight = 720\n"
+            "FullscreenRefreshRate = 60\n"
+            "EnableMotionBlur = 0\n"
+            "EnableTessellation = 0\n"
+        )
+        no_tessellation_ini.chmod(0o600)
+        no_tessellation_windows_ini = "Z:" + str(no_tessellation_ini).replace(
+            "/", "\\"
+        )
+        no_tessellation_payload = [
+            "--",
+            str(high_proton),
+            "waitforexitandrun",
+            str(high_game),
+            "-nolauncher",
+            "-benchmarkini",
+            no_tessellation_windows_ini,
+        ]
+        assert MODULE.validated_tombraider_command(
+            high_base,
+            no_tessellation_payload,
+            benchmark=True,
+            benchmark_preset="720p-ultra-no-tessellation",
+        ) == (high_proton, high_game)
+        no_tessellation_ini.write_text(
+            no_tessellation_ini.read_text().replace(
+                "EnableTessellation = 0", "EnableTessellation = 1"
+            )
+        )
+        try:
+            MODULE.validated_tombraider_command(
+                high_base,
+                no_tessellation_payload,
+                benchmark=True,
+                benchmark_preset="720p-ultra-no-tessellation",
+            )
+        except MODULE.DispatchError:
+            pass
+        else:
+            raise AssertionError("modified tessellation override was accepted")
     try:
         MODULE.validated_tombraider_command(
             tablet_base, benchmark_payload, benchmark=False
