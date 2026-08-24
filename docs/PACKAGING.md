@@ -65,11 +65,42 @@ only after the locked AArch64 ELF is re-hashed.
   new lock only after hardware validation.
 - Make every system mutation transactional with exact backups and a dry-run.
 
-The next package gates are a deterministic archive builder, fresh-device setup
-test, uninstall/rollback test, and a release-signing workflow. A later optional
+The remaining package gates are a fresh-device setup test, uninstall/rollback
+test, license selection, and a release-signing workflow. A later optional
 target-SDK-36 Android UI can invoke a small fixed set of Termux `RUN_COMMAND`
 entry points, but it must remain separately signed and must not share Termux's
 UID.
+
+## Deterministic project archive
+
+```sh
+python3 scripts/build-release-archive.py \
+  --commit HEAD \
+  --destination "$PWD/dist/release-candidate"
+```
+
+The builder reads exact committed Git blobs, not the working tree. It includes
+runtime code, tests, locks, key documentation, and the README image while
+excluding historical bulk evidence and all proprietary payload locations. ZIP
+entries use fixed timestamps, preserved executable modes, and deterministic
+stored bytes. The external manifest records the source commit, archive identity,
+and every included file's path, size, mode, and SHA-256.
+
+| Real-tree proof (`f71e1b6`) | Result |
+| --- | ---: |
+| Independent build A | 2.57s |
+| Independent build B | 2.52s |
+| Byte-for-byte equality | Pass |
+| Payload files | 267 |
+| Archive size | 3,322,952 bytes |
+| Archive SHA-256 | `08822e3d...31bd` |
+| Valve binaries | None |
+| Tracked license | **Missing; public release blocked** |
+
+The missing license is a project-owner decision and is not inferred by the
+builder. Local candidate construction and testing can continue, but no archive
+should be described or published as an open-source release until a license is
+chosen and tracked.
 
 ## Provenance
 
@@ -79,3 +110,7 @@ returned no indexed implementation. This design reuses the repository's
 retained native updater evidence in `docs/logs/debian-native-linked-20260807-115310.log`
 and `docs/logs/bootstrap-driver-2.log`, plus the existing fail-closed artifact
 identity and no-clobber staging patterns.
+
+The focused deterministic-archive query
+`steamclienttermux deterministic release archive builder manifest sha256
+reproducible zip tar` also returned no indexed implementation.

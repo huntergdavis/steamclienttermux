@@ -9,7 +9,7 @@ bootstrap without redistributing Valve software or handling user credentials.
 
 | Shape | Decision | Reason |
 | --- | --- | --- |
-| Signed/checksummed Termux bootstrap archive | **Build first** | Small, auditable, compatible with official Termux tooling |
+| Signed/checksummed Termux bootstrap archive | **Deterministic builder works** | Small, auditable, compatible with official Termux tooling |
 | Optional Android setup UI using Termux `RUN_COMMAND` | Later | Improves onboarding without sharing Termux's UID |
 | Shared-UID add-on APK | Reject | Cannot join arbitrary Termux installs without the same signing key |
 | Monolithic Termux + X11 + Steam APK | Reject for MVP | Large maintenance, signing, target-SDK, and executable/JIT burden |
@@ -80,12 +80,18 @@ with conservative defaults and no performance claims.
 | Performance | Warm UI and game-launch timings meet published device-profile bounds |
 | Documentation | README remains short; detail lives in tables and linked evidence |
 
+The deterministic-archive gate now passes on the real tree: two independent
+builds of commit `f71e1b6` produced the same 3,322,952-byte ZIP with 267 payload
+files and SHA-256 `08822e3d...31bd`. The manifest truthfully reports that no
+license is tracked; selecting one is the remaining owner-controlled publication
+gate.
+
 ## Next implementation slices
 
-1. Deterministic release-archive builder with manifest and SHA-256 output.
-2. One `bootstrap`, one `doctor`, and one `rollback` entry point.
-3. Fresh-prefix integration test with fake external payloads.
-4. Hardware validation on the Tab S8+ with exact artifact identity.
+1. One `bootstrap`, one `doctor`, and one `rollback` entry point.
+2. Fresh-prefix integration test with fake external payloads.
+3. Hardware validation on the Tab S8+ with exact artifact identity.
+4. Project-owner license selection and tracked license text.
 5. Signed release process and compatibility matrix.
 6. Optional setup UI only after the command-line product is repeatable.
 

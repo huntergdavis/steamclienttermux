@@ -15,7 +15,7 @@ contain Valve binaries, games, credentials, or account state.
 | --- | --- | --- |
 | Tomb Raider performance | 1080p tuned Ultra: **30.7 FPS average** | Replicate and generalize the profile |
 | Steam startup | Warm visible UI: **27.329s -> 2.254s** | Measure Library/Store interaction latency |
-| Easy distribution | Manifest-locked Valve ARM64 bootstrap works | Deterministic installer archive and rollback test |
+| Easy distribution | Locked Valve bootstrap + deterministic 3.3 MiB project ZIP | Bootstrap/doctor/rollback workflow |
 
 | Component | Verified |
 | --- | --- |
@@ -79,8 +79,18 @@ python3 scripts/bootstrap-steam-arm64-client.py install \
 ```
 
 The intended first release is a signed/checksummed Termux bootstrap archive
-containing only our open-source code and locks. See [productization
+containing only project source code and locks. See [productization
 research](docs/PRODUCTIZATION_RESEARCH.md) and [packaging](docs/PACKAGING.md).
+
+Build the current commit's deterministic candidate archive:
+
+```sh
+python3 scripts/build-release-archive.py \
+  --destination "$PWD/dist/release-candidate"
+```
+
+Public open-source release remains blocked until the project owner selects and
+adds a license; the builder reports that state in `release-manifest.json`.
 
 ## Documentation
 
