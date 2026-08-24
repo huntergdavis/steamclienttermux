@@ -140,6 +140,85 @@ def read_verified_result(root: Path, expected_sha256: str) -> tuple[dict, str]:
     return document, digest(path)
 
 
+def compiled_cache_inventory(cache_files: list[Path]) -> list[dict]:
+    expected_hash = bytes.fromhex(FEX_COMMIT)
+    compiled = []
+    for path in cache_files:
+        metadata = regular_file(path, "compiled FEX cache", 256 * 1024 * 1024)
+        with path.open("rb") as stream:
+            header = stream.read(32)
+        if len(header) != 32:
+            fail(f"compiled cache has a truncated header: {path.name}")
+        magic, version, fex_hash, blocks = struct.unpack("<4sI20sI", header)
+        if magic != b"FXCC" or version != 1 or fex_hash != expected_hash or blocks == 0:
+            fail(f"compiled cache header is incompatible with FEX-2605: {path.name}")
+        compiled.append(
+            {
+                "name": path.name,
+                "size_bytes": metadata.st_size,
+                "sha256": digest(path),
+                "format_version": version,
+                "fex_commit": fex_hash.hex(),
+                "blocks": blocks,
+            }
+        )
+    return compiled
+
+
+def audit(
+    base: Path, expected_sha256: str, expected_dll_sha256: dict[str, str]
+) -> None:
+    """Idempotently authenticate a finalized cache without advancing it."""
+    compiler_path(base, expected_sha256, expected_dll_sha256)
+    root = private_directory(
+        base / "cache/fex-code-cache" / CANDIDATE_NAME,
+        "compiled FEX cache candidate",
+    )
+    pending = private_directory(root / "codemap/new", "pending code-map directory")
+    ready = private_directory(root / "codemap/ready", "ready code-map directory")
+    cache = private_directory(root / "cache", "compiled cache directory")
+    pending_files = sorted(pending.iterdir())
+    ready_files = sorted(ready.iterdir())
+    cache_files = sorted(cache.iterdir())
+    if len(pending_files) > 128 or not 1 <= len(ready_files) <= 128 or not 1 <= len(cache_files) <= 128:
+        fail("finalized FEX cache has invalid map or cache counts")
+    for path in pending_files:
+        match = REFRESH_MAP_NAME.fullmatch(path.name)
+        if match is None:
+            fail(f"runtime delta map has an unexpected name: {path.name}")
+        metadata = path.lstat()
+        if (
+            not stat.S_ISREG(metadata.st_mode)
+            or path.is_symlink()
+            or metadata.st_uid != os.geteuid()
+            or metadata.st_mode & 0o022
+            or metadata.st_size > 64 * 1024 * 1024
+            or (metadata.st_size == 0 and match.group("program") != "steam")
+        ):
+            fail(f"runtime delta map is unsafe: {path}")
+    for path in ready_files:
+        regular_file(path, "aggregated FEX code map", 64 * 1024 * 1024)
+    result, result_sha256 = read_verified_result(root, expected_sha256)
+    generation = result.get("generation", 1)
+    history = result.get("refresh_history")
+    if (
+        result.get("schema") != 1
+        or type(generation) is not int
+        or not 1 <= generation <= 1024
+        or result.get("candidate") != str(root)
+        or result.get("ready_code_maps") != len(ready_files)
+        or not isinstance(history, list)
+        or len(history) >= 64
+        or result.get("compiled_caches") != compiled_cache_inventory(cache_files)
+    ):
+        fail("finalized FEX cache result does not match its files")
+    print(
+        f"FEX_OFFLINE_CACHE_AUDITED={root} generation={generation} "
+        f"caches={len(cache_files)} pending={len(pending_files)} "
+        f"result_sha256={result_sha256}"
+    )
+
+
 def refresh(
     base: Path, expected_sha256: str, expected_dll_sha256: dict[str, str]
 ) -> None:
@@ -307,27 +386,7 @@ def verify(
     for path in ready_files:
         regular_file(path, "aggregated FEX code map", 64 * 1024 * 1024)
 
-    expected_hash = bytes.fromhex(FEX_COMMIT)
-    compiled = []
-    for path in cache_files:
-        metadata = regular_file(path, "compiled FEX cache", 256 * 1024 * 1024)
-        with path.open("rb") as stream:
-            header = stream.read(32)
-        if len(header) != 32:
-            fail(f"compiled cache has a truncated header: {path.name}")
-        magic, version, fex_hash, blocks = struct.unpack("<4sI20sI", header)
-        if magic != b"FXCC" or version != 1 or fex_hash != expected_hash or blocks == 0:
-            fail(f"compiled cache header is incompatible with FEX-2605: {path.name}")
-        compiled.append(
-            {
-                "name": path.name,
-                "size_bytes": metadata.st_size,
-                "sha256": digest(path),
-                "format_version": version,
-                "fex_commit": fex_hash.hex(),
-                "blocks": blocks,
-            }
-        )
+    compiled = compiled_cache_inventory(cache_files)
     result_path = root / "result.json"
     refresh_path = root / "refresh.json"
     generation = 1
@@ -377,7 +436,7 @@ def verify(
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("action", choices=("prepare", "refresh", "verify"))
+    parser.add_argument("action", choices=("prepare", "refresh", "verify", "audit"))
     parser.add_argument("--base", default=str(Path.home() / "steam-arm64"))
     parser.add_argument("--expected-compiler-sha256", default=COMPILER_SHA256)
     parser.add_argument(
@@ -403,8 +462,10 @@ def main() -> None:
         prepare(base, arguments.expected_compiler_sha256, expected_hashes)
     elif arguments.action == "refresh":
         refresh(base, arguments.expected_compiler_sha256, expected_hashes)
-    else:
+    elif arguments.action == "verify":
         verify(base, arguments.expected_compiler_sha256, expected_hashes)
+    else:
+        audit(base, arguments.expected_compiler_sha256, expected_hashes)
 
 
 if __name__ == "__main__":

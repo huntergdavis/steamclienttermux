@@ -189,6 +189,27 @@ def main() -> None:
             base, before_compile=False
         ) == candidate
 
+        audit = subprocess.run(
+            [
+                sys.executable,
+                str(SCRIPT),
+                "audit",
+                "--base",
+                str(base),
+                "--expected-compiler-sha256",
+                compiler_sha,
+                "--expected-libcpp-sha256",
+                runtime_hashes["libc++.dll"],
+                "--expected-libunwind-sha256",
+                runtime_hashes["libunwind.dll"],
+            ],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        assert audit.returncode == 0, audit.stderr
+        assert "generation=1 caches=1 pending=0" in audit.stdout
+
         steam_delta = pending / "steam.exe-2de0112aa63806bf.2001.bin"
         steam_delta.write_bytes(b"")
         steam_delta.chmod(0o600)
@@ -253,6 +274,50 @@ def main() -> None:
         assert dispatcher.validated_fex_offline_root(
             base, before_compile=False
         ) == candidate
+
+        audit_refresh = subprocess.run(
+            [
+                sys.executable,
+                str(SCRIPT),
+                "audit",
+                "--base",
+                str(base),
+                "--expected-compiler-sha256",
+                compiler_sha,
+                "--expected-libcpp-sha256",
+                runtime_hashes["libc++.dll"],
+                "--expected-libunwind-sha256",
+                runtime_hashes["libunwind.dll"],
+            ],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        assert audit_refresh.returncode == 0, audit_refresh.stderr
+        assert "generation=2 caches=1 pending=0" in audit_refresh.stdout
+        original_cache = cache_file.read_bytes()
+        cache_file.write_bytes(original_cache + b"tampered")
+        rejected_audit = subprocess.run(
+            [
+                sys.executable,
+                str(SCRIPT),
+                "audit",
+                "--base",
+                str(base),
+                "--expected-compiler-sha256",
+                compiler_sha,
+                "--expected-libcpp-sha256",
+                runtime_hashes["libc++.dll"],
+                "--expected-libunwind-sha256",
+                runtime_hashes["libunwind.dll"],
+            ],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        assert rejected_audit.returncode != 0
+        assert "does not match its files" in rejected_audit.stderr
+        cache_file.write_bytes(original_cache)
 
     launcher = LAUNCHER.read_text(encoding="utf-8")
     assert "TOMB_RAIDER_DIRECT_MODE=fex-offline-compile" in launcher

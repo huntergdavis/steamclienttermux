@@ -9727,3 +9727,15 @@ The required recall query returned no indexed implementation. The test reused
 the validated compiler selector, external milestone timer, screenshot check,
 and exact launcher cleanup. Evidence is in
 `docs/evidence/tombraider-appid-dxvk-compiler7-20260824.json`.
+
+## 2026-08-24: finalized FEX caches gain an idempotent audit
+
+The cache tool's `verify` action advances a prepared refresh and therefore
+correctly rejects an already-finalized generation. A separate read-only
+`audit` action now authenticates the compiler, runtime DLLs, directory safety,
+pending-map shapes, every compiled cache header/size/SHA-256, map counts,
+generation, and the exact `result.json` inventory without rewriting state.
+Focused tests prove repeatable success and byte-tamper rejection; the complete
+project suite passes. This reuses the existing backup-first cache identity and
+fail-closed path-validation rules; the required recall query found no prior
+implementation.
