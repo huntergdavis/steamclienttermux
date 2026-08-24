@@ -177,6 +177,7 @@ engineering pass, not a latency distribution.
 | 2026-08-24 | Integrated startup prefetch, two attempts | Steam outer process exited before dispatcher handoff | No game/window timing; prefetch itself completed in 0.255s |
 | 2026-08-24 | Manual 48.4-MB prefetch + normal path | 55.357s to game Terms window | Slower than 53.553s best; prefetch remains off |
 | 2026-08-24 | `lean-tmp-only` final preload | No game PID/window; service exit 225 | Required compatibility shims remain enabled; [evidence](evidence/tombraider-lean-tmp-only-rejected-20260824.json) |
+| 2026-08-24 | First-paint guard v3 | 0.024s candidate-to-class; 2.137s candidate-to-reveal | UI polish only; same two-second hold, no launch-speed claim |
 
 Those strict controls motivated promoting authenticated fast forwarding as the
 wrapper default. The first promoted tablet check measured 0.340 seconds in the

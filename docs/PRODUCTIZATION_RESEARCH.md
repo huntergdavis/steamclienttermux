@@ -82,6 +82,10 @@ accepts small reviewed manifests of relative paths, installed sizes, and byte
 budgets. Other games can ship different manifests without changing the engine
 or weakening its path, symlink, and size checks.
 
+First-paint X11 polish is profile data too: snapshot existing windows, keep a
+new game-sized surface mapped off-screen, and reveal it only after its declared
+`WM_CLASS` is confirmed. This avoids game-specific debug or overlay windows.
+
 Optimized launch selection is data-driven too. `start-steam-game APPID` resolves
 the AppID and named mode through a reviewed manifest, then enters that game's
 specialized direct launcher. Unknown games and malformed or linked launchers

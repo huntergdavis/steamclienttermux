@@ -24,7 +24,7 @@ contain Valve binaries, games, credentials, or account state.
 | Windows games | Proton ARM64 + FEX + DXVK |
 | Audio/input | PulseAudio and Termux:X11 mouse, touch, and keyboard |
 | Native path | Steam and CEF outside PRoot; allow-listed games use the direct dispatcher |
-| Launch polish | Tomb Raider's blank Wine surface stays hidden until its first black paint |
+| Launch polish | Tomb Raider's pre-class Wine surface stays mapped off-screen until first paint |
 
 ## Best measurements
 

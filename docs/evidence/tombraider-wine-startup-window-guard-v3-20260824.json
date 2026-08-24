@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "source_base_commit": "645a786",
+  "date": "2026-08-24",
+  "target": "Tomb Raider 2013 AppID 203160 through the direct glibc route",
+  "recall": {
+    "query": "X11 Wine startup white flash offscreen mapped window first paint xwd ImageMagick",
+    "result": "no indexed match",
+    "reused": "existing exact X window class/geometry checks and Android frame-capture method"
+  },
+  "cause": "Wine maps its blank game-sized X11 surface before publishing WM_CLASS; a class-only guard reacts after the white surface is visible.",
+  "guard_v3": {
+    "strategy": "snapshot visible IDs, move first new game-sized mapped surface off-screen, confirm exact WM_CLASS, hold through first paint, restore original position",
+    "window": 67108865,
+    "window_class": "steam_app_203160",
+    "candidate_concealed_epoch": 1787605352.326623,
+    "class_confirmed_epoch": 1787605352.350711,
+    "revealed_epoch": 1787605354.463467,
+    "candidate_to_class_seconds": 0.024088,
+    "candidate_to_reveal_seconds": 2.136844,
+    "guard_log_sha256": "48541cc19ac9ad88f134a67678b979e646e35a1c42711e4f5ddcb0348bf08905",
+    "installed_guard_sha256": "51863265f28a33e76855e0ff58529ed3038cb996613345e6b7b11a90b842ecda"
+  },
+  "android_screen_recordings": {
+    "resolution": "2800x1752",
+    "unguarded": {
+      "duration_seconds": 89.977444,
+      "encoded_frames": 2565,
+      "size_bytes": 28599482,
+      "sha256": "c6febe1852cd10edfd2980859e230482167987a51af0743ad1d0d2ba7200cc5c",
+      "fixed_crop_max_mean_luma": 170.641,
+      "white_rectangle_visible": true
+    },
+    "guard_v3": {
+      "duration_seconds": 74.982056,
+      "encoded_frames": 700,
+      "size_bytes": 68116782,
+      "sha256": "d1cba9b74bb6e71f58ae4c868906579737039075c70a459aaa42742db24d2915",
+      "fixed_crop_max_mean_luma": 57.094,
+      "observed_sequence": [
+        "black X11 surface",
+        "Tomb Raider mountain artwork",
+        "Square Enix terms",
+        "Profile"
+      ],
+      "white_rectangle_visible": false
+    }
+  },
+  "protected_processes": {
+    "steam": {
+      "pid": 20942,
+      "start_ticks": 147636817,
+      "preserved": true
+    },
+    "termux_x11": {
+      "pid": 16431,
+      "start_ticks": 147576800,
+      "preserved": true
+    }
+  },
+  "result": "pass",
+  "decision": "Enable guard v3 by default and retain TOMB_RAIDER_STARTUP_WINDOW_GUARD=off as the exact reverse control.",
+  "claim_boundary": "One full-rate Android recording shows no white rectangle. The guard retains the existing two-second paint hold and makes no launch-time improvement claim."
+}

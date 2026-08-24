@@ -36,6 +36,9 @@ dxvk_compiler_threads=${TOMB_RAIDER_DXVK_COMPILER_THREADS:-0}
 dxvk_variant=${TOMB_RAIDER_DXVK_VARIANT:-dxvk-2.4.1-x32}
 dxvk_state_cache=${TOMB_RAIDER_DXVK_STATE_CACHE:-external}
 startup_prefetch=${TOMB_RAIDER_STARTUP_PREFETCH:-off}
+# The guard keeps Wine's first surface mapped but offscreen while it paints.
+# Unmapping here defers Vulkan's first paint and exposes the same white surface
+# when it is remapped.
 startup_window_guard=${TOMB_RAIDER_STARTUP_WINDOW_GUARD:-on}
 benchmark_preset=${TOMB_RAIDER_BENCHMARK_PRESET:-registry}
 child_preload=${TOMB_RAIDER_DIRECT_CHILD_PRELOAD:-full}

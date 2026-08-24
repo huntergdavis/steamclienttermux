@@ -20,6 +20,7 @@ def main() -> None:
     assert "*-ultra-no-tessellation-ssao1-dof1-shadow1" in source
     assert '"QualityLevel = $benchmark_quality_level"' in source
     assert "benchmark_registry_quality" not in source
+    assert "TOMB_RAIDER_STARTUP_WINDOW_GUARD:-on" in source
     assert "benchmark_extra_lines+=('ShadowResolution = 1')" in source
     assert "benchmark_extra_lines+=('ShadowResolution = 0')" in source
     assert "ultra-no-tessellation-ssao1-dof1-shadow0)$" in source

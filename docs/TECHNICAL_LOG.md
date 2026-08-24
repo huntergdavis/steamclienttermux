@@ -9858,3 +9858,27 @@ inspection confirmed the real 2800x1752 Tomb Raider Terms UI; the exact game
 child was then terminated while Steam/X11 identities remained unchanged. This
 is a 0.29-second control-plane improvement, not a new game-window record.
 [Evidence](evidence/steam-appid-incremental-wait-tablet-20260824.json)
+
+## 2026-08-24: frame-rate capture corrects the white-surface gate
+
+The required `deja` query for the pre-class X11 white flash returned no indexed
+implementation. This work reuses the existing exact window-class/geometry
+checks and Android frame-capture method, but corrects the earlier 0.6-second
+sampling claim above. A 90-second, 2800x1752 Android recording with the guard
+disabled captured the white rectangle; waiting for `steam_app_203160` and then
+moving the window also reacted too late.
+
+Wine maps the blank game surface before publishing `WM_CLASS`. Guard v3 now
+snapshots visible window IDs before launch, moves the first new game-sized
+surface off-screen while keeping it mapped, confirms the exact class, holds it
+off-screen through the existing two-second paint interval, and then restores
+its original position. On the tablet, the candidate was concealed at epoch
+`1787605352.326623`, class-confirmed 0.024 seconds later, and revealed 2.137
+seconds after concealment.
+
+The full-rate validation proceeds black screen -> Tomb Raider mountain artwork
+-> Square Enix terms -> Profile without the white rectangle. In the same fixed
+top-left crop, the unguarded capture reached mean luma 170.641 while guard v3
+peaked at 57.094. Steam PID/start ticks `20942:147636817` and X11
+`16431:147576800` were preserved. This supersedes the earlier visibility claim;
+it is launch polish, not a launch-time improvement. [Evidence](evidence/tombraider-wine-startup-window-guard-v3-20260824.json)
