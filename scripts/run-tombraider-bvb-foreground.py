@@ -306,6 +306,7 @@ def child_main(request_directory: Path) -> int:
     probe = Path(str(document.get("probe", "")))
     arguments = document.get("arguments")
     environment = document.get("environment")
+    probe_gate_value = document.get("probe_gate")
     if not isinstance(arguments, list) or not all(isinstance(item, str) for item in arguments):
         fail("foreground request arguments are invalid")
     if not isinstance(environment, dict) or not all(
@@ -313,6 +314,12 @@ def child_main(request_directory: Path) -> int:
         for name, value in environment.items()
     ):
         fail("foreground request environment is invalid")
+    probe_gate: Path | None = None
+    if probe_gate_value is not None:
+        expected_probe_gate = request_directory / "probe.gate"
+        probe_gate = Path(str(probe_gate_value))
+        if probe_gate != expected_probe_gate:
+            fail("foreground probe gate is outside its request directory")
     require_regular(probe, "BVB probe", executable=True)
     groups = require_top_app(
         Path(os.environ.get("TOMB_RAIDER_FOREGROUND_SELF_CGROUP", "/proc/self/cgroup")),
@@ -333,6 +340,21 @@ def child_main(request_directory: Path) -> int:
     )
     with contextlib.suppress(FileNotFoundError):
         request.unlink()
+    if probe_gate is not None:
+        deadline = time.monotonic() + 60
+        while time.monotonic() < deadline:
+            try:
+                metadata = probe_gate.lstat()
+            except FileNotFoundError:
+                time.sleep(0.05)
+                continue
+            if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
+                fail(f"foreground probe gate is unsafe: {probe_gate}")
+            if metadata.st_size != 0:
+                fail(f"foreground probe gate has unexpected content: {probe_gate}")
+            break
+        else:
+            fail(f"timed out waiting for foreground probe gate: {probe_gate}")
     child_environment = dict(os.environ)
     child_environment.update(environment)
     log.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -681,6 +703,7 @@ def controller_main(arguments: argparse.Namespace) -> int:
     state = request_directory / "state.json"
     result_path = request_directory / "result.json"
     probe_state = request_directory / "service-probe.json"
+    probe_gate = request_directory / "probe.gate"
     atomic_json(
         request,
         {
@@ -688,6 +711,11 @@ def controller_main(arguments: argparse.Namespace) -> int:
             "arguments": arguments.probe_arguments,
             "environment": selected_environment(),
             "log": str(log),
+            "probe_gate": (
+                str(probe_gate)
+                if arguments.x11_fullscreen and not allow_no_x11
+                else None
+            ),
         },
     )
     guard = PropertyGuard(properties, reload_command)
@@ -725,17 +753,6 @@ def controller_main(arguments: argparse.Namespace) -> int:
             fail("Termux property hash changed after restoration")
         print(f"Termux external-command property restored: sha256={restored_sha}", flush=True)
         if arguments.x11_fullscreen and not allow_no_x11:
-            deadline = time.monotonic() + arguments.promotion_timeout_seconds
-            while time.monotonic() < deadline:
-                if result_path.exists():
-                    fail("benchmark exited before full-display expansion")
-                if probe_handoff_ready(log):
-                    break
-                if not process_still_top_app(proc_root, child_pid):
-                    fail("benchmark controller left top-app before its handoff marker")
-                time.sleep(0.1)
-            else:
-                fail("benchmark did not emit its full-display handoff marker")
             assert task_id is not None
             toggle = expand_x11_full_display(
                 adb, serial, task_id, arguments.x11_fullscreen_bounds
@@ -743,6 +760,7 @@ def controller_main(arguments: argparse.Namespace) -> int:
             full_display_ready = True
             if not process_still_top_app(proc_root, child_pid):
                 fail("full-display X11 expansion moved the controller out of top-app")
+            atomic_write(probe_gate, b"")
             print(
                 "Termux:X11 borderless full-display ready: "
                 f"task={task_id} bounds="

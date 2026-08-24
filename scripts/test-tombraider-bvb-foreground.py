@@ -216,6 +216,13 @@ def main() -> None:
     assert "Android polling stopped before the timed scene" in source
     assert "Termux:X11 borderless full-display ready" in source
     assert "expand_x11_full_display(" in source
+    assert 'expected_probe_gate = request_directory / "probe.gate"' in source
+    assert source.index("toggle = expand_x11_full_display(") < source.index(
+        "atomic_write(probe_gate, b\"\")"
+    )
+    assert source.index("atomic_write(probe_gate, b\"\")") < source.index(
+        "result = wait_for_result("
+    )
     assert "if arguments.x11_fullscreen and not full_display_ready:" in source
     assert "elif not arguments.x11_fullscreen:" in source
     assert "probe_handoff_ready(log) or not process_still_top_app" in source
