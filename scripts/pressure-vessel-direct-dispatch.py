@@ -1171,6 +1171,14 @@ def tombraider_benchmark_arguments(base: Path, preset: str) -> list[str]:
             "1080p": (1920, 1080),
         }[resolution]
         overrides = []
+        if quality == "ultra-no-tessellation-ssao1-dof1-lod3":
+            quality = "ultra"
+            overrides = [
+                "EnableTessellation = 0",
+                "SSAOMode = 1",
+                "DOFQuality = 1",
+                "LODScale = 3",
+            ]
         if quality == "ultra-no-tessellation-ssao1-dof1":
             quality = "ultra"
             overrides = [

@@ -272,6 +272,30 @@ def main():
         assert "DOFQuality" in str(error)
     else:
         raise AssertionError("modified DOF quality passed the custom profile")
+    lod_tuned_ultra = module.GAME_PROFILES[
+        "720p-ultra-no-tessellation-ssao1-dof1-lod3"
+    ]
+    assert lod_tuned_ultra["benchmark_overrides"] == {
+        "EnableTessellation": 0,
+        "SSAOMode": 1,
+        "DOFQuality": 1,
+        "LODScale": 3,
+    }
+    assert module.quality_benchmark_ini(lod_tuned_ultra).endswith(
+        "EnableTessellation = 0\nSSAOMode = 1\nDOFQuality = 1\nLODScale = 3\n"
+    )
+    lod_tuned_quality = {**dof_tuned_quality, "LODScale": 3}
+    module.validate_benchmark_quality_settings(
+        lod_tuned_quality, lod_tuned_ultra
+    )
+    try:
+        module.validate_benchmark_quality_settings(
+            {**lod_tuned_quality, "LODScale": 4}, lod_tuned_ultra
+        )
+    except RuntimeError as error:
+        assert "LODScale" in str(error)
+    else:
+        raise AssertionError("modified LOD scale passed the custom profile")
     assert module.GAME_PROFILES["720p-ultimate"]["quality_level"] == 4
     assert module.GAME_PROFILES["1080p-ultimate"]["graphics"] == "Ultimate"
     assert module.quality_benchmark_ini(

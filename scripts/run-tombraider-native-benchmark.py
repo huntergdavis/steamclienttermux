@@ -122,6 +122,32 @@ GAME_PROFILES = {
             "DOFQuality": 1,
         },
     },
+    "720p-ultra-no-tessellation-ssao1-dof1-lod3": {
+        "resolution": "1280x720",
+        "graphics": "Ultra without tessellation, SSAO 1, DOF 1, LOD 3",
+        "registry_profile": "720p-normal",
+        "benchmark_preset": "720p-ultra-no-tessellation-ssao1-dof1-lod3",
+        "quality_level": 3,
+        "benchmark_overrides": {
+            "EnableTessellation": 0,
+            "SSAOMode": 1,
+            "DOFQuality": 1,
+            "LODScale": 3,
+        },
+    },
+    "1080p-ultra-no-tessellation-ssao1-dof1-lod3": {
+        "resolution": "1920x1080",
+        "graphics": "Ultra without tessellation, SSAO 1, DOF 1, LOD 3",
+        "registry_profile": "1080p-normal",
+        "benchmark_preset": "1080p-ultra-no-tessellation-ssao1-dof1-lod3",
+        "quality_level": 3,
+        "benchmark_overrides": {
+            "EnableTessellation": 0,
+            "SSAOMode": 1,
+            "DOFQuality": 1,
+            "LODScale": 3,
+        },
+    },
     "720p-ultimate": {
         "resolution": "1280x720",
         "graphics": "Ultimate",

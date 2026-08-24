@@ -9418,3 +9418,12 @@ all protected process identities. Its two maps were archived recoverably in
 `runtime-delta-valid-720p-ultra-no-tessellation-ssao1-dof1-20260824T0312Z`.
 Exact evidence is in
 `docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-720p-ultra-no-tessellation-ssao1-dof1-fullscreen-60hz-40c-20260824.json`.
+
+## 2026-08-23: isolate Ultra LOD after the pacing candidate
+
+The next cumulative 720p and 1080p profiles retain tessellation off, SSAO mode
+1, and DOF quality 1, then lower only `LODScale` from 4 to 3. The exact ordered
+INI and final-dispatch allow list are independently validated, and a mutated
+LOD value fails closed. The required `deja` query found no prior LOD override
+implementation; this reuses the accepted custom-profile and recoverable-map
+pipeline. No performance claim is made before a controlled tablet pass.

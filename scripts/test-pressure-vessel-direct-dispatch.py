@@ -613,6 +613,56 @@ def main() -> None:
             pass
         else:
             raise AssertionError("modified DOF override was accepted")
+
+        lod_tuned_ini = (
+            high_base
+            / "run/tombraider-benchmark-720p-ultra-no-tessellation-ssao1-dof1-lod3.ini"
+        )
+        lod_tuned_ini.write_text(
+            "QualityLevel = 3\n"
+            "Fullscreen = 1\n"
+            "ExclusiveFullscreen = 1\n"
+            "VSyncMode = 0\n"
+            "FullscreenWidth = 1280\n"
+            "FullscreenHeight = 720\n"
+            "FullscreenRefreshRate = 60\n"
+            "EnableMotionBlur = 0\n"
+            "EnableTessellation = 0\n"
+            "SSAOMode = 1\n"
+            "DOFQuality = 1\n"
+            "LODScale = 3\n"
+        )
+        lod_tuned_ini.chmod(0o600)
+        lod_tuned_windows_ini = "Z:" + str(lod_tuned_ini).replace("/", "\\")
+        lod_tuned_payload = [
+            "--",
+            str(high_proton),
+            "waitforexitandrun",
+            str(high_game),
+            "-nolauncher",
+            "-benchmarkini",
+            lod_tuned_windows_ini,
+        ]
+        assert MODULE.validated_tombraider_command(
+            high_base,
+            lod_tuned_payload,
+            benchmark=True,
+            benchmark_preset="720p-ultra-no-tessellation-ssao1-dof1-lod3",
+        ) == (high_proton, high_game)
+        lod_tuned_ini.write_text(
+            lod_tuned_ini.read_text().replace("LODScale = 3", "LODScale = 4")
+        )
+        try:
+            MODULE.validated_tombraider_command(
+                high_base,
+                lod_tuned_payload,
+                benchmark=True,
+                benchmark_preset="720p-ultra-no-tessellation-ssao1-dof1-lod3",
+            )
+        except MODULE.DispatchError:
+            pass
+        else:
+            raise AssertionError("modified LOD override was accepted")
     try:
         MODULE.validated_tombraider_command(
             tablet_base, benchmark_payload, benchmark=False
