@@ -297,6 +297,32 @@ def main() -> None:
         assert not no_tessellation_ini.is_symlink()
 
         (base / "run/native-runtime-dispatch/dispatch.sock").unlink()
+        tuned_environment = {
+            **benchmark_environment,
+            "TOMB_RAIDER_BENCHMARK_PRESET": (
+                "720p-ultra-no-tessellation-ssao1"
+            ),
+        }
+        tuned = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env=tuned_environment,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        assert tuned.returncode == 1, tuned.stderr
+        tuned_ini = (
+            base
+            / "run/tombraider-benchmark-720p-ultra-no-tessellation-ssao1.ini"
+        )
+        tuned_ini_windows = "Z:" + str(tuned_ini).replace("/", "\\")
+        assert result_file.read_text().splitlines() == [
+            "1",
+            f"--appid 203160 -- -nolauncher -benchmarkini {tuned_ini_windows}",
+        ]
+        assert not tuned_ini.exists() and not tuned_ini.is_symlink()
+
+        (base / "run/native-runtime-dispatch/dispatch.sock").unlink()
         priority_environment = {
             **benchmark_environment,
             "TOMB_RAIDER_RAKNET_NICE": "19",

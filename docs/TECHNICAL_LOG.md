@@ -9346,3 +9346,18 @@ Against the 19.4 FPS Ultra control, disabling tessellation gains 3.5 FPS /
 tessellation off and lowers Ultra SSAO from mode 2 to mode 1. Exact evidence
 is retained in
 `docs/benchmark-series/tombraider-direct-glibc-dxvk-241-x32-720p-ultra-no-tessellation-fullscreen-60hz-40c-20260824.json`.
+
+## 2026-08-23: isolate Ultra SSAO after the tessellation win
+
+The next cumulative profile is implemented for both 1280x720 and 1920x1080.
+It keeps every Ultra setting, retains `EnableTessellation=0`, and changes only
+`SSAOMode` from 2 to 1. Dedicated one-pass wrappers preserve DXVK 2.4.1, Safe
+FEX, the compiled cache, fullscreen control, and the 40 C start gate.
+
+The benchmark controller, transient-INI launcher, and final Pressure Vessel
+dispatcher independently require the ordered overrides. Focused tests prove
+the exact generated INI and reject a mutated `SSAOMode=2` result. The required
+`deja` searches found no prior implementation; this reuses the proven
+fullscreen runner, private transient INI, fail-closed game-result validation,
+and recoverable FEX-map archive. No FPS claim is made until the tablet run
+passes every gate.

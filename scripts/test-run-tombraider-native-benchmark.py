@@ -232,6 +232,19 @@ def main():
         assert "EnableTessellation" in str(error)
     else:
         raise AssertionError("enabled tessellation passed the custom profile")
+    tuned_ultra = module.GAME_PROFILES[
+        "720p-ultra-no-tessellation-ssao1"
+    ]
+    assert tuned_ultra["benchmark_overrides"] == {
+        "EnableTessellation": 0,
+        "SSAOMode": 1,
+    }
+    assert module.quality_benchmark_ini(tuned_ultra).endswith(
+        "EnableTessellation = 0\nSSAOMode = 1\n"
+    )
+    module.validate_benchmark_quality_settings(
+        {**custom_quality, "SSAOMode": 1}, tuned_ultra
+    )
     assert module.GAME_PROFILES["720p-ultimate"]["quality_level"] == 4
     assert module.GAME_PROFILES["1080p-ultimate"]["graphics"] == "Ultimate"
     assert module.quality_benchmark_ini(

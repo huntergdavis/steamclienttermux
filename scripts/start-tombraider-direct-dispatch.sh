@@ -74,7 +74,7 @@ fail() {
     $dxvk_variant == dxvk-2.4.1-x32 ]] ||
     fail 'TOMB_RAIDER_DXVK_VARIANT must be bundled, dxvk-1.10.3-x32, or dxvk-2.4.1-x32'
 [[ $benchmark_preset == registry ||
-    $benchmark_preset =~ ^(720p|1080p)-(high|ultra|ultimate|ultra-no-tessellation)$ ]] ||
+    $benchmark_preset =~ ^(720p|1080p)-(high|ultra|ultimate|ultra-no-tessellation|ultra-no-tessellation-ssao1)$ ]] ||
     fail 'TOMB_RAIDER_BENCHMARK_PRESET must be registry or a supported resolution-quality pair'
 if [[ $mode != tombraider-benchmark && $benchmark_preset != registry ]]; then
     fail 'a Tomb Raider benchmark preset is valid only in tombraider-benchmark mode'
@@ -209,11 +209,16 @@ if [[ $benchmark_preset != registry ]]; then
         *-high) benchmark_quality_level=2 ;;
         *-ultra) benchmark_quality_level=3 ;;
         *-ultra-no-tessellation) benchmark_quality_level=3 ;;
+        *-ultra-no-tessellation-ssao1) benchmark_quality_level=3 ;;
         *-ultimate) benchmark_quality_level=4 ;;
     esac
     benchmark_extra_lines=()
-    if [[ $benchmark_preset == *-ultra-no-tessellation ]]; then
+    if [[ $benchmark_preset == *-ultra-no-tessellation ||
+        $benchmark_preset == *-ultra-no-tessellation-ssao1 ]]; then
         benchmark_extra_lines+=('EnableTessellation = 0')
+    fi
+    if [[ $benchmark_preset == *-ultra-no-tessellation-ssao1 ]]; then
+        benchmark_extra_lines+=('SSAOMode = 1')
     fi
     (set -o noclobber; printf '%s\n' \
         "QualityLevel = $benchmark_quality_level" \

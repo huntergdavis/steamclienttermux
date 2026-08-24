@@ -518,6 +518,52 @@ def main() -> None:
             pass
         else:
             raise AssertionError("modified tessellation override was accepted")
+
+        tuned_ini = (
+            high_base
+            / "run/tombraider-benchmark-720p-ultra-no-tessellation-ssao1.ini"
+        )
+        tuned_ini.write_text(
+            "QualityLevel = 3\n"
+            "Fullscreen = 1\n"
+            "ExclusiveFullscreen = 1\n"
+            "VSyncMode = 0\n"
+            "FullscreenWidth = 1280\n"
+            "FullscreenHeight = 720\n"
+            "FullscreenRefreshRate = 60\n"
+            "EnableMotionBlur = 0\n"
+            "EnableTessellation = 0\n"
+            "SSAOMode = 1\n"
+        )
+        tuned_ini.chmod(0o600)
+        tuned_windows_ini = "Z:" + str(tuned_ini).replace("/", "\\")
+        tuned_payload = [
+            "--",
+            str(high_proton),
+            "waitforexitandrun",
+            str(high_game),
+            "-nolauncher",
+            "-benchmarkini",
+            tuned_windows_ini,
+        ]
+        assert MODULE.validated_tombraider_command(
+            high_base,
+            tuned_payload,
+            benchmark=True,
+            benchmark_preset="720p-ultra-no-tessellation-ssao1",
+        ) == (high_proton, high_game)
+        tuned_ini.write_text(tuned_ini.read_text().replace("SSAOMode = 1", "SSAOMode = 2"))
+        try:
+            MODULE.validated_tombraider_command(
+                high_base,
+                tuned_payload,
+                benchmark=True,
+                benchmark_preset="720p-ultra-no-tessellation-ssao1",
+            )
+        except MODULE.DispatchError:
+            pass
+        else:
+            raise AssertionError("modified SSAO override was accepted")
     try:
         MODULE.validated_tombraider_command(
             tablet_base, benchmark_payload, benchmark=False

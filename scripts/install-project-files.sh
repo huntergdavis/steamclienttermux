@@ -230,6 +230,10 @@ install_one "$repo_root/scripts/test-tomb-raider-direct-dxvk-241-x32-720p-ultra-
     "$HOME/test-tomb-raider-direct-dxvk-241-x32-720p-ultra-no-tessellation-single-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/test-tomb-raider-direct-dxvk-241-x32-1080p-ultra-no-tessellation-single-40c-ceiling.sh" \
     "$HOME/test-tomb-raider-direct-dxvk-241-x32-1080p-ultra-no-tessellation-single-40c-ceiling.sh" 700
+install_one "$repo_root/scripts/test-tomb-raider-direct-dxvk-241-x32-720p-ultra-no-tessellation-ssao1-single-40c-ceiling.sh" \
+    "$HOME/test-tomb-raider-direct-dxvk-241-x32-720p-ultra-no-tessellation-ssao1-single-40c-ceiling.sh" 700
+install_one "$repo_root/scripts/test-tomb-raider-direct-dxvk-241-x32-1080p-ultra-no-tessellation-ssao1-single-40c-ceiling.sh" \
+    "$HOME/test-tomb-raider-direct-dxvk-241-x32-1080p-ultra-no-tessellation-ssao1-single-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/test-tomb-raider-direct-dxvk-241-x32-720p-ultimate-single-40c-ceiling.sh" \
     "$HOME/test-tomb-raider-direct-dxvk-241-x32-720p-ultimate-single-40c-ceiling.sh" 700
 install_one "$repo_root/scripts/test-tomb-raider-direct-dxvk-241-x32-1080p-ultimate-single-40c-ceiling.sh" \
