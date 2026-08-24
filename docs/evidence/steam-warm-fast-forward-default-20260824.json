@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-24",
+  "commit": "6e4fd9fe04fd69d14f446fbefeb2b35f386df94f",
+  "device": "Samsung Galaxy Tab S8+",
+  "operation": "warm background -silent forwarding",
+  "status": "pass",
+  "wrapper_elapsed_seconds": 1.833,
+  "dispatcher_elapsed_seconds": 0.34,
+  "dispatcher_mode": "fast",
+  "dispatcher_events": [
+    "request",
+    "fast_inspect",
+    "session_valid",
+    "fast_launch",
+    "complete"
+  ],
+  "dispatcher_status": 0,
+  "wrapper_sha256": "bab052042cd5930171d5a0dc9c5a20ee1514304d5579f9202028728ed62853f5",
+  "steam": {
+    "pid": 15575,
+    "start_ticks_before": 128118834,
+    "start_ticks_after": 128118834
+  },
+  "x11": {
+    "pid": 13643,
+    "start_ticks_before": 121863492,
+    "start_ticks_after": 121863492
+  },
+  "scope": "Measures the complete warm background wrapper and authenticated forwarding boundary. It does not launch a game or measure AppID-to-window latency."
+}

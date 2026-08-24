@@ -30,6 +30,12 @@ latency distribution. See
 | Comparable PRoot route | 407.236s | baseline |
 | Native-glibc host | 58.256s | -85.7%; 6.99x faster |
 
+| Warm forwarding boundary | Seconds | Status |
+| --- | ---: | --- |
+| Strict controls | 11.12--12.38 | Superseded |
+| Authenticated fast dispatcher | 0.340 | Current |
+| Complete warm background wrapper | **1.833** | Current; [evidence](evidence/steam-warm-fast-forward-default-20260824.json) |
+
 The direct dispatcher removes the remaining hot PRoot boundary only for exact
 allow-listed commands. See [`launch-timings/`](launch-timings/) for artifacts.
 
@@ -46,11 +52,12 @@ added until the structured timer measures it on the tablet.
 | --- | --- | --- | --- |
 | 2026-08-24 | Ordinary Steam/PRoot game route | Duplicate readiness pass removed; strict forwards took 12.38s and 11.12s | Both accepted containers exited before the game process; [evidence](evidence/steam-warm-appid-single-pass-excluded-20260824.txt) |
 
-Those strict controls motivated promoting the already-proven authenticated
-fast forward as the wrapper default. It previously measured about 0.33--0.35
-seconds at the dispatcher boundary. Cold starts remain complete launches, and
-failed authentication retains the strict fallback; a new end-to-end AppID
-timing is still required before claiming the control-to-game delta.
+Those strict controls motivated promoting authenticated fast forwarding as the
+wrapper default. The first promoted tablet check measured 0.340 seconds in the
+dispatcher and 1.833 seconds for the complete warm background wrapper. Cold
+starts remain complete launches, and failed authentication retains the strict
+fallback; a new end-to-end AppID timing is still required before claiming the
+control-to-game delta.
 
 ## Logging rule
 
