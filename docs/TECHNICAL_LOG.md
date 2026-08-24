@@ -9712,3 +9712,18 @@ direct dispatcher, and produced a visually inspected 2800x1752 full-screen
 Square Enix Terms UI. The 58.688-second timing is recorded for repeatability
 but does not replace the 53.553-second performance best. Exact evidence is in
 `docs/evidence/generic-appid-launcher-tablet-20260824.json`.
+
+## 2026-08-24: seven DXVK startup workers are rejected
+
+The ordinary generation-7 launch logged four DXVK compiler workers while the
+best benchmark topology had exposed seven. Because the measured graphics-init
+segment is CPU-bound, a bounded AppID pass forced exactly seven workers through
+the existing final-process-only selector. The DXVK log confirmed the setting
+and a screenshot confirmed a real full-screen game frame, but AppID-to-window
+was **58.670 seconds** versus 55.303 for generation-7 automatic selection and
+53.553 for the generation-6 record. Automatic selection remains the default.
+
+The required recall query returned no indexed implementation. The test reused
+the validated compiler selector, external milestone timer, screenshot check,
+and exact launcher cleanup. Evidence is in
+`docs/evidence/tombraider-appid-dxvk-compiler7-20260824.json`.

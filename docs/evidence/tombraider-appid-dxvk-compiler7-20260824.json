@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-24",
+  "status": "tablet-pass-no-improvement-not-promoted",
+  "operation": "force seven DXVK compiler workers during AppID startup",
+  "configuration": {
+    "fex_cache_generation": 7,
+    "dxvk": "2.4.1 x32",
+    "dxvk_num_compiler_threads": 7,
+    "startup_prefetch": "off"
+  },
+  "timing": {
+    "session_to_runtime_seconds": 14.0,
+    "runtime_to_target_seconds": 18.508,
+    "runtime_to_winevulkan_seconds": 30.709,
+    "runtime_to_d3d11_seconds": 31.499,
+    "runtime_to_window_seconds": 44.67,
+    "appid_to_window_seconds": 58.67,
+    "generation7_auto_seconds": 55.303,
+    "best_generation6_auto_seconds": 53.553,
+    "promotion": "rejected"
+  },
+  "artifacts": {
+    "timer_sha256": "eed3d055febe82497c34bf9ca6ec79c6173526097c86e128807daca6363f3cfc",
+    "launcher_stdout_sha256": "2afeb71019937d22a7f55352b6c24af81cdd06788363c27e120f57c11afb7d99",
+    "screenshot_sha256": "d8f05f7f4ac0fbc7602d50bc0bb0c55d8b875dc913ff654d7985f441c132cbff"
+  },
+  "validation": {
+    "effective_log_marker": "DXVK: Using 7 compiler threads",
+    "real_fullscreen_game_frame": "pass",
+    "steam_pid_start_ticks_preserved": "15575:128118834",
+    "x11_pid_start_ticks_preserved": "13643:121863492"
+  },
+  "recall": {
+    "query": "DXVK numCompilerThreads AppID startup Tomb Raider 7 threads FEX generation 7",
+    "result": "no indexed match",
+    "reused": [
+      "validated final-process compiler selector",
+      "external AppID milestone timer",
+      "exact launcher cleanup and screenshot validation"
+    ]
+  },
+  "claim_boundary": "Seven workers were effective but one valid pass was slower than both automatic generation-7 and the generation-6 record."
+}

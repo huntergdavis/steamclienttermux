@@ -88,6 +88,7 @@ the AppID handoff and restored them to CPU 0 after acknowledgement:
 | **Compiled cache + DXVK 2.4.1 x32** | **55.339** | **-32.3%** |
 | **Refreshed FEX generation 6 + DXVK 2.4.1** | **53.553** | **-34.5%** |
 | FEX generation 7 + DXVK 2.4.1 | 55.303 | -32.3%; valid, not promoted |
+| Generation 7 + forced 7 DXVK workers | 58.670 | -28.2%; valid, rejected |
 
 Session-to-runtime fell from 30 to 12 seconds while runtime-to-window remained
 roughly flat (51.742 vs 53.193 seconds). A 2800x1752 tablet screenshot confirmed
@@ -220,3 +221,9 @@ dispatcher, and reached the real full-screen Terms UI in 58.688 seconds. This
 is a repeatability/packaging acceptance result, not a performance promotion;
 53.553 seconds remains the launch record. See [the AppID launcher
 evidence](evidence/generic-appid-launcher-tablet-20260824.json).
+
+Forcing seven DXVK compiler workers was also ineffective for startup. The game
+log proves the exact seven-worker setting, but the full-screen game frame took
+58.670 seconds from AppID session start—slower than both generation-7 automatic
+selection and the 53.553-second record. Automatic selection remains the default.
+See [the compiler-worker evidence](evidence/tombraider-appid-dxvk-compiler7-20260824.json).
