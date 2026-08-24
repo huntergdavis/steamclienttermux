@@ -63,6 +63,11 @@ three relative symlinks, and promotes only a complete verified staging tree.
 | Steam UI fast paths | Game-specific DXVK/FEX profiles |
 | Logging and doctor output | Thermal ceilings |
 
+Prepared Proton/Wine executables use identity-bound receipts for the common
+launch path. Unchanged device/inode/size/time/mode/owner metadata avoids
+re-reading large binaries; any change falls back to full ELF and SHA-256
+validation. This keeps startup fast without turning a stale stamp into trust.
+
 Device profiles must be data, not forks of the installer. Unknown devices start
 with conservative defaults and no performance claims.
 

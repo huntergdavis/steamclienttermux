@@ -9747,3 +9747,16 @@ seconds. The first capture was black, so it was not accepted as visual proof;
 the later capture showed the real full-screen Square Enix Terms UI. This is a
 restore/repeatability pass, not a speed record. Generation 6 remains selected
 because its earlier 53.553-second result is still the fastest verified run.
+
+## 2026-08-24: unchanged Proton preparation stops re-hashing binaries
+
+Every direct game launch previously invoked `readelf` and SHA-256 over three
+already-patched Proton/Wine executables plus their backups. Preparation now
+records owner-bound device, inode, size, nanosecond mtime/ctime, mode, and UID
+receipts for target, backup, and glibc loader. An exact receipt takes the fast
+path; any metadata change returns to the existing full ELF/hash validation.
+Focused tests replace `readelf` after a successful preparation to prove the
+unchanged path performs no subprocess work, then change target metadata to
+prove the receipt is rejected. The complete project suite passes. The required
+recall query found no prior implementation; this reuses the identity-bound
+cache pattern already proven for Steam affinity validation.

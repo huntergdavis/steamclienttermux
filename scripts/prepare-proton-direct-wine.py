@@ -183,6 +183,51 @@ def validate_existing_record(
         raise PrepareError(f"Proton ARM64 executable backup hash mismatch: {backup}")
 
 
+def file_identity(path: Path, prefix: str) -> dict[str, str]:
+    metadata = path.lstat()
+    return {
+        f"{prefix}_device": str(metadata.st_dev),
+        f"{prefix}_inode": str(metadata.st_ino),
+        f"{prefix}_size": str(metadata.st_size),
+        f"{prefix}_mtime_ns": str(metadata.st_mtime_ns),
+        f"{prefix}_ctime_ns": str(metadata.st_ctime_ns),
+        f"{prefix}_mode": str(stat.S_IMODE(metadata.st_mode)),
+        f"{prefix}_uid": str(metadata.st_uid),
+    }
+
+
+def record_file_identities(
+    record: dict[str, str], target: Path, loader: Path
+) -> None:
+    backup = Path(record.get("backup", ""))
+    record.update(file_identity(target, "target"))
+    record.update(file_identity(backup, "backup"))
+    record.update(file_identity(loader, "loader"))
+
+
+def cached_record_matches(
+    record: dict[str, str], target: Path, loader: Path
+) -> bool:
+    if (
+        record.get("interpreter") != str(loader)
+        or re.fullmatch(r"[0-9a-f]{64}", record.get("patched_sha256", "")) is None
+        or re.fullmatch(r"[0-9a-f]{64}", record.get("original_sha256", "")) is None
+    ):
+        return False
+    backup = Path(record.get("backup", ""))
+    try:
+        regular_owned_file(target, "Proton ARM64 executable", executable=True)
+        regular_owned_file(backup, "Proton ARM64 executable backup")
+        regular_owned_file(loader, "tgcompat glibc loader", executable=True)
+        observed = {}
+        observed.update(file_identity(target, "target"))
+        observed.update(file_identity(backup, "backup"))
+        observed.update(file_identity(loader, "loader"))
+    except (OSError, PrepareError):
+        return False
+    return all(record.get(key) == value for key, value in observed.items())
+
+
 def backup_name(relative: Path, original_hash: str) -> str:
     identity = hashlib.sha256(str(relative).encode("utf-8")).hexdigest()[:12]
     return f"{relative.name}-{identity}-{original_hash}.original"
@@ -251,12 +296,16 @@ def prepare(
     for relative in TARGET_RELATIVES:
         target = base / relative
         regular_owned_file(target, "Proton ARM64 executable", executable=True)
+        record = records.get(str(target))
+        if record is not None and cached_record_matches(record, target, loader):
+            print(f"Proton direct executable identity cached: {target}")
+            continue
         interpreter = read_interpreter(readelf, target)
         if interpreter == str(loader):
-            record = records.get(str(target))
             if record is None:
                 raise PrepareError(f"prepared target has no restore record: {target}")
             validate_existing_record(record, target, loader)
+            record_file_identities(record, target, loader)
             print(f"Proton direct executable already prepared: {target}")
             continue
         if interpreter != ORIGINAL_INTERPRETER:
@@ -266,6 +315,7 @@ def prepare(
         record = patch_target(
             target, relative, loader, patchelf, readelf, backup_root
         )
+        record_file_identities(record, target, loader)
         records[str(target)] = record
         write_state(state_path, loader, records)
         print(f"Prepared Proton direct executable: {target}")

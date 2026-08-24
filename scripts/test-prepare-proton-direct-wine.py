@@ -127,6 +127,29 @@ def main() -> None:
         for relative in TARGETS:
             target = base / relative
             assert target.read_text().splitlines()[0] == f"INTERP={loader}"
+        state = json.loads(
+            (base / "backups/proton-direct-wine/state.json").read_text()
+        )
+        assert all("target_ctime_ns" in record for record in state["targets"])
+
+        # The unchanged fast path must not invoke readelf or re-hash payloads.
+        # Replacing the fixture readelf also proves that its execution is skipped.
+        readelf_target.write_text("#!/bin/sh\nexit 91\n", encoding="utf-8")
+        readelf_target.chmod(0o700)
+        cached = subprocess.run(
+            command, text=True, capture_output=True, check=False
+        )
+        assert cached.returncode == 0, cached.stderr
+        assert cached.stdout.count("identity cached") == len(TARGETS)
+
+        # A metadata change invalidates the receipt and returns to full checking.
+        changed_target = base / TARGETS[0]
+        os.utime(changed_target, None)
+        rejected_stale = subprocess.run(
+            command, text=True, capture_output=True, check=False
+        )
+        assert rejected_stale.returncode != 0
+        assert "readelf failed (91)" in rejected_stale.stderr
 
     print("Proton direct Wine preparation tests: PASS")
 
