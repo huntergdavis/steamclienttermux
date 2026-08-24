@@ -57,6 +57,16 @@ includes both candidate passes and the screenshot proof.
 The direct dispatcher removes the remaining hot PRoot boundary only for exact
 allow-listed commands. See [`launch-timings/`](launch-timings/) for artifacts.
 
+| Repeated Proton preparation | Seconds | Change |
+| --- | ---: | ---: |
+| Full ELF + target/backup SHA validation | 1.291 | baseline |
+| Identity-bound receipt, median of 3 | **0.443** | **-65.7%** |
+
+The receipt saves 0.848 seconds from every unchanged direct game launch. Any
+target, backup, or loader identity change falls back to the full validation;
+the fast path is not a replacement for first-run verification. See [the tablet
+evidence](evidence/proton-preparation-identity-cache-tablet-20260824.json).
+
 ### Direct Tomb Raider launch phases
 
 One warm, authenticated direct-glibc launch on the same tablet:

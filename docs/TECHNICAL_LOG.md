@@ -9760,3 +9760,9 @@ unchanged path performs no subprocess work, then change target metadata to
 prove the receipt is rejected. The complete project suite passes. The required
 recall query found no prior implementation; this reuses the identity-bound
 cache pattern already proven for Steam affinity validation.
+
+Tablet timing measured the prior preparation at 1.290560 seconds. The first
+new run performed full validation and wrote receipts in 0.895338 seconds; three
+unchanged passes then measured 0.444746, 0.442977, and 0.434573 seconds. The
+median fast path is 0.443 seconds, saving 0.848 seconds / 65.7% per direct game
+launch. Steam and X11 process identities remained unchanged.

@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-24",
+  "status": "host-and-tablet-pass-promoted",
+  "operation": "identity-bound fast path for repeated Proton preparation",
+  "timing_seconds": {
+    "full_control": 1.29056,
+    "receipt_upgrade": 0.895338,
+    "cached_runs": [
+      0.444746,
+      0.442977,
+      0.434573
+    ],
+    "cached_median": 0.442977,
+    "saved_per_launch": 0.847583,
+    "reduction_percent": 65.7
+  },
+  "validation": {
+    "focused_host": "pass",
+    "complete_project_suite": "pass",
+    "unchanged_readelf_invocations": 0,
+    "metadata_change_falls_back_to_full_validation": "pass",
+    "tablet_cached_markers": 3,
+    "steam_pid_start_ticks_preserved": "15575:128118834",
+    "x11_pid_start_ticks_preserved": "13643:121863492"
+  },
+  "artifacts": {
+    "installed_tool_sha256": "c399a29e58eb50f1d3638c1988e6559b46ac78dbb64dcdf248f8f47974566ef9",
+    "rollback_tool_sha256": "3171c3bd1608c993ef302805693b1c9b828d463d955b8291eefacd831497ec51",
+    "rollback_path": "~/steam-arm64/backups/prepare-proton-direct-wine-pre-3f7479a-20260824.py"
+  },
+  "recall": {
+    "query": "pv-adverb generate-locales regenerate-ld.so-cache direct dispatcher startup cache",
+    "result": "no indexed match",
+    "reused": [
+      "identity-bound Steam affinity cache",
+      "fail-closed full hash fallback",
+      "bounded launch-phase timing"
+    ]
+  },
+  "claim_boundary": "This promotes a measured 0.848-second unchanged preparation saving. It does not by itself claim a new end-to-end AppID launch record."
+}
