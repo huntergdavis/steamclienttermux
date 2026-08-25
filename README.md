@@ -123,6 +123,7 @@ adds a license; the builder reports that state in `release-manifest.json`.
 | --- | --- |
 | Steam performance timeline | [Steam timings](docs/STEAM_TIMINGS.md) |
 | Product/release design | [Productization research](docs/PRODUCTIZATION_RESEARCH.md) |
+| No Man's Sky profile | [1080p configuration and save safety](docs/NO_MANS_SKY.md) |
 | Complete Tomb Raider results | [Benchmark report](docs/TOMB_RAIDER_BENCHMARK.md) |
 | Architecture boundaries | [Architecture](docs/ARCHITECTURE.md) |
 | Binary provenance | [External inputs](docs/PROPRIETARY_AND_BINARY_INPUTS.md) |

@@ -33,6 +33,7 @@ INCLUDED_FILES = {
     "README.md",
     "docs/ARCHITECTURE.md",
     "docs/NATIVE_STEAM_SPEED.md",
+    "docs/NO_MANS_SKY.md",
     "docs/PACKAGING.md",
     "docs/PERFORMANCE.md",
     "docs/PRODUCTIZATION_RESEARCH.md",
