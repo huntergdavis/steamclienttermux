@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "gate": "option-a-release-archive-tablet-doctor",
+  "date": "2026-08-24",
+  "result": "pass",
+  "source_commit": "df975cf14e6b6c09e4375a8ffb8d8146458108b2",
+  "archive": {
+    "filename": "steamclienttermux-df975cf14e6b.zip",
+    "size": 13474167,
+    "sha256": "a323e4cb0623bc619d2bccd3665d5fe19a11387dcd882dc0da12825f6baba193",
+    "payload_file_count": 302,
+    "two_builds_byte_identical": true,
+    "redistributes_valve_binaries": false,
+    "open_source_artifacts": [
+      "artifacts/glibc_2.44_aarch64.deb"
+    ]
+  },
+  "tablet": {
+    "candidate": "/data/data/com.termux/files/home/steam-arm64/candidates/option-a-release-df975cf.hbjob1",
+    "archive_sha256_verified": true,
+    "embedded_glibc_sha256": "52f5ce13b66fc3307f48285d32b72951472493e91b96fc3e08c0c42772d999f3",
+    "doctor_status": "pass",
+    "doctor_failed": 0,
+    "doctor_warned": 1,
+    "warning": "project license missing; local research only",
+    "steam_pid_start_ticks": "4264:149472438"
+  },
+  "scope": {
+    "archive_installed": false,
+    "fresh_install_complete": false,
+    "proot_packaged": false,
+    "product_launchers_installed": false
+  }
+}

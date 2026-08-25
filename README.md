@@ -15,7 +15,7 @@ contain Valve binaries, games, credentials, or account state.
 | --- | --- | --- |
 | Tomb Raider performance | 1080p tuned Ultra: **30.7 FPS average** | Replicate and generalize the profile |
 | Steam startup | UI **1.662s**; cold AppID **21.80s**; cold game **49.513s** | Connect AppID acceptance to the direct game route |
-| Easy distribution | Reproducible ZIP + five automated runtime phases | Package PRoot and product launchers |
+| Easy distribution | 13.47 MB deterministic ZIP; tablet doctor PASS | Package PRoot and product launchers |
 
 | Component | Verified |
 | --- | --- |

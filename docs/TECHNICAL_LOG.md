@@ -10106,3 +10106,17 @@ active Termux glibc or Steam tree. The required focused `deja` queries found no
 indexed implementation; this reuses the earlier content-addressed selector,
 exact receipt, and no-clobber promotion patterns.
 [Evidence](evidence/steam-option-a-glibc-runtime-tablet-20260824.json)
+
+## 2026-08-24: first complete Option-A release archive
+
+The pushed `df975cf` release was built twice from the exact audited glibc
+package. Both ZIPs were byte-identical at 13,474,167 bytes with SHA-256
+`a323e4cb...ba193`. The archive contains 302 project/open-source payload files,
+including the locked glibc `.deb`, and no Valve binary.
+
+The ZIP was copied to a new private tablet candidate, re-hashed, extracted, and
+checked from inside its own root. The bootstrap doctor passed with zero failures
+and one expected warning: the project license has not yet been selected. Steam
+PID/start ticks remained `4264:149472438`. This proves archive integrity and
+prerequisites, not a complete fresh install; PRoot and product launchers remain.
+[Evidence](evidence/steam-option-a-release-tablet-20260824.json)
