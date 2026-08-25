@@ -16,7 +16,8 @@ def main() -> None:
     assert "getprop ro.product.cpu.abi" in source
     assert '"$PREFIX/bin/pkg" install -y python' in source
     assert 'dependencies --install --yes --base "$base"' in source
-    assert 'exec python3 "$setup" --lock "$lock" prepare --base "$base"' in source
+    assert 'python3 "$setup" --lock "$lock" prepare --base "$base"' in source
+    assert 'exec python3 "$turnip_installer" --lock "$turnip_lock" install --base "$base"' in source
     assert "curl |" not in source and "wget |" not in source
     release = RELEASE.read_text(encoding="utf-8")
     assert '"scripts/bootstrap-termux-stack.sh"' in release or '"scripts/"' in release

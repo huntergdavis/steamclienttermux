@@ -43,11 +43,13 @@ REQUIRED_FILES = {
     "README.md",
     "config/steam-arm64-bootstrap-lock.json",
     "config/termux-setup-profile.json",
+    "config/turnip-runtime-lock.json",
     "scripts/bootstrap-steam-arm64-client.py",
     "scripts/bootstrap-termux-stack.sh",
     "scripts/build-release-archive.py",
     "scripts/check-project.sh",
     "scripts/setup-steam-stack.py",
+    "scripts/install-turnip-runtime.py",
     "scripts/steam-stack-doctor.py",
     "docs/PRODUCTIZATION_RESEARCH.md",
 }

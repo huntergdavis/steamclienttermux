@@ -75,6 +75,23 @@ The first accelerated hardware profile is AArch64 Qualcomm/Adreno KGSL with
 Turnip. The installer engine is generic, but claiming acceleration on Mali,
 PowerVR, or other GPU families requires a separately tested graphics profile.
 
+## Locked Turnip runtime
+
+The Option-A command fetches the Qualcomm/Adreno Turnip runtime directly from
+its open-source release publisher. The lock pins its source tag and full
+commit, archive URL/size/SHA and shape, driver size/SHA, Mesa version, and
+Vulkan API version:
+
+```sh
+python3 scripts/install-turnip-runtime.py install --base "$HOME/steam-arm64"
+```
+
+The extractor accepts only bounded directories, regular files, and relative
+in-tree symlinks. It rejects traversal, collisions, special files, symlink
+descendants, expanded-size changes, and any driver mismatch. Promotion is by
+rename after verification; an unchanged receipted rerun is idempotent. The
+project fetches the archive from the publisher and does not rebundle it.
+
 The lower-level verifier can also use an already-downloaded archive:
 
 ```sh

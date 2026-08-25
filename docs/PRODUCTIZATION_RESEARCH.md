@@ -32,7 +32,8 @@ python3 scripts/setup-steam-stack.py plan --json
 | Install Termux:X11 APK | User or ADB | Android Package Manager | Manual prerequisite |
 | Install Termux:X11 companion and dependencies | Setup command | `pkg`/locked recipes | Implemented |
 | Acquire and receipt Valve's ARM64 seed | Setup command | Locked HTTPS + safe extractor | Implemented |
-| Install glibc, Turnip, FEX, audio, launchers, profiles | Setup command | Transactional runtime installer | Planned |
+| Install Turnip | Setup command | Locked upstream archive + safe extractor | Implemented |
+| Install glibc, PRoot, launchers and profiles | Setup command | Transactional runtime installer | In progress |
 | Steam login and Steam Guard | User | Valve client | Always manual |
 
 This boundary is architectural, not just documentation: the CLI exports the

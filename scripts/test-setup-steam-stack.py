@@ -112,7 +112,7 @@ def main() -> None:
         "manual-prerequisite",
         "implemented",
         "implemented",
-        "planned",
+        "partial",
         "manual-required",
     ]
     assert "INSTALL_SHAPE=two-apks-one-termux-command" in MODULE.render_install_plan()

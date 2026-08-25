@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-24",
+  "gate": "locked-turnip-runtime-install",
+  "result": "pass",
+  "source_base_commit": "ec49a483783e2d8f625b7e6d8a7f3feafa54b43e",
+  "profile_id": "qualcomm-adreno-kgsl-turnip-26.2.0-20260709",
+  "publisher": {
+    "repository": "https://github.com/lfdevs/mesa-for-android-container.git",
+    "tag": "mesa-26.2.0-devel-20260709",
+    "commit": "9452d1daece53b576a90c77b046cb5c3e2ec590d"
+  },
+  "archive": {
+    "downloaded_from_publisher": true,
+    "size": 11626183,
+    "sha256": "4ee525b4844fb189f3762ff75ef77f5b80eee8f6cdab2e5588731b5c9f8168bb",
+    "member_count": 87,
+    "uncompressed_bytes": 47298310
+  },
+  "driver": {
+    "relative_path": "usr/lib/aarch64-linux-gnu/libvulkan_freedreno.so",
+    "size": 17540104,
+    "sha256": "b9a544b9211537af073d911b423e581da878e167474a9f4a1de6544fce8a6686",
+    "matches_working_tablet": true,
+    "mesa_version": "26.2.0-devel",
+    "vulkan_api_version": "1.4.335"
+  },
+  "validation": {
+    "locked_download": "pass",
+    "safe_extraction": "pass",
+    "driver_identity": "pass",
+    "receipt": "pass",
+    "idempotent_second_install": "pass",
+    "traversal_rejection_contract": "pass",
+    "release_archive_inclusion_contract": "pass"
+  },
+  "tablet_isolated_candidate": {
+    "path": "/data/data/com.termux/files/home/steam-arm64/candidates/option-a-turnip-20260824.uSx11NOR",
+    "install": "pass",
+    "idempotent_rerun": "pass",
+    "active_runtime_modified": false
+  },
+  "distribution": {
+    "project_redistributes_archive": false,
+    "retrieval": "direct from upstream release publisher"
+  },
+  "not_proven": [
+    "fresh Android device end-to-end setup",
+    "non-Qualcomm graphics support",
+    "patched glibc or PRoot installation",
+    "Steam or game launch from the new installer"
+  ],
+  "reuse": "The required exact Mesa/Turnip deja query returned no indexed implementation. The gate reuses the working tablet binary identity, the project's locked-download discipline, safe archive promotion model, and content-addressed receipts."
+}

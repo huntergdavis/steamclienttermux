@@ -10032,3 +10032,30 @@ depend on unrelated historical packages. The required runtime-install `deja`
 query returned no indexed implementation; the audit reuses the launchers'
 existing fail-closed command checks and the tablet's dpkg ownership database.
 [Evidence](evidence/steam-runtime-command-dependencies-tablet-20260824.json)
+
+## 2026-08-24: reconstruct and automate the working Turnip runtime
+
+The working desktop-WSI/KGSL driver is no longer an unexplained binary. Its
+retained download metadata identifies the exact public
+`lfdevs/mesa-for-android-container` Debian/ARM64 release, tag
+`mesa-26.2.0-devel-20260709`, full source commit `9452d1da...590d`, archive
+size 11,626,183, and archive SHA-256 `4ee525b4...68bb`. The extracted
+`libvulkan_freedreno.so` is byte-identical to the tablet's proven
+`b9a544b9...6686` driver.
+
+`install-turnip-runtime.py` now downloads that exact publisher asset, bounds
+and validates all 87 tar members/47,298,310 expanded bytes, safely extracts
+only directories, files, and in-tree relative symlinks, verifies the driver,
+writes the private ICD plus receipt, and promotes by rename. A fresh real
+download installed successfully on the host and the second run returned
+`already-ready`; traversal and corruption contracts fail closed. The archive
+is fetched from the publisher rather than redistributed by this project.
+
+The same installer then passed in a new private, no-clobber tablet candidate:
+the extracted driver matched `b9a544b9...6686` and its second run was
+idempotent. The active Mesa tree, Steam, X11, and account state were untouched.
+
+The required exact Mesa/Turnip `deja` query returned no indexed implementation;
+this gate reuses the project's locked-download, safe-promotion, and exact
+receipt patterns.
+[Evidence](evidence/steam-turnip-runtime-lock-host-20260824.json)

@@ -68,8 +68,8 @@ INSTALL_SHAPE = {
         {
             "id": "open-source-runtime",
             "owner": "setup-command",
-            "state": "planned",
-            "action": "Install glibc, Turnip, FEX, launchers, audio, profiles, and diagnostics.",
+            "state": "partial",
+            "action": "Install locked Turnip; glibc, PRoot, launchers, and final profiles remain.",
         },
         {
             "id": "steam-account",

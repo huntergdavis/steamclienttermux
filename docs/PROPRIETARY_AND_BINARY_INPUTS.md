@@ -1,7 +1,6 @@
 # External binary inputs
 
-This repository cannot redistribute Valve client binaries, games, Proton, or
-the Mesa binary bundle.
+This repository cannot redistribute Valve client binaries, games, or Proton.
 
 ## Valve Steam ARM64 client
 
@@ -37,8 +36,20 @@ mirror or rebundle it.
 
 ## Mesa Turnip
 
-The working private bundle identified itself as Mesa `26.2.0-devel`, git
-`9452d1daec`, with Vulkan ICD API `1.4.335`. Expected layout:
+The working bundle is the public Debian/ARM64 asset from
+[`lfdevs/mesa-for-android-container`](https://github.com/lfdevs/mesa-for-android-container/releases/tag/mesa-26.2.0-devel-20260709).
+The project does not rebundle it; the installer fetches it from its publisher.
+
+| Identity | Locked value |
+| --- | --- |
+| Source tag | `mesa-26.2.0-devel-20260709` |
+| Source commit | `9452d1daece53b576a90c77b046cb5c3e2ec590d` |
+| Archive size | 11,626,183 bytes |
+| Archive SHA-256 | `4ee525b4...68bb` |
+| Driver SHA-256 | `b9a544b9...6686` |
+| Runtime identity | Mesa `26.2.0-devel`, Vulkan `1.4.335` |
+
+Expected layout:
 
 ```text
 ~/steam-arm64/mesa-kgsl/usr/lib/aarch64-linux-gnu/libvulkan_freedreno.so
