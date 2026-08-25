@@ -49,6 +49,10 @@ def main():
     assert source.index('pd_args+=(--bind "$arm_runtime:$arm_runtime_depot")') < source.index(
         'pd_args+=(--bind "$runtime_direct_run:$arm_runtime_depot/run")'
     )
+    assert (
+        'python3 "$runtime_root_prep" --base "$base" '
+        '--refresh-mount-anchors-only' in source
+    )
     print("Steam ARM64 FEX profile tests: PASS")
 
 

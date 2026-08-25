@@ -18,6 +18,7 @@ proc_net_prep="$base/prepare-proc-net-shadow.sh"
 pulse_prep="$base/prepare-pulseaudio-tcp.sh"
 session_guard="$base/compat-bin/steam-arm64-session-guard.py"
 removable_library_helper="$base/compat-bin/steam-arm64-removable-library.py"
+runtime_root_prep="$base/compat-bin/prepare-runtime-direct-root.py"
 proc_net_shadow="$base/config/proc-net"
 pressure_vessel_bwrap="$base/compat-bin/steam-arm64-bwrap-route"
 real_pressure_vessel_bwrap="$arm_runtime/pressure-vessel/libexec/steam-runtime-tools-0/srt-bwrap"
@@ -112,6 +113,11 @@ if [[ ! -f "$removable_library_helper" ]]; then
     printf 'Run scripts/install-project-files.sh before starting Steam.\n' >&2
     exit 1
 fi
+if [[ ! -f "$runtime_root_prep" || -L "$runtime_root_prep" ]]; then
+    printf 'Direct Runtime 4 preparer not found: %s\n' "$runtime_root_prep" >&2
+    printf 'Run scripts/install-project-files.sh before starting Steam.\n' >&2
+    exit 1
+fi
 if [[ ! -x "$pressure_vessel_bwrap" ]]; then
     printf 'Pressure Vessel /proc/net wrapper not found: %s\n' \
         "$pressure_vessel_bwrap" >&2
@@ -126,6 +132,7 @@ fi
 
 "$ui_patch"
 "$proc_net_prep" "$base"
+python3 "$runtime_root_prep" --base "$base" --refresh-mount-anchors-only
 if [[ ! -f "$proc_net_shadow/route" ]] ||
         [[ ! -f "$proc_net_shadow/ipv6_route" ]]; then
     printf 'Synthetic /proc/net is incomplete: %s\n' "$proc_net_shadow" >&2

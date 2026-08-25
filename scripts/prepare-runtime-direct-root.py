@@ -224,6 +224,42 @@ def create_mount_anchor(stage: Path, absolute: Path) -> None:
         fail(f"mount anchor is unsafe: {destination}")
 
 
+def refresh_mount_anchors(runtime_root: Path, base: Path) -> None:
+    anchors = [
+        base / "mesa-kgsl/usr/share/drirc.d",
+        base / "removable-library/steamapps/common",
+    ]
+    common = base / "removable-library/steamapps/common"
+    if common.exists():
+        games = sorted(common.iterdir(), key=lambda path: path.name)
+        if len(games) > 512:
+            fail("installed game directory count exceeds 512")
+        for game in games:
+            metadata = game.lstat()
+            if stat.S_ISDIR(metadata.st_mode) and not game.is_symlink():
+                anchors.append(common / game.name)
+    for anchor in anchors:
+        create_mount_anchor(runtime_root, anchor)
+
+
+def selected_runtime_root(base: Path) -> Path:
+    parent = protected_directory(
+        base / "runtime" / "SteamLinuxRuntime_4-arm64-direct"
+    )
+    selector = parent / "current"
+    if not selector.is_symlink():
+        fail(f"direct runtime selector is unavailable: {selector}")
+    root = selector.resolve(strict=True)
+    try:
+        root.relative_to(parent)
+    except ValueError:
+        fail(f"direct runtime selector escapes its private parent: {selector}")
+    marker = root / ".steamclienttermux-runtime-direct-root"
+    if not root.is_dir() or root.is_symlink() or not marker.is_file() or marker.is_symlink():
+        fail(f"selected direct runtime root is unsafe: {root}")
+    return root
+
+
 def remove_stage(stage: Path, parent: Path) -> None:
     if not stage.exists() and not stage.is_symlink():
         return
@@ -316,6 +352,7 @@ def prepare(base: Path, l2s_root: Path) -> Path:
         ref = destination / ".ref"
         if not ref.is_symlink() or os.readlink(ref) != "usr/.ref":
             fail(f"existing direct runtime has an invalid lock link: {ref}")
+        refresh_mount_anchors(destination, base)
         select_current(parent, destination)
         return destination
 
@@ -329,11 +366,7 @@ def prepare(base: Path, l2s_root: Path) -> Path:
         # current game working directory into this immutable runtime.  A
         # copied runtime happened to contain their parents; the reusable root
         # must provide the same empty mount points without copying per launch.
-        for anchor in (
-            base / "mesa-kgsl/usr/share/drirc.d",
-            base / "removable-library/steamapps/common",
-        ):
-            create_mount_anchor(stage, anchor)
+        refresh_mount_anchors(stage, base)
         marker = stage / ".steamclienttermux-runtime-direct-root"
         marker.write_text(f"{digest}\n", encoding="ascii")
         marker.chmod(0o600)
@@ -355,9 +388,15 @@ def main() -> int:
         default=Path(os.environ.get("PREFIX", "/invalid-prefix"))
         / "var/lib/proot-distro/containers/debian/rootfs/.l2s",
     )
+    parser.add_argument("--refresh-mount-anchors-only", action="store_true")
     arguments = parser.parse_args()
     try:
-        destination = prepare(arguments.base, arguments.l2s_root)
+        base = protected_directory(arguments.base)
+        if arguments.refresh_mount_anchors_only:
+            destination = selected_runtime_root(base)
+            refresh_mount_anchors(destination, base)
+        else:
+            destination = prepare(base, arguments.l2s_root)
     except (OSError, RuntimeError, UnicodeError) as error:
         print(f"prepare-runtime-direct-root: {error}", file=sys.stderr)
         return 1

@@ -44,6 +44,7 @@ def fixture(root: Path) -> tuple[Path, Path, Path]:
     source.mkdir(parents=True)
     l2s.mkdir(parents=True)
     (runtime / "run").write_text("dir=platform-fixture\n", encoding="utf-8")
+    (base / "removable-library/steamapps/common/Game Name").mkdir(parents=True)
 
     ordinary = b"ordinary runtime data\n"
     content = source / "ab" / "fixture-1.bin"
@@ -113,6 +114,32 @@ def main() -> None:
             destination
             / base.relative_to("/")
             / "removable-library/steamapps/common"
+        ).is_dir()
+        assert (
+            destination
+            / base.relative_to("/")
+            / "removable-library/steamapps/common/Game Name"
+        ).is_dir()
+        run(base, l2s)
+        (base / "removable-library/steamapps/common/New Game").mkdir()
+        subprocess.run(
+            [
+                "python3",
+                str(SCRIPT),
+                "--base",
+                str(base),
+                "--l2s-root",
+                str(l2s),
+                "--refresh-mount-anchors-only",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        assert (
+            destination
+            / base.relative_to("/")
+            / "removable-library/steamapps/common/New Game"
         ).is_dir()
 
         first_destination = destination
