@@ -19,6 +19,7 @@ server_log=$base/logs/no-mans-sky-direct-$stamp-$$.log
 launcher_log=$base/logs/no-mans-sky-launcher-$stamp-$$.log
 request_timeout=${NO_MANS_SKY_DIRECT_REQUEST_TIMEOUT:-300}
 mangohud=${NO_MANS_SKY_MANGOHUD:-0}
+xinput=${NO_MANS_SKY_XINPUT:-1}
 mangohud_dir=
 mangohud_config=
 summary_tmp=
@@ -81,6 +82,8 @@ trap cleanup EXIT HUP INT TERM
     fail 'NO_MANS_SKY_DIRECT_REQUEST_TIMEOUT must be 1..900 seconds'
 [[ $mangohud == 0 || $mangohud == 1 ]] ||
     fail 'NO_MANS_SKY_MANGOHUD must be 0 or 1'
+[[ $xinput == 0 || $xinput == 1 ]] ||
+    fail 'NO_MANS_SKY_XINPUT must be 0 or 1'
 
 if [[ $mangohud == 1 ]]; then
     [[ -x $summary_tool && ! -L $summary_tool ]] ||
@@ -129,6 +132,7 @@ env -u LD_PRELOAD -u LD_LIBRARY_PATH -u GLIBC_LD_LIBRARY_PATH \
     STEAM_ARM64_DIRECT_FEX_PROFILE=safe \
     STEAM_ARM64_DIRECT_NMS_MANGOHUD=$mangohud \
     STEAM_ARM64_DIRECT_NMS_MANGOHUD_CONFIG=$mangohud_config \
+    STEAM_ARM64_DIRECT_NMS_XINPUT=$xinput \
     "$python" "$dispatcher" serve --base "$base" --mode no-mans-sky \
     >"$server_log" 2>&1 &
 server_pid=$!

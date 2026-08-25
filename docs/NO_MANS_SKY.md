@@ -185,16 +185,17 @@ the black transition at about 75 FPS, wrote a 203,150-byte
 `0xCAE24-HANG` dump, and exited. Storage and Android memory remained healthy,
 so this is excluded from the gameplay chart.
 
-The next controlled run removes three variables:
+Three controlled runs reproduced the build-`170671` watchdog hang. MangoHud
+was absent for the second reproduction, so telemetry is ruled out. Multiplayer
+was restored byte-for-byte after a multiplayer-off run did not fix it.
+
+The next discriminator is a new game versus the existing save:
 
 | Change | Scope |
 | --- | --- |
-| `MouseWarpOverride=disable` | NMS.exe only; reversible and checked before launch |
-| Multiplayer off | Current-build save-load workaround; save data remains untouched |
-| MangoHud off | Stability control; re-enable only after gameplay loads |
-
-The multiplayer workaround comes from a
-[current build-170671 HANG report](https://www.reddit.com/r/NoMansSkyTheGame/comments/1vvhqb1/nms_suddenly_crashing_when_warping_via_galaxy_map/).
+| Existing save | Reproduce without changing its data |
+| New game | Distinguish save/build compatibility from the renderer path |
+| MangoHud | May be re-enabled; clean A/B ruled it out as the cause |
 
 Wine reads `MouseWarpOverride` from
 `HKCU\\Software\\Wine\\AppDefaults\\NMS.exe\\DirectInput`; the launcher now
@@ -202,3 +203,24 @@ manages that exact value with an original backup and refuses to edit a live
 prefix. The required `deja` search found no indexed implementation. This
 reuses Wine's own per-application DirectInput lookup and the same setting from
 the audited Termux HWAC compatibility preset.
+
+## Mouse and controller input
+
+The patched Termux:X11 input layer keeps three paths distinct:
+
+| Android input | Behavior |
+| --- | --- |
+| Touchscreen | Trackpad gestures; never captures the pointer |
+| Hardware touchpad | Touchpad gestures/buttons; never captures the pointer |
+| Physical mouse | Relative pointer capture, including batched motion history |
+| Physical gamepad | Hot-plugged localhost transport to app-local XInput |
+
+The live tablet gate proved a touchscreen tap left capture disabled, a mouse
+event enabled capture, and Esc released it. With the paired 8BitDo asleep, the
+bridge returned an explicit disconnect rather than advertising a fake zeroed
+controller. The remaining controller gate is one connected button/axis event
+through `XInputGetState` in NMS.
+
+This ports the bounded hot-plug and dual-input patterns from GameNative while
+retaining this project's native Steam/glibc route. See
+[the reuse note](research/GAMENATIVE_INPUT_REUSE.md).

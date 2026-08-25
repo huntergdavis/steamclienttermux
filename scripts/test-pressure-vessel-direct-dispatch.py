@@ -400,6 +400,48 @@ def main() -> None:
             else:
                 raise AssertionError("unexpected MangoHud options were accepted")
 
+    with tempfile.TemporaryDirectory(prefix="nms-xinput.") as directory:
+        base = Path(directory) / "steam-arm64"
+        library = (
+            base
+            / "removable-library/steamapps/common/No Man's Sky/Binaries"
+            / "xinput9_1_0.dll"
+        )
+        library.parent.mkdir(parents=True)
+        library.write_bytes(b"x" * 16896)
+        # Android removable storage presents fixed group-write mode bits.
+        library.chmod(0o770)
+        expected_hash = (
+            "11e928f5e337680efa6baa6e2a839795a79bd752387b1e0956ea805f1a25fa43"
+        )
+        with (
+            mock.patch.dict(
+                os.environ, {"STEAM_ARM64_DIRECT_NMS_XINPUT": "1"}, clear=False
+            ),
+            mock.patch.object(MODULE, "sha256_file", return_value=expected_hash),
+        ):
+            assert MODULE.nms_xinput_environment(base, "no-mans-sky") == {
+                "STEAMCLIENTTERMUX_NMS_XINPUT": "1",
+                "WINEDLLOVERRIDES": "xinput9_1_0=n,b",
+            }
+            try:
+                MODULE.nms_xinput_environment(base, "tombraider")
+            except MODULE.DispatchError:
+                pass
+            else:
+                raise AssertionError("NMS XInput was accepted for another game")
+            library.write_bytes(b"short")
+            try:
+                MODULE.nms_xinput_environment(base, "no-mans-sky")
+            except MODULE.DispatchError:
+                pass
+            else:
+                raise AssertionError("wrong-size NMS XInput bridge was accepted")
+        with mock.patch.dict(
+            os.environ, {"STEAM_ARM64_DIRECT_NMS_XINPUT": "0"}, clear=False
+        ):
+            assert MODULE.nms_xinput_environment(base, "no-mans-sky") == {}
+
     with tempfile.TemporaryDirectory(prefix="loader-child-cwd.") as directory:
         root = Path(directory)
         working_directory = root / "game"
@@ -1213,6 +1255,8 @@ def main() -> None:
                 "VK_LAYER_PATH=/unsafe",
                 "STEAM_ARM64_DIRECT_NMS_MANGOHUD=1",
                 "STEAM_ARM64_DIRECT_NMS_MANGOHUD_CONFIG=/unsafe",
+                "STEAM_ARM64_DIRECT_NMS_XINPUT=1",
+                "STEAMCLIENTTERMUX_NMS_XINPUT=1",
                 "BVB_FRAME_PROFILE=1",
                 "TOMB_RAIDER_BVB_FRAME_PROFILE=1",
                 "SDL_JOYSTICK_HIDAPI=0",
@@ -1252,6 +1296,7 @@ def main() -> None:
     invocation_source = inspect.getsource(MODULE.pv_smoke_invocation)
     assert "environment.update(bvb_vulkan_environment())" in invocation_source
     assert "environment.update(nms_mangohud_environment(base, command_mode))" in invocation_source
+    assert "environment.update(nms_xinput_environment(base, command_mode))" in invocation_source
     assert "libtgcompat-robust.so" in invocation_source
     assert "libtgcompat-mprotect.so" in invocation_source
     assert '("lean", "lean-tmp-only", "lean-debug-wait")' in invocation_source

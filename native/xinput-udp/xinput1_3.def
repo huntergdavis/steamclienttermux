@@ -1,0 +1,14 @@
+LIBRARY xinput1_3
+EXPORTS
+    XInputEnable
+    XInputSetState
+    XInputGetState
+    XInputGetKeystroke
+    XInputGetCapabilities
+    XInputGetDSoundAudioDeviceGuids
+    XInputGetBatteryInformation
+    XInputGetStateEx @100
+    XInputWaitForGuideButton @101
+    XInputCancelGuideButtonWait @102
+    XInputPowerOffController @103
+    XInputGetCapabilitiesEx @108

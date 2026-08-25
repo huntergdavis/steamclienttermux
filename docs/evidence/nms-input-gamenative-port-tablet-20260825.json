@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "captured_at": "2026-08-25T13:44:08-0700",
+  "source_base": "114b910e5686eeb3a6868b662794b97fa5a4805f",
+  "reuse": {
+    "deja_query_result": "no indexed implementation",
+    "gamenative_commit": "1ad70ae54dcac1b9ae50d0b42c816e95f40cf22f",
+    "termux_x11_base": "54d159166a4d8573da54d693e461a1def3751248"
+  },
+  "installed": {
+    "termux_x11_version_code": 18,
+    "termux_x11_apk_sha256": "7023be75a977cda3021f30558e060a5a0cfda0c83b7933aac1c0d68ca5f8a6d0",
+    "dispatcher_sha256": "4fa58e51410e11455b80612081ab51195d3eca682606828f933808d8c14ea2f6",
+    "xinput9_1_0_sha256": "11e928f5e337680efa6baa6e2a839795a79bd752387b1e0956ea805f1a25fa43"
+  },
+  "live_checks": {
+    "touch_kept_pointer_capture_disabled": true,
+    "mouse_enabled_pointer_capture": true,
+    "escape_released_pointer_capture": true,
+    "no_controller_reply_codes": [10],
+    "no_controller_state_packets": true
+  },
+  "claims": {
+    "hotplug_disconnect_protocol": true,
+    "touch_mouse_path_separation": true,
+    "connected_controller_buttons_in_nms": false,
+    "external_trackpad_user_confirmation": false,
+    "nms_save_load_fixed": false
+  }
+}

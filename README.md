@@ -22,8 +22,8 @@ contain Valve binaries, games, credentials, or account state.
 | Steam | Login, Store/Library rendering, downloads, preserved login state |
 | Graphics | Hardware Vulkan through private Mesa Turnip |
 | Windows games | Proton ARM64 + FEX + DXVK |
-| Audio/input | PulseAudio; keyboard/touch verified; NMS per-app mouse-warp fix awaiting relaunch proof |
-| Controllers | Android sees gamepads; generic Steam transport is the next gate |
+| Audio/input | PulseAudio; keyboard; touch and captured physical mouse are separate live paths |
+| Controllers | Android hot-plug to app-local XInput is deployed; live 8BitDo button proof remains |
 | Native path | Steam and CEF outside PRoot; allow-listed games use the direct dispatcher |
 | Launch polish | Tomb Raider's pre-class Wine surface stays mapped off-screen until first paint |
 

@@ -67,6 +67,7 @@ def main() -> None:
             "assert os.environ['STEAM_ARM64_DIRECT_FEX_PROFILE'] == 'safe'\n"
             "hud=os.environ['STEAM_ARM64_DIRECT_NMS_MANGOHUD']\n"
             "config=os.environ['STEAM_ARM64_DIRECT_NMS_MANGOHUD_CONFIG']\n"
+            "assert os.environ['STEAM_ARM64_DIRECT_NMS_XINPUT'] == '1'\n"
             "assert hud in ('0', '1')\n"
             "if hud == '0': assert config == ''\n"
             "else:\n"

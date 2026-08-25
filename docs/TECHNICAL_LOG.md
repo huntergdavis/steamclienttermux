@@ -10418,3 +10418,23 @@ The required exact `deja` search returned no indexed fix. The implementation
 reuses Wine's source-defined lookup and the same value from the audited Termux
 HWAC compatibility preset; it does not copy the preset's unrelated graphics
 or DLL overrides.
+
+## 2026-08-25: GameNative input patterns on the native glibc route
+
+GameNative commit `1ad70ae5` supplied two reusable patterns: Android
+`InputDeviceListener` hot-plug state and explicit separation of touchpad events
+from captured relative mouse events. The required `deja` query returned no
+indexed implementation.
+
+The Termux:X11 overlay now removes its unconditional pointer-capture request
+after every `ACTION_UP`. Touch and hardware-touchpad events stay on the gesture
+path; physical mouse events request capture and accumulate both historical and
+current relative axes. Tablet checks proved touch left capture disabled,
+synthetic mouse enabled it, and Esc released it.
+
+The localhost controller producer now advertises only a real non-virtual
+Android gamepad, follows add/change/remove events, clears state on unplug, and
+uses explicit IPv4. The Wine XInput DLL listens on IPv4 and IPv6 and consumes
+the release packet immediately. With the bonded 8BitDo asleep, the live probe
+received only release code 10 and no state code 9. App-local DLL and dispatcher
+hashes were deployed with a no-clobber rollback; live button/axis proof remains.

@@ -1,0 +1,63 @@
+diff --git a/lorie/src/main/java/com/termux/x11/MainActivity.java b/lorie/src/main/java/com/termux/x11/MainActivity.java
+index 105b30a..fb90036 100644
+--- a/lorie/src/main/java/com/termux/x11/MainActivity.java
++++ b/lorie/src/main/java/com/termux/x11/MainActivity.java
+@@ -76,0 +77 @@ import com.termux.x11.input.InputStub;
++import com.termux.x11.input.GamepadBridge;
+@@ -94,0 +96 @@ public class MainActivity extends AppCompatActivity {
++    private GamepadBridge mGamepadBridge;
+@@ -201,0 +204,2 @@ public class MainActivity extends AppCompatActivity {
++        mGamepadBridge = new GamepadBridge(this);
++        mGamepadBridge.start();
+@@ -203,0 +208,2 @@ public class MainActivity extends AppCompatActivity {
++            if (mGamepadBridge.handleKey(e))
++                return true;
+@@ -221 +227,2 @@ public class MainActivity extends AppCompatActivity {
+-        lorieParent.setOnGenericMotionListener((v, e) -> mInputHandler.handleTouchEvent(lorieParent, lorieView, e));
++        lorieParent.setOnGenericMotionListener((v, e) ->
++                mGamepadBridge.handleMotion(e) || mInputHandler.handleTouchEvent(lorieParent, lorieView, e));
+@@ -284,0 +292,2 @@ public class MainActivity extends AppCompatActivity {
++        if (mGamepadBridge != null)
++            mGamepadBridge.close();
+diff --git a/lorie/src/main/java/com/termux/x11/input/TouchInputHandler.java b/lorie/src/main/java/com/termux/x11/input/TouchInputHandler.java
+index c816bd2..fc1a841 100644
+--- a/lorie/src/main/java/com/termux/x11/input/TouchInputHandler.java
++++ b/lorie/src/main/java/com/termux/x11/input/TouchInputHandler.java
+@@ -320,3 +319,0 @@ public class TouchInputHandler {
+-        if (event.getAction() == MotionEvent.ACTION_UP)
+-            setCapturingEnabled(true);
+-
+@@ -329 +326,9 @@ public class TouchInputHandler {
+-                || (event.getSource() & InputDevice.SOURCE_MOUSE_RELATIVE) == InputDevice.SOURCE_MOUSE_RELATIVE)
++                || (event.getSource() & InputDevice.SOURCE_MOUSE_RELATIVE) == InputDevice.SOURCE_MOUSE_RELATIVE) {
++            // Touch and touchpads must never trigger capture. A real mouse uses
++            // Android pointer capture for relative game input, but retains the
++            // existing absolute path while capture is disabled.
++            if (mInjector.pointerCapture && !hasPointerCapture(view)
++                    && event.getToolType(event.getActionIndex()) == MotionEvent.TOOL_TYPE_MOUSE) {
++                if (!view.isFocused()) view.requestFocus();
++                view.requestPointerCapture();
++            }
+@@ -330,0 +336 @@ public class TouchInputHandler {
++        }
+@@ -890 +896,3 @@ public class TouchInputHandler {
+-            } else if (e.getAction() == MotionEvent.ACTION_MOVE && e.getPointerCount() == 1) {
++            } else if ((e.getAction() == MotionEvent.ACTION_MOVE
++                    || e.getAction() == MotionEvent.ACTION_HOVER_MOVE)
++                    && e.getPointerCount() == 1) {
+@@ -894,2 +902,13 @@ public class TouchInputHandler {
+-                    float x = axis_relative_x ? e.getAxisValue(MotionEvent.AXIS_RELATIVE_X) : e.getX();
+-                    float y = axis_relative_x ? e.getAxisValue(MotionEvent.AXIS_RELATIVE_Y) : e.getY();
++                    float x = 0;
++                    float y = 0;
++                    if (axis_relative_x) {
++                        for (int i = 0; i < e.getHistorySize(); i++) {
++                            x += e.getHistoricalAxisValue(MotionEvent.AXIS_RELATIVE_X, i);
++                            y += e.getHistoricalAxisValue(MotionEvent.AXIS_RELATIVE_Y, i);
++                        }
++                        x += e.getAxisValue(MotionEvent.AXIS_RELATIVE_X);
++                        y += e.getAxisValue(MotionEvent.AXIS_RELATIVE_Y);
++                    } else {
++                        x = e.getX();
++                        y = e.getY();
++                    }

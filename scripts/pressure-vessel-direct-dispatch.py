@@ -1224,6 +1224,8 @@ def request_environment(payload: dict[str, object]) -> dict[str, str]:
         "VK_LAYER_PATH",
         "STEAM_ARM64_DIRECT_NMS_MANGOHUD",
         "STEAM_ARM64_DIRECT_NMS_MANGOHUD_CONFIG",
+        "STEAM_ARM64_DIRECT_NMS_XINPUT",
+        "STEAMCLIENTTERMUX_NMS_XINPUT",
         "BVB_FRAME_PROFILE",
         "TOMB_RAIDER_BVB_FRAME_PROFILE",
         "TGCOMPAT_RAKNET_RECV_SLEEP_US",
@@ -1761,6 +1763,38 @@ def nms_mangohud_environment(base: Path, command_mode: str) -> dict[str, str]:
     }
 
 
+def nms_xinput_environment(base: Path, command_mode: str) -> dict[str, str]:
+    enabled = os.environ.get("STEAM_ARM64_DIRECT_NMS_XINPUT", "0")
+    if enabled not in ("0", "1"):
+        fail("STEAM_ARM64_DIRECT_NMS_XINPUT must be 0 or 1")
+    if enabled == "0":
+        return {}
+    if command_mode != "no-mans-sky":
+        fail("the No Man's Sky XInput profile is valid only for No Man's Sky")
+
+    library = (
+        base
+        / "removable-library/steamapps/common/No Man's Sky/Binaries"
+        / "xinput9_1_0.dll"
+    )
+    try:
+        metadata = library.lstat()
+    except OSError as error:
+        fail(f"No Man's Sky XInput bridge is unavailable: {error}")
+    if (
+        not stat.S_ISREG(metadata.st_mode)
+        or library.is_symlink()
+        or metadata.st_size != 16896
+        or sha256_file(library)
+        != "11e928f5e337680efa6baa6e2a839795a79bd752387b1e0956ea805f1a25fa43"
+    ):
+        fail(f"No Man's Sky XInput bridge failed validation: {library}")
+    return {
+        "STEAMCLIENTTERMUX_NMS_XINPUT": "1",
+        "WINEDLLOVERRIDES": "xinput9_1_0=n,b",
+    }
+
+
 def validated_direct_home(base: Path) -> Path:
     """Return the native Steam HOME needed by Proton's ARM64 SDK bridge."""
     home = base / "native-home"
@@ -2181,6 +2215,7 @@ def pv_smoke_invocation(
             os.environ.get("STEAM_ARM64_DIRECT_FEX_PROFILE", "safe"),
         )
         environment.update(nms_mangohud_environment(base, command_mode))
+        environment.update(nms_xinput_environment(base, command_mode))
     if command_mode in ("tombraider", "tombraider-benchmark"):
         direct_fex_profile = os.environ.get("STEAM_ARM64_DIRECT_FEX_PROFILE")
         if direct_fex_profile is not None:
