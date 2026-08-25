@@ -280,7 +280,10 @@ validate_install_path (const char *proc_net_path)
   else if (strncmp (path, internal_prefix, strlen (internal_prefix)) == 0)
     relative = path + strlen (internal_prefix);
   else
-    fail ("STEAM_COMPAT_INSTALL_PATH is outside a supported Steam library");
+    {
+      fail ("STEAM_COMPAT_INSTALL_PATH is outside a supported Steam library");
+      return NULL;
+    }
 
   if (relative[0] == '\0' || path[strlen (path) - 1] == '/')
     fail ("STEAM_COMPAT_INSTALL_PATH must name one installed game");
