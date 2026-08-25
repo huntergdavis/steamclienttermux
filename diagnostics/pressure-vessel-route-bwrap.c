@@ -194,7 +194,8 @@ is_two_argument_mount (const char *arg)
 }
 
 static size_t
-find_root_mount_end (const unsigned char *data, size_t size)
+find_install_mount_offset (const unsigned char *data, size_t size,
+                           const char *install_path)
 {
   size_t offset = 0;
 
@@ -202,6 +203,7 @@ find_root_mount_end (const unsigned char *data, size_t size)
     {
       const char *arg = (const char *) data + offset;
       const unsigned char *end = memchr (arg, '\0', size - offset);
+      size_t option_offset = offset;
       size_t next_offset;
       const char *source;
       const unsigned char *source_end;
@@ -234,12 +236,12 @@ find_root_mount_end (const unsigned char *data, size_t size)
       next_offset = (size_t) (target_end - data) + 1;
 
       (void) source;
-      if (strcmp (target, "/") == 0)
-        return next_offset;
+      if (strcmp (target, install_path) == 0)
+        return option_offset;
       offset = next_offset;
     }
 
-  return 0;
+  return SIZE_MAX;
 }
 
 static const char *
@@ -811,7 +813,7 @@ main (int argc, char **argv)
   unsigned char *args_data;
   size_t args_size;
   size_t insertion_offset;
-  size_t root_mount_end;
+  size_t install_mount_offset;
   size_t cursor_offset;
   size_t payload_offset;
   int args_index = -1;
@@ -880,10 +882,12 @@ main (int argc, char **argv)
     }
 
   install_path = validate_install_path (proc_net_path);
-  root_mount_end = install_path == NULL
-                     ? 0 : find_root_mount_end (args_data, args_size);
-  if (install_path != NULL && root_mount_end == 0)
-    fail ("cannot find the runtime root before adding game mount anchors");
+  install_mount_offset = install_path == NULL
+                           ? SIZE_MAX
+                           : find_install_mount_offset (args_data, args_size,
+                                                        install_path);
+  if (install_path != NULL && install_mount_offset == SIZE_MAX)
+    fail ("cannot find the game bind before adding its mount anchors");
 
   proc_net_fd = validate_proc_net (proc_net_path);
   host_vk_driver_files_fd =
@@ -903,17 +907,17 @@ main (int argc, char **argv)
     payload_offset = args_size;
   if (payload_offset < insertion_offset)
     fail ("cannot locate payload boundary");
-  if (install_path != NULL && root_mount_end > payload_offset)
-    fail ("runtime root appears after the bwrap payload boundary");
+  if (install_path != NULL && install_mount_offset > payload_offset)
+    fail ("game bind appears after the bwrap payload boundary");
   gtaiv_service_first = is_gtaiv_play_payload (argc, argv, args_index,
                                                gtaiv_view_fd);
   replacement_fd = create_args_fd ();
   cursor_offset = 0;
-  if (install_path != NULL && root_mount_end < insertion_offset)
+  if (install_path != NULL && install_mount_offset < insertion_offset)
     {
-      write_all (replacement_fd, args_data, root_mount_end);
+      write_all (replacement_fd, args_data, install_mount_offset);
       write_directory_chain (replacement_fd, install_path);
-      cursor_offset = root_mount_end;
+      cursor_offset = install_mount_offset;
     }
   write_all (replacement_fd, args_data + cursor_offset,
              insertion_offset - cursor_offset);
@@ -924,12 +928,12 @@ main (int argc, char **argv)
   write_arg (replacement_fd, replacement_fd_value);
   write_arg (replacement_fd, "/proc/net");
   cursor_offset = insertion_offset;
-  if (install_path != NULL && root_mount_end >= insertion_offset)
+  if (install_path != NULL && install_mount_offset >= insertion_offset)
     {
       write_all (replacement_fd, args_data + cursor_offset,
-                 root_mount_end - cursor_offset);
+                 install_mount_offset - cursor_offset);
       write_directory_chain (replacement_fd, install_path);
-      cursor_offset = root_mount_end;
+      cursor_offset = install_mount_offset;
     }
   write_all (replacement_fd, args_data + cursor_offset,
              payload_offset - cursor_offset);

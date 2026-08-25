@@ -363,9 +363,9 @@ def run_tests():
             wrapper,
             proc_net,
             [
-                "--ro-bind",
-                "/runtime-root",
-                "/",
+                "--bind",
+                str(install_path.parent.parent),
+                str(install_path.parent.parent),
                 "--bind",
                 str(install_path),
                 str(install_path),
@@ -398,9 +398,6 @@ def run_tests():
             [
                 "--proc",
                 "/proc",
-                "--ro-bind",
-                "/runtime-root",
-                "/",
                 "--bind",
                 str(install_path),
                 str(install_path),
@@ -574,7 +571,10 @@ def run_tests():
         result = invoke(
             wrapper,
             proc_net,
-            ["--ro-bind", "/", "/", "--proc", "/proc", "--", "/bin/true"],
+            [
+                "--bind", str(install_path), str(install_path),
+                "--proc", "/proc", "--", "/bin/true",
+            ],
             env_overrides={
                 "STEAM_COMPAT_APP_ID": "12210",
                 "STEAM_COMPAT_INSTALL_PATH": install_path,
@@ -601,7 +601,10 @@ def run_tests():
         result = invoke(
             wrapper,
             proc_net,
-            ["--ro-bind", "/", "/", "--proc", "/proc"],
+            [
+                "--bind", str(install_path), str(install_path),
+                "--proc", "/proc",
+            ],
             env_overrides={
                 "STEAM_COMPAT_APP_ID": "12210",
                 "STEAM_COMPAT_INSTALL_PATH": install_path,
@@ -626,7 +629,10 @@ def run_tests():
         result = invoke(
             wrapper,
             proc_net,
-            ["--ro-bind", "/", "/", "--proc", "/proc"],
+            [
+                "--bind", str(install_path), str(install_path),
+                "--proc", "/proc",
+            ],
             env_overrides={
                 "STEAM_COMPAT_APP_ID": "12210",
                 "STEAM_COMPAT_INSTALL_PATH": install_path,
@@ -648,7 +654,10 @@ def run_tests():
         result = invoke(
             wrapper,
             proc_net,
-            ["--ro-bind", "/", "/", "--proc", "/proc"],
+            [
+                "--bind", str(install_path), str(install_path),
+                "--proc", "/proc",
+            ],
             env_overrides={
                 "STEAM_COMPAT_APP_ID": "12210",
                 "STEAM_COMPAT_INSTALL_PATH": install_path,
@@ -667,7 +676,10 @@ def run_tests():
         result = invoke(
             wrapper,
             proc_net,
-            ["--ro-bind", "/", "/", "--proc", "/proc", "--", "/bin/true"],
+            [
+                "--bind", str(install_path), str(install_path),
+                "--proc", "/proc", "--", "/bin/true",
+            ],
             env_overrides={
                 "STEAM_COMPAT_APP_ID": "12210",
                 "STEAM_COMPAT_INSTALL_PATH": install_path,
