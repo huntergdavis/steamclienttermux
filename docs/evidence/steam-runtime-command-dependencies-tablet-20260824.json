@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-24",
+  "gate": "native-steam-runtime-command-dependencies",
+  "result": "pass",
+  "source_base_commit": "4ebed4c92c7eaf2fb345cb9a9ce25d2f9927382f",
+  "profile_id": "aarch64-termux-x11-qualcomm-v1",
+  "tablet": {
+    "model": "Samsung SM-X808U",
+    "android_sdk": 36,
+    "architecture": "aarch64"
+  },
+  "coverage": {
+    "package_count": 36,
+    "repository_enabler_count": 2,
+    "build_and_runtime_package_count": 34,
+    "required_command_count": 27,
+    "new_runtime_packages": [
+      "dbus",
+      "findutils",
+      "gawk",
+      "proot-distro",
+      "termux-am",
+      "xorg-xdpyinfo"
+    ]
+  },
+  "live_package_versions": {
+    "dbus": "1.16.2-3",
+    "findutils": "4.10.0-1",
+    "gawk": "5.3.2",
+    "proot-distro": "5.6.0",
+    "termux-am": "0.8.0-2",
+    "xorg-xdpyinfo": "1.4.0"
+  },
+  "command_ownership": {
+    "am": "termux-am",
+    "awk": "gawk",
+    "dbus-daemon": "dbus",
+    "find": "findutils",
+    "proot-distro": "proot-distro",
+    "xdpyinfo": "xorg-xdpyinfo"
+  },
+  "reason": "These commands are required directly by the native Steam/X11 and game-boundary launchers; relying on accidental transitive installation would make a fresh setup incomplete.",
+  "not_proven": [
+    "fresh installation of the expanded profile",
+    "Debian rootfs installation",
+    "Turnip source build",
+    "patched glibc or PRoot build",
+    "full runtime launch from a clean device"
+  ],
+  "reuse": "The required runtime-install deja query returned no indexed implementation. This audit reuses the exact command checks already enforced by steam-arm-native, start-steam.sh, and steam-arm64-native-bwrap, then binds them to the working tablet's dpkg ownership and version database."
+}

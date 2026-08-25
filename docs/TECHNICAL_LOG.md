@@ -10015,3 +10015,20 @@ next setup phase. The required `deja` queries found no prior implementation;
 this work reuses the existing atomic transaction helper, package profile,
 locked Valve setup, and release builder.
 [Evidence](evidence/steam-option-a-dependency-install-host-20260824.json)
+
+## 2026-08-24: native runtime command ownership closes six package gaps
+
+Auditing the actual native Steam, X11, and game-boundary launchers found six
+commands that the first package profile received only through accidental
+transitive state: `am`, `awk`, `dbus-daemon`, `find`, `proot-distro`, and
+`xdpyinfo`. The profile now explicitly installs their six owning packages and
+records the working tablet versions. It contains 36 packages and 27 command
+ownership mappings.
+
+This matters on a clean device: Steam UI startup needs D-Bus, X11 startup needs
+Android `am` plus `xdpyinfo`, and the current accelerated game boundary needs
+the Debian `proot-distro` root. Missing any of them makes the one-command claim
+depend on unrelated historical packages. The required runtime-install `deja`
+query returned no indexed implementation; the audit reuses the launchers'
+existing fail-closed command checks and the tablet's dpkg ownership database.
+[Evidence](evidence/steam-runtime-command-dependencies-tablet-20260824.json)

@@ -35,9 +35,26 @@ def main() -> None:
     ]
     packages = [package for _group, values in groups for package in values]
     assert len(packages) == len(set(packages))
-    assert {"x11-repo", "glibc-repo", "termux-x11-nightly", "glibc-runner"}.issubset(
-        packages
-    )
+    assert {
+        "x11-repo",
+        "glibc-repo",
+        "termux-x11-nightly",
+        "glibc-runner",
+        "dbus",
+        "findutils",
+        "gawk",
+        "proot-distro",
+        "termux-am",
+        "xorg-xdpyinfo",
+    }.issubset(packages)
+    assert {
+        "am": "termux-am",
+        "awk": "gawk",
+        "dbus-daemon": "dbus",
+        "find": "findutils",
+        "proot-distro": "proot-distro",
+        "xdpyinfo": "xorg-xdpyinfo",
+    }.items() <= profile["required_commands"].items()
     assert profile["platform"]["graphics"] == {
         "implemented": "qualcomm-adreno-kgsl-turnip",
         "other_gpu_families": "profile-required",

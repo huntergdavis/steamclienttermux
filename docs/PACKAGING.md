@@ -63,9 +63,9 @@ python3 scripts/setup-steam-stack.py dependencies --install --yes
 ```
 
 [`termux-setup-profile.json`](../config/termux-setup-profile.json) separates
-repository enablers from 28 build/runtime packages, maps 21 required commands
+repository enablers from 34 build/runtime packages, maps 27 required commands
 to their owning packages, and records every tested package version. The
-working tablet satisfies all 30 entries. Installation is repository-first,
+working tablet satisfies all 36 entries. Installation is repository-first,
 receipt-backed, restartable after interruption, and idempotent. It deliberately
 preserves shared Termux packages during rollback/uninstall. Versions are
 evidence rather than hard equality pins; signed Termux metadata chooses

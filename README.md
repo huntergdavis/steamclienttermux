@@ -91,7 +91,7 @@ from Valve, verifies it, and writes restartable receipts. Current boundary:
 
 | Automated | Still in progress |
 | --- | --- |
-| 30 Termux packages and Termux:X11 companion | glibc/Turnip/FEX runtime install |
+| 36 Termux packages and Termux:X11 companion | glibc/Turnip runtime install |
 | Locked Valve seed acquisition | launch profiles and final doctor |
 | Interruption recovery and seed rollback | fresh-device end-to-end proof |
 
