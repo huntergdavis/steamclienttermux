@@ -41,6 +41,14 @@ def main():
     assert 'if [[ "$fex_profile" == fast ]]' in source
     assert 'pd_args+=(--env "$fex_assignment")' in source
     assert "must be proton, safe, or fast" in source
+    assert 'runtime_direct_run="$base/config/steamlinuxruntime4-run-direct"' in source
+    assert (
+        'pd_args+=(--bind "$runtime_direct_run:$arm_runtime_depot/run")'
+        in source
+    )
+    assert source.index('pd_args+=(--bind "$arm_runtime:$arm_runtime_depot")') < source.index(
+        'pd_args+=(--bind "$runtime_direct_run:$arm_runtime_depot/run")'
+    )
     print("Steam ARM64 FEX profile tests: PASS")
 
 

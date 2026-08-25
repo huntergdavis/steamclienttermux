@@ -11,6 +11,7 @@ steam_hosts="$base/config/hosts-ipv4"
 arm_compat_template="$base/config/steam-arm64-compatibilitytools.vdf.in"
 arm_runtime="$base/runtime/SteamLinuxRuntime_4-arm64"
 arm_runtime_depot="$client_root/steamapps/common/SteamLinuxRuntime_4-arm64"
+runtime_direct_run="$base/config/steamlinuxruntime4-run-direct"
 compat_bin="$base/compat-bin"
 ui_patch="$base/patch-steam-network-ui.sh"
 proc_net_prep="$base/prepare-proc-net-shadow.sh"
@@ -49,6 +50,13 @@ if [[ ! -f "$arm_runtime/.steamclienttermux-runtime-shadow" ]] ||
         [[ ! -x "$arm_runtime/pressure-vessel/bin/pressure-vessel-wrap" ]]; then
     printf 'Prepared ARM64 runtime shadow not found: %s\n' "$arm_runtime" >&2
     printf 'Run scripts/prepare-arm64-runtime-shadow.sh before starting Steam.\n' >&2
+    exit 1
+fi
+if [[ ! -f "$runtime_direct_run" || -L "$runtime_direct_run" ||
+        ! -x "$runtime_direct_run" ]]; then
+    printf 'Prepared direct Runtime 4 policy not found: %s\n' \
+        "$runtime_direct_run" >&2
+    printf 'Run scripts/install-project-files.sh before starting Steam.\n' >&2
     exit 1
 fi
 if find "$arm_runtime/pressure-vessel" -type l -lname '*/.l2s/*' -print -quit |
@@ -283,6 +291,11 @@ pd_args+=(--env "STEAM_ARM64_PROC_NET=$proc_net_shadow")
 # that expected guest directory with the prepared shadow. The official depot
 # and appmanifest remain untouched on the host.
 pd_args+=(--bind "$arm_runtime:$arm_runtime_depot")
+# Use the validated, pre-materialized Runtime 4 root for every Steam-launched
+# game.  The generated policy is nested over only the runtime's run entry;
+# this avoids a per-launch copy of the complete runtime under PRoot while the
+# existing shadow still supplies Pressure Vessel itself.
+pd_args+=(--bind "$runtime_direct_run:$arm_runtime_depot/run")
 # Android portable storage is exFAT/FUSE, noexec, and cannot hold Proton
 # prefixes. If explicitly configured, expose only the bulk game library at a
 # stable guest path. Cover steamapps with internal F2FS control metadata, bind

@@ -69,3 +69,16 @@ The generic `enable-empty-staging-bind` command now probes this requirement
 before changing configuration and fails closed on this tablet. This reuses the
 previously verified Tomb Raider workflow: internal F2FS staging followed by an
 offline hash-verified or normal Steam commit to SD.
+
+## First launch result
+
+| Gate | Result |
+| --- | --- |
+| Install | Build `24039799`, 28.36 GB downloaded, committed successfully to SD |
+| Automatic launch | Wrong conventional Proton; exited before Wine initialization |
+| ARM64 mapping | Correct Runtime 4 ARM64 + Proton 11 ARM64 command selected |
+| Next boundary | Stock PRoot route copied Runtime 4 file-by-file and exited before Proton |
+
+The regular Steam launcher now overlays the already-validated direct Runtime 4
+policy for every game. This removes that generic per-launch runtime copy; NMS
+still requires a fresh tablet launch before any frame-rate claim.
