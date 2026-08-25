@@ -49,10 +49,12 @@ def main() -> None:
         report = json.loads(checked.stdout)
         assert report == {
             "appid": 203160,
+            "arguments": [],
             "environment": {},
             "launcher": str(launcher),
             "mode": "play",
             "name": "Tomb Raider (2013)",
+            "route": "optimized",
         }
 
         played = run(TOOL, "203160", environment=environment)
@@ -65,9 +67,31 @@ def main() -> None:
         assert benchmarked.returncode == 0, benchmarked.stderr
         assert benchmarked.stdout.splitlines()[-1] == "tombraider-benchmark"
 
+        generic = home / "start-steam.sh"
+        generic.write_text(
+            "#!/bin/sh\nprintf '%s\\n' \"$STEAM_BACKGROUND|$*\"\n",
+            encoding="utf-8",
+        )
+        generic.chmod(0o700)
+        unknown_check = run(TOOL, "999999", "--dry-run", environment=environment)
+        assert unknown_check.returncode == 0, unknown_check.stderr
+        assert json.loads(unknown_check.stdout) == {
+            "appid": 999999,
+            "arguments": ["--appid", "999999"],
+            "environment": {"STEAM_BACKGROUND": "1"},
+            "launcher": str(generic),
+            "mode": "play",
+            "name": "Steam AppID 999999",
+            "route": "generic",
+        }
         unknown = run(TOOL, "999999", environment=environment)
-        assert unknown.returncode != 0
-        assert "has no optimized profile" in unknown.stderr
+        assert unknown.returncode == 0, unknown.stderr
+        assert unknown.stdout.splitlines()[-1] == "1|--appid 999999"
+        unsupported_mode = run(
+            TOOL, "999999", "--mode", "benchmark", environment=environment
+        )
+        assert unsupported_mode.returncode != 0
+        assert "has no optimized 'benchmark' mode" in unsupported_mode.stderr
 
         launcher.unlink()
         launcher.symlink_to(TOOL)
@@ -119,7 +143,7 @@ def main() -> None:
     installer = INSTALLER.read_text(encoding="utf-8")
     assert '"$HOME/start-steam-game" 700' in installer
     assert '"$base/config/game-launch-profiles.json" 600' in installer
-    print("PASS: generic AppID launcher selects reviewed optimized game profiles")
+    print("PASS: AppID launcher uses generic fallback and reviewed optimizations")
 
 
 if __name__ == "__main__":

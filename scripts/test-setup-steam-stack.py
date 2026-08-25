@@ -104,6 +104,10 @@ def main() -> None:
         "package_format": "deb",
         "invariant": "the archive and package invoke the same setup engine and locks",
     }
+    assert MODULE.INSTALL_SHAPE["storage"] == {
+        "default": "termux-private-internal",
+        "removable": "optional-compatibility-profile",
+    }
     assert "thin Android control-panel APK using RUN_COMMAND" in MODULE.INSTALL_SHAPE["out_of_scope"]
     assert "ADB-assisted installation as the consumer product path" in MODULE.INSTALL_SHAPE["out_of_scope"]
     assert [phase["owner"] for phase in phases[:2]] == ["user-or-adb"] * 2

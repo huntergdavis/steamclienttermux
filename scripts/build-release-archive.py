@@ -36,6 +36,7 @@ INCLUDED_FILES = {
     "docs/PERFORMANCE.md",
     "docs/PRODUCTIZATION_RESEARCH.md",
     "docs/PROPRIETARY_AND_BINARY_INPUTS.md",
+    "docs/research/OPTION_A_RED_TEAM.md",
     "docs/STEAM_TIMINGS.md",
     "docs/evidence/gtaiv-main-menu-2026-08-13.png",
 }

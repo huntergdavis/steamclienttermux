@@ -119,6 +119,10 @@ external placement remains the default until a device A/B proves improvement.
 Device profiles must be data, not forks of the installer. Unknown devices start
 with conservative defaults and no performance claims.
 
+Storage follows the same rule: Termux private/internal storage is the product
+default. Removable storage support remains opt-in for users who need capacity;
+its lock and executable-mapping workarounds do not enter the normal path.
+
 Game-specific startup tuning follows the same rule. The generic prefetch helper
 accepts small reviewed manifests of relative paths, installed sizes, and byte
 budgets. Other games can ship different manifests without changing the engine

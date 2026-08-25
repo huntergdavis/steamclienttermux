@@ -74,6 +74,8 @@ compatible updates.
 The first accelerated hardware profile is AArch64 Qualcomm/Adreno KGSL with
 Turnip. The installer engine is generic, but claiming acceleration on Mali,
 PowerVR, or other GPU families requires a separately tested graphics profile.
+The default library is private/internal storage; removable storage is an
+optional profile and does not complicate the normal install.
 
 ## Locked Turnip runtime
 

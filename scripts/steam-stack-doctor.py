@@ -17,9 +17,14 @@ from typing import Callable, Sequence
 REPO_ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_SOURCE = (
     "config/steam-arm64-bootstrap-lock.json",
+    "config/tgcompat-runtime-lock.json",
     "config/termux-setup-profile.json",
+    "config/turnip-runtime-lock.json",
+    "scripts/bootstrap-termux-stack.sh",
     "scripts/bootstrap-steam-arm64-client.py",
     "scripts/build-release-archive.py",
+    "scripts/install-tgcompat-runtime.py",
+    "scripts/install-turnip-runtime.py",
     "scripts/steam-stack-doctor.py",
 )
 REQUIRED_TOOLS = ("bash", "python3", "git", "clang", "cmake", "pkg-config")
@@ -92,6 +97,19 @@ def collect_checks(
         )
     )
     checks.extend((safe_directory("Termux PREFIX", prefix), safe_directory("Termux HOME", home)))
+    try:
+        base.relative_to(home)
+        private_storage = True
+    except ValueError:
+        private_storage = False
+    checks.append(
+        Check(
+            "storage profile",
+            "pass" if private_storage else "warn",
+            "Termux private/internal" if private_storage else f"custom: {base}",
+            "use the default private/internal base unless removable storage is required",
+        )
+    )
 
     for package, label in (("com.termux", "Termux package"), ("com.termux.x11", "Termux:X11 package")):
         status, output = run(("pm", "path", package))
@@ -189,6 +207,33 @@ def collect_checks(
                 "pass" if valid_glibc else "fail",
                 str(glibc_root or glibc),
                 "build and promote the locked glibc compatibility package",
+            )
+        )
+        tgcompat = base / "tgcompat/current"
+        try:
+            tgcompat_root = tgcompat.resolve(strict=True)
+        except OSError:
+            tgcompat_root = None
+        tgcompat_files = (
+            "build/tgcompatd",
+            "build/libtgcompat-exec.so",
+            "build/libtgcompat-robust.so",
+            ".steamclienttermux-tgcompat-receipt.json",
+        )
+        valid_tgcompat = bool(
+            tgcompat_root
+            and all(
+                (tgcompat_root / relative).is_file()
+                and not (tgcompat_root / relative).is_symlink()
+                for relative in tgcompat_files
+            )
+        )
+        checks.append(
+            Check(
+                "native tgcompat",
+                "pass" if valid_tgcompat else "fail",
+                str(tgcompat_root or tgcompat),
+                "run the locked tgcompat runtime installer",
             )
         )
 

@@ -68,9 +68,9 @@ Launch or stop a game session:
 ~/stop-steam-native.sh
 ```
 
-The manifest-backed AppID command selects the reviewed optimized route and
-fails closed for unknown games. `~/start-tombraider.sh` is its Tomb Raider
-shortcut; `~/start-tombraider.sh --stock` is the explicit compatibility route.
+The AppID command launches any installed game through Steam's generic route.
+A reviewed manifest entry can replace that route with measured optimizations.
+`~/start-tombraider.sh` is the Tomb Raider shortcut.
 
 Startup prefetch is generic and manifest-driven, but remains off for Tomb Raider
 because its tablet timing did not improve the 53.553-second best.
@@ -89,6 +89,9 @@ scripts/bootstrap-termux-stack.sh
 It installs dependencies, fetches Valve's ARM64 seed and Turnip from their
 publishers, then builds/tests tgcompat from its locked source commit. Current
 boundary:
+
+The default base is Termux's private internal storage. Removable/SD storage is
+an optional compatibility profile, not a first-run question.
 
 | Automated | Still in progress |
 | --- | --- |

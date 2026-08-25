@@ -40,6 +40,10 @@ INSTALL_SHAPE = {
         "package_format": "deb",
         "invariant": "the archive and package invoke the same setup engine and locks",
     },
+    "storage": {
+        "default": "termux-private-internal",
+        "removable": "optional-compatibility-profile",
+    },
     "phases": [
         {
             "id": "termux-apk",
@@ -69,7 +73,7 @@ INSTALL_SHAPE = {
             "id": "open-source-runtime",
             "owner": "setup-command",
             "state": "partial",
-            "action": "Install locked Turnip; glibc, PRoot, launchers, and final profiles remain.",
+            "action": "Install locked Turnip and tgcompat; glibc, PRoot, launchers, and final profiles remain.",
         },
         {
             "id": "steam-account",

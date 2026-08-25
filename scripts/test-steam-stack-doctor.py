@@ -45,6 +45,16 @@ def main() -> None:
         (glibc / "lib/ld-linux-aarch64.so.1").write_text("fixture\n")
         (glibc / ".tgcompat-package-sha256").write_text("0" * 64 + "\n")
         (glibc.parent / "current").symlink_to(glibc.name)
+        tgcompat = base / "tgcompat/revision"
+        (tgcompat / "build").mkdir(parents=True)
+        for relative in (
+            "build/tgcompatd",
+            "build/libtgcompat-exec.so",
+            "build/libtgcompat-robust.so",
+            ".steamclienttermux-tgcompat-receipt.json",
+        ):
+            (tgcompat / relative).write_text("fixture\n")
+        (tgcompat.parent / "current").symlink_to(tgcompat.name)
 
         def run(arguments):
             if tuple(arguments) == ("getprop", "ro.product.cpu.abi"):
@@ -72,6 +82,7 @@ def main() -> None:
         table = MODULE.render_table(checks)
         assert "| architecture         | PASS" in table
         assert "| native glibc         | PASS" in table
+        assert "| native tgcompat      | PASS" in table
 
         failed = MODULE.collect_checks(
             "bootstrap",

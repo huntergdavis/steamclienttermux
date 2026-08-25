@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Launch a reviewed Steam AppID through its optimized direct profile."""
+"""Launch any Steam AppID, using an optimized profile when available."""
 
 from __future__ import annotations
 
@@ -32,7 +32,9 @@ def regular_file(path: Path, label: str, *, executable: bool = False) -> Path:
     return path
 
 
-def load_profile(path: Path, appid: int, mode: str) -> tuple[str, str, dict[str, str]]:
+def load_profile(
+    path: Path, appid: int, mode: str
+) -> tuple[str, str, dict[str, str]] | None:
     regular_file(path, "game profile manifest")
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -45,8 +47,9 @@ def load_profile(path: Path, appid: int, mode: str) -> tuple[str, str, dict[str,
         fail("game profile manifest has no games object")
     profile = games.get(str(appid))
     if not isinstance(profile, dict):
-        supported = ", ".join(sorted(games, key=lambda item: int(item)))
-        fail(f"AppID {appid} has no optimized profile (supported: {supported or 'none'})")
+        if mode != "play":
+            fail(f"AppID {appid} has no optimized {mode!r} mode")
+        return None
     name = profile.get("name")
     launcher = profile.get("launcher")
     modes = profile.get("modes")
@@ -76,7 +79,7 @@ def load_profile(path: Path, appid: int, mode: str) -> tuple[str, str, dict[str,
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Launch a Steam AppID through a reviewed optimized profile."
+        description="Launch any Steam AppID; use a reviewed optimization when available."
     )
     parser.add_argument("appid", type=int)
     parser.add_argument("--mode", default="play")
@@ -94,15 +97,31 @@ def main() -> int:
             "STEAM_ARM64_GAME_PROFILES", base / "config/game-launch-profiles.json"
         )
     )
-    name, launcher_name, additions = load_profile(
-        manifest, arguments.appid, arguments.mode
-    )
-    launcher = regular_file(home / launcher_name, "optimized game launcher", executable=True)
+    profile = load_profile(manifest, arguments.appid, arguments.mode)
+    if profile is None:
+        name = f"Steam AppID {arguments.appid}"
+        launcher = regular_file(
+            Path(os.environ.get("STEAM_START_SCRIPT", home / "start-steam.sh")),
+            "generic Steam launcher",
+            executable=True,
+        )
+        additions = {"STEAM_BACKGROUND": "1"}
+        launcher_arguments = [str(launcher), "--appid", str(arguments.appid)]
+        route = "generic"
+    else:
+        name, launcher_name, additions = profile
+        launcher = regular_file(
+            home / launcher_name, "optimized game launcher", executable=True
+        )
+        launcher_arguments = [str(launcher)]
+        route = "optimized"
     report = {
         "appid": arguments.appid,
         "name": name,
         "mode": arguments.mode,
+        "route": route,
         "launcher": str(launcher),
+        "arguments": launcher_arguments[1:],
         "environment": additions,
     }
     if arguments.dry_run:
@@ -113,9 +132,9 @@ def main() -> int:
     environment.update(additions)
     print(
         f"start-steam-game: AppID {arguments.appid} ({name}), "
-        f"mode={arguments.mode}, launcher={launcher}"
+        f"mode={arguments.mode}, route={route}, launcher={launcher}"
     )
-    os.execve(launcher, [str(launcher)], environment)
+    os.execve(launcher, launcher_arguments, environment)
     return 127
 
 
