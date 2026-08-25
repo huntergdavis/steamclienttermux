@@ -10348,3 +10348,26 @@ remains an optional 259 MB development dependency; normal launches do not load t
 The exact recall query returned no prior implementation. This reuses the
 content-addressed NMS route, controlled log-directory convention, and
 fail-closed environment reconstruction.
+
+## 2026-08-25: NMS Android-safe FPS telemetry
+
+MangoHud 0.7.2 loaded into the real NMS process, but its extended and horizontal
+presets both eventually probed Android's protected `/sys/class/power_supply`
+and terminated the game with a `ghc::filesystem::filesystem_error`. The
+official 0.7.2 source guards that path with its battery flag. The final profile
+therefore uses no preset and explicitly enables only the FPS overlay while
+disabling CPU, GPU, battery, device-battery, throttling, and graph display.
+
+| Gate | Result |
+| --- | --- |
+| Normal NMS launch | Unchanged; telemetry remains opt-in |
+| MangoHud mapping | `libMangoHud.so` present in the real NMS process |
+| Visible proof | THE SWARM screen plus top-left FPS overlay |
+| Stability | Alive beyond the two earlier battery-probe failures |
+| CSV | Grew from 837 to 47,490 bytes with live frame samples |
+| Warm launch to first CSV | About 138 seconds; engineering observation only |
+| Gameplay FPS | Not measured yet; news/menu samples are excluded |
+
+The required `deja` query found no indexed Android battery-probe fix. This
+reuses the private run directory, exact layer/config validation, and fail-closed
+environment reconstruction from the first telemetry slice.

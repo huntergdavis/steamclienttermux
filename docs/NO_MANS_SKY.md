@@ -140,10 +140,11 @@ pkg install mangohud-glibc
 ```
 
 The 259 MB package remains optional so normal Steam installs stay lean. The FPS
-launcher validates the native
-Vulkan layer and manifest, shows FPS/frame time, and writes a private session
-log below `~/steam-arm64/logs/no-mans-sky-fps-*`. It rejects caller-supplied
-layer paths and unexpected configuration. Use one warm-up followed by three
+launcher validates the native Vulkan layer and manifest, shows an FPS-only
+overlay, and writes frame times to a private session log below
+`~/steam-arm64/logs/no-mans-sky-fps-*`. Its explicit minimal configuration
+disables hardware and battery probes that Android blocks. It rejects
+caller-supplied layer paths and unexpected configuration. Use one warm-up followed by three
 identical 60-second surface/traversal/flight passes; compare average, 1% and
 0.1% lows, frame-time percentiles, hitches, and temperature. Temporarily test
 the 60 FPS cap to expose headroom, then restore 30 FPS for pacing validation.

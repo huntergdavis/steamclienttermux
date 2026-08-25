@@ -1724,7 +1724,15 @@ def nms_mangohud_environment(base: Path, command_mode: str) -> dict[str, str]:
     ):
         fail(f"No Man's Sky MangoHud config is unsafe: {config}")
     expected_lines = [
-        "preset=3",
+        "legacy_layout=0",
+        "cpu_stats=0",
+        "gpu_stats=0",
+        "battery=0",
+        "device_battery=",
+        "throttling_status=0",
+        "fps",
+        "fps_only=1",
+        "frametime=0",
         "position=top-left",
         "fps_metrics=avg,0.01,0.001",
         "autostart_log=1",

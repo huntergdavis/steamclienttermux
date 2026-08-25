@@ -83,7 +83,15 @@ if [[ $mangohud == 1 ]]; then
     mangohud_config=$mangohud_dir/MangoHud.conf
     (set -o noclobber
         printf '%s\n' \
-            'preset=3' \
+            'legacy_layout=0' \
+            'cpu_stats=0' \
+            'gpu_stats=0' \
+            'battery=0' \
+            'device_battery=' \
+            'throttling_status=0' \
+            'fps' \
+            'fps_only=1' \
+            'frametime=0' \
             'position=top-left' \
             'fps_metrics=avg,0.01,0.001' \
             'autostart_log=1' \
