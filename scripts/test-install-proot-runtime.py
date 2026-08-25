@@ -31,7 +31,6 @@ PATCH_NAMES = (
     "proot-mountinfo-escape-paths.patch",
     "proot-runtime-mount-stack.patch",
     "proot-runtime-directory-bind-target.patch",
-    "proot-main-cflags.patch",
 )
 
 
@@ -88,7 +87,7 @@ commit={commit}
 patchset_sha256={'1' * 64}
 diff_sha256=$diff_sha
 patches={patch_names}
-build_profile=native
+build_profile=portable
 build_options_sha256={'2' * 64}
 proot_sha256=$proot_sha
 EOF
@@ -104,7 +103,7 @@ EOF
 
     lock = {
         "schema_version": 1,
-        "profile_id": "test-proot-native-v1",
+        "profile_id": "test-proot-portable-v1",
         "platform": {
             "architectures": ["aarch64"],
             "environment": "official-termux",
@@ -115,7 +114,7 @@ EOF
             "commit": commit,
         },
         "build": {
-            "profile": "native",
+            "profile": "portable",
             "enable_noderef_fastpath": False,
             "script": "scripts/build-proot.sh",
             "script_sha256": sha256(builder),
@@ -145,12 +144,20 @@ def expect_failure(callable_object, message: str) -> None:
 
 
 def main() -> int:
+    production_builder = SCRIPT.with_name("build-proot.sh")
+    production_lock_path = SCRIPT.parents[1] / "config/proot-runtime-lock.json"
+    production_lock = MODULE.load_lock(production_lock_path)
+    MODULE.verify_inputs(production_lock, production_builder, SCRIPT.parents[1])
+
     with tempfile.TemporaryDirectory(prefix="proot-runtime-test.") as name:
         root = Path(name)
         repo, prefix, home, lock_path, raw_lock = make_fixture(root)
         lock = MODULE.load_lock(lock_path)
         builder = repo / "scripts/build-proot.sh"
         base = home / "steam-arm64"
+        smoke_root = home / "glibc"
+        (smoke_root / "lib").mkdir(parents=True)
+        (smoke_root / "lib/ld-linux-aarch64.so.1").write_text("fixture\n")
 
         status, receipt = MODULE.install(
             base,
@@ -161,6 +168,7 @@ def main() -> int:
             repo_root=repo,
             home=home,
             jobs=2,
+            glibc_root=smoke_root,
         )
         assert status == "installed"
         assert receipt["source_commit"] == raw_lock["source"]["commit"]
@@ -175,6 +183,7 @@ def main() -> int:
             lock,
             repo_root=repo,
             home=home,
+            glibc_root=smoke_root,
         )
         assert status == "already-ready" and repeated == receipt
 
@@ -189,6 +198,7 @@ def main() -> int:
                 lock,
                 repo_root=repo,
                 home=home,
+                glibc_root=smoke_root,
             ),
             "tampered installed binary was accepted",
         )
@@ -204,6 +214,7 @@ def main() -> int:
                 lock,
                 repo_root=repo,
                 home=home,
+                glibc_root=smoke_root,
             ),
             "tampered builder was accepted",
         )
@@ -217,6 +228,7 @@ def main() -> int:
                 lock,
                 repo_root=repo,
                 home=home,
+                glibc_root=smoke_root,
             ),
             "outside-home base was accepted",
         )
@@ -235,6 +247,7 @@ def main() -> int:
                 lock,
                 repo_root=repo,
                 home=home,
+                glibc_root=smoke_root,
             ),
             "unmanaged destination was accepted",
         )

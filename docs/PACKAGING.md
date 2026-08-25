@@ -146,8 +146,8 @@ python3 scripts/install-proot-runtime.py --base "$HOME/steam-arm64"
 ```
 
 [`proot-runtime-lock.json`](../config/proot-runtime-lock.json) pins the source,
-native build recipe, and all 11 patch hashes. The installer builds in private
-same-filesystem staging, validates the Git diff, stamp, executable, and exact
+proven portable build recipe, and all 10 patch hashes. The installer builds in
+private same-filesystem staging, validates the Git diff, stamp, executable, and exact
 receipt, then renames the complete tree into the launcher's stable path. It
 refuses an unmanaged destination or any changed input; an unchanged rerun does
 no build work.

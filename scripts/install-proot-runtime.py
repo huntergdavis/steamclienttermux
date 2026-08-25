@@ -104,12 +104,12 @@ def load_lock(path: Path) -> dict[str, object]:
             and lock["platform"]["storage"] == "private-internal"
             and source["repository"] == "https://github.com/termux/proot.git"
             and is_hex(source["commit"], 40)
-            and build["profile"] == "native"
+            and build["profile"] == "portable"
             and build["enable_noderef_fastpath"] is False
             and build["script"] == "scripts/build-proot.sh"
             and is_hex(build["script_sha256"], 64)
             and isinstance(patches, list)
-            and len(patches) == 11
+            and len(patches) == 10
             and len(filenames) == len(set(filenames))
             and all(
                 PurePosixPath(record["filename"]).name == record["filename"]
@@ -251,6 +251,30 @@ def installation_identity(root: Path, lock: dict[str, object]) -> dict[str, obje
     }
 
 
+def smoke_guest_loader(binary: Path, glibc_root: Path) -> None:
+    glibc_root = glibc_root.resolve(strict=True)
+    loader = glibc_root / "lib/ld-linux-aarch64.so.1"
+    if glibc_root.is_symlink() or not glibc_root.is_dir() or not loader.is_file():
+        raise ProotError(f"patched glibc smoke root is missing or unsafe: {glibc_root}")
+    subprocess.run(
+        [
+            str(binary),
+            "-r",
+            str(glibc_root),
+            "-w",
+            "/",
+            "/lib/ld-linux-aarch64.so.1",
+            "--help",
+        ],
+        check=True,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        env=clean_environment(),
+        timeout=10,
+    )
+
+
 def validate_install(root: Path, lock: dict[str, object], lock_sha: str, builder_sha: str) -> dict[str, object]:
     identity = installation_identity(root, lock)
     receipt = read_object(root / lock["runtime"]["receipt"], "PRoot runtime receipt")
@@ -260,6 +284,7 @@ def validate_install(root: Path, lock: dict[str, object], lock_sha: str, builder
         "profile_id": lock["profile_id"],
         "lock_sha256": lock_sha,
         "builder_sha256": builder_sha,
+        "guest_loader_smoke": True,
         **identity,
     }
     if any(receipt.get(key) != value for key, value in expected.items()):
@@ -277,12 +302,16 @@ def install(
     repo_root: Path = REPO_ROOT,
     home: Path | None = None,
     jobs: int | None = None,
+    glibc_root: Path | None = None,
 ) -> tuple[str, dict[str, object]]:
     home = (home or Path.home()).resolve(strict=True)
     base = base.resolve()
     prefix = prefix.resolve(strict=True)
     lock_path = lock_path.resolve(strict=True)
     builder = builder.resolve(strict=True)
+    glibc_root = (
+        glibc_root or home / ".local/share/tgcompat/glibc/current"
+    ).resolve(strict=True)
     require_private_path(base, home, "--base")
     if prefix == Path("/") or not prefix.is_dir() or prefix.is_symlink():
         raise ProotError(f"unsafe Termux prefix: {prefix}")
@@ -303,6 +332,7 @@ def install(
         fcntl.flock(lock_stream.fileno(), fcntl.LOCK_EX)
         if destination.exists() or destination.is_symlink():
             receipt = validate_install(destination, lock, lock_sha, builder_sha)
+            smoke_guest_loader(destination / lock["runtime"]["binary"], glibc_root)
             return "already-ready", receipt
         started = time.monotonic()
         temporary = Path(tempfile.mkdtemp(prefix=".proot-stage.", dir=source_root))
@@ -315,19 +345,21 @@ def install(
                 env=clean_environment(
                     {
                         "PREFIX": str(prefix),
-                        "PROOT_BUILD_PROFILE": "native",
+                        "PROOT_BUILD_PROFILE": str(lock["build"]["profile"]),
                         "PROOT_BUILD_JOBS": str(jobs),
                         "PROOT_ENABLE_NODEREF_FASTPATH": "0",
                     }
                 ),
             )
             identity = installation_identity(staged, lock)
+            smoke_guest_loader(staged / lock["runtime"]["binary"], glibc_root)
             receipt = {
                 "schema_version": 1,
                 "kind": "steam-arm64-patched-proot",
                 "profile_id": lock["profile_id"],
                 "lock_sha256": lock_sha,
                 "builder_sha256": builder_sha,
+                "guest_loader_smoke": True,
                 **identity,
                 "install_seconds": round(time.monotonic() - started, 3),
             }
@@ -349,6 +381,11 @@ def main() -> int:
     parser.add_argument("--base", type=Path, required=True)
     parser.add_argument("--prefix", type=Path, default=Path(os.environ.get("PREFIX", "")))
     parser.add_argument("--jobs", type=int)
+    parser.add_argument(
+        "--glibc-root",
+        type=Path,
+        default=Path.home() / ".local/share/tgcompat/glibc/current",
+    )
     arguments = parser.parse_args()
     try:
         lock_path = arguments.lock.resolve()
@@ -360,6 +397,7 @@ def main() -> int:
             arguments.builder,
             lock,
             jobs=arguments.jobs,
+            glibc_root=arguments.glibc_root,
         )
         print(f"PROOT_RUNTIME={result}")
         print(f"PROOT_BINARY_SHA256={receipt['binary_sha256']}")

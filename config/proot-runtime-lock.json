@@ -1,7 +1,7 @@
 {
   "build": {
     "enable_noderef_fastpath": false,
-    "profile": "native",
+    "profile": "portable",
     "script": "scripts/build-proot.sh",
     "script_sha256": "222191f0f3480799f0e2a41bb8cabd91fc5f9e7258bb093a6fafea6a16f26f4f"
   },
@@ -45,10 +45,6 @@
     {
       "filename": "proot-runtime-directory-bind-target.patch",
       "sha256": "5a4327359e52b2080db6bbee89767ff9925846782b9369ce37d25c80b205d297"
-    },
-    {
-      "filename": "proot-main-cflags.patch",
-      "sha256": "fafdd5d0b51668ab81246216afcc3bef5012d1d582bd53172d7a94e7601f399a"
     }
   ],
   "platform": {
@@ -58,7 +54,7 @@
     "environment": "official-termux",
     "storage": "private-internal"
   },
-  "profile_id": "steam-arm64-patched-proot-native-v1",
+  "profile_id": "steam-arm64-patched-proot-portable-v1",
   "runtime": {
     "binary": "src/proot",
     "destination": "src/proot-production",
