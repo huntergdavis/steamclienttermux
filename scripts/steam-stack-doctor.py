@@ -17,6 +17,7 @@ from typing import Callable, Sequence
 REPO_ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_SOURCE = (
     "config/steam-arm64-bootstrap-lock.json",
+    "config/termux-setup-profile.json",
     "scripts/bootstrap-steam-arm64-client.py",
     "scripts/build-release-archive.py",
     "scripts/steam-stack-doctor.py",

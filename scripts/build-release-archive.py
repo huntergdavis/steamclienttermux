@@ -42,6 +42,7 @@ INCLUDED_FILES = {
 REQUIRED_FILES = {
     "README.md",
     "config/steam-arm64-bootstrap-lock.json",
+    "config/termux-setup-profile.json",
     "scripts/bootstrap-steam-arm64-client.py",
     "scripts/build-release-archive.py",
     "scripts/check-project.sh",

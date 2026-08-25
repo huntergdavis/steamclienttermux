@@ -9978,3 +9978,20 @@ signed-repository `.deb`. The required focused `deja` query returned no indexed
 implementation; this work reuses the current doctor, receipt/rollback flow,
 deterministic archive, and official Termux interface boundaries.
 [Evidence](evidence/steam-stack-install-shape-host-20260824.json)
+
+## 2026-08-24: Option-A Termux package profile
+
+Source command ownership and the working tablet's package database produced one
+repository-first dependency profile for the setup engine and future `.deb`.
+The profile contains two repository enablers plus 28 build/runtime packages,
+maps 21 invoked commands back to a declared package, and retains tested versions
+for all 30 entries. A read-only tablet query found every entry installed.
+
+`setup-steam-stack.py dependencies` renders the two package-manager commands;
+`dependencies --check` reports exact missing names without changing the device.
+The profile starts with AArch64 Qualcomm/Adreno KGSL+Turnip. The setup engine can
+be generalized, but acceleration on another GPU family is not claimed until a
+separate driver profile passes. Versions are evidence, not brittle equality
+pins; signed repository metadata owns compatible upgrades. The required `deja`
+query returned no prior implementation.
+[Evidence](evidence/steam-termux-package-profile-tablet-20260824.json)

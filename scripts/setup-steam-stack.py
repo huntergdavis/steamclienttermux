@@ -9,6 +9,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import stat
 import subprocess
 import sys
@@ -21,6 +22,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 BOOTSTRAP_SCRIPT = Path(__file__).with_name("bootstrap-steam-arm64-client.py")
 DOCTOR_SCRIPT = Path(__file__).with_name("steam-stack-doctor.py")
 DEFAULT_LOCK = REPO_ROOT / "config/steam-arm64-bootstrap-lock.json"
+DEFAULT_PACKAGE_PROFILE = REPO_ROOT / "config/termux-setup-profile.json"
 STATE_DIRECTORY = ".steamclienttermux"
 RECEIPT_NAME = "steam-seed-receipt.json"
 TRANSACTION_NAME = "steam-seed-transaction.json"
@@ -82,6 +84,7 @@ INSTALL_SHAPE = {
         "archive or APK that redistributes Valve, Proton, game, or account payloads",
     ],
 }
+PACKAGE_NAME = re.compile(r"^[a-z0-9][a-z0-9+.-]{0,63}$")
 
 
 class SetupError(RuntimeError):
@@ -108,6 +111,117 @@ def render_install_plan() -> str:
         ]
     )
     return "\n".join(lines)
+
+
+def load_package_profile(path: Path) -> dict[str, object]:
+    payload = read_json(path, "Termux package profile")
+    if payload.get("schema_version") != 1:
+        raise SetupError("unsupported Termux package profile schema")
+    profile_id = payload.get("profile_id")
+    if not isinstance(profile_id, str) or not profile_id:
+        raise SetupError("Termux package profile has no ID")
+    platform = payload.get("platform")
+    if not isinstance(platform, dict) or platform.get("architectures") != ["aarch64"]:
+        raise SetupError("Termux package profile must target aarch64")
+    minimum_sdk = platform.get("minimum_android_sdk")
+    if not isinstance(minimum_sdk, int) or isinstance(minimum_sdk, bool) or minimum_sdk < 26:
+        raise SetupError("Termux package profile has an invalid Android SDK floor")
+    groups = payload.get("install_groups")
+    if not isinstance(groups, list) or [group.get("id") for group in groups if isinstance(group, dict)] != [
+        "repositories",
+        "build-and-runtime",
+    ]:
+        raise SetupError("Termux package profile has invalid install groups")
+    packages: list[str] = []
+    for group in groups:
+        if not isinstance(group, dict) or not isinstance(group.get("packages"), list):
+            raise SetupError("Termux package profile contains an invalid group")
+        for package in group["packages"]:
+            if not isinstance(package, str) or PACKAGE_NAME.fullmatch(package) is None:
+                raise SetupError(f"invalid Termux package name: {package!r}")
+            if package in packages:
+                raise SetupError(f"duplicate Termux package: {package}")
+            packages.append(package)
+    commands = payload.get("required_commands")
+    if not isinstance(commands, dict) or not commands:
+        raise SetupError("Termux package profile has no command map")
+    for command, package in commands.items():
+        if (
+            not isinstance(command, str)
+            or PACKAGE_NAME.fullmatch(command) is None
+            or not isinstance(package, str)
+            or package not in packages
+        ):
+            raise SetupError(f"invalid command/package mapping: {command!r}")
+    tested = payload.get("tested_on")
+    if not isinstance(tested, dict) or not isinstance(tested.get("versions"), dict):
+        raise SetupError("Termux package profile has no tested version evidence")
+    if set(tested["versions"]) != set(packages):
+        raise SetupError("tested versions must cover every declared package exactly")
+    return payload
+
+
+def package_groups(profile: dict[str, object]) -> list[tuple[str, list[str]]]:
+    groups = profile["install_groups"]
+    assert isinstance(groups, list)
+    result: list[tuple[str, list[str]]] = []
+    for group in groups:
+        assert isinstance(group, dict) and isinstance(group["id"], str)
+        packages = group["packages"]
+        assert isinstance(packages, list) and all(isinstance(item, str) for item in packages)
+        result.append((group["id"], list(packages)))
+    return result
+
+
+def render_dependency_plan(profile: dict[str, object]) -> str:
+    lines = [f"TERMUX_PACKAGE_PROFILE={profile['profile_id']}"]
+    for group_id, packages in package_groups(profile):
+        lines.append(f"# {group_id}")
+        lines.append("pkg install -y " + " ".join(packages))
+    platform = profile["platform"]
+    assert isinstance(platform, dict)
+    graphics = platform["graphics"]
+    assert isinstance(graphics, dict)
+    lines.append(f"GRAPHICS_PROFILE={graphics['implemented']}")
+    lines.append(f"OTHER_GPU_FAMILIES={graphics['other_gpu_families']}")
+    return "\n".join(lines)
+
+
+def query_installed_package(package: str) -> str | None:
+    result = subprocess.run(
+        ["dpkg-query", "-W", "-f=${Status}\t${Version}", package],
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        return None
+    status_text, separator, version = result.stdout.strip().partition("\t")
+    if separator != "\t" or status_text != "install ok installed" or not version:
+        return None
+    return version
+
+
+def dependency_report(
+    profile: dict[str, object], query: Any = query_installed_package
+) -> dict[str, object]:
+    packages = [package for _group, values in package_groups(profile) for package in values]
+    installed: dict[str, str] = {}
+    missing: list[str] = []
+    for package in packages:
+        version = query(package)
+        if version is None:
+            missing.append(package)
+        else:
+            installed[package] = version
+    return {
+        "schema_version": 1,
+        "profile_id": profile["profile_id"],
+        "status": "pass" if not missing else "fail",
+        "installed": installed,
+        "missing": missing,
+    }
 
 
 def load_bootstrap() -> Any:
@@ -474,12 +588,18 @@ def run_doctor(base: Path, minimum_free_bytes: int) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--lock", type=Path, default=DEFAULT_LOCK)
+    parser.add_argument("--package-profile", type=Path, default=DEFAULT_PACKAGE_PROFILE)
     subparsers = parser.add_subparsers(dest="command", required=True)
     default_base = Path(os.environ.get("HOME", "")) / "steam-arm64"
     plan_parser = subparsers.add_parser(
         "plan", help="show the authoritative manual and automated setup boundary"
     )
     plan_parser.add_argument("--json", action="store_true", dest="as_json")
+    dependencies_parser = subparsers.add_parser(
+        "dependencies", help="show or check the locked Termux package set"
+    )
+    dependencies_parser.add_argument("--json", action="store_true", dest="as_json")
+    dependencies_parser.add_argument("--check", action="store_true")
     prepare_parser = subparsers.add_parser("prepare", help="doctor, acquire, verify, and receipt the Steam seed")
     prepare_parser.add_argument("--base", type=Path, default=default_base)
     prepare_parser.add_argument("--archive", type=Path)
@@ -496,6 +616,20 @@ def main() -> int:
                 print(json.dumps(INSTALL_SHAPE, indent=2, sort_keys=True))
             else:
                 print(render_install_plan())
+        elif arguments.command == "dependencies":
+            profile = load_package_profile(arguments.package_profile.resolve())
+            if arguments.check:
+                report = dependency_report(profile)
+                if arguments.as_json:
+                    print(json.dumps(report, indent=2, sort_keys=True))
+                else:
+                    print(f"TERMUX_DEPENDENCIES={report['status']}")
+                    print("MISSING=" + ",".join(report["missing"]))
+                return 0 if report["status"] == "pass" else 1
+            if arguments.as_json:
+                print(json.dumps(profile, indent=2, sort_keys=True))
+            else:
+                print(render_dependency_plan(profile))
         elif arguments.command == "prepare":
             run_doctor(arguments.base.resolve(), arguments.min_free_bytes)
             result = prepare(arguments.base, arguments.lock, arguments.archive)

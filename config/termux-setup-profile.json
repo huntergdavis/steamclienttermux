@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "profile_id": "aarch64-termux-x11-qualcomm-v1",
+  "platform": {
+    "architectures": [
+      "aarch64"
+    ],
+    "minimum_android_sdk": 26,
+    "graphics": {
+      "implemented": "qualcomm-adreno-kgsl-turnip",
+      "other_gpu_families": "profile-required"
+    }
+  },
+  "install_groups": [
+    {
+      "id": "repositories",
+      "packages": [
+        "x11-repo",
+        "glibc-repo"
+      ]
+    },
+    {
+      "id": "build-and-runtime",
+      "packages": [
+        "bash",
+        "binutils",
+        "clang",
+        "cmake",
+        "coreutils",
+        "curl",
+        "file",
+        "gcc-glibc",
+        "git",
+        "glibc-runner",
+        "grep",
+        "libandroid-shmem",
+        "libtalloc",
+        "llvm",
+        "make",
+        "patchelf-glibc",
+        "pkg-config",
+        "procps",
+        "pulseaudio",
+        "python",
+        "sed",
+        "tar",
+        "termux-tools",
+        "termux-x11-nightly",
+        "util-linux",
+        "vulkan-tools",
+        "xdotool",
+        "xorg-xrandr"
+      ]
+    }
+  ],
+  "required_commands": {
+    "bash": "bash",
+    "clang": "clang",
+    "cmake": "cmake",
+    "file": "file",
+    "git": "git",
+    "make": "make",
+    "pactl": "pulseaudio",
+    "pgrep": "procps",
+    "pkg-config": "pkg-config",
+    "pulseaudio": "pulseaudio",
+    "python3": "python",
+    "readelf": "llvm",
+    "sha256sum": "coreutils",
+    "stat": "coreutils",
+    "tail": "coreutils",
+    "taskset": "util-linux",
+    "termux-x11": "termux-x11-nightly",
+    "termux-x11-preference": "termux-x11-nightly",
+    "unlink": "coreutils",
+    "xdotool": "xdotool",
+    "xrandr": "xorg-xrandr"
+  },
+  "tested_on": {
+    "date": "2026-08-24",
+    "device": "Samsung SM-X808U",
+    "android_sdk": 36,
+    "architecture": "aarch64",
+    "versions": {
+      "bash": "5.3.9",
+      "binutils": "2.46.0-3",
+      "clang": "21.1.8-2",
+      "cmake": "4.3.4",
+      "coreutils": "9.11",
+      "curl": "8.20.0",
+      "file": "5.48-1",
+      "gcc-glibc": "14.2.1-1",
+      "git": "2.54.0",
+      "glibc-repo": "1.0",
+      "glibc-runner": "2.0-3",
+      "grep": "3.12-3",
+      "libandroid-shmem": "0.7",
+      "libtalloc": "2.4.3",
+      "llvm": "21.1.8-2",
+      "make": "4.4.1-1",
+      "patchelf-glibc": "0.18.0",
+      "pkg-config": "0.29.2-3",
+      "procps": "3.3.17-6",
+      "pulseaudio": "17.0-1",
+      "python": "3.14.6-1",
+      "sed": "4.9-2",
+      "tar": "1.35-2",
+      "termux-tools": "1.46.0+really1.45.0-1",
+      "termux-x11-nightly": "1.03.01-6",
+      "util-linux": "2.42.1",
+      "vulkan-tools": "1.4.354",
+      "x11-repo": "8.4-1",
+      "xdotool": "3.20211022.1-1",
+      "xorg-xrandr": "1.5.4"
+    }
+  },
+  "version_policy": "tested versions are evidence, not equality pins; signed repository metadata selects compatible updates"
+}

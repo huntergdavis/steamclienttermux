@@ -51,6 +51,23 @@ Termux:X11 app; the setup command owns every automatable step afterward; Valve
 owns login. Text and JSON output share one tested data structure so later UI
 work cannot overstate the automation boundary.
 
+The first Option-A runtime slice is an exact package profile:
+
+```sh
+python3 scripts/setup-steam-stack.py dependencies
+python3 scripts/setup-steam-stack.py dependencies --check
+```
+
+[`termux-setup-profile.json`](../config/termux-setup-profile.json) separates
+repository enablers from 28 build/runtime packages, maps 21 required commands
+to their owning packages, and records every tested package version. The
+working tablet satisfies all 30 entries. Versions are evidence rather than
+hard equality pins; signed Termux metadata chooses compatible updates.
+
+The first accelerated hardware profile is AArch64 Qualcomm/Adreno KGSL with
+Turnip. The installer engine is generic, but claiming acceleration on Mali,
+PowerVR, or other GPU families requires a separately tested graphics profile.
+
 The lower-level verifier can also use an already-downloaded archive:
 
 ```sh

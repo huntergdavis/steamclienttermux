@@ -173,6 +173,14 @@ Turnip, FEX, Proton, or launcher install is one-command yet.
 [Install-shape evidence](evidence/steam-stack-install-shape-host-20260824.json)
 records the manual/automatic boundary and its CLI contract.
 
+Option A now also has one package-compatible dependency profile. It declares
+30 Termux packages in repository-first order, assigns 21 required commands to
+their providers, and retains the exact versions observed on the working
+Android 16 tablet. `setup-steam-stack.py dependencies` renders install commands;
+`--check` is read-only and fails if any package is absent. This same profile is
+intended to become the Option-B `.deb` dependency source rather than a second
+hand-maintained list.
+
 ## License decision
 
 MIT is open source, but it permits a distributor to keep a modified fork

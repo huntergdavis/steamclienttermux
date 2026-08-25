@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-24",
+  "gate": "Option-A Termux dependency profile",
+  "source_base_commit": "c3c1300490def762694be7297d4da698421586ea",
+  "result": "pass",
+  "profile_id": "aarch64-termux-x11-qualcomm-v1",
+  "tablet": {
+    "model": "Samsung SM-X808U",
+    "android_sdk": 36,
+    "architecture": "aarch64",
+    "package_profile_status": "pass"
+  },
+  "coverage": {
+    "package_count": 30,
+    "repository_enabler_count": 2,
+    "build_and_runtime_package_count": 28,
+    "required_command_count": 21,
+    "tested_version_count": 30
+  },
+  "policy": {
+    "version_equality_required": false,
+    "reason": "tested versions are retained evidence while signed Termux repository metadata selects compatible updates",
+    "graphics_profile": "qualcomm-adreno-kgsl-turnip",
+    "other_gpu_families": "require separately tested profiles"
+  },
+  "validation": [
+    "all declared packages were installed on the working tablet",
+    "package names are canonical and unique",
+    "repository enablers precede dependent packages",
+    "every required command maps to a declared package",
+    "tested versions cover every declared package exactly",
+    "profile and dependency report serialize as JSON"
+  ],
+  "not_proven": [
+    "fresh package installation",
+    "automatic dependency installation",
+    "non-Qualcomm graphics acceleration",
+    "complete runtime setup",
+    "deb package construction"
+  ],
+  "recall": "The required deja query for a Termux package dependency lock and deb-ready setup manifest returned no indexed implementation. The profile reuses source command checks, the working tablet package inventory, the glibc compatibility repository prerequisites, and Option A/B's single-engine invariant."
+}

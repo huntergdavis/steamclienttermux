@@ -46,6 +46,7 @@ def fixture_repo(root: Path) -> str:
         "README.md": b"# fixture\n",
         ".gitignore": b"dist/\n",
         "config/steam-arm64-bootstrap-lock.json": b"{}\n",
+        "config/termux-setup-profile.json": b"{}\n",
         "scripts/bootstrap-steam-arm64-client.py": b"#!/usr/bin/env python3\n",
         "scripts/build-release-archive.py": SCRIPT.read_bytes(),
         "scripts/setup-steam-stack.py": b"#!/usr/bin/env python3\n",
