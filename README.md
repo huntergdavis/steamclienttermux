@@ -22,7 +22,7 @@ contain Valve binaries, games, credentials, or account state.
 | Steam | Login, Store/Library rendering, downloads, preserved login state |
 | Graphics | Hardware Vulkan through private Mesa Turnip |
 | Windows games | Proton ARM64 + FEX + DXVK |
-| Audio/input | PulseAudio; stable Termux:X11 mouse, touch, and keyboard |
+| Audio/input | PulseAudio; keyboard/touch verified; corrected mouse build awaiting live confirmation |
 | Controllers | Android sees gamepads; generic Steam transport is the next gate |
 | Native path | Steam and CEF outside PRoot; allow-listed games use the direct dispatcher |
 | Launch polish | Tomb Raider's pre-class Wine surface stays mapped off-screen until first paint |
@@ -50,6 +50,9 @@ trusted source. Unpack a release inside Termux, enter its directory, and run:
 ```sh
 ./install.sh
 ```
+
+The doctor rejects Termux:X11 revision `9471ad9`, which has an upstream
+cursor-recenter regression. Use a current matching nightly.
 
 The installer verifies every locked download before use. It fetches Valve's
 ARM64 client seed directly from Valve and never bundles Steam, games, login

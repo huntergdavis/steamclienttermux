@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import shutil
 import subprocess
 from typing import Callable, Sequence
@@ -37,6 +38,7 @@ REQUIRED_SOURCE = (
 )
 REQUIRED_TOOLS = ("bash", "python3", "git", "clang", "cmake", "pkg-config")
 DEFAULT_MIN_FREE_BYTES = 4 * 1024**3
+KNOWN_BAD_TERMUX_X11_REVISIONS = ("9471ad9",)
 DEBIAN_REQUIRED_FILES = (
     "usr/bin/bash",
     "usr/bin/dbus-daemon",
@@ -155,9 +157,20 @@ def collect_checks(
         )
     )
 
-    for package, label in (("com.termux", "Termux package"), ("com.termux.x11", "Termux:X11 package")):
+    package_paths: dict[str, Path] = {}
+    for package, label in (
+        ("com.termux", "Termux package"),
+        ("com.termux.x11", "Termux:X11 package"),
+    ):
         status, output = run(("pm", "path", package))
-        present = status == 0 and any(line.startswith("package:/") for line in output.splitlines())
+        paths = [
+            Path(line.removeprefix("package:"))
+            for line in output.splitlines()
+            if line.startswith("package:/")
+        ]
+        present = status == 0 and bool(paths)
+        if present:
+            package_paths[package] = paths[0]
         checks.append(
             Check(
                 label,
@@ -166,6 +179,55 @@ def collect_checks(
                 "install Termux and matching Termux:X11 from one trusted source",
             )
         )
+
+    x11_apk = package_paths.get("com.termux.x11")
+    aapt = lookup("aapt") or lookup("aapt2")
+    if x11_apk is None:
+        checks.append(
+            Check(
+                "Termux:X11 revision",
+                "fail",
+                "package unavailable",
+                "install a current matching Termux:X11 nightly",
+            )
+        )
+    elif aapt is None:
+        checks.append(
+            Check(
+                "Termux:X11 revision",
+                "warn",
+                "version not inspected (aapt unavailable)",
+                "install aapt, then rerun the doctor",
+            )
+        )
+    else:
+        badging_status, badging = run((aapt, "dump", "badging", str(x11_apk)))
+        version_match = re.search(r"\bversionName='([^']+)'", badging)
+        version = version_match.group(1) if version_match else ""
+        bad_revision = next(
+            (revision for revision in KNOWN_BAD_TERMUX_X11_REVISIONS if revision in version),
+            "",
+        )
+        if bad_revision:
+            checks.append(
+                Check(
+                    "Termux:X11 revision",
+                    "fail",
+                    f"known cursor-recenter regression: {version}",
+                    "update to a matching nightly containing upstream revert 139f219",
+                )
+            )
+        elif badging_status != 0 or not version:
+            checks.append(
+                Check(
+                    "Termux:X11 revision",
+                    "warn",
+                    "installed version could not be identified",
+                    "update Termux:X11 from the same trusted source as Termux",
+                )
+            )
+        else:
+            checks.append(Check("Termux:X11 revision", "pass", version))
 
     missing_tools = [tool for tool in REQUIRED_TOOLS if lookup(tool) is None]
     checks.append(

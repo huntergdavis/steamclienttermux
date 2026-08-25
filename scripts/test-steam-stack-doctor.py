@@ -89,6 +89,12 @@ def main() -> None:
                 return 0, "arm64-v8a"
             if arguments[:2] == ("pm", "path"):
                 return 0, f"package:/data/app/{arguments[2]}/base.apk"
+            if arguments[:3] == ("/fake/aapt", "dump", "badging"):
+                return (
+                    0,
+                    "package: name='com.termux.x11' versionCode='15' "
+                    "versionName='1.03.01-current'",
+                )
             raise AssertionError(arguments)
 
         checks = MODULE.collect_checks(
@@ -113,6 +119,35 @@ def main() -> None:
         assert "| native tgcompat      | PASS" in table
         assert "| patched PRoot        | PASS" in table
         assert "| minimal Debian       | PASS" in table
+        assert "Termux:X11 revision" in table
+
+        def run_bad_x11(arguments):
+            if arguments[:3] == ("/fake/aapt", "dump", "badging"):
+                return (
+                    0,
+                    "package: name='com.termux.x11' versionCode='15' "
+                    "versionName='1.03.01-9471ad9-14.08.26'",
+                )
+            return run(arguments)
+
+        bad_x11 = MODULE.collect_checks(
+            "bootstrap",
+            base,
+            prefix,
+            home,
+            4 * 1024**3,
+            repo_root=repo,
+            machine=lambda: "aarch64",
+            lookup=lambda command: f"/fake/{command}",
+            run=run_bad_x11,
+            disk_usage=lambda path: SimpleNamespace(free=8 * 1024**3),
+        )
+        x11_check = next(
+            check for check in bad_x11 if check.name == "Termux:X11 revision"
+        )
+        assert x11_check.status == "fail"
+        assert "9471ad9" in x11_check.detail
+        assert "139f219" in x11_check.fix
 
         (rootfs / MODULE.DEBIAN_REQUIRED_FILES[-1]).unlink()
         missing_debian = MODULE.collect_checks(
