@@ -10,6 +10,8 @@ dispatcher=${NO_MANS_SKY_DIRECT_DISPATCHER:-$base/compat-bin/pressure-vessel-dir
 launcher=${NO_MANS_SKY_DIRECT_LAUNCHER:-$HOME/start-steam.sh}
 prepare=${NO_MANS_SKY_DIRECT_PREPARE:-$base/compat-bin/prepare-proton-direct-wine.py}
 tool_check=$base/compat-bin/prepare-no-mans-sky-proton.py
+summary_tool=${NO_MANS_SKY_SUMMARIZER:-$base/compat-bin/summarize-mangohud-csv.py}
+summary_start=${NO_MANS_SKY_SUMMARY_START_SECONDS:-60}
 prefix=$base/removable-library-compatdata/275850/pfx
 socket=$base/run/native-runtime-dispatch/dispatch.sock
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
@@ -19,6 +21,7 @@ request_timeout=${NO_MANS_SKY_DIRECT_REQUEST_TIMEOUT:-300}
 mangohud=${NO_MANS_SKY_MANGOHUD:-0}
 mangohud_dir=
 mangohud_config=
+summary_tmp=
 server_pid=
 
 fail() {
@@ -49,6 +52,9 @@ stop_server() {
 
 cleanup() {
     stop_server
+    if [[ -n ${summary_tmp:-} && -f $summary_tmp && ! -L $summary_tmp ]]; then
+        rm -f -- "$summary_tmp"
+    fi
 }
 trap cleanup EXIT HUP INT TERM
 
@@ -77,6 +83,8 @@ trap cleanup EXIT HUP INT TERM
     fail 'NO_MANS_SKY_MANGOHUD must be 0 or 1'
 
 if [[ $mangohud == 1 ]]; then
+    [[ -x $summary_tool && ! -L $summary_tool ]] ||
+        fail "MangoHud summary tool is unavailable: $summary_tool"
     mangohud_dir=$base/logs/no-mans-sky-fps-$stamp-$$
     mkdir -m 700 -- "$mangohud_dir" ||
         fail "cannot create MangoHud output directory: $mangohud_dir"
@@ -173,6 +181,22 @@ printf 'No Man\047s Sky direct dispatch complete: launcher=%s server=%s server_l
     "$launcher_status" "$server_status" "$server_log" "$launcher_log"
 if [[ $mangohud == 1 ]]; then
     printf 'No Man\047s Sky FPS log directory: %s\n' "$mangohud_dir"
+    if (( launcher_status == 0 && server_status == 0 )); then
+        mapfile -t csv_files < <(
+            find "$mangohud_dir" -mindepth 1 -maxdepth 1 -type f -name '*.csv' -print
+        )
+        ((${#csv_files[@]} == 1)) ||
+            fail "expected exactly one MangoHud CSV, found ${#csv_files[@]}"
+        [[ ! -L ${csv_files[0]} ]] || fail 'MangoHud CSV is an unsafe link'
+        summary_tmp=$(mktemp "$mangohud_dir/.summary.XXXXXX") ||
+            fail 'cannot create temporary FPS summary'
+        chmod 600 "$summary_tmp"
+        "$summary_tool" "${csv_files[0]}" --start-seconds "$summary_start" \
+            >"$summary_tmp" || fail 'MangoHud CSV summary failed'
+        mv -- "$summary_tmp" "$mangohud_dir/summary.json"
+        summary_tmp=
+        printf 'No Man\047s Sky FPS summary: %s\n' "$mangohud_dir/summary.json"
+    fi
 fi
 (( launcher_status == 0 )) || exit "$launcher_status"
 exit "$server_status"

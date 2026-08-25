@@ -144,9 +144,11 @@ launcher validates the native Vulkan layer and manifest, shows an FPS-only
 overlay, and writes frame times to a private session log below
 `~/steam-arm64/logs/no-mans-sky-fps-*`. Its explicit minimal configuration
 disables hardware and battery probes that Android blocks. It rejects
-caller-supplied layer paths and unexpected configuration. Use one warm-up followed by three
-identical 60-second surface/traversal/flight passes; compare average, 1% and
-0.1% lows, frame-time percentiles, hitches, and temperature. Temporarily test
+caller-supplied layer paths and unexpected configuration. On clean exit it
+writes a validated `summary.json` beside the raw CSV, excluding the first 60
+seconds by default. Use one warm-up followed by three identical 60-second
+surface/traversal/flight passes; compare average, sampled percentiles,
+frame-time percentiles, hitches, and temperature. Temporarily test
 the 60 FPS cap to expose headroom, then restore 30 FPS for pacing validation.
 
 No Man's Sky has no established built-in benchmark. This follows the common
