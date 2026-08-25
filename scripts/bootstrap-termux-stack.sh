@@ -9,6 +9,9 @@ turnip_lock=$repo_root/config/turnip-runtime-lock.json
 turnip_installer=$repo_root/scripts/install-turnip-runtime.py
 tgcompat_lock=$repo_root/config/tgcompat-runtime-lock.json
 tgcompat_installer=$repo_root/scripts/install-tgcompat-runtime.py
+glibc_lock=$repo_root/config/glibc-runtime-lock.json
+glibc_installer=$repo_root/scripts/install-glibc-runtime.py
+glibc_package=$repo_root/artifacts/glibc_2.44_aarch64.deb
 base=${STEAM_ARM64_BASE:-$HOME/steam-arm64}
 
 fail() {
@@ -24,7 +27,10 @@ fail() {
         -f $lock && ! -L $lock && -f $turnip_lock && ! -L $turnip_lock &&
         -f $turnip_installer && ! -L $turnip_installer &&
         -f $tgcompat_lock && ! -L $tgcompat_lock &&
-        -f $tgcompat_installer && ! -L $tgcompat_installer ]] ||
+        -f $tgcompat_installer && ! -L $tgcompat_installer &&
+        -f $glibc_lock && ! -L $glibc_lock &&
+        -f $glibc_installer && ! -L $glibc_installer &&
+        -f $glibc_package && ! -L $glibc_package ]] ||
     fail 'release archive is incomplete or contains unsafe links'
 [[ $(getprop ro.product.cpu.abi) == arm64-v8a ]] ||
     fail 'this profile requires an ARM64 Android device'
@@ -37,4 +43,6 @@ python3 "$setup" --package-profile "$profile" \
     dependencies --install --yes --base "$base"
 python3 "$setup" --lock "$lock" prepare --base "$base"
 python3 "$turnip_installer" --lock "$turnip_lock" install --base "$base"
-exec python3 "$tgcompat_installer" --lock "$tgcompat_lock" --base "$base"
+python3 "$tgcompat_installer" --lock "$tgcompat_lock" --base "$base"
+exec python3 "$glibc_installer" --lock "$glibc_lock" \
+    --package "$glibc_package" --base "$base"

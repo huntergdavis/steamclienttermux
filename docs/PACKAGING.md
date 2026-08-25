@@ -15,7 +15,7 @@ signed-repository `.deb`. APK and ADB product paths are out of scope.
    ```
 3. Fetch the ARM64 Steam seed directly from Valve, verify its pinned identity,
    and safely extract it.
-4. Build/install the native glibc compatibility tools and sensible defaults.
+4. Build native tgcompat and install the verified patched-glibc runtime.
 5. Start Valve's client; Valve performs the remaining update, login, Steam
    Guard, Proton, and game downloads.
 
@@ -112,6 +112,29 @@ across different ARM64 CPUs.
 
 Option B will build that same locked source in release infrastructure and
 deliver it through a signed Termux repository `.deb`.
+
+## Locked patched glibc
+
+The release archive embeds one audited open-source glibc `.deb`; it does not
+compile libc on the user's tablet or replace Termux's active libc:
+
+```sh
+python3 scripts/install-glibc-runtime.py \
+  --base "$HOME/steam-arm64" \
+  --package artifacts/glibc_2.44_aarch64.deb
+```
+
+[`glibc-runtime-lock.json`](../config/glibc-runtime-lock.json) pins the package
+size/SHA, glibc source archive, and exact tgcompat/glibc-packages/termux-packages
+commits. The installer runs the public semaphore test through the extracted
+loader, hashes 1,635 payload entries, writes a receipt, and atomically updates a
+project-owned selector. On the Tab S8+, first verify/install took 9.110 seconds;
+the verified rerun took 2.103 seconds. The active Steam process and Termux glibc
+were unchanged. [Evidence](evidence/steam-option-a-glibc-runtime-tablet-20260824.json)
+
+The release builder requires the exact locked `.deb` and refuses a different
+size or hash. The binary's corresponding public commits and licenses ship with
+the lock and notices. Valve, Proton, and game bytes remain excluded.
 
 The lower-level verifier can also use an already-downloaded archive:
 

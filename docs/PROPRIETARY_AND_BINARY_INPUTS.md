@@ -59,3 +59,20 @@ Expected layout:
 
 Steam-managed Proton, runtimes, redistributables, and games belong in the Steam
 library and must never be committed.
+
+## Patched glibc package
+
+The release may redistribute the locked patched-glibc `.deb`; it is built only
+from open-source inputs and is not a Valve artifact.
+
+| Input | Exact identity |
+| --- | --- |
+| glibc source | 2.44, SHA-256 `37f600...c667` |
+| glibc-packages | `954c6b2...129b8` |
+| termux-packages | `17acce9...b85a` |
+| tgcompat | `8d63206...60a62` |
+| package | 9,828,432 bytes; SHA-256 `52f5ce13...99f3` |
+
+The governing licenses are recorded in
+[`glibc-runtime-lock.json`](../config/glibc-runtime-lock.json). A public release
+must ship the corresponding license texts/source offer and a project license.

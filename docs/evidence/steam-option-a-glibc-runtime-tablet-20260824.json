@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "gate": "option-a-locked-patched-glibc-runtime",
+  "date": "2026-08-24",
+  "result": "pass",
+  "device": "Samsung Galaxy Tab S8+",
+  "steamclienttermux_base_commit": "a3eda2f54ec995b01c054500f3e6da503d723051",
+  "tgcompat_commit": "8d63206ac60eb1106cb5303f1ac75f5a3bd60a62",
+  "artifact": {
+    "filename": "glibc_2.44_aarch64.deb",
+    "size": 9828432,
+    "sha256": "52f5ce13b66fc3307f48285d32b72951472493e91b96fc3e08c0c42772d999f3",
+    "loader_sha256": "72579cd2aa649beef0fa44a2de03cb5f7d92a3ca2a94f58658b2fb1e33a2cb78",
+    "libc_sha256": "e2a402c4e3c18140055d0f129510f799c1f359931e5af2a3ee83527adc6236e0"
+  },
+  "source_under_test": {
+    "installer_sha256": "6f6f924065604df1cac3fc018bf89ccfc58f5bd389b4df25b30fbb52e2b05b3f",
+    "lock_sha256": "e559c35f842d71abb2a6915ab5e5442ee7befbb6a697d0f2299e410e15bd0f15",
+    "tgcompat_stage_sha256": "ca48f4578c2655a04b460f6c8e97388d5f072cd9975206cea9347d50ae8f182d",
+    "tgcompat_test_sha256": "98b6937b8ab688b60d8aebcc0cd476b7bab576d4ab764b154125e6d0aca0de5f"
+  },
+  "timing_seconds": {
+    "fresh_tgcompat_build": 21.263,
+    "glibc_installer_core": 6.773,
+    "glibc_first_wall": 9.110,
+    "glibc_verified_rerun_wall": 2.103
+  },
+  "payload": {
+    "entries": 1635,
+    "tree_sha256": "e0d28a104dab8c6a3caed6062aa2666d0eb833f19417baff72f227235165d32a",
+    "receipt_sha256": "da18a9b5557fbc2095fdc823cf34668749005c48501879fe050c69405f85117d"
+  },
+  "checks": {
+    "public_sysv_semaphore_probe": "pass",
+    "content_addressed_selector": "pass",
+    "receipt_revalidation": "pass",
+    "rerun_idempotent": "pass",
+    "active_termux_glibc_unchanged": true,
+    "steam_pid_start_ticks_before": "4264:149472438",
+    "steam_pid_start_ticks_after": "4264:149472438"
+  },
+  "candidate": "/data/data/com.termux/files/home/steam-arm64/candidates/option-a-glibc-artifact.YcXLyV",
+  "failures_before_final_pass": [
+    "nested portable shebangs assumed /usr/bin/env on Android",
+    "temporary tgcompat broker socket exceeded Android Unix-path length"
+  ],
+  "scope": {
+    "active_stack_installed": false,
+    "fresh_device_complete": false,
+    "proot_packaged": false,
+    "product_launchers_installed": false
+  },
+  "recall": "Exact deja queries found no indexed implementation. Reused existing content-addressed selectors, exact receipts, private staging, and atomic no-clobber promotion patterns."
+}

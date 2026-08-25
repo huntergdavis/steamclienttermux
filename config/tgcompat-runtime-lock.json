@@ -9,7 +9,7 @@
   },
   "source": {
     "repository": "https://github.com/huntergdavis/termux-glibc-compat.git",
-    "commit": "9b0ccde357cbf238a16c51427771ec50af154e60"
+    "commit": "8d63206ac60eb1106cb5303f1ac75f5a3bd60a62"
   },
   "build": {
     "script": "scripts/build-release.sh",

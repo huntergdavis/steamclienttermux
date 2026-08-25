@@ -17,6 +17,7 @@ from typing import Callable, Sequence
 REPO_ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_SOURCE = (
     "config/steam-arm64-bootstrap-lock.json",
+    "config/glibc-runtime-lock.json",
     "config/tgcompat-runtime-lock.json",
     "config/termux-setup-profile.json",
     "config/turnip-runtime-lock.json",
@@ -24,8 +25,10 @@ REQUIRED_SOURCE = (
     "scripts/bootstrap-steam-arm64-client.py",
     "scripts/build-release-archive.py",
     "scripts/install-tgcompat-runtime.py",
+    "scripts/install-glibc-runtime.py",
     "scripts/install-turnip-runtime.py",
     "scripts/steam-stack-doctor.py",
+    "artifacts/glibc_2.44_aarch64.deb",
 )
 REQUIRED_TOOLS = ("bash", "python3", "git", "clang", "cmake", "pkg-config")
 DEFAULT_MIN_FREE_BYTES = 4 * 1024**3

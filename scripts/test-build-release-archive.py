@@ -38,13 +38,22 @@ def write(root: Path, name: str, payload: bytes, mode: int = 0o644) -> None:
     path.chmod(mode)
 
 
-def fixture_repo(root: Path) -> str:
+def fixture_repo(root: Path, glibc_package: bytes) -> str:
     git(root, "init", "-q")
     git(root, "config", "user.name", "Release Test")
     git(root, "config", "user.email", "release@example.invalid")
     files = {
         "README.md": b"# fixture\n",
         ".gitignore": b"dist/\n",
+        "config/glibc-runtime-lock.json": json.dumps(
+            {
+                "artifact": {
+                    "filename": "glibc_2.44_aarch64.deb",
+                    "size": len(glibc_package),
+                    "sha256": hashlib.sha256(glibc_package).hexdigest(),
+                }
+            }
+        ).encode() + b"\n",
         "config/steam-arm64-bootstrap-lock.json": b"{}\n",
         "config/termux-setup-profile.json": b"{}\n",
         "config/turnip-runtime-lock.json": b"{}\n",
@@ -54,6 +63,7 @@ def fixture_repo(root: Path) -> str:
         "scripts/build-release-archive.py": SCRIPT.read_bytes(),
         "scripts/install-turnip-runtime.py": b"#!/usr/bin/env python3\n",
         "scripts/install-tgcompat-runtime.py": b"#!/usr/bin/env python3\n",
+        "scripts/install-glibc-runtime.py": b"#!/usr/bin/env python3\n",
         "scripts/setup-steam-stack.py": b"#!/usr/bin/env python3\n",
         "scripts/steam-stack-doctor.py": b"#!/usr/bin/env python3\n",
         "scripts/check-project.sh": b"#!/bin/sh\nexit 0\n",
@@ -91,13 +101,16 @@ def main() -> None:
     with tempfile.TemporaryDirectory(prefix="release-archive-test.") as directory:
         root = Path(directory) / "repo"
         root.mkdir()
-        commit = fixture_repo(root)
+        glibc_package = b"fixture-open-source-glibc-deb\n"
+        package_path = Path(directory) / "input-glibc.deb"
+        package_path.write_bytes(glibc_package)
+        commit = fixture_repo(root, glibc_package)
         original_root = MODULE.REPO_ROOT
         MODULE.REPO_ROOT = root
         try:
             assert MODULE.resolve_commit("HEAD") == commit
-            first, first_manifest = MODULE.build_archive(commit)
-            second, second_manifest = MODULE.build_archive(commit)
+            first, first_manifest = MODULE.build_archive(commit, package_path)
+            second, second_manifest = MODULE.build_archive(commit, package_path)
             assert first == second
             assert first_manifest == second_manifest
             assert first_manifest["license_present"] is False
@@ -122,6 +135,8 @@ def main() -> None:
                 assert f"{prefix}/README.md" in names
                 assert f"{prefix}/scripts/bootstrap-termux-stack.sh" in names
                 assert f"{prefix}/scripts/build-release-archive.py" in names
+                assert f"{prefix}/scripts/install-glibc-runtime.py" in names
+                assert f"{prefix}/artifacts/glibc_2.44_aarch64.deb" in names
                 assert f"{prefix}/RELEASE-MANIFEST.json" in names
                 assert not any("excluded" in name for name in names)
                 assert not any("proprietary-steam" in name for name in names)
@@ -134,6 +149,15 @@ def main() -> None:
                 )
                 assert embedded["source_commit"] == commit
                 assert embedded["redistributes_valve_binaries"] is False
+                assert package.read(
+                    f"{prefix}/artifacts/glibc_2.44_aarch64.deb"
+                ) == glibc_package
+            bad_package = Path(directory) / "bad-glibc.deb"
+            bad_package.write_bytes(glibc_package + b"tamper")
+            expect_failure(
+                lambda: MODULE.build_archive(commit, bad_package),
+                "committed release lock",
+            )
             expect_failure(lambda: MODULE.resolve_commit("missing"), "git rev-parse")
         finally:
             MODULE.REPO_ROOT = original_root

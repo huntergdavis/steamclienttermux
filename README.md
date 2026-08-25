@@ -15,7 +15,7 @@ contain Valve binaries, games, credentials, or account state.
 | --- | --- | --- |
 | Tomb Raider performance | 1080p tuned Ultra: **30.7 FPS average** | Replicate and generalize the profile |
 | Steam startup | UI **1.662s**; cold AppID **21.80s**; cold game **49.513s** | Connect AppID acceptance to the direct game route |
-| Easy distribution | Reproducible ZIP + four automated runtime phases | Build/install patched glibc and PRoot |
+| Easy distribution | Reproducible ZIP + five automated runtime phases | Package PRoot and product launchers |
 
 | Component | Verified |
 | --- | --- |
@@ -87,21 +87,22 @@ scripts/bootstrap-termux-stack.sh
 ```
 
 It installs dependencies, fetches Valve's ARM64 seed and Turnip from their
-publishers, then builds/tests tgcompat from its locked source commit. Current
-boundary:
+publishers, builds/tests tgcompat, then verifies and privately stages the
+locked patched-glibc package. Current boundary:
 
 The default base is Termux's private internal storage. Removable/SD storage is
 an optional compatibility profile, not a first-run question.
 
 | Automated | Still in progress |
 | --- | --- |
-| 36 Termux packages; Valve seed; Turnip | patched glibc package and PRoot |
-| Native tgcompat build, tests, receipt | product launchers and first-run setup |
+| 36 Termux packages; Valve seed; Turnip | PRoot/runtime materialization |
+| Native tgcompat; patched glibc | product launchers and first-run setup |
 | Idempotent, private staged promotion | full rollback and fresh-device proof |
 
-The release ZIP contains only project source and locks—never Valve binaries,
-games, credentials, or account data. Long-term, the same engine becomes a
-signed Termux-repository `.deb`. See [packaging](docs/PACKAGING.md).
+The release ZIP contains project source plus the audited open-source glibc
+package—never Valve binaries, games, credentials, or account data. Long-term,
+the same engine becomes a signed Termux-repository `.deb`. See
+[packaging](docs/PACKAGING.md).
 
 Run the read-only prerequisite check separately when needed:
 
@@ -113,6 +114,7 @@ Build the current commit's deterministic candidate archive:
 
 ```sh
 python3 scripts/build-release-archive.py \
+  --glibc-package /path/to/glibc_2.44_signalfix_aarch64.deb \
   --destination "$PWD/dist/release-candidate"
 ```
 

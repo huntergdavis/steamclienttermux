@@ -151,7 +151,7 @@ def main() -> None:
         )
         lock_path.write_text(json.dumps(product_lock), encoding="utf-8")
         loaded = MODULE.load_lock(lock_path)
-        assert loaded["source"]["commit"] == "9b0ccde357cbf238a16c51427771ec50af154e60"
+        assert loaded["source"]["commit"] == "8d63206ac60eb1106cb5303f1ac75f5a3bd60a62"
         reference = loaded["tested_reference"]["artifact_sha256"]
         assert len(reference) == 6
         assert all(len(value) == 64 for value in reference.values())

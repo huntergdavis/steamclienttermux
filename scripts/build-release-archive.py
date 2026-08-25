@@ -42,6 +42,7 @@ INCLUDED_FILES = {
 }
 REQUIRED_FILES = {
     "README.md",
+    "config/glibc-runtime-lock.json",
     "config/steam-arm64-bootstrap-lock.json",
     "config/termux-setup-profile.json",
     "config/turnip-runtime-lock.json",
@@ -53,6 +54,7 @@ REQUIRED_FILES = {
     "scripts/setup-steam-stack.py",
     "scripts/install-turnip-runtime.py",
     "scripts/install-tgcompat-runtime.py",
+    "scripts/install-glibc-runtime.py",
     "scripts/steam-stack-doctor.py",
     "docs/PRODUCTIZATION_RESEARCH.md",
 }
@@ -137,6 +139,57 @@ def commit_files(commit: str) -> list[dict[str, object]]:
     return files
 
 
+def add_glibc_artifact(
+    files: list[dict[str, object]], package: Path
+) -> list[dict[str, object]]:
+    lock_entry = next(
+        (item for item in files if item["path"] == "config/glibc-runtime-lock.json"),
+        None,
+    )
+    if lock_entry is None:
+        raise ReleaseError("release is missing the glibc runtime lock")
+    try:
+        lock = json.loads(bytes(lock_entry["payload"]))
+        artifact = lock["artifact"]
+        filename = artifact["filename"]
+        expected_size = artifact["size"]
+        expected_sha256 = artifact["sha256"]
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+        raise ReleaseError("glibc runtime lock is malformed") from error
+    artifact_path = f"artifacts/{filename}"
+    safe_repo_path(artifact_path)
+    if (
+        not isinstance(filename, str)
+        or PurePosixPath(filename).name != filename
+        or not isinstance(expected_size, int)
+        or expected_size <= 0
+        or not isinstance(expected_sha256, str)
+        or len(expected_sha256) != 64
+        or any(character not in "0123456789abcdef" for character in expected_sha256)
+    ):
+        raise ReleaseError("glibc artifact lock is malformed")
+    if not package.is_file() or package.is_symlink():
+        raise ReleaseError(f"glibc package is missing or unsafe: {package}")
+    payload = package.read_bytes()
+    digest = hashlib.sha256(payload).hexdigest()
+    if len(payload) != expected_size or digest != expected_sha256:
+        raise ReleaseError("glibc package does not match the committed release lock")
+    if any(item["path"] == artifact_path for item in files):
+        raise ReleaseError(f"duplicate release path: {artifact_path}")
+    result = list(files)
+    result.append(
+        {
+            "path": artifact_path,
+            "mode": 0o644,
+            "size": len(payload),
+            "sha256": digest,
+            "payload": payload,
+        }
+    )
+    result.sort(key=lambda item: str(item["path"]))
+    return result
+
+
 def json_bytes(value: object) -> bytes:
     return (json.dumps(value, indent=2, sort_keys=True) + "\n").encode("utf-8")
 
@@ -151,8 +204,8 @@ def zip_info(path: str, mode: int) -> zipfile.ZipInfo:
     return info
 
 
-def build_archive(commit: str) -> tuple[bytes, dict[str, object]]:
-    files = commit_files(commit)
+def build_archive(commit: str, glibc_package: Path) -> tuple[bytes, dict[str, object]]:
+    files = add_glibc_artifact(commit_files(commit), glibc_package)
     prefix = f"steamclienttermux-{commit[:12]}"
     public_files = [
         {key: item[key] for key in ("path", "mode", "size", "sha256")}
@@ -169,6 +222,9 @@ def build_archive(commit: str) -> tuple[bytes, dict[str, object]]:
             for item in files
         ),
         "redistributes_valve_binaries": False,
+        "redistributed_open_source_artifacts": [
+            "artifacts/glibc_2.44_aarch64.deb"
+        ],
         "files": public_files,
     }
     embedded_manifest = json_bytes(release_manifest)
@@ -227,6 +283,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--commit", default="HEAD", help="exact Git revision to package")
     parser.add_argument(
+        "--glibc-package",
+        required=True,
+        type=Path,
+        help="audited patched glibc .deb matching the committed lock",
+    )
+    parser.add_argument(
         "--destination",
         required=True,
         type=Path,
@@ -235,7 +297,7 @@ def main() -> int:
     arguments = parser.parse_args()
     try:
         commit = resolve_commit(arguments.commit)
-        payload, manifest = build_archive(commit)
+        payload, manifest = build_archive(commit, arguments.glibc_package.resolve())
         write_release(arguments.destination.resolve(), payload, manifest)
     except ReleaseError as error:
         print(f"build-release-archive: {error}", file=sys.stderr)

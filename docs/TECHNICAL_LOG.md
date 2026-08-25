@@ -10080,3 +10080,29 @@ The required exact `deja` queries returned no indexed implementation. This
 phase reuses the Turnip installer's private staging, receipt, idempotence, and
 rename-promotion boundaries.
 [Evidence](evidence/steam-tgcompat-runtime-install-tablet-20260824.json)
+
+## 2026-08-24: locked patched-glibc artifact install
+
+Compiling glibc inside the user installer was rejected: the upstream Termux
+recipe mutates the active prefix while building and its final packaging scan
+crossed inaccessible PRoot paths. Option A now embeds the exact audited
+open-source `.deb`, tests it through its own loader, and stages it only beneath
+the project's private selector.
+
+| Tablet gate | Result |
+| --- | ---: |
+| Fresh corrected tgcompat build | 21.263 s |
+| glibc verify + install wall time | 9.110 s |
+| glibc core install time | 6.773 s |
+| verified rerun | 2.103 s |
+| payload identity | 1,635 entries / `e0d28a10...d32a` |
+| public semaphore test | PASS |
+| running Steam | PID/start ticks unchanged |
+
+Fresh-device testing found and fixed portable `/usr/bin/env` handoffs in three
+nested tgcompat checks plus one overlong broker socket. All failures occurred
+before promotion. The final isolated tablet run passed without changing the
+active Termux glibc or Steam tree. The required focused `deja` queries found no
+indexed implementation; this reuses the earlier content-addressed selector,
+exact receipt, and no-clobber promotion patterns.
+[Evidence](evidence/steam-option-a-glibc-runtime-tablet-20260824.json)

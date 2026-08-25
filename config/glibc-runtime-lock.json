@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "profile_id": "tgcompat-glibc-2.44-aarch64-20260824",
+  "platform": {
+    "architectures": [
+      "aarch64"
+    ],
+    "environment": "official-termux",
+    "storage": "private-internal"
+  },
+  "sources": {
+    "tgcompat": {
+      "repository": "https://github.com/huntergdavis/termux-glibc-compat.git",
+      "commit": "8d63206ac60eb1106cb5303f1ac75f5a3bd60a62"
+    },
+    "glibc_packages": {
+      "repository": "https://github.com/termux/glibc-packages.git",
+      "commit": "954c6b200aa001088fcc420550b9304dd81229b8"
+    },
+    "termux_packages": {
+      "repository": "https://github.com/termux/termux-packages.git",
+      "commit": "17acce9ca7978bb80923b5d481cce80822e0b85a"
+    }
+  },
+  "source_build": {
+    "package": "glibc",
+    "version": "2.44",
+    "source_sha256": "37f600f2bef3c5e8300147059568b2a2e40a7ad6ccc65ce942556d49429cc667"
+  },
+  "artifact": {
+    "filename": "glibc_2.44_aarch64.deb",
+    "package": "glibc",
+    "version": "2.44",
+    "architecture": "aarch64",
+    "size": 9828432,
+    "sha256": "52f5ce13b66fc3307f48285d32b72951472493e91b96fc3e08c0c42772d999f3"
+  },
+  "distribution": {
+    "project_redistributes_binary": true,
+    "source_offer": "exact public commits in this lock",
+    "licenses": [
+      "LGPL-2.1-or-later",
+      "GPL-3.0-only",
+      "MIT"
+    ]
+  }
+}
