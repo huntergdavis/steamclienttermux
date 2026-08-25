@@ -52,7 +52,8 @@ trusted source. Unpack a release inside Termux, enter its directory, and run:
 
 The installer verifies every locked download before use. It fetches Valve's
 ARM64 client seed directly from Valve and never bundles Steam, games, login
-state, or credentials. It is restartable and keeps user libraries intact.
+state, or credentials. It atomically activates a private mutable client tree,
+is restartable, and keeps existing clients and user libraries intact.
 
 This release preview prepares the complete locked runtime. Installing the
 small product-launcher set and proving the whole flow on a clean device are the

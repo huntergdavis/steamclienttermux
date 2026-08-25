@@ -14,7 +14,7 @@ signed-repository `.deb`. APK and ADB product paths are out of scope.
    scripts/bootstrap-termux-stack.sh
    ```
 3. Fetch the ARM64 Steam seed directly from Valve, verify its pinned identity,
-   and safely extract it.
+   safely extract it, then atomically activate Valve's mutable client tree.
 4. Install native tgcompat, patched glibc, patched PRoot, and minimal Debian.
 5. Start Valve's client; Valve performs the remaining update, login, Steam
    Guard, Proton, and game downloads.
@@ -38,6 +38,7 @@ Steam-seed phase. The lower-level commands remain available for diagnosis:
 python3 scripts/setup-steam-stack.py plan
 python3 scripts/setup-steam-stack.py prepare
 python3 scripts/setup-steam-stack.py status
+python3 scripts/setup-steam-stack.py activate
 python3 scripts/setup-steam-stack.py rollback
 ```
 
@@ -45,6 +46,12 @@ python3 scripts/setup-steam-stack.py rollback
 moves the verified seed plus receipt into a private quarantine; it never
 deletes the download cache or user libraries. An interrupted prepare or
 rollback retains a durable transaction that the same command resumes.
+
+`activate` copies the exact receipted seed through private staging and promotes
+it to `~/steam-arm64/client` by rename. It resumes an interrupted promotion,
+refuses an existing unreceipted client, and never overwrites Valve updates,
+login state, or libraries. After activation, the client is intentionally
+mutable and Valve owns its update contents.
 [Host evidence](evidence/steam-stack-phase1-setup-host-20260824.json) records
 the exact proof boundary; no fresh-device or full-runtime claim is made yet.
 

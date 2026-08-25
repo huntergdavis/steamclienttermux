@@ -27,6 +27,8 @@ DEFAULT_PACKAGE_PROFILE = REPO_ROOT / "config/termux-setup-profile.json"
 STATE_DIRECTORY = ".steamclienttermux"
 RECEIPT_NAME = "steam-seed-receipt.json"
 TRANSACTION_NAME = "steam-seed-transaction.json"
+CLIENT_RECEIPT_NAME = "steam-client-activation.json"
+CLIENT_TRANSACTION_NAME = "steam-client-activation-transaction.json"
 DEPENDENCY_RECEIPT_NAME = "termux-dependencies-receipt.json"
 DEPENDENCY_TRANSACTION_NAME = "termux-dependencies-transaction.json"
 INSTALL_SHAPE = {
@@ -453,6 +455,11 @@ def state_paths(base: Path) -> tuple[Path, Path]:
     return state / RECEIPT_NAME, state / TRANSACTION_NAME
 
 
+def client_state_paths(base: Path) -> tuple[Path, Path]:
+    state = base / STATE_DIRECTORY
+    return state / CLIENT_RECEIPT_NAME, state / CLIENT_TRANSACTION_NAME
+
+
 def inventory_digest(root: Path) -> tuple[int, int, str]:
     if not root.is_dir() or root.is_symlink():
         raise SetupError(f"seed destination is missing or unsafe: {root}")
@@ -555,6 +562,128 @@ def remove_regular(path: Path) -> None:
             raise SetupError(f"refusing to remove unsafe state file: {path}")
         path.unlink()
         fsync_directory(path.parent)
+
+
+def validate_client_executable(client: Path) -> None:
+    executable = client / "steamrtarm64/steam"
+    if not client.is_dir() or client.is_symlink():
+        raise SetupError(f"Steam client destination is missing or unsafe: {client}")
+    if (
+        not executable.is_file()
+        or executable.is_symlink()
+        or not os.access(executable, os.X_OK)
+    ):
+        raise SetupError(f"Steam client executable is missing or unsafe: {executable}")
+
+
+def validate_activation_inventory(candidate: Path, seed_receipt: dict[str, object]) -> None:
+    expected = seed_receipt.get("inventory")
+    if not isinstance(expected, dict):
+        raise SetupError("seed receipt is missing its inventory")
+    file_count, total_bytes, digest = inventory_digest(candidate)
+    if (
+        expected.get("file_count") != file_count
+        or expected.get("total_bytes") != total_bytes
+        or expected.get("sha256") != digest
+    ):
+        raise SetupError("activated Steam client differs from the verified seed")
+    validate_client_executable(candidate)
+
+
+def finish_client_activation(
+    base: Path, lock_path: Path, seed_receipt: dict[str, object]
+) -> None:
+    receipt_path, transaction_path = client_state_paths(base)
+    client = base / "client"
+    validate_activation_inventory(client, seed_receipt)
+    atomic_json(
+        receipt_path,
+        {
+            "schema_version": 1,
+            "kind": "steam-client-activation",
+            "destination_relative": "client",
+            "build_id": seed_receipt["build_id"],
+            "lock_sha256": sha256_file(lock_path),
+            "seed_inventory_sha256": seed_receipt["inventory"]["sha256"],
+            "mutable_after_activation": True,
+            "redistributes_valve_binaries": False,
+        },
+    )
+    remove_regular(transaction_path)
+
+
+def activate_client(base: Path, lock_path: Path) -> str:
+    base = ensure_base(base)
+    lock_path = lock_path.resolve()
+    seed_receipt_path, seed_transaction_path = state_paths(base)
+    if seed_transaction_path.exists() or seed_transaction_path.is_symlink():
+        raise SetupError("seed transaction requires recovery before client activation")
+    seed_receipt = read_json(seed_receipt_path, "seed receipt")
+    bootstrap = load_bootstrap()
+    validate_receipt(base, lock_path, seed_receipt, bootstrap)
+
+    receipt_path, transaction_path = client_state_paths(base)
+    client = base / "client"
+    staging = base / ".client.activate.staging"
+    if receipt_path.exists() or receipt_path.is_symlink():
+        receipt = read_json(receipt_path, "client activation receipt")
+        if (
+            receipt.get("schema_version") != 1
+            or receipt.get("kind") != "steam-client-activation"
+            or receipt.get("destination_relative") != "client"
+            or receipt.get("lock_sha256") != sha256_file(lock_path)
+            or receipt.get("seed_inventory_sha256")
+            != seed_receipt["inventory"]["sha256"]
+        ):
+            raise SetupError("client activation receipt is invalid")
+        validate_client_executable(client)
+        return "already-active"
+
+    if transaction_path.exists() or transaction_path.is_symlink():
+        transaction = read_json(transaction_path, "client activation transaction")
+        if (
+            transaction.get("schema_version") != 1
+            or transaction.get("kind") != "activate-client"
+            or transaction.get("destination_relative") != "client"
+            or transaction.get("staging_relative") != staging.name
+            or transaction.get("lock_sha256") != sha256_file(lock_path)
+        ):
+            raise SetupError("a different client activation transaction requires recovery")
+    else:
+        if client.exists() or client.is_symlink():
+            raise SetupError("refusing to replace an existing unreceipted Steam client")
+        if staging.exists() or staging.is_symlink():
+            raise SetupError("unreceipted client activation staging already exists")
+        atomic_json(
+            transaction_path,
+            {
+                "schema_version": 1,
+                "kind": "activate-client",
+                "destination_relative": "client",
+                "staging_relative": staging.name,
+                "lock_sha256": sha256_file(lock_path),
+            },
+        )
+
+    client_present = client.exists() or client.is_symlink()
+    staging_present = staging.exists() or staging.is_symlink()
+    if client_present and staging_present:
+        raise SetupError("client activation has ambiguous destination and staging state")
+    if client_present:
+        finish_client_activation(base, lock_path, seed_receipt)
+        return "recovered"
+    if not staging_present:
+        try:
+            shutil.copytree(base / "client-seed", staging, symlinks=True)
+        except OSError as error:
+            raise SetupError(f"cannot stage the verified Steam client: {error}") from error
+        fsync_directory(staging)
+        fsync_directory(base)
+    validate_activation_inventory(staging, seed_receipt)
+    os.replace(staging, client)
+    fsync_directory(base)
+    finish_client_activation(base, lock_path, seed_receipt)
+    return "activated"
 
 
 def finish_prepared(base: Path, lock_path: Path, bootstrap: Any) -> dict[str, object]:
@@ -760,6 +889,10 @@ def main() -> int:
     prepare_parser.add_argument("--min-free-bytes", type=int, default=4 * 1024**3)
     status_parser = subparsers.add_parser("status", help="verify the prepared seed without changing it")
     status_parser.add_argument("--base", type=Path, default=default_base)
+    activate_parser = subparsers.add_parser(
+        "activate", help="copy the verified seed into Valve's mutable client tree"
+    )
+    activate_parser.add_argument("--base", type=Path, default=default_base)
     rollback_parser = subparsers.add_parser("rollback", help="quarantine the exact receipted seed")
     rollback_parser.add_argument("--base", type=Path, default=default_base)
     rollback_parser.add_argument("--label")
@@ -808,6 +941,10 @@ def main() -> int:
             result = status(arguments.base, arguments.lock)
             print(f"STEAM_STACK_STATUS={result}")
             return 0 if result == "ready" else 1
+        elif arguments.command == "activate":
+            result = activate_client(arguments.base, arguments.lock)
+            print(f"STEAM_CLIENT_ACTIVATION={result}")
+            print(f"STEAM_CLIENT={arguments.base.resolve() / 'client'}")
         else:
             quarantine = rollback(arguments.base, arguments.lock, arguments.label)
             print(f"STEAM_STACK_ROLLBACK=complete")

@@ -143,6 +143,19 @@ def main() -> None:
         assert receipt["redistributes_valve_binaries"] is False
         assert not transaction_path.exists()
 
+        assert MODULE.activate_client(base, lock) == "activated"
+        client = base / "client"
+        assert (client / "steamrtarm64/steam").read_bytes() == seed
+        client_receipt, client_transaction = MODULE.client_state_paths(base)
+        activation = json.loads(client_receipt.read_text(encoding="utf-8"))
+        assert activation["mutable_after_activation"] is True
+        assert activation["redistributes_valve_binaries"] is False
+        assert not client_transaction.exists()
+        assert MODULE.activate_client(base, lock) == "already-active"
+        (client / "package").mkdir()
+        (client / "package/valve-updated").write_text("mutable\n", encoding="utf-8")
+        assert MODULE.activate_client(base, lock) == "already-active"
+
         executable = base / "client-seed/steamrtarm64/steam"
         executable.write_bytes(seed + b"modified")
         expect_failure(lambda: MODULE.status(base, lock), "identity mismatch")
@@ -203,6 +216,37 @@ def main() -> None:
             lambda: MODULE.prepare(unsafe_base, lock, archive),
             "unreceipted seed destination",
         )
+
+        unmanaged_base = root / "unmanaged"
+        assert MODULE.prepare(unmanaged_base, lock, archive) == "prepared"
+        (unmanaged_base / "client").mkdir()
+        expect_failure(
+            lambda: MODULE.activate_client(unmanaged_base, lock),
+            "existing unreceipted Steam client",
+        )
+
+        activation_recovery = root / "activation-recovery"
+        assert MODULE.prepare(activation_recovery, lock, archive) == "prepared"
+        recovery_receipt, recovery_transaction = MODULE.client_state_paths(
+            activation_recovery
+        )
+        MODULE.atomic_json(
+            recovery_transaction,
+            {
+                "schema_version": 1,
+                "kind": "activate-client",
+                "destination_relative": "client",
+                "staging_relative": ".client.activate.staging",
+                "lock_sha256": sha256(lock),
+            },
+        )
+        MODULE.shutil.copytree(
+            activation_recovery / "client-seed",
+            activation_recovery / "client",
+            symlinks=True,
+        )
+        assert MODULE.activate_client(activation_recovery, lock) == "recovered"
+        assert recovery_receipt.is_file() and not recovery_transaction.exists()
 
     source = SCRIPT.read_text(encoding="utf-8")
     assert "run_doctor(arguments.base.resolve()" in source

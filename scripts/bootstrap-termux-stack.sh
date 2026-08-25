@@ -58,5 +58,6 @@ python3 "$glibc_installer" --lock "$glibc_lock" \
     --package "$glibc_package" --base "$base"
 python3 "$proot_installer" --lock "$proot_lock" \
     --builder "$proot_builder" --base "$base"
-exec python3 "$debian_installer" --lock "$debian_lock" \
+python3 "$debian_installer" --lock "$debian_lock" \
     --base "$base" --prefix "$PREFIX"
+exec python3 "$setup" --lock "$lock" activate --base "$base"
