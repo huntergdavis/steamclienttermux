@@ -16,6 +16,7 @@ from typing import Callable, Sequence
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_SOURCE = (
+    "config/debian-runtime-lock.json",
     "config/steam-arm64-bootstrap-lock.json",
     "config/glibc-runtime-lock.json",
     "config/proot-runtime-lock.json",
@@ -28,6 +29,7 @@ REQUIRED_SOURCE = (
     "scripts/install-tgcompat-runtime.py",
     "scripts/install-glibc-runtime.py",
     "scripts/install-proot-runtime.py",
+    "scripts/install-debian-runtime.py",
     "scripts/build-proot.sh",
     "scripts/install-turnip-runtime.py",
     "scripts/steam-stack-doctor.py",
@@ -35,6 +37,16 @@ REQUIRED_SOURCE = (
 )
 REQUIRED_TOOLS = ("bash", "python3", "git", "clang", "cmake", "pkg-config")
 DEFAULT_MIN_FREE_BYTES = 4 * 1024**3
+DEBIAN_REQUIRED_FILES = (
+    "usr/bin/bash",
+    "usr/bin/dbus-daemon",
+    "usr/lib/aarch64-linux-gnu/libgtk-x11-2.0.so.0",
+    "usr/lib/aarch64-linux-gnu/libgtk-3.so.0",
+    "usr/lib/aarch64-linux-gnu/libpulse.so.0",
+    "usr/lib/aarch64-linux-gnu/libopenal.so.1",
+    "usr/lib/aarch64-linux-gnu/libX11.so.6",
+    "usr/lib/aarch64-linux-gnu/libnss3.so",
+)
 
 
 @dataclass(frozen=True)
@@ -67,6 +79,32 @@ def safe_directory(name: str, path: Path) -> Check:
     if path.is_symlink() or not path.is_dir():
         return Check(name, "fail", f"missing or unsafe: {path}", "create a real private directory")
     return Check(name, "pass", str(path))
+
+
+def valid_debian_runtime(prefix: Path) -> tuple[bool, Path]:
+    container = prefix / "var/lib/proot-distro/containers/steam-arm64-runtime"
+    rootfs = container / "rootfs"
+    receipt = container / ".steamclienttermux-debian-receipt.json"
+    if rootfs.is_symlink() or not rootfs.is_dir() or receipt.is_symlink():
+        return False, container
+    try:
+        root = rootfs.resolve(strict=True)
+        payload = json.loads(receipt.read_text(encoding="utf-8"))
+        receipt_valid = (
+            isinstance(payload, dict)
+            and payload.get("kind") == "steam-arm64-minimal-debian"
+            and payload.get("profile_id") == "steam-arm64-debian-trixie-minimal-v1"
+            and payload.get("acceptance") == "pass"
+            and isinstance(payload.get("packages"), dict)
+        )
+        files_valid = all(
+            (resolved := (rootfs / relative).resolve(strict=True)).is_relative_to(root)
+            and resolved.is_file()
+            for relative in DEBIAN_REQUIRED_FILES
+        )
+    except (OSError, RuntimeError, json.JSONDecodeError):
+        return False, container
+    return receipt_valid and files_valid, container
 
 
 def collect_checks(
@@ -256,6 +294,15 @@ def collect_checks(
                 "pass" if valid_proot else "fail",
                 str(proot_binary),
                 "run the locked patched PRoot installer",
+            )
+        )
+        valid_debian, debian = valid_debian_runtime(prefix)
+        checks.append(
+            Check(
+                "minimal Debian",
+                "pass" if valid_debian else "fail",
+                str(debian),
+                "run the locked minimal Debian installer",
             )
         )
 

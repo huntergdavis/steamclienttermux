@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import importlib.util
+import json
 import os
 from pathlib import Path
 import sys
@@ -65,6 +66,23 @@ def main() -> None:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text("fixture\n")
         (proot / "src/proot").chmod(0o700)
+        debian = prefix / "var/lib/proot-distro/containers/steam-arm64-runtime"
+        rootfs = debian / "rootfs"
+        for relative in MODULE.DEBIAN_REQUIRED_FILES:
+            path = rootfs / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("fixture\n", encoding="utf-8")
+        (debian / ".steamclienttermux-debian-receipt.json").write_text(
+            json.dumps(
+                {
+                    "kind": "steam-arm64-minimal-debian",
+                    "profile_id": "steam-arm64-debian-trixie-minimal-v1",
+                    "acceptance": "pass",
+                    "packages": {"fixture": "1"},
+                }
+            ),
+            encoding="utf-8",
+        )
 
         def run(arguments):
             if tuple(arguments) == ("getprop", "ro.product.cpu.abi"):
@@ -94,6 +112,28 @@ def main() -> None:
         assert "| native glibc         | PASS" in table
         assert "| native tgcompat      | PASS" in table
         assert "| patched PRoot        | PASS" in table
+        assert "| minimal Debian       | PASS" in table
+
+        (rootfs / MODULE.DEBIAN_REQUIRED_FILES[-1]).unlink()
+        missing_debian = MODULE.collect_checks(
+            "runtime",
+            base,
+            prefix,
+            home,
+            4 * 1024**3,
+            repo_root=repo,
+            machine=lambda: "aarch64",
+            lookup=lambda command: f"/fake/{command}",
+            run=run,
+            disk_usage=lambda path: SimpleNamespace(free=8 * 1024**3),
+        )
+        debian_check = next(
+            check for check in missing_debian if check.name == "minimal Debian"
+        )
+        assert debian_check.status == "fail"
+        (rootfs / MODULE.DEBIAN_REQUIRED_FILES[-1]).write_text(
+            "fixture\n", encoding="utf-8"
+        )
 
         failed = MODULE.collect_checks(
             "bootstrap",
