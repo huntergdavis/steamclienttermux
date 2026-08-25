@@ -29,7 +29,8 @@ tree, copies Wine's loader root and Steam Input DLL, applies the exact reviewed
 patch, and maps only AppID 275850 to the new tool. It backs up `config.vdf`, is
 idempotent, and never changes stock Proton. Android SELinux denies hard links
 and reflinks here, so other payload files are read-only symlinks to the
-hash-checked stock build instead of a second 1.9 GB copy.
+hash-checked stock build instead of a second 1.9 GB copy. The schema-2 content
+ID is `192d6163`, so an older experimental overlay cannot be mistaken for it.
 
 The profile keeps a timestamped original and atomically replaces only a valid
 generated `TKGRAPHICSSETTINGS.MXML`:

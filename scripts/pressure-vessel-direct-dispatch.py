@@ -54,8 +54,8 @@ FEX_2605_OFFLINE_COMPILER_DLL_SHA256 = {
     "libunwind.dll": "535c6c8626c75f2b57cba17e0b550131d5fd699119d274290116fbe31e5b6046",
 }
 FEX_OFFLINE_CACHE_NAME = "tombraider-203160-offline-7efb8f8e"
-NMS_PROTON_TOOL_DIRECTORY = "steamclienttermux-nms-proton-11-arm64-b00a3dcd"
-NMS_PROTON_TOOL_NAME = "steamclienttermux_nms_proton_11_arm64_b00a3dcd"
+NMS_PROTON_TOOL_DIRECTORY = "steamclienttermux-nms-proton-11-arm64-192d6163"
+NMS_PROTON_TOOL_NAME = "steamclienttermux_nms_proton_11_arm64_192d6163"
 NMS_PROTON_DLL_SHA256 = (
     "b00a3dcdcfceb60f1b0fc68347558d7933c15ac07bcac5cff703bbdff014501f"
 )

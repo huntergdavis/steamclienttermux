@@ -14,8 +14,8 @@ import stat
 import tempfile
 
 
-TOOL_NAME = "steamclienttermux_nms_proton_11_arm64_b00a3dcd"
-TOOL_DIRECTORY = "steamclienttermux-nms-proton-11-arm64-b00a3dcd"
+TOOL_NAME = "steamclienttermux_nms_proton_11_arm64_192d6163"
+TOOL_DIRECTORY = "steamclienttermux-nms-proton-11-arm64-192d6163"
 SOURCE_VERSION = b"1787334524 proton-11.0-2-arm64\n"
 DLL_RELATIVE = Path("files/lib/wine/aarch64-windows/lsteamclient.dll")
 LOADER_ROOT_RELATIVE = Path("files/lib/wine/aarch64-unix/ntdll.so")

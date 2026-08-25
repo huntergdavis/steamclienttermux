@@ -52,7 +52,7 @@ with tempfile.TemporaryDirectory(prefix="setup-nms.") as temporary:
         f"prepare prepare --base {base}",
         (
             "map 275850 --tool "
-            "steamclienttermux_nms_proton_11_arm64_b00a3dcd "
+            "steamclienttermux_nms_proton_11_arm64_192d6163 "
             f"--base {base}"
         ),
     ]
