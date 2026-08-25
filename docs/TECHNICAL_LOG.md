@@ -10331,3 +10331,20 @@ Proton content stays symlinked, so this adds about 1.94 MB rather than another
 The exact `deja` queries for this launch-chain escape returned no indexed fix.
 This correction reuses the prior official Wine-loader source finding, the
 content-addressed overlay, exact AppID mapping, and fail-closed validators.
+
+## 2026-08-25: NMS live UI and opt-in FPS telemetry
+
+The schema-3 tablet run mapped the contained Wine, preloader, `ntdll.so`, and
+patched PE while mapping none of the matching stock loader files. It advanced
+past Hello Games and Atlas loading to the live-news UI, opened the graphics
+menu, remained alive for more than four minutes, and wrote no new dump. The
+retained settings frame proves exclusive 1920x1080, V-sync off, 30 FPS cap,
+and Turnip on Adreno 730. No FPS is inferred from that frame.
+
+The new `start-no-mans-sky-fps` path is opt-in. It validates Termux's maintained
+AArch64 MangoHud package, rejects inherited layer/config overrides, displays
+FPS and frame time, and writes a private versioned log. `mangohud-glibc`
+remains an optional 259 MB development dependency; normal launches do not load the layer.
+The exact recall query returned no prior implementation. This reuses the
+content-addressed NMS route, controlled log-directory convention, and
+fail-closed environment reconstruction.

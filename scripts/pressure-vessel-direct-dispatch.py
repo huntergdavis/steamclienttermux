@@ -1217,6 +1217,13 @@ def request_environment(payload: dict[str, object]) -> dict[str, str]:
         "BVB_ICD_DIAGNOSTICS",
         "TOMB_RAIDER_BVB_ICD_DIAGNOSTICS",
         "VK_LOADER_DEBUG",
+        "MANGOHUD",
+        "MANGOHUD_CONFIGFILE",
+        "DISABLE_MANGOHUD",
+        "VK_INSTANCE_LAYERS",
+        "VK_LAYER_PATH",
+        "STEAM_ARM64_DIRECT_NMS_MANGOHUD",
+        "STEAM_ARM64_DIRECT_NMS_MANGOHUD_CONFIG",
         "BVB_FRAME_PROFILE",
         "TOMB_RAIDER_BVB_FRAME_PROFILE",
         "TGCOMPAT_RAKNET_RECV_SLEEP_US",
@@ -1630,6 +1637,120 @@ def direct_game_environment(
     if diagnostics:
         environment.update(direct_dxvk_environment(base))
     return environment
+
+
+def nms_mangohud_environment(base: Path, command_mode: str) -> dict[str, str]:
+    enabled = os.environ.get("STEAM_ARM64_DIRECT_NMS_MANGOHUD", "0")
+    if enabled not in ("0", "1"):
+        fail("STEAM_ARM64_DIRECT_NMS_MANGOHUD must be 0 or 1")
+    if enabled == "0":
+        return {}
+    if command_mode != "no-mans-sky":
+        fail("the No Man's Sky MangoHud profile is valid only for No Man's Sky")
+
+    prefix_value = os.environ.get("PREFIX", "")
+    if not prefix_value.startswith("/"):
+        fail("Termux PREFIX is unavailable for the MangoHud profile")
+    prefix = Path(prefix_value)
+    layer_directory = prefix / "glibc/share/vulkan/implicit_layer.d"
+    manifest = layer_directory / "MangoHud.aarch64.json"
+    library = prefix / "glibc/lib/mangohud/libMangoHud.so"
+    for path, description, minimum, maximum in (
+        (manifest, "MangoHud Vulkan manifest", 128, 16 * 1024),
+        (library, "MangoHud Vulkan layer", 1024 * 1024, 16 * 1024 * 1024),
+    ):
+        try:
+            metadata = path.lstat()
+        except OSError as error:
+            fail(f"{description} is unavailable: {error}")
+        if (
+            not stat.S_ISREG(metadata.st_mode)
+            or path.is_symlink()
+            or metadata.st_uid != os.geteuid()
+            or metadata.st_mode & 0o022
+            or not minimum <= metadata.st_size <= maximum
+        ):
+            fail(f"{description} is unsafe: {path}")
+
+    try:
+        manifest_payload = json.loads(manifest.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        fail(f"MangoHud Vulkan manifest is invalid: {error}")
+    layer = manifest_payload.get("layer") if isinstance(manifest_payload, dict) else None
+    if (
+        not isinstance(manifest_payload, dict)
+        or manifest_payload.get("file_format_version") != "1.0.0"
+        or not isinstance(layer, dict)
+        or layer.get("name") != "VK_LAYER_MANGOHUD_overlay_aarch64"
+        or layer.get("type") != "GLOBAL"
+        or layer.get("library_path") != str(library)
+        or layer.get("enable_environment") != {"MANGOHUD": "1"}
+    ):
+        fail("MangoHud Vulkan manifest has an unexpected shape")
+    try:
+        with library.open("rb") as stream:
+            elf = stream.read(20)
+    except OSError as error:
+        fail(f"MangoHud Vulkan layer cannot be read: {error}")
+    if (
+        len(elf) != 20
+        or elf[:6] != b"\x7fELF\x02\x01"
+        or int.from_bytes(elf[18:20], "little") != 183
+    ):
+        fail("MangoHud Vulkan layer is not AArch64 ELF64")
+
+    config_value = os.environ.get("STEAM_ARM64_DIRECT_NMS_MANGOHUD_CONFIG", "")
+    config = Path(config_value)
+    logs = private_directory(base / "logs", "Steam log directory")
+    if (
+        not config.is_absolute()
+        or config.parent.parent != logs
+        or re.fullmatch(r"no-mans-sky-fps-\d{8}T\d{6}Z-\d+", config.parent.name)
+        is None
+        or config.name != "MangoHud.conf"
+    ):
+        fail("No Man's Sky MangoHud config is outside the controlled log path")
+    private_directory(config.parent, "No Man's Sky MangoHud output directory")
+    try:
+        config_metadata = config.lstat()
+    except OSError as error:
+        fail(f"No Man's Sky MangoHud config is unavailable: {error}")
+    if (
+        not stat.S_ISREG(config_metadata.st_mode)
+        or config.is_symlink()
+        or config_metadata.st_uid != os.geteuid()
+        or config_metadata.st_mode & 0o077
+        or not 1 <= config_metadata.st_size <= 4096
+    ):
+        fail(f"No Man's Sky MangoHud config is unsafe: {config}")
+    expected_lines = [
+        "preset=3",
+        "position=top-left",
+        "fps_metrics=avg,0.01,0.001",
+        "autostart_log=1",
+        "log_duration=1800",
+        "log_interval=100",
+        f"output_folder={config.parent}",
+        "benchmark_percentiles=97,AVG,1,0.1",
+        "log_versioning",
+    ]
+    try:
+        actual_lines = [
+            line
+            for line in config.read_text(encoding="utf-8").splitlines()
+            if line
+        ]
+    except (OSError, UnicodeError) as error:
+        fail(f"No Man's Sky MangoHud config cannot be read: {error}")
+    if actual_lines != expected_lines:
+        fail("No Man's Sky MangoHud config has unexpected options")
+
+    return {
+        "MANGOHUD": "1",
+        "MANGOHUD_CONFIGFILE": str(config),
+        "VK_INSTANCE_LAYERS": "VK_LAYER_MANGOHUD_overlay_aarch64",
+        "VK_LAYER_PATH": str(layer_directory),
+    }
 
 
 def validated_direct_home(base: Path) -> Path:
@@ -2051,6 +2172,7 @@ def pv_smoke_invocation(
             environment,
             os.environ.get("STEAM_ARM64_DIRECT_FEX_PROFILE", "safe"),
         )
+        environment.update(nms_mangohud_environment(base, command_mode))
     if command_mode in ("tombraider", "tombraider-benchmark"):
         direct_fex_profile = os.environ.get("STEAM_ARM64_DIRECT_FEX_PROFILE")
         if direct_fex_profile is not None:

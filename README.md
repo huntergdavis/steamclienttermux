@@ -74,6 +74,7 @@ Launch or stop a game session:
 ~/start-steam-game 203160 --mode benchmark
 ~/setup-no-mans-sky       # once, while Steam is stopped
 ~/start-no-mans-sky-direct
+~/start-no-mans-sky-fps   # FPS/frame-time overlay plus private CSV log
 ~/stop-steam-native.sh
 ```
 

@@ -16,6 +16,9 @@ stamp=$(date -u +%Y%m%dT%H%M%SZ)
 server_log=$base/logs/no-mans-sky-direct-$stamp-$$.log
 launcher_log=$base/logs/no-mans-sky-launcher-$stamp-$$.log
 request_timeout=${NO_MANS_SKY_DIRECT_REQUEST_TIMEOUT:-300}
+mangohud=${NO_MANS_SKY_MANGOHUD:-0}
+mangohud_dir=
+mangohud_config=
 server_pid=
 
 fail() {
@@ -70,6 +73,28 @@ trap cleanup EXIT HUP INT TERM
 [[ $request_timeout =~ ^[0-9]+$ ]] &&
     (( request_timeout >= 1 && request_timeout <= 900 )) ||
     fail 'NO_MANS_SKY_DIRECT_REQUEST_TIMEOUT must be 1..900 seconds'
+[[ $mangohud == 0 || $mangohud == 1 ]] ||
+    fail 'NO_MANS_SKY_MANGOHUD must be 0 or 1'
+
+if [[ $mangohud == 1 ]]; then
+    mangohud_dir=$base/logs/no-mans-sky-fps-$stamp-$$
+    mkdir -m 700 -- "$mangohud_dir" ||
+        fail "cannot create MangoHud output directory: $mangohud_dir"
+    mangohud_config=$mangohud_dir/MangoHud.conf
+    (set -o noclobber
+        printf '%s\n' \
+            'preset=3' \
+            'position=top-left' \
+            'fps_metrics=avg,0.01,0.001' \
+            'autostart_log=1' \
+            'log_duration=1800' \
+            'log_interval=100' \
+            "output_folder=$mangohud_dir" \
+            'benchmark_percentiles=97,AVG,1,0.1' \
+            'log_versioning' >"$mangohud_config") ||
+        fail "cannot create MangoHud config: $mangohud_config"
+    chmod 600 "$mangohud_config"
+fi
 
 "$python" "$tool_check" check --base "$base"
 
@@ -85,6 +110,8 @@ chmod 600 "$server_log" "$launcher_log"
 env -u LD_PRELOAD -u LD_LIBRARY_PATH -u GLIBC_LD_LIBRARY_PATH \
     STEAM_ARM64_DIRECT_CHILD_PRELOAD=full \
     STEAM_ARM64_DIRECT_FEX_PROFILE=safe \
+    STEAM_ARM64_DIRECT_NMS_MANGOHUD=$mangohud \
+    STEAM_ARM64_DIRECT_NMS_MANGOHUD_CONFIG=$mangohud_config \
     "$python" "$dispatcher" serve --base "$base" --mode no-mans-sky \
     >"$server_log" 2>&1 &
 server_pid=$!
@@ -136,5 +163,8 @@ set -e
 
 printf 'No Man\047s Sky direct dispatch complete: launcher=%s server=%s server_log=%s launcher_log=%s\n' \
     "$launcher_status" "$server_status" "$server_log" "$launcher_log"
+if [[ $mangohud == 1 ]]; then
+    printf 'No Man\047s Sky FPS log directory: %s\n' "$mangohud_dir"
+fi
 (( launcher_status == 0 )) || exit "$launcher_status"
 exit "$server_status"

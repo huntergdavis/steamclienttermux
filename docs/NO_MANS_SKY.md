@@ -87,8 +87,8 @@ offline hash-verified or normal Steam commit to SD.
 | `NMS.exe` | Loaded Turnip and created a real 2800x1752 X11 game surface |
 | Steam Input A/B | Returning success from the failing `ISteamInput006::Init` wrapper bypassed the pre-window crash |
 | Containment | `/proc` mapped reviewed PE inode `719319` plus the contained Wine loader root; stock Proton stayed unchanged |
-| Screenshots | Hello Games `9cfd72e9...92a9`; animated Atlas loader `e2197233...d2e7` |
-| Current boundary | The `0x15B2C` Steam Input crash is gone; startup advanced for more than two minutes, then wrote `0xCB684-HANG` and exited |
+| Screenshots | Live-news UI `96fe91ee...1d29`; 1080p settings `bd2e6e74...0d86` |
+| Current boundary | Schema 3 reached the live UI and 1080p graphics menu, remained alive for more than four minutes, and wrote no new dump |
 
 Run the reviewed path from visible Termux:
 
@@ -118,13 +118,38 @@ watchdog wrote a 161,886-byte hang dump (SHA-256 `61f06e26...11b6`). A second
 run launched from visibly foreground Termux, proved X11 in `/top-app`, and
 reached a full 2800x1752 Hello Games surface. It then produced a different
 `0x15B2C` access violation and 81,138-byte dump (SHA-256 `2a37769a...d9ae`).
-This disproves scheduler starvation as the sole failure. The contained loader
-root now removes that crash; the next boundary is the later loading hang. Apply
-the 1080p profile only after a foreground run reaches a stable window and exits
-cleanly.
+This disproves scheduler starvation as the sole failure. Schema 3 then mapped
+the complete contained Wine loader chain and advanced beyond both crashes to
+the live-news UI and graphics menu. The retained menu proves exclusive
+1920x1080, V-sync off, a 30 FPS cap, and Turnip on Adreno 730. FPS remains
+unmeasured; a visible menu is not a gameplay benchmark.
 
 The removable library root now remains on internal F2FS while only bulk game
 content is mounted from SD. This removed Steam's `libraryfolder.vdf` flock
 failure without moving NMS off the card. Cold launch still spent about 60
 seconds rebuilding Steam's compatibility registry, so this is a correctness
 fix rather than a claimed startup-speed win.
+
+## FPS overlay and logs
+
+Install the maintained AArch64 layer once, then start the measured path:
+
+```sh
+pkg install mangohud-glibc
+~/start-no-mans-sky-fps
+```
+
+The 259 MB package remains optional so normal Steam installs stay lean. The FPS
+launcher validates the native
+Vulkan layer and manifest, shows FPS/frame time, and writes a private session
+log below `~/steam-arm64/logs/no-mans-sky-fps-*`. It rejects caller-supplied
+layer paths and unexpected configuration. Use one warm-up followed by three
+identical 60-second surface/traversal/flight passes; compare average, 1% and
+0.1% lows, frame-time percentiles, hitches, and temperature. Temporarily test
+the 60 FPS cap to expose headroom, then restore 30 FPS for pacing validation.
+
+No Man's Sky has no established built-in benchmark. This follows the common
+real-gameplay frame-time method documented by
+[GamersNexus](https://gamersnexus.net/guides/2561-no-mans-sky-frametime-performance-review-poor-performance)
+and uses [MangoHud's](https://github.com/flightlessmango/MangoHud) maintained
+logging path rather than Android's compositor FPS counter.

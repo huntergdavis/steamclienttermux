@@ -313,6 +313,85 @@ def main() -> None:
             else:
                 raise AssertionError("relative BVB socket was accepted")
 
+    with tempfile.TemporaryDirectory(prefix="nms-mangohud.") as directory:
+        root = Path(directory)
+        base = root / "steam-arm64"
+        logs = base / "logs"
+        output = logs / "no-mans-sky-fps-20260825T010203Z-42"
+        logs.mkdir(parents=True, mode=0o700)
+        logs.chmod(0o700)
+        output.mkdir(mode=0o700)
+        prefix = root / "usr"
+        layer_directory = prefix / "glibc/share/vulkan/implicit_layer.d"
+        layer_directory.mkdir(parents=True)
+        library = prefix / "glibc/lib/mangohud/libMangoHud.so"
+        library.parent.mkdir(parents=True)
+        elf = bytearray(1024 * 1024)
+        elf[:6] = b"\x7fELF\x02\x01"
+        elf[18:20] = (183).to_bytes(2, "little")
+        library.write_bytes(elf)
+        library.chmod(0o700)
+        manifest = layer_directory / "MangoHud.aarch64.json"
+        manifest.write_text(
+            json.dumps(
+                {
+                    "file_format_version": "1.0.0",
+                    "layer": {
+                        "name": "VK_LAYER_MANGOHUD_overlay_aarch64",
+                        "type": "GLOBAL",
+                        "library_path": str(library),
+                        "enable_environment": {"MANGOHUD": "1"},
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        manifest.chmod(0o600)
+        config = output / "MangoHud.conf"
+        config.write_text(
+            "\n".join(
+                (
+                    "preset=3",
+                    "position=top-left",
+                    "fps_metrics=avg,0.01,0.001",
+                    "autostart_log=1",
+                    "log_duration=1800",
+                    "log_interval=100",
+                    f"output_folder={output}",
+                    "benchmark_percentiles=97,AVG,1,0.1",
+                    "log_versioning",
+                    "",
+                )
+            ),
+            encoding="utf-8",
+        )
+        config.chmod(0o600)
+        selected = {
+            "PREFIX": str(prefix),
+            "STEAM_ARM64_DIRECT_NMS_MANGOHUD": "1",
+            "STEAM_ARM64_DIRECT_NMS_MANGOHUD_CONFIG": str(config),
+        }
+        with mock.patch.dict(os.environ, selected, clear=False):
+            assert MODULE.nms_mangohud_environment(base, "no-mans-sky") == {
+                "MANGOHUD": "1",
+                "MANGOHUD_CONFIGFILE": str(config),
+                "VK_INSTANCE_LAYERS": "VK_LAYER_MANGOHUD_overlay_aarch64",
+                "VK_LAYER_PATH": str(layer_directory),
+            }
+            try:
+                MODULE.nms_mangohud_environment(base, "tombraider")
+            except MODULE.DispatchError:
+                pass
+            else:
+                raise AssertionError("NMS MangoHud was accepted for another game")
+            config.write_text(config.read_text() + "unknown=true\n")
+            try:
+                MODULE.nms_mangohud_environment(base, "no-mans-sky")
+            except MODULE.DispatchError:
+                pass
+            else:
+                raise AssertionError("unexpected MangoHud options were accepted")
+
     with tempfile.TemporaryDirectory(prefix="loader-child-cwd.") as directory:
         root = Path(directory)
         working_directory = root / "game"
@@ -1119,6 +1198,13 @@ def main() -> None:
                 "BVB_ICD_DIAGNOSTICS=1",
                 "TOMB_RAIDER_BVB_ICD_DIAGNOSTICS=1",
                 "VK_LOADER_DEBUG=all",
+                "MANGOHUD=1",
+                "MANGOHUD_CONFIGFILE=/unsafe",
+                "DISABLE_MANGOHUD=0",
+                "VK_INSTANCE_LAYERS=unsafe",
+                "VK_LAYER_PATH=/unsafe",
+                "STEAM_ARM64_DIRECT_NMS_MANGOHUD=1",
+                "STEAM_ARM64_DIRECT_NMS_MANGOHUD_CONFIG=/unsafe",
                 "BVB_FRAME_PROFILE=1",
                 "TOMB_RAIDER_BVB_FRAME_PROFILE=1",
                 "SDL_JOYSTICK_HIDAPI=0",
@@ -1157,6 +1243,7 @@ def main() -> None:
                 raise AssertionError("Vulkan trace validator accepted an arbitrary preload")
     invocation_source = inspect.getsource(MODULE.pv_smoke_invocation)
     assert "environment.update(bvb_vulkan_environment())" in invocation_source
+    assert "environment.update(nms_mangohud_environment(base, command_mode))" in invocation_source
     assert "libtgcompat-robust.so" in invocation_source
     assert "libtgcompat-mprotect.so" in invocation_source
     assert '("lean", "lean-tmp-only", "lean-debug-wait")' in invocation_source

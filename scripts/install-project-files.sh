@@ -160,6 +160,8 @@ install_one "$repo_root/scripts/start-tombraider-direct-dispatch.sh" \
     "$HOME/start-tombraider-direct-dispatch" 700
 install_one "$repo_root/scripts/start-no-mans-sky-direct.sh" \
     "$HOME/start-no-mans-sky-direct" 700
+install_one "$repo_root/scripts/start-no-mans-sky-fps.sh" \
+    "$HOME/start-no-mans-sky-fps" 700
 install_one "$repo_root/scripts/setup-no-mans-sky.sh" \
     "$HOME/setup-no-mans-sky" 700
 install_one "$repo_root/scripts/prepare-no-mans-sky-proton.py" \

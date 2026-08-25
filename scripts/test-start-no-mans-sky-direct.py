@@ -62,6 +62,14 @@ def main() -> None:
             "args=parser.parse_args()\n"
             "assert args.mode == 'no-mans-sky'\n"
             "assert os.environ['STEAM_ARM64_DIRECT_FEX_PROFILE'] == 'safe'\n"
+            "hud=os.environ['STEAM_ARM64_DIRECT_NMS_MANGOHUD']\n"
+            "config=os.environ['STEAM_ARM64_DIRECT_NMS_MANGOHUD_CONFIG']\n"
+            "assert hud in ('0', '1')\n"
+            "if hud == '0': assert config == ''\n"
+            "else:\n"
+            " text=pathlib.Path(config).read_text()\n"
+            " assert 'autostart_log=1\\n' in text\n"
+            " assert f'output_folder={pathlib.Path(config).parent}\\n' in text\n"
             "path=pathlib.Path(args.base)/'run/native-runtime-dispatch/dispatch.sock'\n"
             "with socket.socket(socket.AF_UNIX) as listener:\n"
             " listener.bind(str(path)); os.chmod(path, 0o600); listener.listen(1)\n"
@@ -108,6 +116,21 @@ def main() -> None:
         )
         assert "launcher=0 server=0" in result.stdout
         fixture_socket = base / "run/native-runtime-dispatch/dispatch.sock"
+        assert not fixture_socket.exists()
+
+        fps_result = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env={**environment, "NO_MANS_SKY_MANGOHUD": "1"},
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=10,
+        )
+        assert fps_result.returncode == 0, fps_result.stderr
+        assert "No Man's Sky FPS log directory:" in fps_result.stdout
+        fps_directories = list((base / "logs").glob("no-mans-sky-fps-*/MangoHud.conf"))
+        assert len(fps_directories) == 1
+        assert fps_directories[0].stat().st_mode & 0o077 == 0
         assert not fixture_socket.exists()
 
         timeout_dispatcher = root / "timeout-dispatcher.py"
