@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import stat
 import subprocess
 import sys
@@ -26,6 +27,8 @@ DEFAULT_PACKAGE_PROFILE = REPO_ROOT / "config/termux-setup-profile.json"
 STATE_DIRECTORY = ".steamclienttermux"
 RECEIPT_NAME = "steam-seed-receipt.json"
 TRANSACTION_NAME = "steam-seed-transaction.json"
+DEPENDENCY_RECEIPT_NAME = "termux-dependencies-receipt.json"
+DEPENDENCY_TRANSACTION_NAME = "termux-dependencies-transaction.json"
 INSTALL_SHAPE = {
     "schema_version": 1,
     "shape_id": "two-apks-one-termux-command",
@@ -53,7 +56,7 @@ INSTALL_SHAPE = {
         {
             "id": "termux-packages",
             "owner": "setup-command",
-            "state": "planned",
+            "state": "implemented",
             "action": "Install the Termux:X11 companion and locked build/runtime dependencies.",
         },
         {
@@ -222,6 +225,150 @@ def dependency_report(
         "installed": installed,
         "missing": missing,
     }
+
+
+def dependency_state_paths(base: Path) -> tuple[Path, Path]:
+    state = base / STATE_DIRECTORY
+    return state / DEPENDENCY_RECEIPT_NAME, state / DEPENDENCY_TRANSACTION_NAME
+
+
+def run_package_manager(arguments: list[str]) -> int:
+    return subprocess.run(
+        arguments,
+        stdin=subprocess.DEVNULL,
+        check=False,
+    ).returncode
+
+
+def install_dependencies(
+    profile: dict[str, object],
+    profile_path: Path,
+    base: Path,
+    package_manager: Path,
+    *,
+    query: Any = query_installed_package,
+    runner: Any = run_package_manager,
+) -> str:
+    base = ensure_base(base)
+    profile_path = profile_path.resolve()
+    profile_sha = sha256_file(profile_path)
+    receipt_path, transaction_path = dependency_state_paths(base)
+    packages = [package for _group, values in package_groups(profile) for package in values]
+
+    if receipt_path.exists() or receipt_path.is_symlink():
+        receipt = read_json(receipt_path, "Termux dependency receipt")
+        if (
+            receipt.get("schema_version") != 1
+            or receipt.get("kind") != "termux-dependencies"
+            or receipt.get("profile_sha256") != profile_sha
+        ):
+            raise SetupError("Termux dependency receipt does not match this profile")
+        report = dependency_report(profile, query)
+        if report["status"] != "pass":
+            raise SetupError(
+                "receipted Termux dependencies are missing: "
+                + ", ".join(report["missing"])
+            )
+        return "already-ready"
+
+    if transaction_path.exists() or transaction_path.is_symlink():
+        transaction = read_json(transaction_path, "Termux dependency transaction")
+        if (
+            transaction.get("schema_version") != 1
+            or transaction.get("kind") != "install-termux-dependencies"
+            or transaction.get("profile_sha256") != profile_sha
+        ):
+            raise SetupError("a different Termux dependency transaction requires recovery")
+        initial_missing = transaction.get("initial_missing")
+        if (
+            not isinstance(initial_missing, list)
+            or not all(isinstance(item, str) and item in packages for item in initial_missing)
+            or len(initial_missing) != len(set(initial_missing))
+        ):
+            raise SetupError("Termux dependency transaction is malformed")
+    else:
+        initial_report = dependency_report(profile, query)
+        initial_missing = list(initial_report["missing"])
+        atomic_json(
+            transaction_path,
+            {
+                "schema_version": 1,
+                "kind": "install-termux-dependencies",
+                "profile_sha256": profile_sha,
+                "initial_missing": initial_missing,
+                "completed_groups": [],
+            },
+        )
+
+    completed_groups: list[str] = []
+    for group_id, group_packages in package_groups(profile):
+        missing = [package for package in group_packages if query(package) is None]
+        if missing:
+            result = runner([str(package_manager), "install", "-y", *missing])
+            if result != 0:
+                raise SetupError(
+                    f"package manager failed for group {group_id!r} with status {result}"
+                )
+        still_missing = [package for package in group_packages if query(package) is None]
+        if still_missing:
+            raise SetupError(
+                f"package group {group_id!r} remains incomplete: "
+                + ", ".join(still_missing)
+            )
+        completed_groups.append(group_id)
+        atomic_json(
+            transaction_path,
+            {
+                "schema_version": 1,
+                "kind": "install-termux-dependencies",
+                "profile_sha256": profile_sha,
+                "initial_missing": initial_missing,
+                "completed_groups": completed_groups,
+            },
+        )
+
+    report = dependency_report(profile, query)
+    if report["status"] != "pass":
+        raise SetupError("Termux dependency installation did not converge")
+    atomic_json(
+        receipt_path,
+        {
+            "schema_version": 1,
+            "kind": "termux-dependencies",
+            "profile_id": profile["profile_id"],
+            "profile_sha256": profile_sha,
+            "installed_versions": report["installed"],
+            "initially_missing": initial_missing,
+            "package_count": len(packages),
+            "removal_policy": "preserve shared Termux packages by default",
+        },
+    )
+    remove_regular(transaction_path)
+    return "installed" if initial_missing else "receipted-existing"
+
+
+def resolve_package_manager() -> Path:
+    prefix_value = os.environ.get("PREFIX", "")
+    if not prefix_value:
+        raise SetupError("PREFIX is unset; run dependency installation inside Termux")
+    prefix = Path(prefix_value)
+    if not prefix.is_absolute() or not prefix.is_dir() or prefix.is_symlink():
+        raise SetupError(f"unsafe Termux PREFIX: {prefix}")
+    candidate_value = shutil.which("pkg")
+    if not candidate_value:
+        raise SetupError("Termux package manager is unavailable: pkg")
+    candidate = Path(candidate_value)
+    metadata = candidate.lstat()
+    if not stat.S_ISREG(metadata.st_mode) or stat.S_ISLNK(metadata.st_mode):
+        raise SetupError(f"Termux package manager is not a regular file: {candidate}")
+    if metadata.st_uid != os.getuid():
+        raise SetupError(f"Termux package manager has the wrong owner: {candidate}")
+    resolved = candidate.resolve()
+    try:
+        resolved.relative_to((prefix / "bin").resolve())
+    except ValueError as error:
+        raise SetupError(f"Termux package manager is outside PREFIX/bin: {resolved}") from error
+    return resolved
 
 
 def load_bootstrap() -> Any:
@@ -600,6 +747,9 @@ def main() -> int:
     )
     dependencies_parser.add_argument("--json", action="store_true", dest="as_json")
     dependencies_parser.add_argument("--check", action="store_true")
+    dependencies_parser.add_argument("--install", action="store_true")
+    dependencies_parser.add_argument("--yes", action="store_true")
+    dependencies_parser.add_argument("--base", type=Path, default=default_base)
     prepare_parser = subparsers.add_parser("prepare", help="doctor, acquire, verify, and receipt the Steam seed")
     prepare_parser.add_argument("--base", type=Path, default=default_base)
     prepare_parser.add_argument("--archive", type=Path)
@@ -618,7 +768,22 @@ def main() -> int:
                 print(render_install_plan())
         elif arguments.command == "dependencies":
             profile = load_package_profile(arguments.package_profile.resolve())
-            if arguments.check:
+            if arguments.install:
+                if arguments.check or arguments.as_json:
+                    raise SetupError("--install cannot be combined with --check or --json")
+                if not arguments.yes:
+                    raise SetupError("--install requires explicit --yes confirmation")
+                result = install_dependencies(
+                    profile,
+                    arguments.package_profile,
+                    arguments.base,
+                    resolve_package_manager(),
+                )
+                print(f"TERMUX_DEPENDENCIES={result}")
+                return 0
+            elif arguments.yes:
+                raise SetupError("--yes is only valid with --install")
+            elif arguments.check:
                 report = dependency_report(profile)
                 if arguments.as_json:
                     print(json.dumps(report, indent=2, sort_keys=True))

@@ -44,6 +44,7 @@ REQUIRED_FILES = {
     "config/steam-arm64-bootstrap-lock.json",
     "config/termux-setup-profile.json",
     "scripts/bootstrap-steam-arm64-client.py",
+    "scripts/bootstrap-termux-stack.sh",
     "scripts/build-release-archive.py",
     "scripts/check-project.sh",
     "scripts/setup-steam-stack.py",

@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-24",
+  "gate": "option-a-termux-dependency-install",
+  "result": "pass",
+  "source_base_commit": "7ed7381b93a21f7266ace3c8b7c75727257fd081",
+  "product_direction": {
+    "current": "verified release archive plus one Termux command",
+    "long_term": "signed Termux package repository and deb",
+    "same_setup_engine": true
+  },
+  "implemented_boundary": {
+    "entry_point": "scripts/bootstrap-termux-stack.sh",
+    "package_profile": "aarch64-termux-x11-qualcomm-v1",
+    "package_count": 30,
+    "repository_first": true,
+    "durable_transaction": true,
+    "exact_receipt": true,
+    "idempotent_rerun": true,
+    "interrupted_group_resume": true,
+    "package_removal_policy": "preserve shared Termux packages by default",
+    "next_phase": "locked Valve ARM64 seed preparation"
+  },
+  "host_contracts": {
+    "focused_passed": 3,
+    "exact_group_argv": true,
+    "missing_confirmation_rejected": true,
+    "release_requires_bootstrap": true,
+    "shell_syntax": "pass"
+  },
+  "artifact_sha256": {
+    "scripts/setup-steam-stack.py": "aae6c8f2197c698ae96b3d3587f2880f46c47f18e69c942d8ac2bf71ab7168e3",
+    "scripts/bootstrap-termux-stack.sh": "6c8eb2e9c995f918a50b2f3869aed4cce7501a28c7c3d3bd172e19637ef88243",
+    "config/termux-setup-profile.json": "b3dd5ef32e60fe97bcb599f815a1cf5d6c493b5629bef21986bead441fcc7404"
+  },
+  "claims": {
+    "termux_dependency_mutation_on_tablet": false,
+    "fresh_device_end_to_end": false,
+    "open_source_runtime_installed": false,
+    "steam_launched_by_bootstrap": false,
+    "other_gpu_families_accelerated": false
+  },
+  "reuse": "The required deja queries returned no indexed implementation. This gate reuses the existing durable atomic JSON transaction helper, the tested 30-package profile, the locked Valve seed setup engine, and the deterministic release archive."
+}

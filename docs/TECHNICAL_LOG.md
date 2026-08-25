@@ -9995,3 +9995,23 @@ separate driver profile passes. Versions are evidence, not brittle equality
 pins; signed repository metadata owns compatible upgrades. The required `deja`
 query returned no prior implementation.
 [Evidence](evidence/steam-termux-package-profile-tablet-20260824.json)
+
+## 2026-08-24: one-command Option-A dependency install
+
+`scripts/bootstrap-termux-stack.sh` is now the Option-A entry point after the
+Termux and Termux:X11 APKs are installed. It validates the official Termux
+prefix and ARM64 ABI, bootstraps Python if necessary, installs the 30-package
+profile repository-first, then enters the locked Valve ARM64 seed phase.
+
+Package installation uses exact argument arrays rather than a shell, records a
+durable transaction after every completed group, resumes an interrupted run,
+and writes an exact profile/version receipt. An unchanged rerun is idempotent.
+Rollback and future `.deb` removal deliberately preserve shared Termux packages
+instead of guessing whether this project originally owned them.
+
+Focused package, bootstrap, and deterministic-release contracts passed. No
+tablet packages were changed and the full glibc/Turnip/FEX runtime remains the
+next setup phase. The required `deja` queries found no prior implementation;
+this work reuses the existing atomic transaction helper, package profile,
+locked Valve setup, and release builder.
+[Evidence](evidence/steam-option-a-dependency-install-host-20260824.json)

@@ -8,8 +8,11 @@ signed-repository `.deb`. APK and ADB product paths are out of scope.
 
 1. Install official Termux and the matching Termux:X11 build from the same
    trusted signing source.
-2. Install one project bootstrap package containing only our open-source code,
-   lock files, licenses, and setup scripts.
+2. Unpack the signed/checksummed project release and run:
+
+   ```sh
+   scripts/bootstrap-termux-stack.sh
+   ```
 3. Fetch the ARM64 Steam seed directly from Valve, verify its pinned identity,
    and safely extract it.
 4. Build/install the native glibc compatibility tools and sensible defaults.
@@ -28,8 +31,8 @@ maintenance costs, so it is not the MVP.
 pins Valve stable build `1785799196`, the official manifest, the raw AArch64
 seed ZIP, and the extracted ELF identity. The lock forbids redistribution.
 
-The human-facing Phase-1 command runs the doctor, downloads/verifies the locked
-seed, writes an exact receipt, and can recover after interruption:
+The one-command bootstrap installs dependencies first, then runs the locked
+Steam-seed phase. The lower-level commands remain available for diagnosis:
 
 ```sh
 python3 scripts/setup-steam-stack.py plan
@@ -51,18 +54,22 @@ Termux:X11 app; the setup command owns every automatable step afterward; Valve
 owns login. Text and JSON output share one tested data structure so later UI
 work cannot overstate the automation boundary.
 
-The first Option-A runtime slice is an exact package profile:
+The first Option-A runtime slice is an exact, executable package profile:
 
 ```sh
 python3 scripts/setup-steam-stack.py dependencies
 python3 scripts/setup-steam-stack.py dependencies --check
+python3 scripts/setup-steam-stack.py dependencies --install --yes
 ```
 
 [`termux-setup-profile.json`](../config/termux-setup-profile.json) separates
 repository enablers from 28 build/runtime packages, maps 21 required commands
 to their owning packages, and records every tested package version. The
-working tablet satisfies all 30 entries. Versions are evidence rather than
-hard equality pins; signed Termux metadata chooses compatible updates.
+working tablet satisfies all 30 entries. Installation is repository-first,
+receipt-backed, restartable after interruption, and idempotent. It deliberately
+preserves shared Termux packages during rollback/uninstall. Versions are
+evidence rather than hard equality pins; signed Termux metadata chooses
+compatible updates.
 
 The first accelerated hardware profile is AArch64 Qualcomm/Adreno KGSL with
 Turnip. The installer engine is generic, but claiming acceleration on Mali,

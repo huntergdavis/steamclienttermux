@@ -78,25 +78,26 @@ because its tablet timing did not improve the 53.553-second best.
 The launcher fails closed on stale X11 state, duplicate processes, background
 scheduling, unverified windows, or mismatched artifacts.
 
-## Reproducible packaging
+## Install work in progress
 
-The first restartable setup phase checks the device, fetches the ARM64 Steam
-seed directly from Valve, verifies it, and writes an exact receipt:
-
-```sh
-python3 scripts/setup-steam-stack.py plan
-python3 scripts/setup-steam-stack.py prepare
-python3 scripts/setup-steam-stack.py status
-```
-
-An exact rollback quarantines the verified seed instead of deleting it:
+After installing Termux and Termux:X11, the Option-A release uses one command:
 
 ```sh
-python3 scripts/setup-steam-stack.py rollback
+scripts/bootstrap-termux-stack.sh
 ```
+
+It installs the tested Termux dependencies, fetches Valve's ARM64 Steam seed
+from Valve, verifies it, and writes restartable receipts. Current boundary:
+
+| Automated | Still in progress |
+| --- | --- |
+| 30 Termux packages and Termux:X11 companion | glibc/Turnip/FEX runtime install |
+| Locked Valve seed acquisition | launch profiles and final doctor |
+| Interruption recovery and seed rollback | fresh-device end-to-end proof |
 
 The release ZIP contains only project source and locks—never Valve binaries,
-games, credentials, or account data. See [packaging](docs/PACKAGING.md).
+games, credentials, or account data. Long-term, the same engine becomes a
+signed Termux-repository `.deb`. See [packaging](docs/PACKAGING.md).
 
 Run the read-only prerequisite check separately when needed:
 

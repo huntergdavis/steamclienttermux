@@ -30,7 +30,7 @@ python3 scripts/setup-steam-stack.py plan --json
 | --- | --- | --- | --- |
 | Install Termux APK | User or ADB | Android Package Manager | Manual prerequisite |
 | Install Termux:X11 APK | User or ADB | Android Package Manager | Manual prerequisite |
-| Install Termux:X11 companion and dependencies | Setup command | `pkg`/locked recipes | Planned |
+| Install Termux:X11 companion and dependencies | Setup command | `pkg`/locked recipes | Implemented |
 | Acquire and receipt Valve's ARM64 seed | Setup command | Locked HTTPS + safe extractor | Implemented |
 | Install glibc, Turnip, FEX, audio, launchers, profiles | Setup command | Transactional runtime installer | Planned |
 | Steam login and Steam Guard | User | Valve client | Always manual |
@@ -73,7 +73,7 @@ three relative symlinks, and promotes only a complete verified staging tree.
 
 1. Install Termux and the matching Termux:X11 package from one trusted source.
 2. Download one signed project release archive.
-3. Run one bootstrap command.
+3. Run `scripts/bootstrap-termux-stack.sh` from the verified release.
 4. The bootstrap verifies Android/device prerequisites and free space.
 5. It installs open-source helpers transactionally and fetches locked external
    payloads directly from their publishers.

@@ -110,7 +110,7 @@ def main() -> None:
     assert [phase["state"] for phase in phases] == [
         "manual-prerequisite",
         "manual-prerequisite",
-        "planned",
+        "implemented",
         "implemented",
         "planned",
         "manual-required",

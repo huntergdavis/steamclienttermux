@@ -48,6 +48,7 @@ def fixture_repo(root: Path) -> str:
         "config/steam-arm64-bootstrap-lock.json": b"{}\n",
         "config/termux-setup-profile.json": b"{}\n",
         "scripts/bootstrap-steam-arm64-client.py": b"#!/usr/bin/env python3\n",
+        "scripts/bootstrap-termux-stack.sh": b"#!/data/data/com.termux/files/usr/bin/bash\n",
         "scripts/build-release-archive.py": SCRIPT.read_bytes(),
         "scripts/setup-steam-stack.py": b"#!/usr/bin/env python3\n",
         "scripts/steam-stack-doctor.py": b"#!/usr/bin/env python3\n",
@@ -115,6 +116,7 @@ def main() -> None:
                 names = [info.filename for info in infos]
                 prefix = first_manifest["prefix"]
                 assert f"{prefix}/README.md" in names
+                assert f"{prefix}/scripts/bootstrap-termux-stack.sh" in names
                 assert f"{prefix}/scripts/build-release-archive.py" in names
                 assert f"{prefix}/RELEASE-MANIFEST.json" in names
                 assert not any("excluded" in name for name in names)
