@@ -392,6 +392,33 @@ def run_tests():
             payload["install_bind"]
         )
 
+        result = invoke(
+            wrapper,
+            proc_net,
+            [
+                "--proc",
+                "/proc",
+                "--ro-bind",
+                "/runtime-root",
+                "/",
+                "--bind",
+                str(install_path),
+                str(install_path),
+                "--",
+                "/bin/true",
+            ],
+            env_overrides={
+                "STEAM_COMPAT_APP_ID": "275850",
+                "STEAM_COMPAT_INSTALL_PATH": str(install_path),
+            },
+        )
+        assert result.returncode == 0, result.stderr
+        payload = json.loads(result.stdout)
+        assert payload["directory_targets"][: len(expected_chain)] == expected_chain
+        assert max(payload["directory_injections"][: len(expected_chain)]) < (
+            payload["install_bind"]
+        )
+
         outside = tempdir / "outside" / "Game"
         outside.mkdir(parents=True)
         result = invoke(

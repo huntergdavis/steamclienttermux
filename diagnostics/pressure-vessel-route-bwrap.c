@@ -812,6 +812,7 @@ main (int argc, char **argv)
   size_t args_size;
   size_t insertion_offset;
   size_t root_mount_end;
+  size_t cursor_offset;
   size_t payload_offset;
   int args_index = -1;
   int args_fd = -1;
@@ -881,9 +882,8 @@ main (int argc, char **argv)
   install_path = validate_install_path (proc_net_path);
   root_mount_end = install_path == NULL
                      ? 0 : find_root_mount_end (args_data, args_size);
-  if (install_path != NULL
-      && (root_mount_end == 0 || root_mount_end > insertion_offset))
-    fail ("cannot place the game mount anchors after the runtime root");
+  if (install_path != NULL && root_mount_end == 0)
+    fail ("cannot find the runtime root before adding game mount anchors");
 
   proc_net_fd = validate_proc_net (proc_net_path);
   host_vk_driver_files_fd =
@@ -903,26 +903,36 @@ main (int argc, char **argv)
     payload_offset = args_size;
   if (payload_offset < insertion_offset)
     fail ("cannot locate payload boundary");
+  if (install_path != NULL && root_mount_end > payload_offset)
+    fail ("runtime root appears after the bwrap payload boundary");
   gtaiv_service_first = is_gtaiv_play_payload (argc, argv, args_index,
                                                gtaiv_view_fd);
   replacement_fd = create_args_fd ();
-  if (install_path == NULL)
-    write_all (replacement_fd, args_data, insertion_offset);
-  else
+  cursor_offset = 0;
+  if (install_path != NULL && root_mount_end < insertion_offset)
     {
       write_all (replacement_fd, args_data, root_mount_end);
       write_directory_chain (replacement_fd, install_path);
-      write_all (replacement_fd, args_data + root_mount_end,
-                 insertion_offset - root_mount_end);
+      cursor_offset = root_mount_end;
     }
+  write_all (replacement_fd, args_data + cursor_offset,
+             insertion_offset - cursor_offset);
 
   snprintf (replacement_fd_value, sizeof (replacement_fd_value), "%d",
             proc_net_fd);
   write_arg (replacement_fd, "--ro-bind-fd");
   write_arg (replacement_fd, replacement_fd_value);
   write_arg (replacement_fd, "/proc/net");
-  write_all (replacement_fd, args_data + insertion_offset,
-             payload_offset - insertion_offset);
+  cursor_offset = insertion_offset;
+  if (install_path != NULL && root_mount_end >= insertion_offset)
+    {
+      write_all (replacement_fd, args_data + cursor_offset,
+                 root_mount_end - cursor_offset);
+      write_directory_chain (replacement_fd, install_path);
+      cursor_offset = root_mount_end;
+    }
+  write_all (replacement_fd, args_data + cursor_offset,
+             payload_offset - cursor_offset);
   if (gtaiv_view_fd >= 0)
     {
       snprintf (replacement_fd_value, sizeof (replacement_fd_value), "%d",
