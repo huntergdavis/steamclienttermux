@@ -307,7 +307,7 @@ def validate_staging_binds(paths, staging_binds):
         if (
             not isinstance(expected["files"], int)
             or isinstance(expected["files"], bool)
-            or expected["files"] < 1
+            or expected["files"] < 0
             or not isinstance(expected["bytes"], int)
             or isinstance(expected["bytes"], bool)
             or expected["bytes"] < 0
@@ -689,6 +689,44 @@ def enable_staging_bind(
         "bytes": source_stats[1],
         "files": source_stats[0],
         "manifest_sha256": hashlib.sha256(source_manifest_bytes).hexdigest(),
+    }
+    backup = write_config(
+        paths["config"],
+        config_bytes(paths["source"], staging_binds),
+        base / "backups",
+    )
+    loaded = load_layout(base, storage_root)
+    return loaded["staging_binds"][appid], backup
+
+
+def enable_empty_staging_bind(
+    base,
+    paths,
+    appid,
+    storage_root=Path("/storage"),
+):
+    if not re.fullmatch(r"[1-9][0-9]{0,9}", appid):
+        raise RuntimeError(f"invalid staging App ID: {appid!r}")
+    source = paths["external_staging"] / appid
+    target = paths["download_state"] / appid
+    inspect_directory(
+        source,
+        f"external staging tree for App ID {appid}",
+        require_empty=True,
+    )
+    inspect_directory(
+        target,
+        f"internal staging tree for App ID {appid}",
+        require_empty=True,
+    )
+    payload = load_config_payload(paths["config"])
+    staging_binds = dict(payload["staging_binds"])
+    if appid in staging_binds:
+        raise RuntimeError(f"staging bind is already enabled for App ID {appid}")
+    staging_binds[appid] = {
+        "bytes": 0,
+        "files": 0,
+        "manifest_sha256": hashlib.sha256(b"").hexdigest(),
     }
     backup = write_config(
         paths["config"],
@@ -1087,6 +1125,8 @@ def build_parser():
     staging.add_argument("appid")
     staging.add_argument("--source-manifest", required=True)
     staging.add_argument("--target-manifest", required=True)
+    empty_staging = subparsers.add_parser("enable-empty-staging-bind")
+    empty_staging.add_argument("appid")
     disable_staging = subparsers.add_parser("disable-staging-bind")
     disable_staging.add_argument("appid")
     commit = subparsers.add_parser("commit-staging")
@@ -1167,6 +1207,25 @@ def main():
             print(
                 f"Verified {staging['files']} files, {staging['bytes']} bytes, "
                 f"manifest {staging['manifest_sha256']}"
+            )
+            if backup is not None:
+                print(f"Previous configuration backup: {backup}")
+            return 0
+        if args.action == "enable-empty-staging-bind":
+            if paths is None:
+                raise RuntimeError("prepare the removable library before enabling staging")
+            running = find_running_processes()
+            if running:
+                details = ", ".join(f"{pid}:{comm}" for pid, comm in running)
+                raise RuntimeError(
+                    f"refusing to edit staging binds while processes are active: {details}"
+                )
+            staging, backup = enable_empty_staging_bind(
+                base, paths, args.appid, storage_root
+            )
+            print(
+                f"Enabled empty removable staging bind for App ID {args.appid}: "
+                f"{staging['source']} -> {staging['target']}"
             )
             if backup is not None:
                 print(f"Previous configuration backup: {backup}")

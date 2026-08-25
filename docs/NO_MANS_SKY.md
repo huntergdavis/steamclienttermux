@@ -48,3 +48,19 @@ Research sources: [Hello Games Vulkan update](https://www.nomanssky.com/beyond-u
 [Steam Cloud and cross-save](https://store.steampowered.com/app/275850/No_Mans_Sky/),
 [Steam Deck 30 FPS profile](https://steamdeckhq.com/game-reviews/no-mans-sky/),
 and [current settings-file example](https://steamcommunity.com/app/275850/discussions/0/601912361526325530/).
+
+## Large SD-card download
+
+Steam keeps lock-sensitive library control data internal. For a new large game,
+put only its empty download staging directory on the SD card before downloading:
+
+```sh
+mkdir -p ~/storage/external-1/steam-arm64-library/staging/275850
+mkdir -p ~/steam-arm64/removable-library-downloads/275850
+~/steam-arm64/compat-bin/steam-arm64-removable-library.py \
+  enable-empty-staging-bind 275850
+```
+
+Steam must be stopped and both directories must be real and empty. The command
+fails closed otherwise. Restart Steam and resume the install to the `microSD
+Windows games` library.

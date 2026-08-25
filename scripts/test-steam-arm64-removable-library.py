@@ -341,6 +341,43 @@ def test_staging_bind(module, temporary):
         raise AssertionError("mismatched staging manifests were accepted")
 
 
+def test_empty_staging_bind(module, temporary):
+    storage, _external, link, base = fixture(temporary)
+    paths, _backup, _view_backup = module.prepare_layout(base, link, storage)
+    appid = "275850"
+    external_staging = paths["external_staging"] / appid
+    internal_staging = paths["download_state"] / appid
+    external_staging.mkdir()
+    internal_staging.mkdir()
+    staging, backup = module.enable_empty_staging_bind(
+        base, paths, appid, storage
+    )
+    assert backup is not None
+    assert staging["source"] == external_staging
+    assert staging["target"] == internal_staging
+    assert staging["files"] == 0
+    assert staging["bytes"] == 0
+    assert staging["manifest_sha256"] == __import__("hashlib").sha256(
+        b""
+    ).hexdigest()
+    loaded = module.load_layout(base, storage)
+    assert loaded["staging_binds"][appid] == staging
+    assert module.staging_mounts(loaded) == [
+        (
+            external_staging,
+            paths["target"] / "steamapps" / "downloading" / appid,
+        )
+    ]
+    module.disable_staging_bind(base, loaded, appid, storage)
+    (external_staging / "partial.bin").write_bytes(b"partial")
+    try:
+        module.enable_empty_staging_bind(base, paths, appid, storage)
+    except RuntimeError as error:
+        assert "must be empty" in str(error)
+    else:
+        raise AssertionError("nonempty external staging was accepted")
+
+
 def test_commit_staging(module, temporary):
     storage, _external, link, base = fixture(temporary)
     paths, _backup, _view_backup = module.prepare_layout(base, link, storage)
@@ -526,6 +563,7 @@ def main():
         test_removed_card,
         test_disabled,
         test_staging_bind,
+        test_empty_staging_bind,
         test_commit_staging,
         test_commit_staging_rejects_mismatched_overlap,
         test_registration,
