@@ -6,7 +6,7 @@ base=${STEAM_ARM64_BASE:-$HOME/steam-arm64}
 python=${NO_MANS_SKY_SETUP_PYTHON:-/data/data/com.termux/files/usr/bin/python3}
 prepare=$base/compat-bin/prepare-no-mans-sky-proton.py
 mapper=$HOME/bin/configure-steam-app-proton
-tool=steamclienttermux_nms_proton_11_arm64_192d6163
+tool=steamclienttermux_nms_proton_11_arm64_45a9ed5f
 
 [[ -x $python && -f $prepare && ! -L $prepare ]] || {
     printf 'setup-no-mans-sky: contained Proton preparation is unavailable\n' >&2

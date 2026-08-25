@@ -433,12 +433,17 @@ def main() -> None:
         nms_dll.parent.mkdir(parents=True)
         nms_dll.write_bytes(b"reviewed fixture")
         nms_dll.chmod(0o600)
-        nms_loader_root = (
-            nms_tool / "files/lib/wine/aarch64-unix/ntdll.so"
-        )
-        nms_loader_root.parent.mkdir(parents=True)
-        nms_loader_root.write_bytes(b"reviewed loader root fixture")
-        nms_loader_root.chmod(0o700)
+        nms_loaders = {
+            nms_tool / relative: expected_digest
+            for relative, expected_digest in (
+                MODULE.NMS_PROTON_LOADER_CHAIN_SHA256.items()
+            )
+        }
+        for nms_loader in nms_loaders:
+            nms_loader.parent.mkdir(parents=True, exist_ok=True)
+            nms_loader.write_bytes(b"reviewed loader fixture")
+            nms_loader.chmod(0o700)
+        nms_loader_root = nms_tool / "files/lib/wine/aarch64-unix/ntdll.so"
         nms_game = (
             nms_base
             / "removable-library/steamapps/common/No Man's Sky/Binaries/NMS.exe"
@@ -453,8 +458,8 @@ def main() -> None:
         MODULE.sha256_file = lambda path: (
             MODULE.NMS_PROTON_DLL_SHA256
             if path == nms_dll
-            else MODULE.NMS_PROTON_LOADER_ROOT_SHA256
-            if path == nms_loader_root
+            else nms_loaders[path]
+            if path in nms_loaders
             else original_sha256_file(path)
         )
         try:

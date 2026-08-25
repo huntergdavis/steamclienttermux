@@ -14,14 +14,27 @@ import stat
 import tempfile
 
 
-TOOL_NAME = "steamclienttermux_nms_proton_11_arm64_192d6163"
-TOOL_DIRECTORY = "steamclienttermux-nms-proton-11-arm64-192d6163"
+TOOL_NAME = "steamclienttermux_nms_proton_11_arm64_45a9ed5f"
+TOOL_DIRECTORY = "steamclienttermux-nms-proton-11-arm64-45a9ed5f"
 SOURCE_VERSION = b"1787334524 proton-11.0-2-arm64\n"
 DLL_RELATIVE = Path("files/lib/wine/aarch64-windows/lsteamclient.dll")
-LOADER_ROOT_RELATIVE = Path("files/lib/wine/aarch64-unix/ntdll.so")
-LOADER_ROOT_SHA256 = (
-    "9c618d49c9926f55d8a28f10c4cfd514d26e654d5bc36a1c639730abf61dd1ff"
-)
+LOADER_CHAIN_SHA256 = {
+    Path("files/bin-arm64/wine"): (
+        "75e9fd2766067c5fe828067bfe54960b04c1a43ac93ab7b234873b1b10a36bbb"
+    ),
+    Path("files/bin-arm64/wineserver"): (
+        "6aea2df358ac81cb00cd57a2e791a5ce21e7576fa78b2480746044dc111589aa"
+    ),
+    Path("files/lib/wine/aarch64-unix/ntdll.so"): (
+        "9c618d49c9926f55d8a28f10c4cfd514d26e654d5bc36a1c639730abf61dd1ff"
+    ),
+    Path("files/lib/wine/aarch64-unix/wine"): (
+        "37231b4f9f54f3fccfa39fa51e659398f4d761a4a97687a783052105be52fa46"
+    ),
+    Path("files/lib/wine/aarch64-unix/wine-preloader"): (
+        "50261d334faf41c5414edfcd8f3d1dfa26f0aa5a15c5efc655fac1c1690d709c"
+    ),
+}
 MARKER_NAME = ".steamclienttermux-nms-proton.json"
 RUNNING_COMMS = {"steam", "steamwebhelper", "wineserver"}
 
@@ -106,10 +119,12 @@ def owned_directory(path: Path, description: str) -> None:
 
 def expected_marker(spec: PatchSpec = NMS_INPUT_PATCH) -> dict[str, object]:
     return {
+        "loader_chain_sha256": {
+            str(path): digest for path, digest in LOADER_CHAIN_SHA256.items()
+        },
         "patch_offset": spec.offset,
         "patched_lsteamclient_sha256": spec.patched_sha256,
-        "loader_root_sha256": LOADER_ROOT_SHA256,
-        "schema_version": 2,
+        "schema_version": 3,
         "source_lsteamclient_sha256": spec.source_sha256,
         "source_version": SOURCE_VERSION.decode().strip(),
         "tool": TOOL_NAME,
@@ -151,10 +166,11 @@ def validate_source(source: Path, spec: PatchSpec) -> Path:
         stream.seek(spec.offset)
         if stream.read(len(spec.before)) != spec.before:
             raise ToolError("stock lsteamclient patch site is unexpected")
-    loader_root = source / LOADER_ROOT_RELATIVE
-    regular_owned(loader_root, "stock Wine loader root", executable=True)
-    if sha256(loader_root) != LOADER_ROOT_SHA256:
-        raise ToolError("stock Wine loader root hash is not reviewed")
+    for relative, expected_digest in LOADER_CHAIN_SHA256.items():
+        loader = source / relative
+        regular_owned(loader, f"stock Wine loader {relative}", executable=True)
+        if sha256(loader) != expected_digest:
+            raise ToolError(f"stock Wine loader hash is not reviewed: {relative}")
     return dll
 
 
@@ -169,10 +185,11 @@ def validate_tool(tool: Path, spec: PatchSpec = NMS_INPUT_PATCH) -> dict[str, ob
         stream.seek(spec.offset)
         if stream.read(len(spec.after)) != spec.after:
             raise ToolError("contained lsteamclient patch site is unexpected")
-    loader_root = tool / LOADER_ROOT_RELATIVE
-    regular_owned(loader_root, "contained Wine loader root", executable=True)
-    if sha256(loader_root) != LOADER_ROOT_SHA256:
-        raise ToolError("contained Wine loader root hash is unexpected")
+    for relative, expected_digest in LOADER_CHAIN_SHA256.items():
+        loader = tool / relative
+        regular_owned(loader, f"contained Wine loader {relative}", executable=True)
+        if sha256(loader) != expected_digest:
+            raise ToolError(f"contained Wine loader hash is unexpected: {relative}")
     marker_path = tool / MARKER_NAME
     regular_owned(marker_path, "contained Proton marker")
     try:
@@ -231,7 +248,7 @@ def prepare_tool(
         copied_files = {
             source / "proton",
             source / DLL_RELATIVE,
-            source / LOADER_ROOT_RELATIVE,
+            *(source / relative for relative in LOADER_CHAIN_SHA256),
         }
 
         def overlay_file(source_name: str, destination_name: str) -> str:

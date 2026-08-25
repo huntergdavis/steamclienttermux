@@ -10312,3 +10312,22 @@ validates the schema-2 marker, patched PE, and loader root before launch. The
 required exact `deja` queries returned no indexed implementation. This reuses
 the existing content-addressed direct runtime, AppID-only mapping, atomic
 `config.vdf` backup, and fail-closed object validation.
+
+## 2026-08-25: NMS complete contained Wine loader chain
+
+A clean setup/restart run disproved the schema-2 release assumption. Although
+the prefix linked to the patched PE and the overlay contained a private
+`ntdll.so`, `/proc/<NMS>/maps` showed stock Wine, preloader, `ntdll.so`, and
+stock PE inode `916986`; NMS reproduced `170671_0x15B2C`. The executable
+symlinks resolved into stock Proton before Wine selected its builtin root.
+
+Schema 3 content-addresses `45a9ed5f` and materializes the complete reviewed
+five-file ARM64 launch chain: `bin-arm64/wine`, `bin-arm64/wineserver`,
+`aarch64-unix/wine`, `wine-preloader`, and `ntdll.so`. The dispatcher validates
+every regular file and SHA-256 before accepting AppID 275850. Other unchanged
+Proton content stays symlinked, so this adds about 1.94 MB rather than another
+1.9 GB Proton tree. The old tool and stock Proton remain untouched.
+
+The exact `deja` queries for this launch-chain escape returned no indexed fix.
+This correction reuses the prior official Wine-loader source finding, the
+content-addressed overlay, exact AppID mapping, and fail-closed validators.

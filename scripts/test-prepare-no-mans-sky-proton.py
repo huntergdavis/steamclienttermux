@@ -29,9 +29,7 @@ with tempfile.TemporaryDirectory(prefix="nms-proton-tool.") as temporary:
     source = root / "source"
     tools = root / "tools"
     dll = source / module.DLL_RELATIVE
-    loader_root = source / module.LOADER_ROOT_RELATIVE
     dll.parent.mkdir(parents=True)
-    loader_root.parent.mkdir(parents=True)
     tools.mkdir(mode=0o700)
     source.chmod(0o700)
     before = b"ABCDEFGH"
@@ -47,11 +45,19 @@ with tempfile.TemporaryDirectory(prefix="nms-proton-tool.") as temporary:
     )
     dll.write_bytes(payload)
     dll.chmod(0o600)
-    loader_root_payload = b"reviewed Wine loader root"
-    loader_root.write_bytes(loader_root_payload)
-    loader_root.chmod(0o700)
-    original_loader_root_sha256 = module.LOADER_ROOT_SHA256
-    module.LOADER_ROOT_SHA256 = digest(loader_root_payload)
+    original_loader_chain_sha256 = module.LOADER_CHAIN_SHA256
+    loader_payloads = {
+        relative: f"reviewed Wine loader {relative}".encode()
+        for relative in original_loader_chain_sha256
+    }
+    module.LOADER_CHAIN_SHA256 = {
+        relative: digest(payload) for relative, payload in loader_payloads.items()
+    }
+    for relative, loader_payload in loader_payloads.items():
+        loader = source / relative
+        loader.parent.mkdir(parents=True, exist_ok=True)
+        loader.write_bytes(loader_payload)
+        loader.chmod(0o700)
     proton = source / "proton"
     proton.write_text("#!/bin/sh\nexit 0\n")
     proton.chmod(0o700)
@@ -68,10 +74,12 @@ with tempfile.TemporaryDirectory(prefix="nms-proton-tool.") as temporary:
     assert contained.read_bytes() == patched
     assert contained.stat().st_ino != dll.stat().st_ino
     assert (destination / "proton").stat().st_ino != proton.stat().st_ino
-    contained_loader_root = destination / module.LOADER_ROOT_RELATIVE
-    assert contained_loader_root.read_bytes() == loader_root_payload
-    assert contained_loader_root.stat().st_ino != loader_root.stat().st_ino
-    assert not contained_loader_root.is_symlink()
+    for relative, loader_payload in loader_payloads.items():
+        loader = source / relative
+        contained_loader = destination / relative
+        assert contained_loader.read_bytes() == loader_payload
+        assert contained_loader.stat().st_ino != loader.stat().st_ino
+        assert not contained_loader.is_symlink()
     assert (destination / "shared.bin").is_symlink()
     assert (destination / "shared.bin").resolve() == shared
     marker = module.validate_tool(destination, spec)
@@ -81,16 +89,19 @@ with tempfile.TemporaryDirectory(prefix="nms-proton-tool.") as temporary:
     repeated, changed = module.prepare_tool(source, tools, spec)
     assert repeated == destination and not changed
 
+    loader_root_relative = Path("files/lib/wine/aarch64-unix/ntdll.so")
+    loader_root = source / loader_root_relative
+    contained_loader_root = destination / loader_root_relative
     contained_loader_root.unlink()
     contained_loader_root.symlink_to(loader_root)
     try:
         module.validate_tool(destination, spec)
     except module.ToolError as error:
-        assert "loader root" in str(error)
+        assert "Wine loader" in str(error)
     else:
         raise AssertionError("symlinked Wine loader root was accepted")
     contained_loader_root.unlink()
-    contained_loader_root.write_bytes(loader_root_payload)
+    contained_loader_root.write_bytes(loader_payloads[loader_root_relative])
     contained_loader_root.chmod(0o700)
 
     contained.write_bytes(b"corrupt")
@@ -101,6 +112,6 @@ with tempfile.TemporaryDirectory(prefix="nms-proton-tool.") as temporary:
     else:
         raise AssertionError("corrupt contained DLL was accepted")
 
-    module.LOADER_ROOT_SHA256 = original_loader_root_sha256
+    module.LOADER_CHAIN_SHA256 = original_loader_chain_sha256
 
 print("contained No Man's Sky Proton tool tests: PASS")

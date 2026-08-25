@@ -54,19 +54,33 @@ FEX_2605_OFFLINE_COMPILER_DLL_SHA256 = {
     "libunwind.dll": "535c6c8626c75f2b57cba17e0b550131d5fd699119d274290116fbe31e5b6046",
 }
 FEX_OFFLINE_CACHE_NAME = "tombraider-203160-offline-7efb8f8e"
-NMS_PROTON_TOOL_DIRECTORY = "steamclienttermux-nms-proton-11-arm64-192d6163"
-NMS_PROTON_TOOL_NAME = "steamclienttermux_nms_proton_11_arm64_192d6163"
+NMS_PROTON_TOOL_DIRECTORY = "steamclienttermux-nms-proton-11-arm64-45a9ed5f"
+NMS_PROTON_TOOL_NAME = "steamclienttermux_nms_proton_11_arm64_45a9ed5f"
 NMS_PROTON_DLL_SHA256 = (
     "b00a3dcdcfceb60f1b0fc68347558d7933c15ac07bcac5cff703bbdff014501f"
 )
-NMS_PROTON_LOADER_ROOT_SHA256 = (
-    "9c618d49c9926f55d8a28f10c4cfd514d26e654d5bc36a1c639730abf61dd1ff"
-)
+NMS_PROTON_LOADER_CHAIN_SHA256 = {
+    "files/bin-arm64/wine": (
+        "75e9fd2766067c5fe828067bfe54960b04c1a43ac93ab7b234873b1b10a36bbb"
+    ),
+    "files/bin-arm64/wineserver": (
+        "6aea2df358ac81cb00cd57a2e791a5ce21e7576fa78b2480746044dc111589aa"
+    ),
+    "files/lib/wine/aarch64-unix/ntdll.so": (
+        "9c618d49c9926f55d8a28f10c4cfd514d26e654d5bc36a1c639730abf61dd1ff"
+    ),
+    "files/lib/wine/aarch64-unix/wine": (
+        "37231b4f9f54f3fccfa39fa51e659398f4d761a4a97687a783052105be52fa46"
+    ),
+    "files/lib/wine/aarch64-unix/wine-preloader": (
+        "50261d334faf41c5414edfcd8f3d1dfa26f0aa5a15c5efc655fac1c1690d709c"
+    ),
+}
 NMS_PROTON_MARKER = {
-    "loader_root_sha256": NMS_PROTON_LOADER_ROOT_SHA256,
+    "loader_chain_sha256": NMS_PROTON_LOADER_CHAIN_SHA256,
     "patch_offset": 0x800E8,
     "patched_lsteamclient_sha256": NMS_PROTON_DLL_SHA256,
-    "schema_version": 2,
+    "schema_version": 3,
     "source_lsteamclient_sha256": (
         "9d5289451c94e1eb8df5043f7c0341c1d817a74cc43ad1518099281a9c27f7a5"
     ),
@@ -1367,11 +1381,17 @@ def validated_no_mans_sky_command(
     proton = tool / "proton"
     marker = tool / ".steamclienttermux-nms-proton.json"
     dll = tool / "files/lib/wine/aarch64-windows/lsteamclient.dll"
-    loader_root = tool / "files/lib/wine/aarch64-unix/ntdll.so"
+    loaders = {
+        tool / relative: expected_digest
+        for relative, expected_digest in NMS_PROTON_LOADER_CHAIN_SHA256.items()
+    }
     for path, description in (
         (marker, "contained No Man's Sky Proton marker"),
         (dll, "contained No Man's Sky lsteamclient DLL"),
-        (loader_root, "contained No Man's Sky Wine loader root"),
+        *(
+            (loader, f"contained No Man's Sky Wine loader {loader.relative_to(tool)}")
+            for loader in loaders
+        ),
     ):
         try:
             metadata = path.lstat()
@@ -1392,8 +1412,12 @@ def validated_no_mans_sky_command(
         fail("contained No Man's Sky Proton marker is unexpected")
     if sha256_file(dll) != NMS_PROTON_DLL_SHA256:
         fail("contained No Man's Sky lsteamclient DLL hash is unexpected")
-    if sha256_file(loader_root) != NMS_PROTON_LOADER_ROOT_SHA256:
-        fail("contained No Man's Sky Wine loader root hash is unexpected")
+    for loader, expected_digest in loaders.items():
+        if sha256_file(loader) != expected_digest:
+            fail(
+                "contained No Man's Sky Wine loader hash is unexpected: "
+                f"{loader.relative_to(tool)}"
+            )
     game = (
         base
         / "removable-library/steamapps/common/No Man's Sky/Binaries/NMS.exe"

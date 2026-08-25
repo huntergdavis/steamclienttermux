@@ -25,12 +25,12 @@ Before the first launch, stop Steam and create the contained Proton tool:
 ```
 
 The command creates a small private overlay of the reviewed Proton 11 ARM64
-tree, copies Wine's loader root and Steam Input DLL, applies the exact reviewed
-patch, and maps only AppID 275850 to the new tool. It backs up `config.vdf`, is
+tree, copies Wine's five-file loader chain and Steam Input DLL, applies the
+exact reviewed patch, and maps only AppID 275850 to the new tool. It backs up `config.vdf`, is
 idempotent, and never changes stock Proton. Android SELinux denies hard links
 and reflinks here, so other payload files are read-only symlinks to the
-hash-checked stock build instead of a second 1.9 GB copy. The schema-2 content
-ID is `192d6163`, so an older experimental overlay cannot be mistaken for it.
+hash-checked stock build instead of a second 1.9 GB copy. The schema-3 content
+ID is `45a9ed5f`, so either older experimental overlay is rejected.
 
 The profile keeps a timestamped original and atomically replaces only a valid
 generated `TKGRAPHICSSETTINGS.MXML`:
@@ -104,8 +104,9 @@ game.
 
 The exact Steam Input failure has no indexed prior implementation. The release
 path now contains the exact eight-byte patch in a separately named Proton tool.
-Wine resolves builtins from `ntdll.so`, so that one loader root is a private,
-hash-checked copy too; otherwise Wine silently maps the stock Steam Input DLL.
+Wine resolves its executable root before builtins. The wrapper, Wine loader,
+preloader, wineserver, and `ntdll.so` are therefore private hash-checked copies;
+symlinking any of that chain can silently anchor lookup back in stock Proton.
 [Community report](https://steamcommunity.com/app/275850/discussions/0/595139710753458551/),
 [Proton source](https://github.com/ValveSoftware/Proton/blob/proton_11.0/lsteamclient/steam_input_manual.c),
 [Wine loader source](https://github.com/wine-mirror/wine/blob/master/tools/wine/wine.c).
