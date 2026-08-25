@@ -15,7 +15,7 @@ contain Valve binaries, games, credentials, or account state.
 | --- | --- | --- |
 | Tomb Raider performance | 1080p tuned Ultra: **30.7 FPS average** | Replicate and generalize the profile |
 | Steam startup | UI **1.662s**; cold AppID **21.80s**; cold game **49.513s** | Connect AppID acceptance to the direct game route |
-| Easy distribution | Reproducible ZIP + restartable seed setup/rollback | Build/install the open-source runtime |
+| Easy distribution | Reproducible ZIP + four automated runtime phases | Build/install patched glibc and PRoot |
 
 | Component | Verified |
 | --- | --- |
@@ -86,14 +86,15 @@ After installing Termux and Termux:X11, the Option-A release uses one command:
 scripts/bootstrap-termux-stack.sh
 ```
 
-It installs the tested Termux dependencies, fetches Valve's ARM64 Steam seed
-from Valve, verifies it, and writes restartable receipts. Current boundary:
+It installs dependencies, fetches Valve's ARM64 seed and Turnip from their
+publishers, then builds/tests tgcompat from its locked source commit. Current
+boundary:
 
 | Automated | Still in progress |
 | --- | --- |
-| 36 Termux packages and Termux:X11 companion | patched glibc and PRoot build |
-| Locked Valve seed and Turnip acquisition | product launchers and final doctor |
-| Interruption recovery and seed rollback | fresh-device end-to-end proof |
+| 36 Termux packages; Valve seed; Turnip | patched glibc package and PRoot |
+| Native tgcompat build, tests, receipt | product launchers and first-run setup |
+| Idempotent, private staged promotion | full rollback and fresh-device proof |
 
 The release ZIP contains only project source and locks—never Valve binaries,
 games, credentials, or account data. Long-term, the same engine becomes a

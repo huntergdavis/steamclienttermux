@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "gate": "locked-tgcompat-native-runtime-install",
+  "date": "2026-08-24",
+  "result": "pass",
+  "source": {
+    "repository": "https://github.com/huntergdavis/termux-glibc-compat.git",
+    "commit": "9b0ccde357cbf238a16c51427771ec50af154e60",
+    "license": "MIT"
+  },
+  "build": {
+    "command": "scripts/build-release.sh --native --check --jobs 8",
+    "seconds": 19.354,
+    "all_native_checks_passed": true,
+    "installer_log_sha256": "6446a702dc4400861769286ffabb042e75423f954fd680bca730382819bebce1"
+  },
+  "tablet_candidate": {
+    "path": "/data/data/com.termux/files/home/steam-arm64/candidates/option-a-tgcompat-installer.NrAXLj2l",
+    "active_runtime_modified": false,
+    "first_result": "installed",
+    "second_result": "already-ready",
+    "rerun_log_sha256": "a11b467c8f3587ce58003d084f4553841012349f0a38ffc37a76647687ecb382"
+  },
+  "artifacts": {
+    "build/tgcompatd": "20b795d7ac939832868b776ce88ad17bf7777c5cf0a5212160ce1040670a08bc",
+    "build/libtgcompat-exec.so": "73cfc2fcfe2bef852e682a8a3345fb823d244e89008c2d4fc3b2bd1c56b656de",
+    "build/libtgcompat-android-root.so": "fa4e94165257bb4027fc497023f39238ecb63a09581ebba35ce708338542c0f0",
+    "build/libtgcompat-robust.so": "31b47bfc9d86056428d032529723b8c7b446669c7d113dfb04fb2995d47c5ec5",
+    "build/libtgcompat-mprotect.so": "e12d25a109641616cd0d629cc2bc3a9801d3bcc9850eebc3702aa23322e81185",
+    "build/libtgcompat-raknet-recv.so": "e4901f3f1702d69ac2458bf8b1a683d8d2826d49cc50876dfc4849b4089c00b0",
+    "scripts/tgcompat-session.sh": "393ee96b68c5ad690d2156cf35450ef2afe71b7b0bb2d92c22f31d869cdcd06c"
+  },
+  "contracts": {
+    "exact_detached_source_commit": true,
+    "tracked_source_clean": true,
+    "tracked_symlinks_rejected": true,
+    "failed_build_not_promoted": true,
+    "artifact_tampering_rejected": true,
+    "caller_build_environment_sanitized": true,
+    "content_receipt_written": true,
+    "product_owned_current_selector": true
+  },
+  "scope": {
+    "fresh_full_stack_install": false,
+    "active_steam_launch": false,
+    "patched_glibc_package_installed": false,
+    "patched_proot_installed": false,
+    "reference_hashes_are_device_specific": true
+  },
+  "reuse": "The required deja query returned no indexed implementation. This gate reuses the Turnip installer's private staging, receipt, idempotence, and atomic-promotion pattern."
+}

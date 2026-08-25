@@ -1816,7 +1816,9 @@ def pv_smoke_invocation(
             if not argument.startswith("--assign-fd=")
         ]
     rewritten.extend(["--set-ld-library-path", libraries, "--", *command])
-    compat_repo = Path.home() / "workspace/termux-glibc-compat"
+    compat_repo = Path(
+        os.environ.get("TGCOMPAT_REPO", str(base / "tgcompat/current"))
+    )
     entry_preloads = [
         base / "compat-bin/steam-arm64-native-tmp.so",
         compat_repo / "build/libtgcompat-android-root.so",

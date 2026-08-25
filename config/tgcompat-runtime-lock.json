@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "profile_id": "tgcompat-native-aarch64-20260824",
+  "platform": {
+    "architectures": [
+      "aarch64"
+    ],
+    "environment": "official-termux"
+  },
+  "source": {
+    "repository": "https://github.com/huntergdavis/termux-glibc-compat.git",
+    "commit": "9b0ccde357cbf238a16c51427771ec50af154e60"
+  },
+  "build": {
+    "script": "scripts/build-release.sh",
+    "profile": "native",
+    "checks": true,
+    "maximum_jobs": 8,
+    "artifacts": [
+      "build/tgcompatd",
+      "build/libtgcompat-exec.so",
+      "build/libtgcompat-android-root.so",
+      "build/libtgcompat-robust.so",
+      "build/libtgcompat-mprotect.so",
+      "build/libtgcompat-raknet-recv.so"
+    ],
+    "required_files": [
+      "scripts/tgcompat-session.sh"
+    ]
+  },
+  "tested_reference": {
+    "device": "Samsung SM-X808U",
+    "android_sdk": 36,
+    "artifact_sha256": {
+      "build/tgcompatd": "20b795d7ac939832868b776ce88ad17bf7777c5cf0a5212160ce1040670a08bc",
+      "build/libtgcompat-exec.so": "73cfc2fcfe2bef852e682a8a3345fb823d244e89008c2d4fc3b2bd1c56b656de",
+      "build/libtgcompat-android-root.so": "fa4e94165257bb4027fc497023f39238ecb63a09581ebba35ce708338542c0f0",
+      "build/libtgcompat-robust.so": "31b47bfc9d86056428d032529723b8c7b446669c7d113dfb04fb2995d47c5ec5",
+      "build/libtgcompat-mprotect.so": "e12d25a109641616cd0d629cc2bc3a9801d3bcc9850eebc3702aa23322e81185",
+      "build/libtgcompat-raknet-recv.so": "e4901f3f1702d69ac2458bf8b1a683d8d2826d49cc50876dfc4849b4089c00b0"
+    },
+    "build_log_sha256": "815eeb88c841c8527f820501c0b218835a1c1e2b0a7700c64351f2ac13ba1aa8"
+  },
+  "distribution": {
+    "project_redistributes_binaries": false,
+    "retrieval": "build from the exact public source commit on the target",
+    "license": "MIT"
+  }
+}

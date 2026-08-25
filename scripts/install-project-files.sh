@@ -8,7 +8,7 @@ backup="$base/backups/repo-install-$stamp"
 proot_patch_stamp="$base/src/proot-production/.steamclienttermux-patchset"
 proot_binary="$base/src/proot-production/src/proot"
 required_proot_patch="proot-runtime-directory-bind-target.patch"
-raknet_recv_shim=${TGCOMPAT_RAKNET_RECV_SHIM:-$HOME/workspace/termux-glibc-compat/build/libtgcompat-raknet-recv.so}
+raknet_recv_shim=${TGCOMPAT_RAKNET_RECV_SHIM:-$base/tgcompat/current/build/libtgcompat-raknet-recv.so}
 
 command -v sha256sum >/dev/null || { echo 'sha256sum is required' >&2; exit 1; }
 if [[ ! -f $raknet_recv_shim || -L $raknet_recv_shim ]] ||

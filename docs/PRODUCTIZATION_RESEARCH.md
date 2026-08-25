@@ -74,7 +74,8 @@ three relative symlinks, and promotes only a complete verified staging tree.
 
 1. Install Termux and the matching Termux:X11 package from one trusted source.
 2. Download one signed project release archive.
-3. Run `scripts/bootstrap-termux-stack.sh` from the verified release.
+3. Run `scripts/bootstrap-termux-stack.sh` from the verified release; it now
+   completes dependencies, Valve seed, Turnip, and native tgcompat.
 4. The bootstrap verifies Android/device prerequisites and free space.
 5. It installs open-source helpers transactionally and fetches locked external
    payloads directly from their publishers.

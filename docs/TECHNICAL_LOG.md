@@ -10059,3 +10059,24 @@ The required exact Mesa/Turnip `deja` query returned no indexed implementation;
 this gate reuses the project's locked-download, safe-promotion, and exact
 receipt patterns.
 [Evidence](evidence/steam-turnip-runtime-lock-host-20260824.json)
+
+## 2026-08-24: lock and install the native tgcompat runtime
+
+The working tgcompat tree contained a real but uncommitted removable-storage
+`flock` fallback. A clean rebuild exposed that difference instead of blessing
+older source. The fallback and its tests were integrated with the current
+RakNet backoff, passed host and native tablet suites, and were pushed to
+`termux-glibc-compat` main as `9b0ccde`.
+
+Option A now clones that exact public commit into private staging, runs the
+native optimized build plus every check, hashes six outputs and the session
+helper, records elapsed time, and atomically promotes a content-addressed
+source/build tree. A fresh isolated tablet install completed in 19.354 seconds;
+the second run returned `already-ready`. Failed builds, tracked drift,
+symlinks, unsafe selectors, and modified outputs fail closed. Launchers now
+default to `tgcompat/current` rather than a developer workspace checkout.
+
+The required exact `deja` queries returned no indexed implementation. This
+phase reuses the Turnip installer's private staging, receipt, idempotence, and
+rename-promotion boundaries.
+[Evidence](evidence/steam-tgcompat-runtime-install-tablet-20260824.json)

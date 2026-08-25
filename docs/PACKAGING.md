@@ -92,6 +92,25 @@ descendants, expanded-size changes, and any driver mismatch. Promotion is by
 rename after verification; an unchanged receipted rerun is idempotent. The
 project fetches the archive from the publisher and does not rebundle it.
 
+## Locked native compatibility runtime
+
+The next Option-A phase builds tgcompat from exact public source:
+
+```sh
+python3 scripts/install-tgcompat-runtime.py --base "$HOME/steam-arm64"
+```
+
+[`tgcompat-runtime-lock.json`](../config/tgcompat-runtime-lock.json) pins the
+Git origin and full commit. The installer stages a detached clone, rejects
+tracked drift and symlinks, runs the optimized native build and full tests,
+hashes six binaries plus the session helper, and records elapsed time before
+rename promotion. `tgcompat/current` is a product-owned selector; an unchanged
+rerun does no work. Native hashes are device evidence, not equality constraints
+across different ARM64 CPUs.
+
+Option B will build that same locked source in release infrastructure and
+deliver it through a signed Termux repository `.deb`.
+
 The lower-level verifier can also use an already-downloaded archive:
 
 ```sh

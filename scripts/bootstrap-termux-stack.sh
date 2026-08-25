@@ -7,6 +7,8 @@ profile=$repo_root/config/termux-setup-profile.json
 lock=$repo_root/config/steam-arm64-bootstrap-lock.json
 turnip_lock=$repo_root/config/turnip-runtime-lock.json
 turnip_installer=$repo_root/scripts/install-turnip-runtime.py
+tgcompat_lock=$repo_root/config/tgcompat-runtime-lock.json
+tgcompat_installer=$repo_root/scripts/install-tgcompat-runtime.py
 base=${STEAM_ARM64_BASE:-$HOME/steam-arm64}
 
 fail() {
@@ -20,7 +22,9 @@ fail() {
     fail "unsafe or missing Termux package manager: $PREFIX/bin/pkg"
 [[ -f $setup && ! -L $setup && -f $profile && ! -L $profile &&
         -f $lock && ! -L $lock && -f $turnip_lock && ! -L $turnip_lock &&
-        -f $turnip_installer && ! -L $turnip_installer ]] ||
+        -f $turnip_installer && ! -L $turnip_installer &&
+        -f $tgcompat_lock && ! -L $tgcompat_lock &&
+        -f $tgcompat_installer && ! -L $tgcompat_installer ]] ||
     fail 'release archive is incomplete or contains unsafe links'
 [[ $(getprop ro.product.cpu.abi) == arm64-v8a ]] ||
     fail 'this profile requires an ARM64 Android device'
@@ -32,4 +36,5 @@ fi
 python3 "$setup" --package-profile "$profile" \
     dependencies --install --yes --base "$base"
 python3 "$setup" --lock "$lock" prepare --base "$base"
-exec python3 "$turnip_installer" --lock "$turnip_lock" install --base "$base"
+python3 "$turnip_installer" --lock "$turnip_lock" install --base "$base"
+exec python3 "$tgcompat_installer" --lock "$tgcompat_lock" --base "$base"
