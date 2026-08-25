@@ -691,9 +691,16 @@ done
 [[ "$display" =~ ^:[0-9]+$ ]] || fail "invalid X display: $display"
 [[ -x "$steam_launcher" ]] || fail "Steam launcher is unavailable: $steam_launcher"
 [[ -x "$pulse_helper" ]] || fail "PulseAudio helper is unavailable: $pulse_helper"
-[[ -x "$affinity_helper" ]] || fail "affinity helper is unavailable: $affinity_helper"
-[[ -x "$gtaiv_affinity_helper" ]] ||
-    fail "GTA IV affinity helper is unavailable: $gtaiv_affinity_helper"
+case "$requested_appid" in
+    203160)
+        [[ -x "$affinity_helper" ]] ||
+            fail "Tomb Raider affinity helper is unavailable: $affinity_helper"
+        ;;
+    12210)
+        [[ -x "$gtaiv_affinity_helper" ]] ||
+            fail "GTA IV affinity helper is unavailable: $gtaiv_affinity_helper"
+        ;;
+esac
 [[ -f $process_match_helper && ! -L $process_match_helper ]] ||
     fail "process matcher is unavailable: $process_match_helper"
 [[ -x $forward_dispatcher && ! -L $forward_dispatcher ]] ||

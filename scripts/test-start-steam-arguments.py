@@ -51,6 +51,16 @@ def main():
     assert 'app_launch_waiter="$base/compat-bin/wait-steam-app-launch.sh"' in source
     assert '"$app_launch_waiter" \\' in source
     assert '--steam-start-ticks "$expected_start_ticks"' in source
+    validation_start = source.index('[[ -x "$pulse_helper" ]]')
+    helper_checks = source[source.index('case "$requested_appid" in', validation_start) :]
+    helper_checks = helper_checks[: helper_checks.index("esac") + len("esac")]
+    assert '203160)' in helper_checks
+    assert '12210)' in helper_checks
+    assert 'Tomb Raider affinity helper is unavailable' in helper_checks
+    assert 'GTA IV affinity helper is unavailable' in helper_checks
+    validation_prefix = source[validation_start : source.index('case "$requested_appid" in', validation_start)]
+    assert '[[ -x "$affinity_helper" ]]' not in validation_prefix
+    assert '[[ -x "$gtaiv_affinity_helper" ]]' not in validation_prefix
     assert 'sleep 1' not in source[source.index("wait_for_app_launch()") : source.index("read_process_cgroups()")]
     assert 'if [[ $forward_bootstrap == fast ]]' in source
     assert 'fast_forward_authenticated=1' in source

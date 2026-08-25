@@ -7,6 +7,7 @@ per-game tuning are optional profiles.
 | --- | --- | --- |
 | Developer checkout paths leaked into launchers | Use `$STEAM_ARM64_BASE/tgcompat/current` | Fixed |
 | Unknown AppIDs were rejected | Launch every AppID generically; profiles only optimize | Fixed |
+| Generic games required Tomb Raider/GTA IV helpers | Validate a tuning helper only for its matching AppID | Fixed |
 | Caller build variables could change tgcompat | Sanitize compiler, preload, Make, and Git overrides | Fixed |
 | Setup plan omitted completed tgcompat work | Keep the plan and doctor source inventory executable | Fixed |
 | SD-card behavior complicates locks and executable mappings | Default to Termux private storage | Fixed policy |

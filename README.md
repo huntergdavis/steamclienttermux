@@ -74,8 +74,9 @@ Launch or stop a game session:
 ~/stop-steam-native.sh
 ```
 
-The AppID command launches any installed game through Steam's generic route.
-A reviewed manifest entry can replace that route with measured optimizations.
+The AppID command launches any installed game through Steam's generic route;
+it does not require another game's tuning helpers. A reviewed manifest entry
+can replace that route with measured optimizations.
 `~/start-tombraider.sh` is the Tomb Raider shortcut.
 
 Startup prefetch is generic and manifest-driven, but remains off for Tomb Raider
