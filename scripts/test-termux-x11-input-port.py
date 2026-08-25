@@ -25,6 +25,11 @@ def main() -> None:
 
     assert "new GamepadBridge(this)" in patch
     assert "mGamepadBridge.close()" in patch
+    assert "Executors.newSingleThreadExecutor" in bridge
+    assert "sender.execute" in bridge
+    assert "current.send(new DatagramPacket" in bridge
+    assert "sender.shutdownNow()" in bridge
+    assert "current.send(new DatagramPacket(bytes, bytes.length, target));\n        }" not in bridge
     assert "e.getHistorySize()" in patch
     assert "getHistoricalAxisValue(MotionEvent.AXIS_RELATIVE_X" in patch
     assert "ACTION_HOVER_MOVE" in patch

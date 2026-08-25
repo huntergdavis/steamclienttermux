@@ -11,5 +11,6 @@ Base: Termux:X11 `54d159166a4d8573da54d693e461a1def3751248`.
 3. Build the shared-UID APK normally.
 
 The controller bridge is localhost-only. It advertises XInput only while a
-real Android gamepad is connected and clears state on hot-unplug. Touch and
-touchpad events never request pointer capture; physical mouse events do.
+real Android gamepad is connected, sends UDP off Android's UI thread, and
+clears state on hot-unplug. Touch and touchpad events never request pointer
+capture; physical mouse events do.

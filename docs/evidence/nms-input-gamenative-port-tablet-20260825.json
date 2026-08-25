@@ -1,15 +1,15 @@
 {
   "schema": 1,
-  "captured_at": "2026-08-25T13:44:08-0700",
-  "source_base": "114b910e5686eeb3a6868b662794b97fa5a4805f",
+  "captured_at": "2026-08-25T14:19:00-0700",
+  "source_base": "526ada31b5599a92e70af90a98a19655b0796e59",
   "reuse": {
     "deja_query_result": "no indexed implementation",
     "gamenative_commit": "1ad70ae54dcac1b9ae50d0b42c816e95f40cf22f",
     "termux_x11_base": "54d159166a4d8573da54d693e461a1def3751248"
   },
   "installed": {
-    "termux_x11_version_code": 18,
-    "termux_x11_apk_sha256": "7023be75a977cda3021f30558e060a5a0cfda0c83b7933aac1c0d68ca5f8a6d0",
+    "termux_x11_version_code": 19,
+    "termux_x11_apk_sha256": "654a2d5ec7c1aa59d58621e0163483c2658e4f87d22946aaab4390432391ea6a",
     "dispatcher_sha256": "4fa58e51410e11455b80612081ab51195d3eca682606828f933808d8c14ea2f6",
     "xinput9_1_0_sha256": "11e928f5e337680efa6baa6e2a839795a79bd752387b1e0956ea805f1a25fa43"
   },
@@ -18,10 +18,18 @@
     "mouse_enabled_pointer_capture": true,
     "escape_released_pointer_capture": true,
     "no_controller_reply_codes": [10],
-    "no_controller_state_packets": true
+    "no_controller_state_packets": true,
+    "connected_controller_name": "8BitDo Lite 2",
+    "connected_controller_device_id": 41,
+    "connected_reply_codes": [8, 9],
+    "network_on_main_thread_errors": 0,
+    "app_local_xinput_mapped_in_nms": true,
+    "nms_rendered_immersive_fullscreen": true,
+    "new_nms_crash_dumps": 0
   },
   "claims": {
     "hotplug_disconnect_protocol": true,
+    "hotplug_connected_protocol": true,
     "touch_mouse_path_separation": true,
     "connected_controller_buttons_in_nms": false,
     "external_trackpad_user_confirmation": false,

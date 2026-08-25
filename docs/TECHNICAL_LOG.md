@@ -10438,3 +10438,33 @@ uses explicit IPv4. The Wine XInput DLL listens on IPv4 and IPv6 and consumes
 the release packet immediately. With the bonded 8BitDo asleep, the live probe
 received only release code 10 and no state code 9. App-local DLL and dispatcher
 hashes were deployed with a no-clobber rollback; live button/axis proof remains.
+
+## 2026-08-25: live 8BitDo state and Android sender fix
+
+The first real 8BitDo motion event reached `GamepadBridge`, then Android
+rejected its UDP write with `NetworkOnMainThreadException`. Input callbacks run
+on the Activity UI thread. Version 19 moves outbound packets to one ordered
+background sender and shuts it down with the Activity; wire format and Wine
+consumer stay unchanged.
+
+| Gate | Result |
+| --- | --- |
+| APK | version 19, SHA-256 `654a2d5e...ea6a`, signer unchanged |
+| Real controller | `8BitDo Lite 2`, Android device 41 |
+| Protocol | handshake 8 plus repeated state 9; no release 10 while connected |
+| Android errors | zero send failures / main-thread network exceptions |
+| Wine | exact app-local `xinput9_1_0.dll` mapped by NMS |
+| Visible | NMS THE SWARM screen in Samsung immersive fullscreen |
+| Crash | zero new NMS dumps during this launch |
+
+The package was updated through a shell-owned `pm install -r`; launching the
+installer from the Termux shared UID kills its own host process and can roll
+back. The post-update cold diagnostic took 183.75 seconds to AppID acceptance
+(99.00 seconds to remembered login, then 84.75 seconds through Steam cloud,
+stats, license, and driver-query work). This is retained as a cold diagnostic,
+not a replacement for the established 21.80-second clean baseline.
+
+The required `deja` searches found no indexed implementation. The fix reuses
+GameNative's device lifecycle and this project's bounded localhost protocol.
+Visible in-game button/axis response and external-trackpad user confirmation
+remain open; neither is inferred from transport or DLL mapping alone.

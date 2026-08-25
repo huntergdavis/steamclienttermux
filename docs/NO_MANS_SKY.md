@@ -216,10 +216,12 @@ The patched Termux:X11 input layer keeps three paths distinct:
 | Physical gamepad | Hot-plugged localhost transport to app-local XInput |
 
 The live tablet gate proved a touchscreen tap left capture disabled, a mouse
-event enabled capture, and Esc released it. With the paired 8BitDo asleep, the
-bridge returned an explicit disconnect rather than advertising a fake zeroed
-controller. The remaining controller gate is one connected button/axis event
-through `XInputGetState` in NMS.
+event enabled capture, and Esc released it. Hot-unplug returns an explicit
+disconnect rather than advertising a fake zeroed controller. With the real
+8BitDo connected, version 19 emitted a valid handshake and state stream; NMS
+mapped the exact app-local XInput DLL and rendered in immersive fullscreen.
+The remaining controller gate is visible confirmation that a button or axis
+changes NMS input through `XInputGetState`.
 
 This ports the bounded hot-plug and dual-input patterns from GameNative while
 retaining this project's native Steam/glibc route. See

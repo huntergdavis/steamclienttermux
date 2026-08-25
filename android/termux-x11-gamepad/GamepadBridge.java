@@ -17,6 +17,9 @@ import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 
 /** Android gamepad to a bounded localhost XInput transport. */
 public final class GamepadBridge implements AutoCloseable, InputManager.InputDeviceListener {
@@ -33,6 +36,11 @@ public final class GamepadBridge implements AutoCloseable, InputManager.InputDev
 
     private final Object lock = new Object();
     private final InputManager inputManager;
+    private final ExecutorService sender = Executors.newSingleThreadExecutor(task -> {
+        Thread worker = new Thread(task, "TermuxX11-GamepadSender");
+        worker.setDaemon(true);
+        return worker;
+    });
     private volatile DatagramSocket socket;
     private volatile SocketAddress peer;
     private Thread thread;
@@ -84,6 +92,7 @@ public final class GamepadBridge implements AutoCloseable, InputManager.InputDev
         socket = null;
         peer = null;
         if (current != null) current.close();
+        sender.shutdownNow();
         Thread currentThread = thread;
         thread = null;
         if (currentThread != null && currentThread != Thread.currentThread()) {
@@ -222,9 +231,15 @@ public final class GamepadBridge implements AutoCloseable, InputManager.InputDev
         SocketAddress target = peer;
         if (!running || current == null || target == null) return;
         try {
-            current.send(new DatagramPacket(bytes, bytes.length, target));
-        } catch (Exception error) {
-            if (running) Log.e(TAG, "gamepad send failed", error);
+            sender.execute(() -> {
+                try {
+                    current.send(new DatagramPacket(bytes, bytes.length, target));
+                } catch (Exception error) {
+                    if (running) Log.e(TAG, "gamepad send failed", error);
+                }
+            });
+        } catch (RejectedExecutionException ignored) {
+            // Activity teardown won the race with this input event.
         }
     }
 
