@@ -72,6 +72,8 @@ def main():
     assert 'x11_cold_start=0' in source
     assert 'x11_start_source=reused' in source
     assert 'x11_start_source=manual' in source
+    assert 'pointerCapture:false' in source
+    assert '<boolean name="pointerCapture" value="false" />' in source
     authoritative = source.index("# Start exactly one authoritative server")
     manual_launch = source.index('nohup termux-x11 "$display" -ac', authoritative)
     settle = source.index("# The CLI can briefly expose both its launcher", manual_launch)

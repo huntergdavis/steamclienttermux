@@ -10371,3 +10371,22 @@ disabling CPU, GPU, battery, device-battery, throttling, and graph display.
 The required `deja` query found no indexed Android battery-probe fix. This
 reuses the private run directory, exact layer/config validation, and fail-closed
 environment reconstruction from the first telemetry slice.
+
+## 2026-08-25: stable pointer and NMS Steam Input boundary
+
+The recurring center warp was not an old launch helper. The live Termux:X11
+preferences had `pointerCapture=true`; the repository contains no pointer-warp
+command. After setting only `pointerCapture=false`, a 10-second X11 sample held
+the cursor at `(173,211)` without recentering. Cold launches now enforce and
+verify that persisted preference alongside trackpad mode and the idle policy.
+
+Steam's screenshot-verified NMS Controller page already enabled Xbox,
+PlayStation, Switch, and generic controllers. An explicit per-game override was
+also enabled. Android simultaneously exposed the paired `8BitDo Lite 2` as a
+gamepad/joystick, but Steam logged no opened controller. The remaining blocker
+is therefore Android-to-Linux controller transport in stock Termux:X11, not an
+NMS or Steam Input toggle. No controller-support claim is made yet.
+
+The required mouse and controller `deja` queries found no indexed fix. The
+launcher change reuses the existing persisted-preference cold-start gate and
+its rule against live preference reloads during rendering.

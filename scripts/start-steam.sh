@@ -268,6 +268,7 @@ configure_x11_preferences() {
     for _ in $(seq 1 5); do
         if output="$(timeout 10 termux-x11-preference \
                 touchMode:Trackpad \
+                pointerCapture:false \
                 'screenIdleTimeout:Never (keep screen on)' 2>&1)"; then
             return 0
         fi
@@ -281,6 +282,8 @@ configure_x11_preferences() {
 x11_preferences_are_configured() {
     [[ -f "$x11_preferences" && ! -L "$x11_preferences" ]] || return 1
     grep -Fq '<string name="touchMode">1</string>' "$x11_preferences" &&
+        grep -Fq '<boolean name="pointerCapture" value="false" />' \
+            "$x11_preferences" &&
         grep -Fq '<string name="screenIdleTimeout">never</string>' \
             "$x11_preferences"
 }
