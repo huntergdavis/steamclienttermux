@@ -18,6 +18,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_SOURCE = (
     "config/steam-arm64-bootstrap-lock.json",
     "config/glibc-runtime-lock.json",
+    "config/proot-runtime-lock.json",
     "config/tgcompat-runtime-lock.json",
     "config/termux-setup-profile.json",
     "config/turnip-runtime-lock.json",
@@ -26,6 +27,8 @@ REQUIRED_SOURCE = (
     "scripts/build-release-archive.py",
     "scripts/install-tgcompat-runtime.py",
     "scripts/install-glibc-runtime.py",
+    "scripts/install-proot-runtime.py",
+    "scripts/build-proot.sh",
     "scripts/install-turnip-runtime.py",
     "scripts/steam-stack-doctor.py",
     "artifacts/glibc_2.44_aarch64.deb",
@@ -237,6 +240,22 @@ def collect_checks(
                 "pass" if valid_tgcompat else "fail",
                 str(tgcompat_root or tgcompat),
                 "run the locked tgcompat runtime installer",
+            )
+        )
+        proot = base / "src/proot-production"
+        proot_binary = proot / "src/proot"
+        proot_stamp = proot / ".steamclienttermux-patchset"
+        proot_receipt = proot / ".steamclienttermux-proot-receipt.json"
+        valid_proot = all(
+            path.is_file() and not path.is_symlink()
+            for path in (proot_binary, proot_stamp, proot_receipt)
+        ) and os.access(proot_binary, os.X_OK)
+        checks.append(
+            Check(
+                "patched PRoot",
+                "pass" if valid_proot else "fail",
+                str(proot_binary),
+                "run the locked patched PRoot installer",
             )
         )
 

@@ -15,7 +15,7 @@ contain Valve binaries, games, credentials, or account state.
 | --- | --- | --- |
 | Tomb Raider performance | 1080p tuned Ultra: **30.7 FPS average** | Replicate and generalize the profile |
 | Steam startup | UI **1.662s**; cold AppID **21.80s**; cold game **49.513s** | Connect AppID acceptance to the direct game route |
-| Easy distribution | 13.47 MB deterministic ZIP; tablet doctor PASS | Package PRoot and product launchers |
+| Easy distribution | Locked ZIP bootstrap through patched PRoot | Package minimal Debian + product launchers |
 
 | Component | Verified |
 | --- | --- |
@@ -87,16 +87,16 @@ scripts/bootstrap-termux-stack.sh
 ```
 
 It installs dependencies, fetches Valve's ARM64 seed and Turnip from their
-publishers, builds/tests tgcompat, then verifies and privately stages the
-locked patched-glibc package. Current boundary:
+publishers, builds/tests tgcompat, stages patched glibc, and builds the exact
+patched PRoot used by the fast launch path. Current boundary:
 
 The default base is Termux's private internal storage. Removable/SD storage is
 an optional compatibility profile, not a first-run question.
 
 | Automated | Still in progress |
 | --- | --- |
-| 36 Termux packages; Valve seed; Turnip | PRoot/runtime materialization |
-| Native tgcompat; patched glibc | product launchers and first-run setup |
+| 36 Termux packages; Valve seed; Turnip | minimal Debian runtime |
+| Native tgcompat; patched glibc; PRoot | product launchers and first-run setup |
 | Idempotent, private staged promotion | full rollback and fresh-device proof |
 
 The release ZIP contains project source plus the audited open-source glibc

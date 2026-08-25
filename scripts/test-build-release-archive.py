@@ -54,6 +54,7 @@ def fixture_repo(root: Path, glibc_package: bytes) -> str:
                 }
             }
         ).encode() + b"\n",
+        "config/proot-runtime-lock.json": b"{}\n",
         "config/steam-arm64-bootstrap-lock.json": b"{}\n",
         "config/termux-setup-profile.json": b"{}\n",
         "config/turnip-runtime-lock.json": b"{}\n",
@@ -64,6 +65,8 @@ def fixture_repo(root: Path, glibc_package: bytes) -> str:
         "scripts/install-turnip-runtime.py": b"#!/usr/bin/env python3\n",
         "scripts/install-tgcompat-runtime.py": b"#!/usr/bin/env python3\n",
         "scripts/install-glibc-runtime.py": b"#!/usr/bin/env python3\n",
+        "scripts/install-proot-runtime.py": b"#!/usr/bin/env python3\n",
+        "scripts/build-proot.sh": b"#!/data/data/com.termux/files/usr/bin/bash\n",
         "scripts/setup-steam-stack.py": b"#!/usr/bin/env python3\n",
         "scripts/steam-stack-doctor.py": b"#!/usr/bin/env python3\n",
         "scripts/check-project.sh": b"#!/bin/sh\nexit 0\n",
@@ -136,6 +139,8 @@ def main() -> None:
                 assert f"{prefix}/scripts/bootstrap-termux-stack.sh" in names
                 assert f"{prefix}/scripts/build-release-archive.py" in names
                 assert f"{prefix}/scripts/install-glibc-runtime.py" in names
+                assert f"{prefix}/scripts/install-proot-runtime.py" in names
+                assert f"{prefix}/config/proot-runtime-lock.json" in names
                 assert f"{prefix}/artifacts/glibc_2.44_aarch64.deb" in names
                 assert f"{prefix}/RELEASE-MANIFEST.json" in names
                 assert not any("excluded" in name for name in names)

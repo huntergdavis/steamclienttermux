@@ -43,6 +43,7 @@ INCLUDED_FILES = {
 REQUIRED_FILES = {
     "README.md",
     "config/glibc-runtime-lock.json",
+    "config/proot-runtime-lock.json",
     "config/steam-arm64-bootstrap-lock.json",
     "config/termux-setup-profile.json",
     "config/turnip-runtime-lock.json",
@@ -55,6 +56,8 @@ REQUIRED_FILES = {
     "scripts/install-turnip-runtime.py",
     "scripts/install-tgcompat-runtime.py",
     "scripts/install-glibc-runtime.py",
+    "scripts/install-proot-runtime.py",
+    "scripts/build-proot.sh",
     "scripts/steam-stack-doctor.py",
     "docs/PRODUCTIZATION_RESEARCH.md",
 }

@@ -1,0 +1,73 @@
+{
+  "build": {
+    "enable_noderef_fastpath": false,
+    "profile": "native",
+    "script": "scripts/build-proot.sh",
+    "script_sha256": "222191f0f3480799f0e2a41bb8cabd91fc5f9e7258bb093a6fafea6a16f26f4f"
+  },
+  "patches": [
+    {
+      "filename": "proot-steam-android.patch",
+      "sha256": "056b28e8e86ebde281378d739f222a473305367d40ff24aa7a38bb5505b541c8"
+    },
+    {
+      "filename": "proot-link2symlink-getdents.patch",
+      "sha256": "8c347f93217e29525b7aab56ddffc229ee36f0e583f2a60f3086d03afbfe73b8"
+    },
+    {
+      "filename": "proot-link2symlink-host-path.patch",
+      "sha256": "a16e80c764cb40dbbf336a0734487a861709a0135b415a944061c37ee4f0d7e1"
+    },
+    {
+      "filename": "proot-link2symlink-force-exdev.patch",
+      "sha256": "2369cf640067e5f4511c4c793e6460598b5bd59442da507aee5e57962bab6de5"
+    },
+    {
+      "filename": "proot-runtime-bind-exact-detranslate.patch",
+      "sha256": "99766df7ae7a2742fc646bbd16a6f8527eccdc33bb83fb862de7b594daa3b035"
+    },
+    {
+      "filename": "proot-pivot-detached-root.patch",
+      "sha256": "dd4b947d37c5be5b0fcb1f1ad4aa656ccfdaa687dcabe71b648956b9127c043f"
+    },
+    {
+      "filename": "proot-pivot-drop-stale-bindings.patch",
+      "sha256": "684855a31ef6367e8749669278f089aa2735e4262281e7cd624e367a8eec30f7"
+    },
+    {
+      "filename": "proot-mountinfo-escape-paths.patch",
+      "sha256": "9fc87e644509f394466baa46a40845a0a16282c143ba3c8f9ad57295bf6416a6"
+    },
+    {
+      "filename": "proot-runtime-mount-stack.patch",
+      "sha256": "263d3db02e03ab90163d5080b26a806c4851af8c554ef33c81b57b2911a64ca9"
+    },
+    {
+      "filename": "proot-runtime-directory-bind-target.patch",
+      "sha256": "5a4327359e52b2080db6bbee89767ff9925846782b9369ce37d25c80b205d297"
+    },
+    {
+      "filename": "proot-main-cflags.patch",
+      "sha256": "fafdd5d0b51668ab81246216afcc3bef5012d1d582bd53172d7a94e7601f399a"
+    }
+  ],
+  "platform": {
+    "architectures": [
+      "aarch64"
+    ],
+    "environment": "official-termux",
+    "storage": "private-internal"
+  },
+  "profile_id": "steam-arm64-patched-proot-native-v1",
+  "runtime": {
+    "binary": "src/proot",
+    "destination": "src/proot-production",
+    "receipt": ".steamclienttermux-proot-receipt.json",
+    "stamp": ".steamclienttermux-patchset"
+  },
+  "schema_version": 1,
+  "source": {
+    "commit": "a89b3732ec6ae1db674510f0843b2f3db54d0a2f",
+    "repository": "https://github.com/termux/proot.git"
+  }
+}

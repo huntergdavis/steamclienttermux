@@ -55,6 +55,16 @@ def main() -> None:
         ):
             (tgcompat / relative).write_text("fixture\n")
         (tgcompat.parent / "current").symlink_to(tgcompat.name)
+        proot = base / "src/proot-production"
+        for relative in (
+            "src/proot",
+            ".steamclienttermux-patchset",
+            ".steamclienttermux-proot-receipt.json",
+        ):
+            path = proot / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("fixture\n")
+        (proot / "src/proot").chmod(0o700)
 
         def run(arguments):
             if tuple(arguments) == ("getprop", "ro.product.cpu.abi"):
@@ -83,6 +93,7 @@ def main() -> None:
         assert "| architecture         | PASS" in table
         assert "| native glibc         | PASS" in table
         assert "| native tgcompat      | PASS" in table
+        assert "| patched PRoot        | PASS" in table
 
         failed = MODULE.collect_checks(
             "bootstrap",

@@ -15,7 +15,7 @@ signed-repository `.deb`. APK and ADB product paths are out of scope.
    ```
 3. Fetch the ARM64 Steam seed directly from Valve, verify its pinned identity,
    and safely extract it.
-4. Build native tgcompat and install the verified patched-glibc runtime.
+4. Install native tgcompat, patched glibc, and the locked patched PRoot.
 5. Start Valve's client; Valve performs the remaining update, login, Steam
    Guard, Proton, and game downloads.
 
@@ -136,6 +136,22 @@ The release builder requires the exact locked `.deb` and refuses a different
 size or hash. The binary's corresponding public commits and licenses ship with
 the lock and notices. Valve, Proton, and game bytes remain excluded.
 
+## Locked patched PRoot
+
+The bootstrap builds PRoot from its exact public commit and our audited patch
+set; it never replaces Termux's package-manager PRoot:
+
+```sh
+python3 scripts/install-proot-runtime.py --base "$HOME/steam-arm64"
+```
+
+[`proot-runtime-lock.json`](../config/proot-runtime-lock.json) pins the source,
+native build recipe, and all 11 patch hashes. The installer builds in private
+same-filesystem staging, validates the Git diff, stamp, executable, and exact
+receipt, then renames the complete tree into the launcher's stable path. It
+refuses an unmanaged destination or any changed input; an unchanged rerun does
+no build work.
+
 The lower-level verifier can also use an already-downloaded archive:
 
 ```sh
@@ -173,7 +189,7 @@ python3 scripts/steam-stack-doctor.py --mode runtime
 | Mode | Checks |
 | --- | --- |
 | `bootstrap` | ARM64 Android, Termux/X11, build tools, private storage, release source |
-| `runtime` | Bootstrap checks plus Steam, Turnip, glibc, audio, and launcher artifacts |
+| `runtime` | Bootstrap checks plus Steam, Turnip, glibc, PRoot, audio, and launchers |
 
 The doctor changes nothing and does not read Steam credentials. Use `--json`
 for installer/UI integration. Missing project licensing is a warning for local
@@ -198,7 +214,7 @@ See [the compact hardware evidence](evidence/steam-stack-doctor-tablet-20260824.
   new lock only after hardware validation.
 - Make every system mutation transactional with exact backups and a dry-run.
 
-The remaining package gates are full open-source runtime build/install,
+The remaining package gates are a minimal Debian runtime, generic launchers,
 fresh-device and uninstall tests, license selection, and release signing. A
 later optional target-SDK-36 UI can invoke fixed Termux `RUN_COMMAND` entry
 points, but it remains separately signed and never shares Termux's UID.
