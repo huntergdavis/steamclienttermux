@@ -64,6 +64,9 @@ def mock_bwrap():
     vk_driver_files_injected = None
     vk_icd_filenames_injected = None
     gtaiv_directory_injections = []
+    directory_targets = []
+    directory_injections = []
+    install_bind = None
     for index, arg in enumerate(args[:-2]):
         if arg == "--ro-bind-fd":
             if args[index + 2] == "/proc/net":
@@ -81,6 +84,13 @@ def mock_bwrap():
             vk_driver_files_injected = index
         elif arg == "--setenv" and args[index + 1] == "VK_ICD_FILENAMES":
             vk_icd_filenames_injected = index
+        elif arg == "--dir":
+            directory_targets.append(args[index + 1])
+            directory_injections.append(index)
+        elif arg in ("--bind", "--ro-bind") and os.environ.get(
+            "STEAM_COMPAT_INSTALL_PATH"
+        ) == args[index + 2]:
+            install_bind = index
 
     if injected is None:
         print(
@@ -155,6 +165,9 @@ def mock_bwrap():
                     if gtaiv_injected is not None
                     else None
                 ),
+                "directory_targets": directory_targets,
+                "directory_injections": directory_injections,
+                "install_bind": install_bind,
             }
     if vk_driver_files_injected is not None:
         vk_icd_source_fd = int(args[vk_icd_bind_injected + 1])
@@ -333,7 +346,65 @@ def run_tests():
             "gtaiv_directory_sources": [],
             "gtaiv_directory_targets": [],
             "gtaiv_directory_after_view": None,
+            "directory_targets": ["/tmp"],
+            "directory_injections": [5],
+            "install_bind": None,
         }
+
+        install_path = (
+            tempdir
+            / "removable-library"
+            / "steamapps"
+            / "common"
+            / "No Man's Sky"
+        )
+        install_path.mkdir(parents=True)
+        result = invoke(
+            wrapper,
+            proc_net,
+            [
+                "--ro-bind",
+                "/runtime-root",
+                "/",
+                "--bind",
+                str(install_path),
+                str(install_path),
+                "--proc",
+                "/proc",
+                "--",
+                "/bin/true",
+            ],
+            env_overrides={
+                "STEAM_COMPAT_APP_ID": "275850",
+                "STEAM_COMPAT_INSTALL_PATH": str(install_path),
+            },
+        )
+        assert result.returncode == 0, result.stderr
+        payload = json.loads(result.stdout)
+        expected_chain = []
+        for parent in reversed(install_path.parents):
+            if parent != Path("/"):
+                expected_chain.append(str(parent))
+        expected_chain.append(str(install_path))
+        assert payload["directory_targets"][: len(expected_chain)] == expected_chain
+        assert payload["install_bind"] is not None
+        assert max(payload["directory_injections"][: len(expected_chain)]) < (
+            payload["install_bind"]
+        )
+
+        outside = tempdir / "outside" / "Game"
+        outside.mkdir(parents=True)
+        result = invoke(
+            wrapper,
+            proc_net,
+            ["--ro-bind", "/runtime-root", "/", "--proc", "/proc"],
+            env_overrides={
+                "STEAM_COMPAT_APP_ID": "275850",
+                "STEAM_COMPAT_INSTALL_PATH": str(outside),
+            },
+        )
+        assert result.returncode == 125
+        assert "outside a supported Steam library" in result.stderr
 
         result = invoke(
             wrapper,
@@ -455,7 +526,7 @@ def run_tests():
         assert payload["steam_game_id"] is None
 
         install_path = (
-            tempdir / "games" / "steamapps" / "common"
+            tempdir / "removable-library" / "steamapps" / "common"
             / "Grand Theft Auto IV"
         )
         original_gtaiv = install_path / "GTAIV"
@@ -476,7 +547,7 @@ def run_tests():
         result = invoke(
             wrapper,
             proc_net,
-            ["--proc", "/proc", "--ro-bind", "/", "/", "--", "/bin/true"],
+            ["--ro-bind", "/", "/", "--proc", "/proc", "--", "/bin/true"],
             env_overrides={
                 "STEAM_COMPAT_APP_ID": "12210",
                 "STEAM_COMPAT_INSTALL_PATH": install_path,
@@ -503,7 +574,7 @@ def run_tests():
         result = invoke(
             wrapper,
             proc_net,
-            ["--proc", "/proc", "--ro-bind", "/", "/"],
+            ["--ro-bind", "/", "/", "--proc", "/proc"],
             env_overrides={
                 "STEAM_COMPAT_APP_ID": "12210",
                 "STEAM_COMPAT_INSTALL_PATH": install_path,
@@ -528,7 +599,7 @@ def run_tests():
         result = invoke(
             wrapper,
             proc_net,
-            ["--proc", "/proc", "--ro-bind", "/", "/"],
+            ["--ro-bind", "/", "/", "--proc", "/proc"],
             env_overrides={
                 "STEAM_COMPAT_APP_ID": "12210",
                 "STEAM_COMPAT_INSTALL_PATH": install_path,
@@ -550,7 +621,7 @@ def run_tests():
         result = invoke(
             wrapper,
             proc_net,
-            ["--proc", "/proc", "--ro-bind", "/", "/"],
+            ["--ro-bind", "/", "/", "--proc", "/proc"],
             env_overrides={
                 "STEAM_COMPAT_APP_ID": "12210",
                 "STEAM_COMPAT_INSTALL_PATH": install_path,
@@ -569,7 +640,7 @@ def run_tests():
         result = invoke(
             wrapper,
             proc_net,
-            ["--proc", "/proc", "--", "/bin/true"],
+            ["--ro-bind", "/", "/", "--proc", "/proc", "--", "/bin/true"],
             env_overrides={
                 "STEAM_COMPAT_APP_ID": "12210",
                 "STEAM_COMPAT_INSTALL_PATH": install_path,

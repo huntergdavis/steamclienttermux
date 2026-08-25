@@ -178,6 +178,151 @@ find_proc_mount_end (const unsigned char *data, size_t size)
   return proc_mount_end;
 }
 
+static bool
+is_two_argument_mount (const char *arg)
+{
+  return strcmp (arg, "--bind") == 0
+    || strcmp (arg, "--bind-try") == 0
+    || strcmp (arg, "--dev-bind") == 0
+    || strcmp (arg, "--dev-bind-try") == 0
+    || strcmp (arg, "--ro-bind") == 0
+    || strcmp (arg, "--ro-bind-try") == 0
+    || strcmp (arg, "--bind-fd") == 0
+    || strcmp (arg, "--ro-bind-fd") == 0
+    || strcmp (arg, "--bind-data") == 0
+    || strcmp (arg, "--ro-bind-data") == 0;
+}
+
+static size_t
+find_root_mount_end (const unsigned char *data, size_t size)
+{
+  size_t offset = 0;
+
+  while (offset < size)
+    {
+      const char *arg = (const char *) data + offset;
+      const unsigned char *end = memchr (arg, '\0', size - offset);
+      size_t next_offset;
+      const char *source;
+      const unsigned char *source_end;
+      const char *target;
+      const unsigned char *target_end;
+
+      if (end == NULL)
+        fail ("malformed --args data");
+
+      next_offset = (size_t) (end - data) + 1;
+      if (!is_two_argument_mount (arg))
+        {
+          offset = next_offset;
+          continue;
+        }
+
+      if (next_offset >= size)
+        fail ("mount option is missing its source");
+      source = (const char *) data + next_offset;
+      source_end = memchr (source, '\0', size - next_offset);
+      if (source_end == NULL)
+        fail ("malformed mount source");
+      next_offset = (size_t) (source_end - data) + 1;
+      if (next_offset >= size)
+        fail ("mount option is missing its target");
+      target = (const char *) data + next_offset;
+      target_end = memchr (target, '\0', size - next_offset);
+      if (target_end == NULL)
+        fail ("malformed mount target");
+      next_offset = (size_t) (target_end - data) + 1;
+
+      (void) source;
+      if (strcmp (target, "/") == 0)
+        return next_offset;
+      offset = next_offset;
+    }
+
+  return 0;
+}
+
+static const char *
+validate_install_path (const char *proc_net_path)
+{
+  static const char removable_suffix[] =
+    "/removable-library/steamapps/common/";
+  static const char internal_suffix[] = "/client/steamapps/common/";
+  const char *path = getenv ("STEAM_COMPAT_INSTALL_PATH");
+  char removable_prefix[PATH_MAX];
+  char internal_prefix[PATH_MAX];
+  size_t proc_net_length;
+  size_t base_length;
+  const char *relative;
+  const char *cursor;
+  struct stat st;
+
+  if (path == NULL || path[0] == '\0')
+    return NULL;
+  if (path[0] != '/' || strlen (path) >= PATH_MAX)
+    fail ("STEAM_COMPAT_INSTALL_PATH must be a bounded absolute path");
+  proc_net_length = strlen (proc_net_path);
+  if (proc_net_length <= strlen (PROC_NET_SUFFIX)
+      || strcmp (proc_net_path + proc_net_length - strlen (PROC_NET_SUFFIX),
+                 PROC_NET_SUFFIX) != 0)
+    fail ("cannot derive the Steam base for the install path");
+  base_length = proc_net_length - strlen (PROC_NET_SUFFIX);
+  if (snprintf (removable_prefix, sizeof (removable_prefix), "%.*s%s",
+                (int) base_length, proc_net_path, removable_suffix) < 0
+      || strlen (removable_prefix) >= sizeof (removable_prefix)
+      || snprintf (internal_prefix, sizeof (internal_prefix), "%.*s%s",
+                   (int) base_length, proc_net_path, internal_suffix) < 0
+      || strlen (internal_prefix) >= sizeof (internal_prefix))
+    fail ("Steam library path is too long");
+
+  if (strncmp (path, removable_prefix, strlen (removable_prefix)) == 0)
+    relative = path + strlen (removable_prefix);
+  else if (strncmp (path, internal_prefix, strlen (internal_prefix)) == 0)
+    relative = path + strlen (internal_prefix);
+  else
+    fail ("STEAM_COMPAT_INSTALL_PATH is outside a supported Steam library");
+
+  if (relative[0] == '\0' || path[strlen (path) - 1] == '/')
+    fail ("STEAM_COMPAT_INSTALL_PATH must name one installed game");
+  cursor = relative;
+  while (cursor[0] != '\0')
+    {
+      const char *slash = strchr (cursor, '/');
+      size_t length = slash == NULL ? strlen (cursor)
+                                    : (size_t) (slash - cursor);
+
+      if (length == 0 || (length == 1 && cursor[0] == '.')
+          || (length == 2 && cursor[0] == '.' && cursor[1] == '.'))
+        fail ("STEAM_COMPAT_INSTALL_PATH has an unsafe component");
+      cursor = slash == NULL ? cursor + length : slash + 1;
+    }
+  if (stat (path, &st) < 0 || !S_ISDIR (st.st_mode))
+    fail ("STEAM_COMPAT_INSTALL_PATH is not an installed directory");
+  return path;
+}
+
+static void
+write_directory_chain (int fd, const char *path)
+{
+  char component[PATH_MAX];
+  size_t length = strlen (path);
+  size_t i;
+  size_t depth = 0;
+
+  memcpy (component, path, length + 1);
+  for (i = 1; i <= length; i++)
+    {
+      if (component[i] != '/' && component[i] != '\0')
+        continue;
+      if (++depth > 64)
+        fail ("STEAM_COMPAT_INSTALL_PATH is too deeply nested");
+      component[i] = '\0';
+      write_arg (fd, "--dir");
+      write_arg (fd, component);
+      component[i] = path[i];
+    }
+}
+
 static size_t
 find_payload_terminator (const unsigned char *data, size_t size)
 {
@@ -663,12 +808,14 @@ main (int argc, char **argv)
   unsigned char *args_data;
   size_t args_size;
   size_t insertion_offset;
+  size_t root_mount_end;
   size_t payload_offset;
   int args_index = -1;
   int args_fd = -1;
   int proc_net_fd;
   int host_vk_driver_files_fd;
   const char *host_vk_driver_target = NULL;
+  const char *install_path;
   int gtaiv_view_fd;
   int gtaiv_directory_fds[
     sizeof (gtaiv_directories) / sizeof (gtaiv_directories[0])];
@@ -728,6 +875,13 @@ main (int argc, char **argv)
       fail ("cannot execute real bwrap: %s", strerror (errno));
     }
 
+  install_path = validate_install_path (proc_net_path);
+  root_mount_end = install_path == NULL
+                     ? 0 : find_root_mount_end (args_data, args_size);
+  if (install_path != NULL
+      && (root_mount_end == 0 || root_mount_end > insertion_offset))
+    fail ("cannot place the game mount anchors after the runtime root");
+
   proc_net_fd = validate_proc_net (proc_net_path);
   host_vk_driver_files_fd =
     validate_host_vk_driver_files (proc_net_path, host_vk_driver_files,
@@ -749,7 +903,15 @@ main (int argc, char **argv)
   gtaiv_service_first = is_gtaiv_play_payload (argc, argv, args_index,
                                                gtaiv_view_fd);
   replacement_fd = create_args_fd ();
-  write_all (replacement_fd, args_data, insertion_offset);
+  if (install_path == NULL)
+    write_all (replacement_fd, args_data, insertion_offset);
+  else
+    {
+      write_all (replacement_fd, args_data, root_mount_end);
+      write_directory_chain (replacement_fd, install_path);
+      write_all (replacement_fd, args_data + root_mount_end,
+                 insertion_offset - root_mount_end);
+    }
 
   snprintf (replacement_fd_value, sizeof (replacement_fd_value), "%d",
             proc_net_fd);
