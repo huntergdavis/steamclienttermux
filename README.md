@@ -41,20 +41,26 @@ The tuned-Ultra profile keeps Ultra textures/filtering, LOD4, reflections, and
 high-precision rendering. Tessellation, TressFX hair, and motion blur are off;
 SSAO and depth of field use mode 1; shadows stay enabled at resolution 0.
 
-## Quick start
+## Install
 
-Install official Termux and a matching shared-UID Termux:X11 build first. Then
-prepare this checkout:
+Install official Termux and the matching Termux:X11 build from the same
+trusted source. Unpack a release inside Termux, enter its directory, and run:
 
 ```sh
-scripts/inventory.sh
-scripts/build-proot.sh
-scripts/prepare-arm64-runtime-shadow.sh
-scripts/install-project-files.sh
-scripts/verify-gpu.sh
+./install.sh
 ```
 
-Start the minimal Steam session from visible Termux:
+The installer verifies every locked download before use. It fetches Valve's
+ARM64 client seed directly from Valve and never bundles Steam, games, login
+state, or credentials. It is restartable and keeps user libraries intact.
+
+This release preview prepares the complete locked runtime. Installing the
+small product-launcher set and proving the whole flow on a clean device are the
+remaining one-command gates; do not describe it as finished or one-click yet.
+
+## Use an installed stack
+
+Start Steam from visible Termux:
 
 ```sh
 ~/start-steam.sh
@@ -78,20 +84,10 @@ because its tablet timing did not improve the 53.553-second best.
 The launcher fails closed on stale X11 state, duplicate processes, background
 scheduling, unverified windows, or mismatched artifacts.
 
-## Install work in progress
+## Installer status
 
-After installing Termux and Termux:X11, the Option-A release uses one command:
-
-```sh
-scripts/bootstrap-termux-stack.sh
-```
-
-It installs dependencies, fetches Valve's ARM64 seed and Turnip from their
-publishers, builds/tests tgcompat, stages patched glibc, and builds the exact
-patched PRoot used by the fast launch path. Current boundary:
-
-The default base is Termux's private internal storage. Removable/SD storage is
-an optional compatibility profile, not a first-run question.
+The default base is Termux private storage. An SD card is optional and used
+only for large game files; Proton prefixes and the runtime stay internal.
 
 | Automated | Still in progress |
 | --- | --- |

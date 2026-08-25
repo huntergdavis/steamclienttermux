@@ -29,6 +29,7 @@ INCLUDED_ROOTS = (
 INCLUDED_FILES = {
     ".gitattributes",
     ".gitignore",
+    "install.sh",
     "README.md",
     "docs/ARCHITECTURE.md",
     "docs/NATIVE_STEAM_SPEED.md",
@@ -41,6 +42,7 @@ INCLUDED_FILES = {
     "docs/evidence/gtaiv-main-menu-2026-08-13.png",
 }
 REQUIRED_FILES = {
+    "install.sh",
     "README.md",
     "config/debian-runtime-lock.json",
     "config/glibc-runtime-lock.json",

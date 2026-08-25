@@ -43,6 +43,7 @@ def fixture_repo(root: Path, glibc_package: bytes) -> str:
     git(root, "config", "user.name", "Release Test")
     git(root, "config", "user.email", "release@example.invalid")
     files = {
+        "install.sh": b"#!/data/data/com.termux/files/usr/bin/bash\n",
         "README.md": b"# fixture\n",
         ".gitignore": b"dist/\n",
         "config/debian-runtime-lock.json": b"{}\n",
@@ -79,7 +80,7 @@ def fixture_repo(root: Path, glibc_package: bytes) -> str:
         "client/proprietary-steam": b"must-not-ship",
     }
     for name, payload in files.items():
-        mode = 0o755 if name.startswith("scripts/") else 0o644
+        mode = 0o755 if name == "install.sh" or name.startswith("scripts/") else 0o644
         write(root, name, payload, mode)
     git(root, "add", ".")
     environment = os.environ.copy()
@@ -137,6 +138,7 @@ def main() -> None:
                 infos = package.infolist()
                 names = [info.filename for info in infos]
                 prefix = first_manifest["prefix"]
+                assert f"{prefix}/install.sh" in names
                 assert f"{prefix}/README.md" in names
                 assert f"{prefix}/scripts/bootstrap-termux-stack.sh" in names
                 assert f"{prefix}/scripts/build-release-archive.py" in names
@@ -153,6 +155,8 @@ def main() -> None:
                 assert all(info.compress_type == zipfile.ZIP_STORED for info in infos)
                 executable = package.getinfo(f"{prefix}/scripts/check-project.sh")
                 assert stat.S_IMODE(executable.external_attr >> 16) == 0o755
+                entrypoint = package.getinfo(f"{prefix}/install.sh")
+                assert stat.S_IMODE(entrypoint.external_attr >> 16) == 0o755
                 embedded = json.loads(
                     package.read(f"{prefix}/RELEASE-MANIFEST.json")
                 )
