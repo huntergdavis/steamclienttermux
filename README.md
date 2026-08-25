@@ -72,6 +72,7 @@ Launch or stop a game session:
 ```sh
 ~/start-steam-game 203160
 ~/start-steam-game 203160 --mode benchmark
+~/start-no-mans-sky-direct
 ~/stop-steam-native.sh
 ```
 
@@ -82,8 +83,8 @@ Map a new Windows game to the verified ARM64 Proton while Steam is stopped:
 ```
 
 The AppID command launches any installed game through Steam's generic route;
-it does not require another game's tuning helpers. A reviewed manifest entry
-can replace that route with measured optimizations.
+it does not require another game's tuning helpers. Reviewed shortcuts use the
+same Steam handoff with stricter game-specific validation.
 `~/start-tombraider.sh` is the Tomb Raider shortcut.
 
 Startup prefetch is generic and manifest-driven, but remains off for Tomb Raider

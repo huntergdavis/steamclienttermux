@@ -10198,3 +10198,36 @@ This work reuses the existing runtime-plan capture, direct Runtime root,
 removable-library mapping, and typed no-clobber deployment patterns. The nested
 mount rule was checked against Bubblewrap's upstream implementation and issue
 reports; it is not inferred from NMS behavior alone.
+
+## 2026-08-25: No Man's Sky direct game boundary
+
+The generic removable-library work now reaches the real No Man's Sky process
+through a reviewed one-command path. The launcher reuses the logged-in native
+ARM64 Steam session, starts one authenticated direct dispatcher, validates
+AppID `275850`, Proton 11 ARM64, Runtime 4 ARM64, and the exact SD-card
+`NMS.exe`, then runs the game with an internal compatdata prefix and native
+Steam HOME. A missing Steam-to-dispatch handoff now times out and cleans its
+socket instead of waiting forever.
+
+| Tablet gate | Result |
+| --- | --- |
+| Direct request | 12 authenticated FDs |
+| Game process | `NMS.exe` reached; Turnip and native ARM64 `steamclient.so` mapped |
+| Original failure | `ISteamInput_SteamInput006_Init` access violation; Proton deliberate `0xBEEF` trap |
+| Diagnostic log | 3,948,691 bytes / `48ac7857...b486` |
+| Trap-only A/B | Trap absent; process survived 62 s, then status 3 |
+| Steam Input success A/B | Exact shared DLL mapped; full game surface rendered |
+| Retained screenshot | 2800x1752 PNG, SHA-256 `99b3dd84...1450` |
+| Next failure | `0xCBBA4-HANG`; 161,886-byte dump, SHA-256 `61f06e26...11b6` |
+| Scheduler state | X11 `/moderate` + `/background`, CPUs 2-3 only |
+| FPS | Not measured or claimed |
+
+The second eight-byte experiment changes only the generated
+`ISteamInput006::Init` wrapper to return success. It bypassed the reproducible
+pre-window crash and produced the first real frame, but modifying the shared
+stock Proton DLL is not a release solution. The original is retained with
+SHA-256 `9d528945...f7a5`; the next implementation must build a separately
+named, content-addressed tool and map only AppID 275850 to it. The required
+exact `deja` query returned no indexed match. This gate reuses the warm AppID
+handoff, native HOME, content-addressed direct runtime, and typed fail-closed
+validators.

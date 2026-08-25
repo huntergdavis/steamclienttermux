@@ -75,17 +75,38 @@ offline hash-verified or normal Steam commit to SD.
 | Gate | Result |
 | --- | --- |
 | Install | Build `24039799`, 28.36 GB downloaded, committed successfully to SD |
-| Automatic launch | Wrong conventional Proton; exited before Wine initialization |
-| ARM64 mapping | Correct Runtime 4 ARM64 + Proton 11 ARM64 command selected |
-| Removable-library mount | Redundant parent bind removed; exact game and compatdata binds retained |
-| Proton prefix | Created successfully on internal storage; 344 MB |
-| ARM64 loader | Validated tgcompat glibc root exposed read-only inside Pressure Vessel |
-| Current boundary | Runtime setup completes, but prefix finalization exits before `NMS.exe` stays alive |
+| One-command route | Logged-in Steam AppID handoff; no duplicate client; bounded missing-dispatch failure |
+| ARM64 mapping | Runtime 4 ARM64 + Proton 11 ARM64 selected and validated exactly |
+| Removable storage | Game stays on SD; compatdata stays internal; namespace-safe binds pass |
+| Direct runtime | 12 authenticated FDs; native Runtime 4, FEX, DXVK, Turnip, and Steam SDK client mapped |
+| `NMS.exe` | Loaded Turnip and created a real 2800x1752 X11 game surface |
+| Steam Input A/B | Returning success from the failing `ISteamInput006::Init` wrapper bypassed the pre-window crash |
+| Screenshot | Full The Swarm screen; SHA-256 `99b3dd84...1450` |
+| Current boundary | A background-cgroup run produced `0xCBBA4-HANG`, displayed an error dialog, and exited status 1 |
 
-The regular Steam launcher overlays the already-validated direct Runtime 4
-policy for every game. The router also handles a Bubblewrap constraint that is
-common to removable libraries: it omits only a redundant whole-`steamapps`
-bind whose `common` child is a symlink, creates the logical target chain, and
-keeps the exact game and compatdata binds. The next work is moving the generic
-Proton payload onto the already-proven no-PRoot direct dispatcher. No frame or
-frame-rate claim exists yet.
+Run the reviewed path from visible Termux:
+
+```sh
+~/start-no-mans-sky-direct
+```
+
+The regular Steam UI still uses its ARM64 PRoot wrapper; the game does not.
+The direct router validates the exact AppID, executable, Proton tool, SD game
+tree, internal prefix, native Steam HOME, and Runtime 4 payload before launch.
+It rejects an unexpected command rather than applying NMS settings to another
+game.
+
+The exact Steam Input failure has no indexed prior implementation. An exact
+eight-byte A/B patch changed the native wrapper from a failing Unix call to a
+successful return, and the game rendered its first real screen. This proves
+the boundary but is not a distributable fix: the release path must create a
+separately named, content-addressed Proton tool and leave stock Proton
+unchanged. [Community report](https://steamcommunity.com/app/275850/discussions/0/595139710753458551/),
+[Proton source](https://github.com/ValveSoftware/Proton/blob/proton_11.0/lsteamclient/steamworks_sdk_146/isteaminput.h).
+
+The first visible-frame test was deliberately not benchmarked. Its X11 server
+was in Android's `/moderate` + `/background` cgroups and allowed only CPUs 2-3;
+NMS took 207 seconds from process creation to the retained screenshot and its
+watchdog wrote a 161,886-byte hang dump (SHA-256 `61f06e26...11b6`). Apply the
+1080p profile only after a foreground run reaches a stable window and exits
+cleanly.

@@ -1334,6 +1334,24 @@ def validated_tombraider_command(
     return proton, game
 
 
+def validated_no_mans_sky_command(
+    base: Path, payload_arguments: list[str]
+) -> tuple[Path, Path]:
+    if "--" not in payload_arguments:
+        fail("No Man's Sky payload has no command boundary")
+    boundary = payload_arguments.index("--")
+    command = payload_arguments[boundary + 1 :]
+    proton = base / "client/steamapps/common/Proton 11.0 (ARM64)/proton"
+    game = (
+        base
+        / "removable-library/steamapps/common/No Man's Sky/Binaries/NMS.exe"
+    )
+    expected = [str(proton), "waitforexitandrun", str(game)]
+    if command != expected:
+        fail("direct Proton dispatch received an unexpected No Man's Sky command")
+    return proton, game
+
+
 def validate_owned_executable(path: Path, description: str) -> None:
     try:
         metadata = path.lstat()
@@ -1425,6 +1443,7 @@ def proton_smoke_environment(
         "proton-cmd",
         "proton-arm64-cmd",
         "fex-offline-compile",
+        "no-mans-sky",
         "tombraider",
         "tombraider-benchmark",
     ):
@@ -1531,10 +1550,46 @@ def direct_game_environment(
     base: Path, runtime_root: Path, diagnostics: bool = False
 ) -> dict[str, str]:
     environment = direct_audio_environment(base, runtime_root)
-    environment["TZ"] = "UTC0"
+    environment.update({"HOME": str(validated_direct_home(base)), "TZ": "UTC0"})
     if diagnostics:
         environment.update(direct_dxvk_environment(base))
     return environment
+
+
+def validated_direct_home(base: Path) -> Path:
+    """Return the native Steam HOME needed by Proton's ARM64 SDK bridge."""
+    home = base / "native-home"
+    sdk = home / ".steam/sdkarm64"
+    expected_sdk = base / "client/linuxarm64"
+    try:
+        metadata = home.lstat()
+        steam_metadata = (home / ".steam").lstat()
+        sdk_metadata = sdk.lstat()
+        resolved_sdk = sdk.resolve(strict=True)
+        expected_resolved = expected_sdk.resolve(strict=True)
+        client = resolved_sdk / "steamclient.so"
+        client_metadata = client.lstat()
+    except OSError as error:
+        fail(f"native Steam HOME is incomplete: {error}")
+    if (
+        not stat.S_ISDIR(metadata.st_mode)
+        or home.is_symlink()
+        or metadata.st_uid != os.geteuid()
+        or metadata.st_mode & 0o022
+        or not stat.S_ISDIR(steam_metadata.st_mode)
+        or (home / ".steam").is_symlink()
+        or steam_metadata.st_uid != os.geteuid()
+        or steam_metadata.st_mode & 0o022
+        or not stat.S_ISLNK(sdk_metadata.st_mode)
+        or sdk_metadata.st_uid != os.geteuid()
+        or resolved_sdk != expected_resolved
+        or not stat.S_ISREG(client_metadata.st_mode)
+        or client.is_symlink()
+        or client_metadata.st_uid != os.geteuid()
+        or client_metadata.st_mode & 0o022
+    ):
+        fail("native Steam HOME or ARM64 SDK link is unsafe")
+    return home
 
 
 DIRECT_FEX_KEYS = {
@@ -1752,6 +1807,7 @@ def pv_smoke_invocation(
         "proton-cmd",
         "proton-arm64-cmd",
         "fex-offline-compile",
+        "no-mans-sky",
         "tombraider",
         "tombraider-benchmark",
     ):
@@ -1759,26 +1815,38 @@ def pv_smoke_invocation(
         benchmark_preset = os.environ.get(
             "STEAM_ARM64_DIRECT_TOMBRAIDER_BENCHMARK_PRESET", "registry"
         )
-        proton, game = validated_tombraider_command(
-            base,
-            payload_arguments,
-            benchmark=benchmark,
-            benchmark_preset=benchmark_preset,
-        )
+        if command_mode == "no-mans-sky":
+            proton, game = validated_no_mans_sky_command(
+                base, payload_arguments
+            )
+        else:
+            proton, game = validated_tombraider_command(
+                base,
+                payload_arguments,
+                benchmark=benchmark,
+                benchmark_preset=benchmark_preset,
+            )
         final_path_prefix = proton.parent
-        if command_mode in ("tombraider", "tombraider-benchmark"):
+        if command_mode in (
+            "no-mans-sky",
+            "tombraider",
+            "tombraider-benchmark",
+        ):
             runtime_python = runtime_root / "usr/bin/python3"
             validate_runtime_executable(
                 runtime_python, runtime_root, "Runtime Python"
             )
             validate_owned_executable(proton, "Proton entry point")
-            validate_removable_windows_file(game, "Tomb Raider")
+            validate_removable_windows_file(
+                game,
+                "No Man's Sky" if command_mode == "no-mans-sky" else "Tomb Raider",
+            )
             command = [
                 str(runtime_python),
                 str(proton),
                 "waitforexitandrun",
                 str(game),
-                "-nolauncher",
+                *([] if command_mode == "no-mans-sky" else ["-nolauncher"]),
                 *(
                     tombraider_benchmark_arguments(base, benchmark_preset)
                     if benchmark
@@ -1884,6 +1952,7 @@ def pv_smoke_invocation(
         "proton-cmd",
         "proton-arm64-cmd",
         "fex-offline-compile",
+        "no-mans-sky",
         "tombraider",
         "tombraider-benchmark",
     ):
@@ -1897,10 +1966,16 @@ def pv_smoke_invocation(
         # real game maps.
         environment.pop("FEX_ENABLECODECACHINGWIP", None)
         environment["FEX_APP_CACHE_LOCATION"] = f"{fex_offline_root}/"
-    if command_mode in ("tombraider", "tombraider-benchmark"):
+    if command_mode in ("no-mans-sky", "tombraider", "tombraider-benchmark"):
         environment.update(
             direct_game_environment(base, runtime_root, diagnostics)
         )
+    if command_mode == "no-mans-sky":
+        apply_direct_fex_profile(
+            environment,
+            os.environ.get("STEAM_ARM64_DIRECT_FEX_PROFILE", "safe"),
+        )
+    if command_mode in ("tombraider", "tombraider-benchmark"):
         direct_fex_profile = os.environ.get("STEAM_ARM64_DIRECT_FEX_PROFILE")
         if direct_fex_profile is not None:
             apply_direct_fex_profile(environment, direct_fex_profile)
@@ -2076,6 +2151,28 @@ def run_tombraider(
     )
 
 
+def run_no_mans_sky(
+    base: Path,
+    payload: dict[str, object],
+    descriptors: list[int],
+) -> tuple[int, int]:
+    loader, arguments, environment = pv_smoke_invocation(
+        base, payload, "no-mans-sky", direct_diagnostics_enabled()
+    )
+    return run_loader_child(
+        loader,
+        arguments,
+        environment,
+        descriptors,
+        payload["fd_numbers"],
+        working_directory=(
+            base / "removable-library/steamapps/common/No Man's Sky/Binaries"
+        ),
+        cpu_affinity=set(range(8)),
+        match_proton_cpu_topology=True,
+    )
+
+
 def run_tombraider_benchmark(
     base: Path,
     payload: dict[str, object],
@@ -2181,6 +2278,10 @@ def serve(base: Path, mode: str) -> int:
                     status, observed_tracer = run_fex_offline_compile(
                         base, payload, descriptors
                     )
+                elif mode == "no-mans-sky":
+                    status, observed_tracer = run_no_mans_sky(
+                        base, payload, descriptors
+                    )
                 elif mode == "tombraider":
                     status, observed_tracer = run_tombraider(
                         base, payload, descriptors
@@ -2277,6 +2378,7 @@ def main() -> int:
                     "proton-cmd-smoke",
                     "proton-arm64-cmd-smoke",
                     "fex-offline-compile",
+                    "no-mans-sky",
                     "tombraider",
                     "tombraider-benchmark",
                     "tombraider-diagnostic",

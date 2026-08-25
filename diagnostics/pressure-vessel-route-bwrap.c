@@ -26,6 +26,10 @@
 #define HOST_BVB_ICD_SUFFIX "/bvb/icd.d/bvb_icd.aarch64.json"
 #define HOST_BVB_ICD_TARGET "/overrides/share/vulkan/icd.d/bvb_icd.aarch64.json"
 #define TGCOMPAT_GLIBC_SUFFIX "/.local/share/tgcompat/glibc/current"
+#define DIRECT_DISPATCH_SUFFIX "/compat-bin/pressure-vessel-direct-dispatch.py"
+#define DIRECT_SOCKET_SUFFIX "/run/native-runtime-dispatch/dispatch.sock"
+#define DIRECT_REAL_BWRAP_SUFFIX "/runtime/SteamLinuxRuntime_4-arm64/pressure-vessel/libexec/steam-runtime-tools-0/srt-bwrap"
+#define NMS_EXE_SUFFIX "/removable-library/steamapps/common/No Man's Sky/Binaries/NMS.exe"
 
 struct expected_file
 {
@@ -844,6 +848,81 @@ validate_tgcompat_glibc (const char *proc_net_path, const char **target_out)
   return directory_fd;
 }
 
+static void
+maybe_delegate_no_mans_sky (const char *proc_net_path, int argc, char **argv,
+                            int args_index)
+{
+  char base[PATH_MAX];
+  char game[PATH_MAX];
+  char dispatcher[PATH_MAX];
+  char socket_path[PATH_MAX];
+  char socket_directory[PATH_MAX];
+  char real_bwrap[PATH_MAX];
+  size_t proc_net_length = strlen (proc_net_path);
+  size_t base_length;
+  bool game_seen = false;
+  struct stat st;
+  int i;
+
+  if (proc_net_length <= strlen (PROC_NET_SUFFIX)
+      || strcmp (proc_net_path + proc_net_length - strlen (PROC_NET_SUFFIX),
+                 PROC_NET_SUFFIX) != 0)
+    return;
+  base_length = proc_net_length - strlen (PROC_NET_SUFFIX);
+  if (snprintf (base, sizeof (base), "%.*s", (int) base_length,
+                proc_net_path) < 0
+      || strlen (base) >= sizeof (base)
+      || snprintf (game, sizeof (game), "%s%s", base, NMS_EXE_SUFFIX) < 0
+      || strlen (game) >= sizeof (game))
+    fail ("No Man's Sky direct path is too long");
+  for (i = args_index + 1; i < argc; i++)
+    if (strcmp (argv[i], game) == 0)
+      game_seen = true;
+  if (!game_seen)
+    return;
+
+  if (snprintf (dispatcher, sizeof (dispatcher), "%s%s", base,
+                DIRECT_DISPATCH_SUFFIX) < 0
+      || strlen (dispatcher) >= sizeof (dispatcher)
+      || snprintf (socket_path, sizeof (socket_path), "%s%s", base,
+                   DIRECT_SOCKET_SUFFIX) < 0
+      || strlen (socket_path) >= sizeof (socket_path)
+      || snprintf (real_bwrap, sizeof (real_bwrap), "%s%s", base,
+                   DIRECT_REAL_BWRAP_SUFFIX) < 0
+      || strlen (real_bwrap) >= sizeof (real_bwrap)
+      || snprintf (socket_directory, sizeof (socket_directory), "%s/run/native-runtime-dispatch",
+                   base) < 0
+      || strlen (socket_directory) >= sizeof (socket_directory))
+    fail ("No Man's Sky direct-dispatch path is too long");
+  if (lstat (socket_path, &st) < 0)
+    {
+      if (errno == ENOENT)
+        return;
+      fail ("cannot inspect direct-dispatch socket: %s", strerror (errno));
+    }
+  if (!S_ISSOCK (st.st_mode) || st.st_uid != geteuid ()
+      || (st.st_mode & 0077) != 0)
+    fail ("No Man's Sky direct-dispatch socket is unsafe");
+  if (lstat (socket_directory, &st) < 0 || !S_ISDIR (st.st_mode)
+      || st.st_uid != geteuid () || (st.st_mode & 0077) != 0)
+    fail ("No Man's Sky direct-dispatch directory is unsafe");
+  if (lstat (dispatcher, &st) < 0 || !S_ISREG (st.st_mode)
+      || st.st_uid != geteuid () || (st.st_mode & 0022) != 0
+      || access (dispatcher, X_OK) < 0)
+    fail ("No Man's Sky direct dispatcher is unavailable or unsafe");
+  if (lstat (real_bwrap, &st) < 0 || !S_ISREG (st.st_mode)
+      || st.st_uid != geteuid () || (st.st_mode & 0022) != 0
+      || access (real_bwrap, X_OK) < 0)
+    fail ("No Man's Sky real bwrap is unavailable or unsafe");
+  if (setenv ("STEAM_ARM64_BASE", base, 1) < 0
+      || setenv ("STEAM_ARM64_DIRECT_REAL_BWRAP", real_bwrap, 1) < 0)
+    fail ("cannot configure No Man's Sky direct dispatch: %s",
+          strerror (errno));
+  execv (dispatcher, argv);
+  fail ("cannot execute No Man's Sky direct dispatcher: %s",
+        strerror (errno));
+}
+
 static int
 create_args_fd (void)
 {
@@ -1044,6 +1123,8 @@ main (int argc, char **argv)
 
   if (!parse_fd (fd_value, &args_fd))
     fail ("invalid --args fd");
+
+  maybe_delegate_no_mans_sky (proc_net_path, argc, argv, args_index);
 
   args_data = read_args (args_fd, &args_size);
   insertion_offset = find_proc_mount_end (args_data, args_size);

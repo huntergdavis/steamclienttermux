@@ -412,6 +412,27 @@ def main() -> None:
         tablet_base
         / "removable-library/steamapps/common/Tomb Raider/TombRaider.exe"
     )
+    nms_game = (
+        tablet_base
+        / "removable-library/steamapps/common/No Man's Sky/Binaries/NMS.exe"
+    )
+    nms_payload = [
+        *plan["payload_argv"][:16],
+        str(proton),
+        "waitforexitandrun",
+        str(nms_game),
+    ]
+    assert MODULE.validated_no_mans_sky_command(
+        tablet_base, nms_payload
+    ) == (proton, nms_game)
+    try:
+        MODULE.validated_no_mans_sky_command(
+            tablet_base, [*nms_payload, "--unexpected"]
+        )
+    except MODULE.DispatchError:
+        pass
+    else:
+        raise AssertionError("No Man's Sky validator accepted extra arguments")
     benchmark_payload = [*plan["payload_argv"], "-benchmark"]
     assert MODULE.validated_tombraider_command(
         tablet_base, benchmark_payload, benchmark=True
@@ -778,7 +799,9 @@ def main() -> None:
     else:
         raise AssertionError("normal mode accepted benchmark arguments")
     with tempfile.TemporaryDirectory(prefix="proton-cmd-smoke.") as directory:
-        fixture_base = Path(directory)
+        fixture_base = Path(directory) / "steam-arm64"
+        fixture_home = fixture_base / "native-home"
+        fixture_home.mkdir(parents=True, mode=0o700)
         fixture_runtime = fixture_base / "runtime"
         fixture_python = fixture_runtime / "usr/bin/python3"
         fixture_proton = (
@@ -847,6 +870,12 @@ def main() -> None:
         plugin_directory.mkdir(parents=True)
         (alsa_data / "alsa.conf").write_text("# base\n", encoding="utf-8")
         pulse_config.write_text("# pulse\n", encoding="utf-8")
+        native_sdk = fixture_base / "client/linuxarm64"
+        native_sdk.mkdir(parents=True)
+        (native_sdk / "steamclient.so").write_bytes(b"fixture")
+        (native_sdk / "steamclient.so").chmod(0o600)
+        (fixture_home / ".steam").mkdir(mode=0o700)
+        (fixture_home / ".steam/sdkarm64").symlink_to(native_sdk)
         audio_environment = MODULE.direct_audio_environment(
             fixture_base, audio_runtime
         )
@@ -862,6 +891,7 @@ def main() -> None:
             fixture_base, audio_runtime
         ) == {
             **audio_environment,
+            "HOME": str(fixture_home),
             "TZ": "UTC0",
         }
         diagnostic_game_environment = MODULE.direct_game_environment(
@@ -870,6 +900,7 @@ def main() -> None:
         dxvk_log_path = Path(diagnostic_game_environment["DXVK_LOG_PATH"])
         assert diagnostic_game_environment == {
             **audio_environment,
+            "HOME": str(fixture_home),
             "TZ": "UTC0",
             "DXVK_LOG_LEVEL": "info",
             "DXVK_LOG_PATH": str(dxvk_log_path),
@@ -1096,6 +1127,11 @@ def main() -> None:
     assert "cpu_affinity=set(range(8))" in game_source
     assert "match_proton_cpu_topology=True" in game_source
     assert "minimum_cpu_affinity_count=(6 if require_full_startup_topology() else 0)" in game_source
+    nms_source = inspect.getsource(MODULE.run_no_mans_sky)
+    assert '"no-mans-sky"' in nms_source
+    assert '"removable-library/steamapps/common/No Man\'s Sky/Binaries"' in nms_source
+    assert "cpu_affinity=set(range(8))" in nms_source
+    assert "match_proton_cpu_topology=True" in nms_source
     benchmark_source = inspect.getsource(MODULE.run_tombraider_benchmark)
     assert '"tombraider-benchmark"' in benchmark_source
     assert "cpu_affinity=set(range(8))" in benchmark_source

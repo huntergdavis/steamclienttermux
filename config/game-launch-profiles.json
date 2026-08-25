@@ -10,6 +10,13 @@
           "TOMB_RAIDER_DIRECT_MODE": "tombraider-benchmark"
         }
       }
+    },
+    "275850": {
+      "name": "No Man's Sky",
+      "launcher": "start-no-mans-sky-direct",
+      "modes": {
+        "play": {}
+      }
     }
   }
 }

@@ -6,6 +6,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import socket
 
 
 GTAIV_FILES = {
@@ -528,6 +529,62 @@ def run_tests():
         assert max(payload["directory_injections"][: len(expected_chain)]) < (
             payload["install_bind"]
         )
+
+        direct_dispatcher = (
+            tempdir / "compat-bin" / "pressure-vessel-direct-dispatch.py"
+        )
+        direct_dispatcher.parent.mkdir(parents=True, exist_ok=True)
+        direct_dispatcher.write_text(
+            "#!/usr/bin/env python3\n"
+            "import json, os, sys\n"
+            "print(json.dumps({'argv': sys.argv[1:], "
+            "'base': os.environ.get('STEAM_ARM64_BASE'), "
+            "'real_bwrap': os.environ.get('STEAM_ARM64_DIRECT_REAL_BWRAP')}))\n",
+            encoding="utf-8",
+        )
+        direct_dispatcher.chmod(0o700)
+        direct_real_bwrap = (
+            tempdir
+            / "runtime/SteamLinuxRuntime_4-arm64/pressure-vessel/libexec"
+            / "steam-runtime-tools-0/srt-bwrap"
+        )
+        direct_real_bwrap.parent.mkdir(parents=True)
+        direct_real_bwrap.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+        direct_real_bwrap.chmod(0o700)
+        direct_socket_directory = tempdir / "run/native-runtime-dispatch"
+        direct_socket_directory.mkdir(parents=True, mode=0o700)
+        direct_socket_directory.chmod(0o700)
+        direct_socket = direct_socket_directory / "dispatch.sock"
+        nms_executable = install_path / "Binaries/NMS.exe"
+        nms_executable.parent.mkdir()
+        nms_executable.write_bytes(b"game")
+        with socket.socket(socket.AF_UNIX) as listener:
+            listener.bind(str(direct_socket))
+            direct_socket.chmod(0o600)
+            result = invoke(
+                wrapper,
+                proc_net,
+                ["--proc", "/proc", "--", "/bin/true"],
+                env_overrides={
+                    "STEAM_COMPAT_APP_ID": "275850",
+                    "STEAM_COMPAT_INSTALL_PATH": str(install_path),
+                },
+                wrapper_payload=[
+                    "/pv-adverb",
+                    "--",
+                    str(
+                        tempdir
+                        / "client/steamapps/common/Proton 11.0 (ARM64)/proton"
+                    ),
+                    "waitforexitandrun",
+                    str(nms_executable),
+                ],
+            )
+        assert result.returncode == 0, result.stderr
+        delegated = json.loads(result.stdout)
+        assert delegated["base"] == str(tempdir)
+        assert delegated["real_bwrap"] == str(direct_real_bwrap)
+        assert delegated["argv"][-1] == str(nms_executable)
 
         outside = tempdir / "outside" / "Game"
         outside.mkdir(parents=True)
