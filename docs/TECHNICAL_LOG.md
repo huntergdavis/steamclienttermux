@@ -10390,3 +10390,31 @@ NMS or Steam Input toggle. No controller-support claim is made yet.
 The required mouse and controller `deja` queries found no indexed fix. The
 launcher change reuses the existing persisted-preference cold-start gate and
 its rule against live preference reloads during rendering.
+
+## 2026-08-25: NMS save-load hang and per-app pointer control
+
+The first live save-load attempt on build `170671` remained in a black render
+transition at about 75 sampled FPS, then exited. NMS retained a 203,150-byte
+`170671_0xCAE24-HANG` minidump with SHA-256
+`94c14a6736f57d643c93a4896756cc7e8dbc96c919dda8e1c7f48d7852b41606`.
+At failure, internal storage had 25 GiB free, SD had 521 GiB free, and Android
+reported about 3.5 GiB available memory. This is a failed load, not gameplay
+FPS evidence.
+
+Current public reports independently place build `170671` HANG failures at
+multiplayer world transitions and report multiplayer-off as a workaround. The
+next run therefore disables multiplayer and MangoHud independently before
+changing graphics.
+
+The cursor still centered in NMS despite the corrected Termux:X11 build.
+Wine's DirectInput source reads `MouseWarpOverride` from the per-application
+`AppDefaults\\NMS.exe\\DirectInput` key before the global key. The direct NMS
+launcher now configures only that reversible value, backs up the original
+registry, verifies it before launch, and refuses to modify an active prefix.
+Host contracts prove add/check/restore/idempotence. Tablet behavior remains
+unclaimed until the next visible run.
+
+The required exact `deja` search returned no indexed fix. The implementation
+reuses Wine's source-defined lookup and the same value from the audited Termux
+HWAC compatibility preset; it does not copy the preset's unrelated graphics
+or DLL overrides.

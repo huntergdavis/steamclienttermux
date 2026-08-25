@@ -96,6 +96,10 @@ def main() -> None:
             str(prefix),
             "--window-background",
             "0 0 0",
+            "--wine-app",
+            "NMS.exe",
+            "--mouse-warp-override",
+            "disable",
         ]
         prepared = subprocess.run(command, text=True, capture_output=True, check=False)
         assert prepared.returncode == 0, prepared.stderr
@@ -116,6 +120,13 @@ def main() -> None:
         assert user_registry.read_text(encoding="utf-8").count(
             '"Window"="255 255 255"'
         ) == 1
+        assert (
+            "[Software\\\\Wine\\\\AppDefaults\\\\NMS.exe\\\\DirectInput]"
+            in user_registry.read_text(encoding="utf-8")
+        )
+        assert '"MouseWarpOverride"="disable"' in user_registry.read_text(
+            encoding="utf-8"
+        )
         appearance_states = list(
             (base / "backups/wine-prefix-appearance").glob("*/state.json")
         )

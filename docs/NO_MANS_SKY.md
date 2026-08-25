@@ -177,3 +177,28 @@ CSV hash alongside it before comparing runs.
 This first retained CSV is encouraging but lacks a recorded on-planet route
 and temperature. Its exact hash and bounded statistics are retained in
 [the preliminary record](benchmark-series/no-mans-sky-1080p-fsr2-quality-unclassified-20260825.json).
+
+## Current save-load gate
+
+The first measured save load did not reach gameplay. Build `170671` rendered
+the black transition at about 75 FPS, wrote a 203,150-byte
+`0xCAE24-HANG` dump, and exited. Storage and Android memory remained healthy,
+so this is excluded from the gameplay chart.
+
+The next controlled run removes three variables:
+
+| Change | Scope |
+| --- | --- |
+| `MouseWarpOverride=disable` | NMS.exe only; reversible and checked before launch |
+| Multiplayer off | Current-build save-load workaround; save data remains untouched |
+| MangoHud off | Stability control; re-enable only after gameplay loads |
+
+The multiplayer workaround comes from a
+[current build-170671 HANG report](https://www.reddit.com/r/NoMansSkyTheGame/comments/1vvhqb1/nms_suddenly_crashing_when_warping_via_galaxy_map/).
+
+Wine reads `MouseWarpOverride` from
+`HKCU\\Software\\Wine\\AppDefaults\\NMS.exe\\DirectInput`; the launcher now
+manages that exact value with an original backup and refuses to edit a live
+prefix. The required `deja` search found no indexed implementation. This
+reuses Wine's own per-application DirectInput lookup and the same setting from
+the audited Termux HWAC compatibility preset.

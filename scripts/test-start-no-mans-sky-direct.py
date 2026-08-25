@@ -40,6 +40,8 @@ def main() -> None:
             "parser.add_argument('--base')\n"
             "parser.add_argument('--wine-prefix')\n"
             "parser.add_argument('--window-background')\n"
+            "parser.add_argument('--wine-app')\n"
+            "parser.add_argument('--mouse-warp-override')\n"
             "parser.parse_args()\n"
             "pathlib.Path(os.environ['FIXTURE_PREPARE_LOG']).write_text("
             "' '.join(sys.argv[1:]) + '\\n')\n",
@@ -118,7 +120,8 @@ def main() -> None:
         assert prepare_log.read_text(encoding="utf-8").strip() == (
             f"prepare --base {base} --wine-prefix "
             f"{base}/removable-library-compatdata/275850/pfx "
-            "--window-background 0 0 0"
+            "--window-background 0 0 0 --wine-app NMS.exe "
+            "--mouse-warp-override disable"
         )
         assert "launcher=0 server=0" in result.stdout
         fixture_socket = base / "run/native-runtime-dispatch/dispatch.sock"

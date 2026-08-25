@@ -12,6 +12,7 @@ import shutil
 import stat
 import subprocess
 import tempfile
+import time
 
 
 ORIGINAL_INTERPRETER = "/lib/ld-linux-aarch64.so.1"
@@ -19,6 +20,7 @@ CONTROL_PANEL_COLORS = re.compile(
     r"(?ms)^\[Control Panel\\\\Colors\][^\n]*\n(?P<body>.*?)(?=^\[|\Z)"
 )
 WINDOW_BACKGROUND = re.compile(r'(?m)^"Window"="([0-9]+ [0-9]+ [0-9]+)"$')
+REGISTRY_STRING = re.compile(r'^"(?P<name>[^"]+)"="(?P<value>[^"]*)"(?:\n)?$')
 TARGET_RELATIVES = (
     Path("client/steamapps/common/Proton 11.0 (ARM64)/files/bin-arm64/wine"),
     Path("client/steamapps/common/Proton 11.0 (ARM64)/files/bin-arm64/wineserver"),
@@ -344,6 +346,205 @@ def restore_window_background(base: Path, prefix: Path, value: str) -> None:
     print(f"Restored Wine startup background: {user_registry} value={original}")
 
 
+def input_state_path(base: Path, prefix: Path) -> Path:
+    identity = hashlib.sha256(str(prefix).encode("utf-8")).hexdigest()[:16]
+    return base / "backups/wine-prefix-input" / identity / "state.json"
+
+
+def direct_input_section(app: str) -> str:
+    if re.fullmatch(r"[A-Za-z0-9._ -]+\.exe", app) is None:
+        raise PrepareError(f"invalid Wine application name: {app}")
+    return f"Software\\\\Wine\\\\AppDefaults\\\\{app}\\\\DirectInput"
+
+
+def read_registry_string(
+    user_registry: Path, section: str, name: str
+) -> tuple[str, str | None, bool, tuple[int, int] | None, tuple[int, int] | None]:
+    regular_owned_file(user_registry, "Wine user registry")
+    document = user_registry.read_text(encoding="utf-8")
+    lines = document.splitlines(keepends=True)
+    offsets: list[int] = []
+    offset = 0
+    for line in lines:
+        offsets.append(offset)
+        offset += len(line)
+    headers = [
+        index
+        for index, line in enumerate(lines)
+        if line.startswith(f"[{section}]")
+        and line[len(section) + 2 :].strip().isdigit()
+    ]
+    if len(headers) > 1:
+        raise PrepareError(f"Wine registry contains duplicate [{section}] sections")
+    if not headers:
+        return document, None, False, None, None
+    header = headers[0]
+    end = next(
+        (index for index in range(header + 1, len(lines)) if lines[index].startswith("[")),
+        len(lines),
+    )
+    matches: list[tuple[int, str]] = []
+    for index in range(header + 1, end):
+        match = REGISTRY_STRING.fullmatch(lines[index])
+        if match and match.group("name") == name:
+            matches.append((index, match.group("value")))
+    if len(matches) > 1:
+        raise PrepareError(f"Wine registry contains duplicate {name} values in [{section}]")
+    section_end = offsets[end] if end < len(lines) else len(document)
+    section_span = (offsets[header], section_end)
+    if not matches:
+        return document, None, True, section_span, None
+    index, value = matches[0]
+    return document, value, True, section_span, (
+        offsets[index], offsets[index] + len(lines[index])
+    )
+
+
+def replace_registry_string(
+    document: str,
+    section: str,
+    name: str,
+    value: str | None,
+    section_span: tuple[int, int] | None,
+    value_span: tuple[int, int] | None,
+    remove_empty_section: bool = False,
+) -> str:
+    record = f'"{name}"="{value}"\n' if value is not None else ""
+    if value_span is not None:
+        updated = document[: value_span[0]] + record + document[value_span[1] :]
+        if remove_empty_section and section_span is not None:
+            start, end = section_span
+            adjusted_end = end - (value_span[1] - value_span[0])
+            body = updated[updated.find("\n", start) + 1 : adjusted_end]
+            if not body.strip():
+                remove_start = start
+                if start >= 2 and updated[start - 2 : start] == "\n\n":
+                    remove_start -= 1
+                updated = updated[:remove_start] + updated[adjusted_end:]
+        return updated
+    if value is None:
+        return document
+    if section_span is not None:
+        insertion = document.find("\n", section_span[0]) + 1
+        return document[:insertion] + record + document[insertion:]
+    separator = "" if not document or document.endswith("\n\n") else "\n"
+    return (
+        document
+        + separator
+        + f"[{section}] {int(time.time())}\n"
+        + record
+    )
+
+
+def configure_mouse_warp(
+    base: Path, prefix: Path, app: str, value: str
+) -> None:
+    if value not in {"disable", "force"}:
+        raise PrepareError(f"invalid Wine MouseWarpOverride: {value}")
+    user_registry = prefix / "user.reg"
+    section = direct_input_section(app)
+    document, current, section_present, section_span, value_span = read_registry_string(
+        user_registry, section, "MouseWarpOverride"
+    )
+    state_path = input_state_path(base, prefix)
+    state_path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if state_path.parent.is_symlink() or state_path.parent.stat().st_uid != os.geteuid():
+        raise PrepareError(f"unsafe Wine input state directory: {state_path.parent}")
+    if state_path.exists() or state_path.is_symlink():
+        regular_owned_file(state_path, "Wine input state")
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        if (
+            not isinstance(state, dict)
+            or state.get("schema_version") != "1"
+            or state.get("target") != str(user_registry)
+            or state.get("application") != app
+            or state.get("configured_value") != value
+            or not isinstance(state.get("original_section_present"), bool)
+            or not isinstance(state.get("original_value_present"), bool)
+        ):
+            raise PrepareError(f"Wine input state mismatch: {state_path}")
+    else:
+        original_hash = sha256(user_registry)
+        backup = state_path.parent / f"user.reg-{original_hash}.original"
+        install_backup(user_registry, backup, original_hash)
+        state = {
+            "application": app,
+            "backup": str(backup),
+            "configured_value": value,
+            "original_section_present": section_present,
+            "original_value": current,
+            "original_value_present": current is not None,
+            "schema_version": "1",
+            "target": str(user_registry),
+        }
+        write_json_atomic(state_path, state)
+    if current == value:
+        print(f"Wine mouse warp already configured: {app} value={value}")
+        return
+    original = state.get("original_value") if state["original_value_present"] else None
+    if current != original:
+        raise PrepareError(f"Wine mouse warp changed outside managed state: {user_registry}")
+    if wine_prefix_is_active(prefix):
+        raise PrepareError(f"refusing to edit an active Wine prefix: {prefix}")
+    configured = replace_registry_string(
+        document, section, "MouseWarpOverride", value, section_span, value_span
+    )
+    write_text_atomic(user_registry, configured)
+    _, installed, _, _, _ = read_registry_string(
+        user_registry, section, "MouseWarpOverride"
+    )
+    if installed != value:
+        raise PrepareError(f"Wine mouse warp verification failed: {user_registry}")
+    print(f"Configured Wine mouse warp: {app} value={value}")
+
+
+def check_mouse_warp(prefix: Path, app: str, value: str) -> None:
+    _, current, _, _, _ = read_registry_string(
+        prefix / "user.reg", direct_input_section(app), "MouseWarpOverride"
+    )
+    if current != value:
+        raise PrepareError(f"Wine mouse warp is not configured for {app}: {current}")
+    print(f"Wine mouse warp check: PASS application={app} value={value}")
+
+
+def restore_mouse_warp(base: Path, prefix: Path, app: str, value: str) -> None:
+    user_registry = prefix / "user.reg"
+    section = direct_input_section(app)
+    document, current, _, section_span, value_span = read_registry_string(
+        user_registry, section, "MouseWarpOverride"
+    )
+    state_path = input_state_path(base, prefix)
+    regular_owned_file(state_path, "Wine input state")
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    if (
+        not isinstance(state, dict)
+        or state.get("schema_version") != "1"
+        or state.get("target") != str(user_registry)
+        or state.get("application") != app
+        or state.get("configured_value") != value
+    ):
+        raise PrepareError(f"Wine input state mismatch: {state_path}")
+    original = state.get("original_value") if state.get("original_value_present") else None
+    if current == original:
+        print(f"Wine mouse warp already restored: {app}")
+        return
+    if current != value:
+        raise PrepareError(f"refusing to restore changed Wine mouse warp: {user_registry}")
+    if wine_prefix_is_active(prefix):
+        raise PrepareError(f"refusing to edit an active Wine prefix: {prefix}")
+    restored = replace_registry_string(
+        document,
+        section,
+        "MouseWarpOverride",
+        original,
+        section_span,
+        value_span,
+        remove_empty_section=not state.get("original_section_present"),
+    )
+    write_text_atomic(user_registry, restored)
+    print(f"Restored Wine mouse warp: {app}")
+
+
 def validate_existing_record(
     record: dict[str, str], target: Path, loader: Path
 ) -> None:
@@ -572,12 +773,20 @@ def main() -> int:
     parser.add_argument("--readelf")
     parser.add_argument("--wine-prefix")
     parser.add_argument("--window-background")
+    parser.add_argument("--wine-app")
+    parser.add_argument("--mouse-warp-override", choices=("disable", "force"))
     arguments = parser.parse_args()
     try:
         if bool(arguments.wine_prefix) != bool(arguments.window_background):
             raise PrepareError(
                 "--wine-prefix and --window-background must be provided together"
             )
+        if bool(arguments.wine_app) != bool(arguments.mouse_warp_override):
+            raise PrepareError(
+                "--wine-app and --mouse-warp-override must be provided together"
+            )
+        if arguments.wine_app and not arguments.wine_prefix:
+            raise PrepareError("Wine mouse configuration requires --wine-prefix")
         base = Path(arguments.base).resolve(strict=True)
         loader = Path(os.path.abspath(os.path.expanduser(arguments.loader)))
         loader.resolve(strict=True)
@@ -614,6 +823,25 @@ def main() -> int:
                 restore_window_background(
                     base, prefix, arguments.window_background
                 )
+            if arguments.wine_app:
+                if arguments.action == "prepare":
+                    configure_mouse_warp(
+                        base,
+                        prefix,
+                        arguments.wine_app,
+                        arguments.mouse_warp_override,
+                    )
+                elif arguments.action == "check":
+                    check_mouse_warp(
+                        prefix, arguments.wine_app, arguments.mouse_warp_override
+                    )
+                else:
+                    restore_mouse_warp(
+                        base,
+                        prefix,
+                        arguments.wine_app,
+                        arguments.mouse_warp_override,
+                    )
     except (PrepareError, OSError, ValueError, json.JSONDecodeError) as error:
         print(f"prepare-proton-direct-wine: {error}", file=os.sys.stderr)
         return 1

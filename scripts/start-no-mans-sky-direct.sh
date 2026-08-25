@@ -115,7 +115,8 @@ fi
 "$python" "$tool_check" check --base "$base"
 
 "$python" "$prepare" prepare --base "$base" --wine-prefix "$prefix" \
-    --window-background '0 0 0'
+    --window-background '0 0 0' --wine-app NMS.exe \
+    --mouse-warp-override disable
 
 (set -o noclobber; : >"$server_log") 2>/dev/null ||
     fail "cannot create server log: $server_log"
