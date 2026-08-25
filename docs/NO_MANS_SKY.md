@@ -51,16 +51,12 @@ and [current settings-file example](https://steamcommunity.com/app/275850/discus
 
 ## Large SD-card download
 
-Steam keeps lock-sensitive library control data internal. For a new large game,
-put only its empty download staging directory on the SD card before downloading:
+Keep active download staging on internal storage and select `microSD Windows
+games` as the destination. Steam then commits the completed payload to SD. The
+tablet's portable-storage FUSE supports ordinary writes but not `fallocate`, so
+direct active staging on SD fails with `CGenericAsyncFileIOThread` errno 38.
 
-```sh
-mkdir -p ~/storage/external-1/steam-arm64-library/staging/275850
-mkdir -p ~/steam-arm64/removable-library-downloads/275850
-~/steam-arm64/compat-bin/steam-arm64-removable-library.py \
-  enable-empty-staging-bind 275850
-```
-
-Steam must be stopped and both directories must be real and empty. The command
-fails closed otherwise. Restart Steam and resume the install to the `microSD
-Windows games` library.
+The generic `enable-empty-staging-bind` command now probes this requirement
+before changing configuration and fails closed on this tablet. This reuses the
+previously verified Tomb Raider workflow: internal F2FS staging followed by an
+offline hash-verified or normal Steam commit to SD.

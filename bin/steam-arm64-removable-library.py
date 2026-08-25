@@ -723,6 +723,27 @@ def enable_empty_staging_bind(
     staging_binds = dict(payload["staging_binds"])
     if appid in staging_binds:
         raise RuntimeError(f"staging bind is already enabled for App ID {appid}")
+    probe = source / f".steam-allocation-probe-{secrets.token_hex(8)}"
+    descriptor = None
+    try:
+        descriptor = os.open(
+            probe,
+            os.O_CLOEXEC | os.O_CREAT | os.O_EXCL | os.O_RDWR,
+            0o600,
+        )
+        os.posix_fallocate(descriptor, 0, 1)
+    except OSError as error:
+        raise RuntimeError(
+            "external staging does not support file allocation required by "
+            "Steam; use internal staging and the verified SD commit"
+        ) from error
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+        try:
+            probe.unlink()
+        except FileNotFoundError:
+            pass
     staging_binds[appid] = {
         "bytes": 0,
         "files": 0,
