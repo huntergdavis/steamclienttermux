@@ -10120,3 +10120,25 @@ and one expected warning: the project license has not yet been selected. Steam
 PID/start ticks remained `4264:149472438`. This proves archive integrity and
 prerequisites, not a complete fresh install; PRoot and product launchers remain.
 [Evidence](evidence/steam-option-a-release-tablet-20260824.json)
+
+## 2026-08-24: locked patched PRoot install
+
+The Option-A bootstrap now installs the exact PRoot source and 10-patch profile
+used by the running Steam stack. A real tablet A/B rejected both experimental
+native/LTO builds: `--version` passed, but a Debian executable did not. The
+portable profile produced the exact active binary and passed both guest-loader
+and full Debian command smoke tests.
+
+| Tablet gate | Result |
+| --- | ---: |
+| Fresh portable build/install | 22.007 s |
+| Exact-commit verified rerun | 0.629 s |
+| Installed source/build tree | 8,219 KiB |
+| PRoot binary | 300,456 bytes / `0378e063...166c` |
+| Running Steam/webhelper | PID/start ticks unchanged |
+
+No indexed prior implementation was found by the required `deja` query. The
+installer reuses the glibc phase's exact receipt, private staging, and
+fail-closed promotion pattern. This completes PRoot automation; it does not yet
+claim a fresh minimal Debian or Steam launch.
+[Evidence](evidence/steam-option-a-proot-runtime-tablet-20260824.json)

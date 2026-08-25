@@ -1,0 +1,62 @@
+{
+  "device": {
+    "abi": "arm64-v8a",
+    "model": "Samsung Galaxy Tab S8+",
+    "os": "Android 16",
+    "termux_prefix": "/data/data/com.termux/files/usr"
+  },
+  "gate": "option-a-locked-patched-proot-runtime",
+  "inputs": {
+    "build_script_sha256": "222191f0f3480799f0e2a41bb8cabd91fc5f9e7258bb093a6fafea6a16f26f4f",
+    "installer_sha256": "62709c172be954795e0a3408ce72c6437c13174f44779075dcaeb01379ac1008",
+    "lock_sha256": "4dffea888dfdaed7ec9201585a02982ba151a5e2b45283b772d1fa83886af787",
+    "project_commit": "91291592723c30e8e18feb753645f7738cc85f7c",
+    "proot_source_commit": "a89b3732ec6ae1db674510f0843b2f3db54d0a2f"
+  },
+  "isolation": {
+    "active_steam_pid_start_ticks": "4264:149472438",
+    "active_webhelper_pid_start_ticks": "4372:149472675",
+    "active_tree_modified": false,
+    "candidate": "/data/data/com.termux/files/home/steam-arm64/candidates/option-a-proot-9129159.ecPfEa"
+  },
+  "negative_profiles": [
+    {
+      "guest_debian_command": "fail-before-exec",
+      "profile": "native-lto-stripped"
+    },
+    {
+      "guest_debian_command": "fail-before-exec",
+      "profile": "native-lto-unstripped"
+    }
+  ],
+  "result": {
+    "binary_sha256": "0378e0631dbf7a8bd0061b54fc167bb881c70a76109f567b682f7262a063166c",
+    "binary_size": 300456,
+    "debian_command_smoke": "pass",
+    "exact_commit_rerun_seconds": 0.629,
+    "fresh_install_seconds": 22.007,
+    "guest_loader_smoke": "pass",
+    "host_full_suite": "pass",
+    "installed_tree_kib": 8219,
+    "portable_binary_matches_active": true,
+    "profile": "portable-10-patch",
+    "receipt_sha256": "46c426d52d05d9af81ef3b11a69edf53f2f3ae9b337e5d6ea88d87ac5a10b773",
+    "status": "pass"
+  },
+  "reuse": {
+    "deja_query": "locked patched PRoot transactional installer exact commit patch receipt one-command bootstrap",
+    "indexed_match": false,
+    "patterns": [
+      "glibc content identity and exact receipt",
+      "private same-filesystem staging",
+      "fail-closed rerun and no-clobber promotion"
+    ]
+  },
+  "schema_version": 1,
+  "scope": {
+    "fresh_minimal_debian": false,
+    "fresh_steam_launch": false,
+    "installer_path_through_proot": true,
+    "public_release": false
+  }
+}

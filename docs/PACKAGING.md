@@ -150,7 +150,8 @@ proven portable build recipe, and all 10 patch hashes. The installer builds in
 private same-filesystem staging, validates the Git diff, stamp, executable, and exact
 receipt, then renames the complete tree into the launcher's stable path. It
 refuses an unmanaged destination or any changed input; an unchanged rerun does
-no build work.
+no build work. The proven tablet profile built in 22.007 seconds and its exact
+rerun took 0.629 seconds. [Evidence](evidence/steam-option-a-proot-runtime-tablet-20260824.json)
 
 The lower-level verifier can also use an already-downloaded archive:
 
