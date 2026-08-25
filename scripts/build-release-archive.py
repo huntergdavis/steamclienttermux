@@ -42,6 +42,7 @@ INCLUDED_FILES = {
 }
 REQUIRED_FILES = {
     "README.md",
+    "config/debian-runtime-lock.json",
     "config/glibc-runtime-lock.json",
     "config/proot-runtime-lock.json",
     "config/steam-arm64-bootstrap-lock.json",
@@ -57,6 +58,7 @@ REQUIRED_FILES = {
     "scripts/install-tgcompat-runtime.py",
     "scripts/install-glibc-runtime.py",
     "scripts/install-proot-runtime.py",
+    "scripts/install-debian-runtime.py",
     "scripts/build-proot.sh",
     "scripts/steam-stack-doctor.py",
     "docs/PRODUCTIZATION_RESEARCH.md",

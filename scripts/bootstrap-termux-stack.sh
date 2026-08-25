@@ -15,6 +15,8 @@ glibc_package=$repo_root/artifacts/glibc_2.44_aarch64.deb
 proot_lock=$repo_root/config/proot-runtime-lock.json
 proot_installer=$repo_root/scripts/install-proot-runtime.py
 proot_builder=$repo_root/scripts/build-proot.sh
+debian_lock=$repo_root/config/debian-runtime-lock.json
+debian_installer=$repo_root/scripts/install-debian-runtime.py
 base=${STEAM_ARM64_BASE:-$HOME/steam-arm64}
 
 fail() {
@@ -36,7 +38,9 @@ fail() {
         -f $glibc_package && ! -L $glibc_package &&
         -f $proot_lock && ! -L $proot_lock &&
         -f $proot_installer && ! -L $proot_installer &&
-        -f $proot_builder && ! -L $proot_builder ]] ||
+        -f $proot_builder && ! -L $proot_builder &&
+        -f $debian_lock && ! -L $debian_lock &&
+        -f $debian_installer && ! -L $debian_installer ]] ||
     fail 'release archive is incomplete or contains unsafe links'
 [[ $(getprop ro.product.cpu.abi) == arm64-v8a ]] ||
     fail 'this profile requires an ARM64 Android device'
@@ -52,5 +56,7 @@ python3 "$turnip_installer" --lock "$turnip_lock" install --base "$base"
 python3 "$tgcompat_installer" --lock "$tgcompat_lock" --base "$base"
 python3 "$glibc_installer" --lock "$glibc_lock" \
     --package "$glibc_package" --base "$base"
-exec python3 "$proot_installer" --lock "$proot_lock" \
+python3 "$proot_installer" --lock "$proot_lock" \
     --builder "$proot_builder" --base "$base"
+exec python3 "$debian_installer" --lock "$debian_lock" \
+    --base "$base" --prefix "$PREFIX"

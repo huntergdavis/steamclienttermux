@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "gate": "option-a-locked-minimal-debian-runtime",
+  "date": "2026-08-24",
+  "result": "pass",
+  "source_base_commit": "a3ae764ec1cd97392b92edc389dc9c5b11c269f8",
+  "artifacts": {
+    "lock_sha256": "ff9d176e97d315b768d9e47f7226e9704274e8c209acd49286ec5dc58bb040c8",
+    "fresh_install_script_sha256": "be3a3e39ef0f9afebadb016be2e0ab14e88b49bcb4edb1e015d1d2eb0e9f3d83",
+    "final_script_sha256": "acf6f3ccdbaa802227b17affe22e70a590281d70c1084291a9dbe343e5336850",
+    "archive_sha256": "3834a11cbc6496935760bdc20cca7e2c25724d0cd8f5e4926da8fd5ca1857918",
+    "archive_size": 35409704,
+    "patched_proot_sha256": "0378e0631dbf7a8bd0061b54fc167bb881c70a76109f567b682f7262a063166c"
+  },
+  "tablet": {
+    "model": "Samsung SM-X808U",
+    "architecture": "aarch64",
+    "proot_distro_version": "5.6.0"
+  },
+  "measurements": {
+    "fresh_install_seconds_after_cached_rootfs": 278.07,
+    "final_verified_rerun_seconds": 1.789,
+    "direct_packages": 27,
+    "apt_download_bytes_reported": 131000000,
+    "rootfs_bytes_before_apt_clean": 994874837,
+    "rootfs_bytes_after_apt_clean": 769717257,
+    "apt_clean_saved_bytes": 225157580
+  },
+  "acceptance": {
+    "guest_architecture": "aarch64",
+    "guest_command_smoke": "pass",
+    "required_runtime_files": "pass",
+    "safe_in_root_symlinks": "pass",
+    "escape_symlink_rejection": "pass",
+    "package_inventory": "pass",
+    "receipt_validation": "pass",
+    "idempotent_rerun": "pass",
+    "existing_debian_container_unchanged": true,
+    "final_alias_promoted_only_after_acceptance": true
+  },
+  "failure_found": "The first real run correctly withheld promotion but rejected Debian's normal versioned GTK library symlink. Validation was corrected to accept only targets resolving to regular files inside the rootfs; an escape-link regression test was added.",
+  "final_delta": "The final script adds quiet apt output and apt-get clean. The complete fresh install used the otherwise identical corrected validator; apt-get clean and the final script's idempotent path were then exercised directly on the tablet.",
+  "scope": "This proves the locked Debian runtime phase on the working tablet. It does not yet prove the complete bootstrap from a factory-clean Termux install or generate final product launchers.",
+  "reuse": "The required deja query returned no indexed implementation. This gate reuses the repository's locked patched PRoot, private staging, exact receipt, fail-closed validation, and same-filesystem rename-promotion patterns."
+}

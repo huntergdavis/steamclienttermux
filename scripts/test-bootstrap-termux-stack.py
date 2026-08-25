@@ -27,8 +27,13 @@ def main() -> None:
     assert 'python3 "$tgcompat_installer" --lock "$tgcompat_lock" --base "$base"' in source
     assert 'python3 "$glibc_installer" --lock "$glibc_lock"' in source
     assert '--package "$glibc_package" --base "$base"' in source
-    assert 'exec python3 "$proot_installer" --lock "$proot_lock"' in source
+    assert 'python3 "$proot_installer" --lock "$proot_lock"' in source
     assert '--builder "$proot_builder" --base "$base"' in source
+    assert 'exec python3 "$debian_installer" --lock "$debian_lock"' in source
+    assert '--base "$base" --prefix "$PREFIX"' in source
+    assert source.index('python3 "$proot_installer"') < source.index(
+        'exec python3 "$debian_installer"'
+    )
     assert "curl |" not in source and "wget |" not in source
     for path in PRODUCT_RUNTIME_USERS:
         consumer = path.read_text(encoding="utf-8")

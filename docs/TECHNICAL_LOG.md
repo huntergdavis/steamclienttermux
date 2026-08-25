@@ -10142,3 +10142,25 @@ installer reuses the glibc phase's exact receipt, private staging, and
 fail-closed promotion pattern. This completes PRoot automation; it does not yet
 claim a fresh minimal Debian or Steam launch.
 [Evidence](evidence/steam-option-a-proot-runtime-tablet-20260824.json)
+
+## 2026-08-24: locked minimal Debian runtime install
+
+The Option-A command now installs a project-owned Debian Trixie rootfs and 27
+direct Steam runtime packages after patched PRoot. The first real run exposed a
+false rejection of Debian's normal versioned GTK symlink; final promotion never
+occurred. Validation now accepts only links resolving to regular files inside
+the rootfs and rejects escape links.
+
+| Tablet gate | Result |
+| --- | ---: |
+| Fresh install after cached rootfs | 278.070 s |
+| Verified final-script rerun | 1.789 s |
+| Cleaned rootfs | 769,717,257 bytes |
+| Apt cache removed | 225,157,580 bytes |
+| Guest command/library smoke | PASS |
+| Existing user Debian container | unchanged |
+
+The required `deja` query returned no indexed implementation. This phase reuses
+the patched-PRoot, private-staging, exact-receipt, and rename-promotion
+boundaries. Product launchers and a complete fresh-device run remain open.
+[Evidence](evidence/steam-option-a-debian-runtime-tablet-20260824.json)

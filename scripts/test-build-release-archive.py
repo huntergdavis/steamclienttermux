@@ -45,6 +45,7 @@ def fixture_repo(root: Path, glibc_package: bytes) -> str:
     files = {
         "README.md": b"# fixture\n",
         ".gitignore": b"dist/\n",
+        "config/debian-runtime-lock.json": b"{}\n",
         "config/glibc-runtime-lock.json": json.dumps(
             {
                 "artifact": {
@@ -66,6 +67,7 @@ def fixture_repo(root: Path, glibc_package: bytes) -> str:
         "scripts/install-tgcompat-runtime.py": b"#!/usr/bin/env python3\n",
         "scripts/install-glibc-runtime.py": b"#!/usr/bin/env python3\n",
         "scripts/install-proot-runtime.py": b"#!/usr/bin/env python3\n",
+        "scripts/install-debian-runtime.py": b"#!/usr/bin/env python3\n",
         "scripts/build-proot.sh": b"#!/data/data/com.termux/files/usr/bin/bash\n",
         "scripts/setup-steam-stack.py": b"#!/usr/bin/env python3\n",
         "scripts/steam-stack-doctor.py": b"#!/usr/bin/env python3\n",
@@ -140,7 +142,9 @@ def main() -> None:
                 assert f"{prefix}/scripts/build-release-archive.py" in names
                 assert f"{prefix}/scripts/install-glibc-runtime.py" in names
                 assert f"{prefix}/scripts/install-proot-runtime.py" in names
+                assert f"{prefix}/scripts/install-debian-runtime.py" in names
                 assert f"{prefix}/config/proot-runtime-lock.json" in names
+                assert f"{prefix}/config/debian-runtime-lock.json" in names
                 assert f"{prefix}/artifacts/glibc_2.44_aarch64.deb" in names
                 assert f"{prefix}/RELEASE-MANIFEST.json" in names
                 assert not any("excluded" in name for name in names)

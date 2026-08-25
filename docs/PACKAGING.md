@@ -15,7 +15,7 @@ signed-repository `.deb`. APK and ADB product paths are out of scope.
    ```
 3. Fetch the ARM64 Steam seed directly from Valve, verify its pinned identity,
    and safely extract it.
-4. Install native tgcompat, patched glibc, and the locked patched PRoot.
+4. Install native tgcompat, patched glibc, patched PRoot, and minimal Debian.
 5. Start Valve's client; Valve performs the remaining update, login, Steam
    Guard, Proton, and game downloads.
 
@@ -153,6 +153,25 @@ refuses an unmanaged destination or any changed input; an unchanged rerun does
 no build work. The proven tablet profile built in 22.007 seconds and its exact
 rerun took 0.629 seconds. [Evidence](evidence/steam-option-a-proot-runtime-tablet-20260824.json)
 
+## Locked minimal Debian runtime
+
+The bootstrap installs a project-owned Debian Trixie container after patched
+PRoot:
+
+```sh
+python3 scripts/install-debian-runtime.py \
+  --base "$HOME/steam-arm64" --prefix "$PREFIX"
+```
+
+[`debian-runtime-lock.json`](../config/debian-runtime-lock.json) pins the
+official PRoot-Distro archive and 27 direct Steam runtime packages. Installation
+uses a separate staging alias, verifies package versions and required libraries,
+accepts only symlinks resolving inside the rootfs, cleans apt downloads, and
+promotes by same-filesystem rename. On the Tab S8+, the real install took
+278.070 seconds, the cleaned rootfs used 769,717,257 bytes, and the verified
+rerun took 1.860 seconds. The existing user Debian container was unchanged.
+[Evidence](evidence/steam-option-a-debian-runtime-tablet-20260824.json)
+
 The lower-level verifier can also use an already-downloaded archive:
 
 ```sh
@@ -215,8 +234,8 @@ See [the compact hardware evidence](evidence/steam-stack-doctor-tablet-20260824.
   new lock only after hardware validation.
 - Make every system mutation transactional with exact backups and a dry-run.
 
-The remaining package gates are a minimal Debian runtime, generic launchers,
-fresh-device and uninstall tests, license selection, and release signing. A
+The remaining package gates are generic launchers, fresh-device and uninstall
+tests, license selection, and release signing. A
 later optional target-SDK-36 UI can invoke fixed Termux `RUN_COMMAND` entry
 points, but it remains separately signed and never shares Termux's UID.
 

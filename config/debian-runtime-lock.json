@@ -1,0 +1,64 @@
+{
+  "acceptance": {
+    "required_files": [
+      "usr/bin/bash",
+      "usr/bin/dbus-daemon",
+      "usr/lib/aarch64-linux-gnu/libgtk-x11-2.0.so.0",
+      "usr/lib/aarch64-linux-gnu/libgtk-3.so.0",
+      "usr/lib/aarch64-linux-gnu/libpulse.so.0",
+      "usr/lib/aarch64-linux-gnu/libopenal.so.1",
+      "usr/lib/aarch64-linux-gnu/libX11.so.6",
+      "usr/lib/aarch64-linux-gnu/libnss3.so"
+    ]
+  },
+  "archive": {
+    "filename": "debian-trixie-aarch64-pd-v4.29.0.tar.xz",
+    "publisher": "termux/proot-distro",
+    "sha256": "3834a11cbc6496935760bdc20cca7e2c25724d0cd8f5e4926da8fd5ca1857918",
+    "size": 35409704,
+    "url": "https://github.com/termux/proot-distro/releases/download/v4.29.0/debian-trixie-aarch64-pd-v4.29.0.tar.xz"
+  },
+  "container": {
+    "architecture": "aarch64",
+    "name": "steam-arm64-runtime",
+    "receipt": ".steamclienttermux-debian-receipt.json"
+  },
+  "packages": [
+    "ca-certificates",
+    "dbus",
+    "dbus-x11",
+    "fonts-dejavu-core",
+    "libasound2t64",
+    "libavcodec61",
+    "libavutil59",
+    "libegl1",
+    "libgl1",
+    "libgtk-3-0t64",
+    "libgtk2.0-0t64",
+    "libibus-1.0-5",
+    "libllvm19",
+    "libnm0",
+    "libnss-mdns",
+    "libnss3",
+    "libopenal1",
+    "libpipewire-0.3-0t64",
+    "libpulse0",
+    "libsdl2-2.0-0",
+    "libva2",
+    "libvdpau1",
+    "libxss1",
+    "locales",
+    "procps",
+    "x11-utils",
+    "x11-xserver-utils"
+  ],
+  "platform": {
+    "architectures": [
+      "aarch64"
+    ],
+    "environment": "official-termux",
+    "storage": "private-internal"
+  },
+  "profile_id": "steam-arm64-debian-trixie-minimal-v1",
+  "schema_version": 1
+}

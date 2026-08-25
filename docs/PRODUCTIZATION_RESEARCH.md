@@ -34,7 +34,8 @@ python3 scripts/setup-steam-stack.py plan --json
 | Acquire and receipt Valve's ARM64 seed | Setup command | Locked HTTPS + safe extractor | Implemented |
 | Install Turnip | Setup command | Locked upstream archive + safe extractor | Implemented |
 | Install glibc and patched PRoot | Setup command | Locked transactional installers | Implemented |
-| Install minimal Debian, launchers and profiles | Setup command | Transactional runtime installer | In progress |
+| Install minimal Debian | Setup command | Locked transactional installer | Implemented |
+| Install launchers and profiles | Setup command | Product-owned configuration | In progress |
 | Steam login and Steam Guard | User | Valve client | Always manual |
 
 This boundary is architectural, not just documentation: the CLI exports the
@@ -77,7 +78,7 @@ three relative symlinks, and promotes only a complete verified staging tree.
 2. Download one signed project release archive.
 3. Run `scripts/bootstrap-termux-stack.sh` from the verified release; it now
    completes dependencies, Valve seed, Turnip, native tgcompat, patched glibc,
-   and patched PRoot.
+   patched PRoot, and minimal Debian.
 4. The bootstrap verifies Android/device prerequisites and free space.
 5. It installs open-source helpers transactionally and fetches locked external
    payloads directly from their publishers.

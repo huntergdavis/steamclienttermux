@@ -15,7 +15,7 @@ contain Valve binaries, games, credentials, or account state.
 | --- | --- | --- |
 | Tomb Raider performance | 1080p tuned Ultra: **30.7 FPS average** | Replicate and generalize the profile |
 | Steam startup | UI **1.662s**; cold AppID **21.80s**; cold game **49.513s** | Connect AppID acceptance to the direct game route |
-| Easy distribution | Locked ZIP bootstrap through patched PRoot | Package minimal Debian + product launchers |
+| Easy distribution | Locked ZIP bootstrap through minimal Debian | Package product launchers and first-run setup |
 
 | Component | Verified |
 | --- | --- |
@@ -95,8 +95,8 @@ an optional compatibility profile, not a first-run question.
 
 | Automated | Still in progress |
 | --- | --- |
-| 36 Termux packages; Valve seed; Turnip | minimal Debian runtime |
-| Native tgcompat; patched glibc; PRoot | product launchers and first-run setup |
+| 36 Termux packages; Valve seed; Turnip | product launchers and first-run setup |
+| Native tgcompat; patched glibc; PRoot; Debian | fresh-device end-to-end proof |
 | Idempotent, private staged promotion | full rollback and fresh-device proof |
 
 The release ZIP contains project source plus the audited open-source glibc
