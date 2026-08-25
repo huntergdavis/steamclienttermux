@@ -315,6 +315,10 @@ install_one "$repo_root/bin/steam-arm64-session-guard.py" \
     "$base/compat-bin/steam-arm64-session-guard.py" 700
 install_one "$repo_root/bin/steam-arm64-removable-library.py" \
     "$base/compat-bin/steam-arm64-removable-library.py" 700
+install_one "$repo_root/scripts/configure-steam-app-proton.py" \
+    "$HOME/bin/configure-steam-app-proton" 700
+install_one "$repo_root/scripts/configure-no-mans-sky.py" \
+    "$HOME/bin/configure-no-mans-sky" 700
 install_one "$repo_root/scripts/prepare-runtime-direct-root.py" \
     "$base/compat-bin/prepare-runtime-direct-root.py" 700
 install_one "$repo_root/scripts/configure-gtaiv-registry.py" \

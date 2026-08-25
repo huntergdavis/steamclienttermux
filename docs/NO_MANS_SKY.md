@@ -18,11 +18,20 @@ Hello Games cross-save.
 | Motion blur, HDR, V-sync | Off |
 | Thread allocation | Engine automatic (`0` / `0`) |
 
+Before the first launch, stop Steam and select the verified native ARM64 Proton
+tool with the generic AppID mapper:
+
+```sh
+~/bin/configure-steam-app-proton 275850
+```
+
+The command backs up `config.vdf`, updates only this AppID, and is idempotent.
+
 The profile keeps a timestamped original and atomically replaces only a valid
 generated `TKGRAPHICSSETTINGS.MXML`:
 
 ```sh
-python3 ~/steamclienttermux/scripts/configure-no-mans-sky.py
+~/bin/configure-no-mans-sky
 ```
 
 Use `--dry-run` before changing a new game build. If Quality cannot hold 30 FPS

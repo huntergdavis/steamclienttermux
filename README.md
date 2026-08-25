@@ -75,6 +75,12 @@ Launch or stop a game session:
 ~/stop-steam-native.sh
 ```
 
+Map a new Windows game to the verified ARM64 Proton while Steam is stopped:
+
+```sh
+~/bin/configure-steam-app-proton APPID
+```
+
 The AppID command launches any installed game through Steam's generic route;
 it does not require another game's tuning helpers. A reviewed manifest entry
 can replace that route with measured optimizations.
