@@ -104,6 +104,16 @@ def main() -> None:
         assert (destination / ".ref").is_symlink()
         assert os.readlink(destination / ".ref") == "usr/.ref"
         assert (destination / ".steamclienttermux-runtime-direct-root").is_file()
+        assert (
+            destination
+            / base.relative_to("/")
+            / "mesa-kgsl/usr/share/drirc.d"
+        ).is_dir()
+        assert (
+            destination
+            / base.relative_to("/")
+            / "removable-library/steamapps/common"
+        ).is_dir()
 
         first_destination = destination
         run(base, l2s)

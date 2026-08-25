@@ -211,6 +211,19 @@ def build_sysroot(stage: Path, entries: list[MtreeEntry], files: Path, l2s_root:
     (stage / ".ref").symlink_to("usr/.ref")
 
 
+def create_mount_anchor(stage: Path, absolute: Path) -> None:
+    if not absolute.is_absolute():
+        fail(f"mount anchor is not absolute: {absolute}")
+    destination = stage.joinpath(*absolute.parts[1:])
+    try:
+        destination.relative_to(stage)
+    except ValueError:
+        fail(f"mount anchor escapes the runtime root: {absolute}")
+    destination.mkdir(mode=0o755, parents=True, exist_ok=True)
+    if destination.is_symlink() or not destination.is_dir():
+        fail(f"mount anchor is unsafe: {destination}")
+
+
 def remove_stage(stage: Path, parent: Path) -> None:
     if not stage.exists() and not stage.is_symlink():
         return
@@ -256,7 +269,7 @@ def prepare(base: Path, l2s_root: Path) -> Path:
         fail(f"invalid runtime mtree: {error}")
     entries = parse_mtree(mtree_data)
 
-    identity = hashlib.sha256(b"steamclienttermux-runtime-direct-v3\0")
+    identity = hashlib.sha256(b"steamclienttermux-runtime-direct-v4\0")
     identity.update(os.fsencode(matches[0]))
     identity.update(b"\0")
     identity.update(mtree_data)
@@ -312,6 +325,15 @@ def prepare(base: Path, l2s_root: Path) -> Path:
     try:
         stage.mkdir(mode=0o700)
         build_sysroot(stage, entries, files, l2s_root)
+        # Pressure Vessel asks Bubblewrap to bind host graphics paths and the
+        # current game working directory into this immutable runtime.  A
+        # copied runtime happened to contain their parents; the reusable root
+        # must provide the same empty mount points without copying per launch.
+        for anchor in (
+            base / "mesa-kgsl/usr/share/drirc.d",
+            base / "removable-library/steamapps/common",
+        ):
+            create_mount_anchor(stage, anchor)
         marker = stage / ".steamclienttermux-runtime-direct-root"
         marker.write_text(f"{digest}\n", encoding="ascii")
         marker.chmod(0o600)
