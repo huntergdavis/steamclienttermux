@@ -412,27 +412,57 @@ def main() -> None:
         tablet_base
         / "removable-library/steamapps/common/Tomb Raider/TombRaider.exe"
     )
-    nms_game = (
-        tablet_base
-        / "removable-library/steamapps/common/No Man's Sky/Binaries/NMS.exe"
-    )
-    nms_payload = [
-        *plan["payload_argv"][:16],
-        str(proton),
-        "waitforexitandrun",
-        str(nms_game),
-    ]
-    assert MODULE.validated_no_mans_sky_command(
-        tablet_base, nms_payload
-    ) == (proton, nms_game)
-    try:
-        MODULE.validated_no_mans_sky_command(
-            tablet_base, [*nms_payload, "--unexpected"]
+    with tempfile.TemporaryDirectory(prefix="nms-contained-proton.") as directory:
+        nms_base = Path(directory)
+        nms_tool = (
+            nms_base
+            / "client/compatibilitytools.d"
+            / MODULE.NMS_PROTON_TOOL_DIRECTORY
         )
-    except MODULE.DispatchError:
-        pass
-    else:
-        raise AssertionError("No Man's Sky validator accepted extra arguments")
+        nms_tool.mkdir(parents=True, mode=0o700)
+        nms_tool.chmod(0o700)
+        nms_proton = nms_tool / "proton"
+        nms_proton.write_text("#!/bin/sh\nexit 0\n")
+        nms_proton.chmod(0o700)
+        nms_marker = nms_tool / ".steamclienttermux-nms-proton.json"
+        nms_marker.write_text(json.dumps(MODULE.NMS_PROTON_MARKER))
+        nms_marker.chmod(0o600)
+        nms_dll = nms_tool / "files/lib/wine/aarch64-windows/lsteamclient.dll"
+        nms_dll.parent.mkdir(parents=True)
+        nms_dll.write_bytes(b"reviewed fixture")
+        nms_dll.chmod(0o600)
+        nms_game = (
+            nms_base
+            / "removable-library/steamapps/common/No Man's Sky/Binaries/NMS.exe"
+        )
+        nms_payload = [
+            *plan["payload_argv"][:16],
+            str(nms_proton),
+            "waitforexitandrun",
+            str(nms_game),
+        ]
+        original_sha256_file = MODULE.sha256_file
+        MODULE.sha256_file = lambda path: (
+            MODULE.NMS_PROTON_DLL_SHA256
+            if path == nms_dll
+            else original_sha256_file(path)
+        )
+        try:
+            assert MODULE.validated_no_mans_sky_command(
+                nms_base, nms_payload
+            ) == (nms_proton, nms_game)
+            try:
+                MODULE.validated_no_mans_sky_command(
+                    nms_base, [*nms_payload, "--unexpected"]
+                )
+            except MODULE.DispatchError:
+                pass
+            else:
+                raise AssertionError(
+                    "No Man's Sky validator accepted extra arguments"
+                )
+        finally:
+            MODULE.sha256_file = original_sha256_file
     benchmark_payload = [*plan["payload_argv"], "-benchmark"]
     assert MODULE.validated_tombraider_command(
         tablet_base, benchmark_payload, benchmark=True

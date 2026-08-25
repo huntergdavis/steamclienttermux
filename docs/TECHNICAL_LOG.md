@@ -10231,3 +10231,29 @@ named, content-addressed tool and map only AppID 275850 to it. The required
 exact `deja` query returned no indexed match. This gate reuses the warm AppID
 handoff, native HOME, content-addressed direct runtime, and typed fail-closed
 validators.
+
+## 2026-08-25: contained No Man's Sky Proton tool
+
+The shared DLL experiment is no longer installed. `~/setup-no-mans-sky` now
+creates a separately named local compatibility tool and maps only AppID 275850
+to it. Android SELinux rejected both hard links and reflinks between the stock
+and compatibility-tool directories, so the tool uses validated symlinks for
+unchanged files and private copies only for the Proton entry point, manifest,
+marker, and patched DLL.
+
+| Tablet result | Value |
+| --- | --- |
+| Stock DLL | `9d528945...f7a5`, unchanged |
+| Contained DLL | `4fd95452...0dc1`, separate inode |
+| Overlay disk use | 7.5 MB |
+| Symlinks / regular files | 8,074 / 4 |
+| AppID mapping | `275850` only, priority 250 |
+| Config backup | `backups/steam-compat-20260825T114445Z-rmv1y_ny/config.vdf` |
+| Second setup | idempotent; no change and no backup |
+
+Both `prepare` and launcher `check` validate the exact stock version, original
+DLL hash, private patch hash, marker, and manifest. An upstream Proton change
+therefore fails closed until reviewed instead of silently changing the overlay.
+This reuses the generic AppID mapper's atomic backup and the direct dispatcher's
+typed path validation; the required exact `deja` query returned no indexed
+implementation.

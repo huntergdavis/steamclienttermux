@@ -18,14 +18,18 @@ Hello Games cross-save.
 | Motion blur, HDR, V-sync | Off |
 | Thread allocation | Engine automatic (`0` / `0`) |
 
-Before the first launch, stop Steam and select the verified native ARM64 Proton
-tool with the generic AppID mapper:
+Before the first launch, stop Steam and create the contained Proton tool:
 
 ```sh
-~/bin/configure-steam-app-proton 275850
+~/setup-no-mans-sky
 ```
 
-The command backs up `config.vdf`, updates only this AppID, and is idempotent.
+The command creates a small private overlay of the reviewed Proton 11 ARM64
+tree, gives the Steam Input DLL its own copy, applies the exact reviewed patch,
+and maps only AppID 275850 to the new tool. It backs up `config.vdf`, is
+idempotent, and never changes stock Proton. Android SELinux denies hard links
+and reflinks here, so unchanged payload files are read-only symlinks to the
+hash-checked stock build instead of a second 1.9 GB copy.
 
 The profile keeps a timestamped original and atomically replaces only a valid
 generated `TKGRAPHICSSETTINGS.MXML`:

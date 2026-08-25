@@ -25,6 +25,7 @@ def main() -> None:
         base = root / "steam-arm64"
         (base / "run/native-runtime-dispatch").mkdir(parents=True)
         (base / "logs").mkdir()
+        (base / "compat-bin").mkdir()
         (base / "removable-library-compatdata/275850/pfx").mkdir(parents=True)
         prepare_log = root / "prepare.log"
         launcher_log = root / "launcher.log"
@@ -41,6 +42,13 @@ def main() -> None:
             "parser.parse_args()\n"
             "pathlib.Path(os.environ['FIXTURE_PREPARE_LOG']).write_text("
             "' '.join(sys.argv[1:]) + '\\n')\n",
+        )
+        executable(
+            base / "compat-bin/prepare-no-mans-sky-proton.py",
+            "#!/usr/bin/env python3\n"
+            "import argparse\n"
+            "parser=argparse.ArgumentParser(); parser.add_argument('action'); parser.add_argument('--base')\n"
+            "args=parser.parse_args(); assert args.action == 'check'\n",
         )
         dispatcher = root / "dispatcher.py"
         executable(

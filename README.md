@@ -72,6 +72,7 @@ Launch or stop a game session:
 ```sh
 ~/start-steam-game 203160
 ~/start-steam-game 203160 --mode benchmark
+~/setup-no-mans-sky       # once, while Steam is stopped
 ~/start-no-mans-sky-direct
 ~/stop-steam-native.sh
 ```

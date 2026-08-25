@@ -54,6 +54,21 @@ FEX_2605_OFFLINE_COMPILER_DLL_SHA256 = {
     "libunwind.dll": "535c6c8626c75f2b57cba17e0b550131d5fd699119d274290116fbe31e5b6046",
 }
 FEX_OFFLINE_CACHE_NAME = "tombraider-203160-offline-7efb8f8e"
+NMS_PROTON_TOOL_DIRECTORY = "steamclienttermux-nms-proton-11-arm64-4fd95452"
+NMS_PROTON_TOOL_NAME = "steamclienttermux_nms_proton_11_arm64_4fd95452"
+NMS_PROTON_DLL_SHA256 = (
+    "4fd95452dceb72b2238ab71e5822b852c5e82ab65dcb2c4883993211e8070dc1"
+)
+NMS_PROTON_MARKER = {
+    "patch_offset": 0x80090,
+    "patched_lsteamclient_sha256": NMS_PROTON_DLL_SHA256,
+    "schema_version": 1,
+    "source_lsteamclient_sha256": (
+        "9d5289451c94e1eb8df5043f7c0341c1d817a74cc43ad1518099281a9c27f7a5"
+    ),
+    "source_version": "1787334524 proton-11.0-2-arm64",
+    "tool": NMS_PROTON_TOOL_NAME,
+}
 DXVK_X32_VARIANTS = {
     "dxvk-1.10.3-x32": (
         "tombraider-dxvk-1.10.3-x32-8d1a3c91",
@@ -1341,7 +1356,36 @@ def validated_no_mans_sky_command(
         fail("No Man's Sky payload has no command boundary")
     boundary = payload_arguments.index("--")
     command = payload_arguments[boundary + 1 :]
-    proton = base / "client/steamapps/common/Proton 11.0 (ARM64)/proton"
+    tool = private_directory(
+        base / "client/compatibilitytools.d" / NMS_PROTON_TOOL_DIRECTORY,
+        "contained No Man's Sky Proton tool",
+    )
+    proton = tool / "proton"
+    marker = tool / ".steamclienttermux-nms-proton.json"
+    dll = tool / "files/lib/wine/aarch64-windows/lsteamclient.dll"
+    for path, description in (
+        (marker, "contained No Man's Sky Proton marker"),
+        (dll, "contained No Man's Sky lsteamclient DLL"),
+    ):
+        try:
+            metadata = path.lstat()
+        except FileNotFoundError:
+            fail(f"{description} is unavailable: {path}")
+        if (
+            not stat.S_ISREG(metadata.st_mode)
+            or path.is_symlink()
+            or metadata.st_uid != os.geteuid()
+            or metadata.st_mode & 0o022
+        ):
+            fail(f"{description} is unsafe: {path}")
+    try:
+        marker_payload = json.loads(marker.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        fail("contained No Man's Sky Proton marker is invalid")
+    if marker_payload != NMS_PROTON_MARKER:
+        fail("contained No Man's Sky Proton marker is unexpected")
+    if sha256_file(dll) != NMS_PROTON_DLL_SHA256:
+        fail("contained No Man's Sky lsteamclient DLL hash is unexpected")
     game = (
         base
         / "removable-library/steamapps/common/No Man's Sky/Binaries/NMS.exe"

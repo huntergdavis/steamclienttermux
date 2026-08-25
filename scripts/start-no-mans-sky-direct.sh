@@ -9,6 +9,7 @@ python=${NO_MANS_SKY_DIRECT_PYTHON:-$default_python}
 dispatcher=${NO_MANS_SKY_DIRECT_DISPATCHER:-$base/compat-bin/pressure-vessel-direct-dispatch.py}
 launcher=${NO_MANS_SKY_DIRECT_LAUNCHER:-$HOME/start-steam.sh}
 prepare=${NO_MANS_SKY_DIRECT_PREPARE:-$base/compat-bin/prepare-proton-direct-wine.py}
+tool_check=$base/compat-bin/prepare-no-mans-sky-proton.py
 prefix=$base/removable-library-compatdata/275850/pfx
 socket=$base/run/native-runtime-dispatch/dispatch.sock
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
@@ -60,6 +61,8 @@ trap cleanup EXIT HUP INT TERM
     fail "Steam AppID launcher is unavailable: $launcher"
 [[ -x $prepare && ! -L $prepare ]] ||
     fail "Proton preparation tool is unavailable: $prepare"
+[[ -f $tool_check && ! -L $tool_check ]] ||
+    fail "contained NMS Proton validator is unavailable: $tool_check"
 [[ -d $prefix && ! -L $prefix ]] ||
     fail "No Man's Sky Proton prefix is unavailable: $prefix"
 [[ ! -e $socket && ! -L $socket ]] ||
@@ -67,6 +70,8 @@ trap cleanup EXIT HUP INT TERM
 [[ $request_timeout =~ ^[0-9]+$ ]] &&
     (( request_timeout >= 1 && request_timeout <= 900 )) ||
     fail 'NO_MANS_SKY_DIRECT_REQUEST_TIMEOUT must be 1..900 seconds'
+
+"$python" "$tool_check" check --base "$base"
 
 "$python" "$prepare" prepare --base "$base" --wine-prefix "$prefix" \
     --window-background '0 0 0'
