@@ -10257,3 +10257,27 @@ therefore fails closed until reviewed instead of silently changing the overlay.
 This reuses the generic AppID mapper's atomic backup and the direct dispatcher's
 typed path validation; the required exact `deja` query returned no indexed
 implementation.
+
+## 2026-08-25: removable library lock boundary and foreground NMS repro
+
+Steam was covering the internal removable-library root with Android portable
+storage. That put the 90-byte `libraryfolder.vdf` on FUSE, where `flock(2)`
+returned errno 38. The launcher now keeps the root and Steam control metadata
+on F2FS while binding only bulk `steamapps/common` content from SD.
+
+| A/B gate | Before | After |
+| --- | --- | --- |
+| library root filesystem | portable FUSE | internal F2FS |
+| `libraryfolder.vdf` shared lock | errno 38 | PASS |
+| game payload filesystem | portable FUSE | portable FUSE |
+| compatdata filesystem | internal F2FS | internal F2FS |
+| cold compat scan | about 60 s | about 60 s |
+
+The root-lock error disappeared, but Steam's separate compatibility-tool scan
+remained slow; no startup-speed gain is claimed. The second NMS run was started
+from a visibly foreground Termux terminal. X11 was `/top-app` on CPUs 0-3 and
+NMS created a full 2800x1752 Hello Games surface. It then raised
+`170671_0x15B2C`; the 81,138-byte dump has SHA-256 `2a37769a...d9ae`.
+Foreground scheduling therefore was not the sole crash cause. The required
+exact `deja` searches found no indexed fix; this reuses the existing internal
+control-metadata/removable-payload split and typed fail-closed launch checks.

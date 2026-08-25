@@ -304,13 +304,13 @@ pd_args+=(--bind "$arm_runtime:$arm_runtime_depot")
 # existing shadow still supplies Pressure Vessel itself.
 pd_args+=(--bind "$runtime_direct_run:$arm_runtime_depot/run")
 # Android portable storage is exFAT/FUSE, noexec, and cannot hold Proton
-# prefixes. If explicitly configured, expose only the bulk game library at a
-# stable guest path. Cover steamapps with internal F2FS control metadata, bind
-# only common back to the card for installed payloads, then cover compatdata and
-# active downloads with their unique internal directories. Android's portable-
-# storage FUSE does not implement flock(2), which Steam requires for manifests
-# and download patch-state files. The helper fails before launch if the card or
-# layout is unsafe.
+# prefixes. The native target root contains the lock-bearing libraryfolder.vdf
+# on F2FS, so deliberately do not cover that root with the portable source.
+# Cover steamapps with internal F2FS control metadata, bind only common back to
+# the card for installed payloads, then cover compatdata and active downloads
+# with their unique internal directories. Android's portable-storage FUSE does
+# not implement flock(2), which Steam requires for library and patch metadata.
+# The helper fails before launch if the card or layout is unsafe.
 removable_mount="$(
     python3 "$removable_library_helper" --base "$base" mount-info
 )"
@@ -325,7 +325,6 @@ if [[ "$removable_mount" != disabled ]]; then
         printf 'Invalid removable-library mount description\n' >&2
         exit 1
     fi
-    pd_args+=(--bind "$removable_source:$removable_target")
     pd_args+=(--bind "$removable_steamapps:$removable_target/steamapps")
     pd_args+=(--bind "$removable_common:$removable_target/steamapps/common")
     pd_args+=(--bind "$removable_compatdata:$removable_target/steamapps/compatdata")

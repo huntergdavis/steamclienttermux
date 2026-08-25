@@ -86,7 +86,7 @@ offline hash-verified or normal Steam commit to SD.
 | `NMS.exe` | Loaded Turnip and created a real 2800x1752 X11 game surface |
 | Steam Input A/B | Returning success from the failing `ISteamInput006::Init` wrapper bypassed the pre-window crash |
 | Screenshot | Full The Swarm screen; SHA-256 `99b3dd84...1450` |
-| Current boundary | A background-cgroup run produced `0xCBBA4-HANG`, displayed an error dialog, and exited status 1 |
+| Current boundary | A real foreground run reached the Hello Games logo, then raised `170671_0x15B2C` and exited status 1 |
 
 Run the reviewed path from visible Termux:
 
@@ -111,6 +111,15 @@ unchanged. [Community report](https://steamcommunity.com/app/275850/discussions/
 The first visible-frame test was deliberately not benchmarked. Its X11 server
 was in Android's `/moderate` + `/background` cgroups and allowed only CPUs 2-3;
 NMS took 207 seconds from process creation to the retained screenshot and its
-watchdog wrote a 161,886-byte hang dump (SHA-256 `61f06e26...11b6`). Apply the
-1080p profile only after a foreground run reaches a stable window and exits
-cleanly.
+watchdog wrote a 161,886-byte hang dump (SHA-256 `61f06e26...11b6`). A second
+run launched from visibly foreground Termux, proved X11 in `/top-app`, and
+reached a full 2800x1752 Hello Games surface. It then produced a different
+`0x15B2C` access violation and 81,138-byte dump (SHA-256 `2a37769a...d9ae`).
+This disproves scheduler starvation as the sole failure. Apply the 1080p
+profile only after a foreground run reaches a stable window and exits cleanly.
+
+The removable library root now remains on internal F2FS while only bulk game
+content is mounted from SD. This removed Steam's `libraryfolder.vdf` flock
+failure without moving NMS off the card. Cold launch still spent about 60
+seconds rebuilding Steam's compatibility registry, so this is a correctness
+fix rather than a claimed startup-speed win.
