@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "status": "preliminary-not-charted",
+  "game": "No Man's Sky",
+  "appid": 275850,
+  "device": "Samsung Galaxy Tab S8+ / Adreno 730",
+  "route": "native ARM64 Steam -> direct Runtime 4 -> contained Proton 11 ARM64 -> FEX -> Vulkan",
+  "configuration": {
+    "output": "1920x1080 exclusive fullscreen",
+    "frame_cap": 60,
+    "upscaling": "FSR 2 Quality",
+    "texture": "High",
+    "animation": "High",
+    "other_detail_categories": "Medium",
+    "ambient_occlusion": "GTAO Low",
+    "motion_blur": "Off",
+    "vsync": "Off"
+  },
+  "source": {
+    "kind": "MangoHud periodic CSV",
+    "filename": "steam-runtime-launcher-interface-0_2026-08-25_15-36-54.csv",
+    "sha256": "e5b79baf5e789f742d3995a61a2c1179d6944da03e9c1d9744d8a4e19d871631",
+    "bytes": 201991,
+    "total_duration_seconds": 296.35813
+  },
+  "selection": {
+    "start_seconds": 60.0,
+    "first_sample_seconds": 60.021234,
+    "last_sample_seconds": 296.463983,
+    "samples": 2356
+  },
+  "sampled_fps": {
+    "mean": 58.34831,
+    "median": 56.88885,
+    "p01": 22.35601,
+    "p001": 6.970538,
+    "minimum": 4.66398,
+    "maximum": 116.506
+  },
+  "sampled_frametime_ms": {
+    "median": 17.5781,
+    "p95": 27.852775,
+    "p99": 44.731205,
+    "maximum": 214.409
+  },
+  "claim_boundary": "The visible scene, controller activity, thermal state, and traversal workload were not recorded. This proves promising 1080p headroom in an unclassified live session, not an on-planet benchmark. MangoHud rows are periodic samples; p01 and p001 are not conventional frame-level lows.",
+  "recall": "The required deja query for a reusable MangoHud CSV summary returned no indexed implementation. This result reuses the existing NMS FPS launcher, hash-bound direct route, and conservative benchmark-claim discipline."
+}

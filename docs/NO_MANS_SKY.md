@@ -154,3 +154,24 @@ real-gameplay frame-time method documented by
 [GamersNexus](https://gamersnexus.net/guides/2561-no-mans-sky-frametime-performance-review-poor-performance)
 and uses [MangoHud's](https://github.com/flightlessmango/MangoHud) maintained
 logging path rather than Android's compositor FPS counter.
+
+Summarize a deliberately selected gameplay interval with:
+
+```sh
+python3 scripts/summarize-mangohud-csv.py METRICS.csv \
+  --start-seconds 60 --duration-seconds 180
+```
+
+The JSON labels periodic FPS percentiles as samples, not conventional
+frame-level 1% lows. Record the scene, route, settings, temperature, and exact
+CSV hash alongside it before comparing runs.
+
+## Preliminary headroom
+
+| Interval | Configuration | Sampled result | Status |
+| --- | --- | --- | --- |
+| 60.0–296.5 s | 1080p, FSR 2 Quality, High textures/animation, Medium remaining detail, 60 cap | 58.35 mean; 56.89 median FPS | Unclassified scene; not charted |
+
+This first retained CSV is encouraging but lacks a recorded on-planet route
+and temperature. Its exact hash and bounded statistics are retained in
+[the preliminary record](benchmark-series/no-mans-sky-1080p-fsr2-quality-unclassified-20260825.json).
