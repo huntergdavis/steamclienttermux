@@ -24,6 +24,8 @@ assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 
+assert MODULE.NMS_PROTON_MARKER["patch_offset"] == 0x800E8
+
 
 def main() -> None:
     mapping_plan = [
@@ -431,6 +433,12 @@ def main() -> None:
         nms_dll.parent.mkdir(parents=True)
         nms_dll.write_bytes(b"reviewed fixture")
         nms_dll.chmod(0o600)
+        nms_loader_root = (
+            nms_tool / "files/lib/wine/aarch64-unix/ntdll.so"
+        )
+        nms_loader_root.parent.mkdir(parents=True)
+        nms_loader_root.write_bytes(b"reviewed loader root fixture")
+        nms_loader_root.chmod(0o700)
         nms_game = (
             nms_base
             / "removable-library/steamapps/common/No Man's Sky/Binaries/NMS.exe"
@@ -445,6 +453,8 @@ def main() -> None:
         MODULE.sha256_file = lambda path: (
             MODULE.NMS_PROTON_DLL_SHA256
             if path == nms_dll
+            else MODULE.NMS_PROTON_LOADER_ROOT_SHA256
+            if path == nms_loader_root
             else original_sha256_file(path)
         )
         try:
@@ -460,6 +470,18 @@ def main() -> None:
             else:
                 raise AssertionError(
                     "No Man's Sky validator accepted extra arguments"
+                )
+            nms_loader_root.unlink()
+            nms_loader_root.symlink_to(nms_dll)
+            try:
+                MODULE.validated_no_mans_sky_command(
+                    nms_base, nms_payload
+                )
+            except MODULE.DispatchError:
+                pass
+            else:
+                raise AssertionError(
+                    "No Man's Sky validator accepted a symlinked loader root"
                 )
         finally:
             MODULE.sha256_file = original_sha256_file

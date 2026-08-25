@@ -54,15 +54,19 @@ FEX_2605_OFFLINE_COMPILER_DLL_SHA256 = {
     "libunwind.dll": "535c6c8626c75f2b57cba17e0b550131d5fd699119d274290116fbe31e5b6046",
 }
 FEX_OFFLINE_CACHE_NAME = "tombraider-203160-offline-7efb8f8e"
-NMS_PROTON_TOOL_DIRECTORY = "steamclienttermux-nms-proton-11-arm64-4fd95452"
-NMS_PROTON_TOOL_NAME = "steamclienttermux_nms_proton_11_arm64_4fd95452"
+NMS_PROTON_TOOL_DIRECTORY = "steamclienttermux-nms-proton-11-arm64-b00a3dcd"
+NMS_PROTON_TOOL_NAME = "steamclienttermux_nms_proton_11_arm64_b00a3dcd"
 NMS_PROTON_DLL_SHA256 = (
-    "4fd95452dceb72b2238ab71e5822b852c5e82ab65dcb2c4883993211e8070dc1"
+    "b00a3dcdcfceb60f1b0fc68347558d7933c15ac07bcac5cff703bbdff014501f"
+)
+NMS_PROTON_LOADER_ROOT_SHA256 = (
+    "9c618d49c9926f55d8a28f10c4cfd514d26e654d5bc36a1c639730abf61dd1ff"
 )
 NMS_PROTON_MARKER = {
-    "patch_offset": 0x80090,
+    "loader_root_sha256": NMS_PROTON_LOADER_ROOT_SHA256,
+    "patch_offset": 0x800E8,
     "patched_lsteamclient_sha256": NMS_PROTON_DLL_SHA256,
-    "schema_version": 1,
+    "schema_version": 2,
     "source_lsteamclient_sha256": (
         "9d5289451c94e1eb8df5043f7c0341c1d817a74cc43ad1518099281a9c27f7a5"
     ),
@@ -1363,9 +1367,11 @@ def validated_no_mans_sky_command(
     proton = tool / "proton"
     marker = tool / ".steamclienttermux-nms-proton.json"
     dll = tool / "files/lib/wine/aarch64-windows/lsteamclient.dll"
+    loader_root = tool / "files/lib/wine/aarch64-unix/ntdll.so"
     for path, description in (
         (marker, "contained No Man's Sky Proton marker"),
         (dll, "contained No Man's Sky lsteamclient DLL"),
+        (loader_root, "contained No Man's Sky Wine loader root"),
     ):
         try:
             metadata = path.lstat()
@@ -1386,6 +1392,8 @@ def validated_no_mans_sky_command(
         fail("contained No Man's Sky Proton marker is unexpected")
     if sha256_file(dll) != NMS_PROTON_DLL_SHA256:
         fail("contained No Man's Sky lsteamclient DLL hash is unexpected")
+    if sha256_file(loader_root) != NMS_PROTON_LOADER_ROOT_SHA256:
+        fail("contained No Man's Sky Wine loader root hash is unexpected")
     game = (
         base
         / "removable-library/steamapps/common/No Man's Sky/Binaries/NMS.exe"

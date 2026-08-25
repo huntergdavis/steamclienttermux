@@ -25,10 +25,10 @@ Before the first launch, stop Steam and create the contained Proton tool:
 ```
 
 The command creates a small private overlay of the reviewed Proton 11 ARM64
-tree, gives the Steam Input DLL its own copy, applies the exact reviewed patch,
-and maps only AppID 275850 to the new tool. It backs up `config.vdf`, is
+tree, copies Wine's loader root and Steam Input DLL, applies the exact reviewed
+patch, and maps only AppID 275850 to the new tool. It backs up `config.vdf`, is
 idempotent, and never changes stock Proton. Android SELinux denies hard links
-and reflinks here, so unchanged payload files are read-only symlinks to the
+and reflinks here, so other payload files are read-only symlinks to the
 hash-checked stock build instead of a second 1.9 GB copy.
 
 The profile keeps a timestamped original and atomically replaces only a valid
@@ -85,8 +85,9 @@ offline hash-verified or normal Steam commit to SD.
 | Direct runtime | 12 authenticated FDs; native Runtime 4, FEX, DXVK, Turnip, and Steam SDK client mapped |
 | `NMS.exe` | Loaded Turnip and created a real 2800x1752 X11 game surface |
 | Steam Input A/B | Returning success from the failing `ISteamInput006::Init` wrapper bypassed the pre-window crash |
-| Screenshot | Full The Swarm screen; SHA-256 `99b3dd84...1450` |
-| Current boundary | A real foreground run reached the Hello Games logo, then raised `170671_0x15B2C` and exited status 1 |
+| Containment | `/proc` mapped reviewed PE inode `719319` plus the contained Wine loader root; stock Proton stayed unchanged |
+| Screenshots | Hello Games `9cfd72e9...92a9`; animated Atlas loader `e2197233...d2e7` |
+| Current boundary | The `0x15B2C` Steam Input crash is gone; startup advanced for more than two minutes, then wrote `0xCB684-HANG` and exited |
 
 Run the reviewed path from visible Termux:
 
@@ -100,13 +101,13 @@ tree, internal prefix, native Steam HOME, and Runtime 4 payload before launch.
 It rejects an unexpected command rather than applying NMS settings to another
 game.
 
-The exact Steam Input failure has no indexed prior implementation. An exact
-eight-byte A/B patch changed the native wrapper from a failing Unix call to a
-successful return, and the game rendered its first real screen. This proves
-the boundary but is not a distributable fix: the release path must create a
-separately named, content-addressed Proton tool and leave stock Proton
-unchanged. [Community report](https://steamcommunity.com/app/275850/discussions/0/595139710753458551/),
-[Proton source](https://github.com/ValveSoftware/Proton/blob/proton_11.0/lsteamclient/steamworks_sdk_146/isteaminput.h).
+The exact Steam Input failure has no indexed prior implementation. The release
+path now contains the exact eight-byte patch in a separately named Proton tool.
+Wine resolves builtins from `ntdll.so`, so that one loader root is a private,
+hash-checked copy too; otherwise Wine silently maps the stock Steam Input DLL.
+[Community report](https://steamcommunity.com/app/275850/discussions/0/595139710753458551/),
+[Proton source](https://github.com/ValveSoftware/Proton/blob/proton_11.0/lsteamclient/steam_input_manual.c),
+[Wine loader source](https://github.com/wine-mirror/wine/blob/master/tools/wine/wine.c).
 
 The first visible-frame test was deliberately not benchmarked. Its X11 server
 was in Android's `/moderate` + `/background` cgroups and allowed only CPUs 2-3;
@@ -115,8 +116,10 @@ watchdog wrote a 161,886-byte hang dump (SHA-256 `61f06e26...11b6`). A second
 run launched from visibly foreground Termux, proved X11 in `/top-app`, and
 reached a full 2800x1752 Hello Games surface. It then produced a different
 `0x15B2C` access violation and 81,138-byte dump (SHA-256 `2a37769a...d9ae`).
-This disproves scheduler starvation as the sole failure. Apply the 1080p
-profile only after a foreground run reaches a stable window and exits cleanly.
+This disproves scheduler starvation as the sole failure. The contained loader
+root now removes that crash; the next boundary is the later loading hang. Apply
+the 1080p profile only after a foreground run reaches a stable window and exits
+cleanly.
 
 The removable library root now remains on internal F2FS while only bulk game
 content is mounted from SD. This removed Steam's `libraryfolder.vdf` flock

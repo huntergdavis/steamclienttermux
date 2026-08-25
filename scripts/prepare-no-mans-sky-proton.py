@@ -14,10 +14,14 @@ import stat
 import tempfile
 
 
-TOOL_NAME = "steamclienttermux_nms_proton_11_arm64_4fd95452"
-TOOL_DIRECTORY = "steamclienttermux-nms-proton-11-arm64-4fd95452"
+TOOL_NAME = "steamclienttermux_nms_proton_11_arm64_b00a3dcd"
+TOOL_DIRECTORY = "steamclienttermux-nms-proton-11-arm64-b00a3dcd"
 SOURCE_VERSION = b"1787334524 proton-11.0-2-arm64\n"
 DLL_RELATIVE = Path("files/lib/wine/aarch64-windows/lsteamclient.dll")
+LOADER_ROOT_RELATIVE = Path("files/lib/wine/aarch64-unix/ntdll.so")
+LOADER_ROOT_SHA256 = (
+    "9c618d49c9926f55d8a28f10c4cfd514d26e654d5bc36a1c639730abf61dd1ff"
+)
 MARKER_NAME = ".steamclienttermux-nms-proton.json"
 RUNNING_COMMS = {"steam", "steamwebhelper", "wineserver"}
 
@@ -33,10 +37,10 @@ class PatchSpec:
 
 NMS_INPUT_PATCH = PatchSpec(
     source_sha256="9d5289451c94e1eb8df5043f7c0341c1d817a74cc43ad1518099281a9c27f7a5",
-    patched_sha256="4fd95452dceb72b2238ab71e5822b852c5e82ab65dcb2c4883993211e8070dc1",
-    offset=0x80090,
-    before=bytes.fromhex("ffc300d1fd7b02a9"),
-    after=bytes.fromhex("20008052c0035fd6"),
+    patched_sha256="b00a3dcdcfceb60f1b0fc68347558d7933c15ac07bcac5cff703bbdff014501f",
+    offset=0x800E8,
+    before=bytes.fromhex("7256fe97a0000035"),
+    after=bytes.fromhex("2000805202000014"),
 )
 
 
@@ -104,7 +108,8 @@ def expected_marker(spec: PatchSpec = NMS_INPUT_PATCH) -> dict[str, object]:
     return {
         "patch_offset": spec.offset,
         "patched_lsteamclient_sha256": spec.patched_sha256,
-        "schema_version": 1,
+        "loader_root_sha256": LOADER_ROOT_SHA256,
+        "schema_version": 2,
         "source_lsteamclient_sha256": spec.source_sha256,
         "source_version": SOURCE_VERSION.decode().strip(),
         "tool": TOOL_NAME,
@@ -146,6 +151,10 @@ def validate_source(source: Path, spec: PatchSpec) -> Path:
         stream.seek(spec.offset)
         if stream.read(len(spec.before)) != spec.before:
             raise ToolError("stock lsteamclient patch site is unexpected")
+    loader_root = source / LOADER_ROOT_RELATIVE
+    regular_owned(loader_root, "stock Wine loader root", executable=True)
+    if sha256(loader_root) != LOADER_ROOT_SHA256:
+        raise ToolError("stock Wine loader root hash is not reviewed")
     return dll
 
 
@@ -160,6 +169,10 @@ def validate_tool(tool: Path, spec: PatchSpec = NMS_INPUT_PATCH) -> dict[str, ob
         stream.seek(spec.offset)
         if stream.read(len(spec.after)) != spec.after:
             raise ToolError("contained lsteamclient patch site is unexpected")
+    loader_root = tool / LOADER_ROOT_RELATIVE
+    regular_owned(loader_root, "contained Wine loader root", executable=True)
+    if sha256(loader_root) != LOADER_ROOT_SHA256:
+        raise ToolError("contained Wine loader root hash is unexpected")
     marker_path = tool / MARKER_NAME
     regular_owned(marker_path, "contained Proton marker")
     try:
@@ -215,7 +228,11 @@ def prepare_tool(
     )
     stage.rmdir()
     try:
-        copied_files = {source / "proton", source / DLL_RELATIVE}
+        copied_files = {
+            source / "proton",
+            source / DLL_RELATIVE,
+            source / LOADER_ROOT_RELATIVE,
+        }
 
         def overlay_file(source_name: str, destination_name: str) -> str:
             source_path = Path(source_name)

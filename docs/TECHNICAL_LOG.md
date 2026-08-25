@@ -10281,3 +10281,34 @@ NMS created a full 2800x1752 Hello Games surface. It then raised
 Foreground scheduling therefore was not the sole crash cause. The required
 exact `deja` searches found no indexed fix; this reuses the existing internal
 control-metadata/removable-payload split and typed fail-closed launch checks.
+
+## 2026-08-25: NMS contained Wine loader root
+
+The earlier contained tool copied the patched PE DLL but left Wine's
+`aarch64-unix/ntdll.so` as a symlink to stock Proton. `/proc/<NMS>/maps`
+therefore proved that Wine still mapped stock PE inode `916986`; a prefix DLL
+symlink and `WINEDLLPATH` were insufficient. A native DLL override was rejected
+too: it stopped before NMS with `g_string_free_and_steal` missing.
+
+Wine's loader source shows that `ntdll.so` is the first architecture-specific
+loader root. Materializing that reviewed 689,384-byte file made the same live
+run map the contained loader root, Unix Steam Input peer, and patched PE inode
+`719319`. Stock Proton's DLL remained SHA-256 `9d528945...f7a5`.
+
+| Gate | Result |
+| --- | --- |
+| Patched PE | `b00a3dcd...501f`, offset `0x800E8` |
+| Loader root | `9c618d49...d1ff`, private regular file |
+| Wrong native override | Rejected; Steam helper symbol lookup failed before NMS |
+| Live mapping | Contained PE + Unix peer + `ntdll.so` verified through `/proc` |
+| Stability | Survived more than two minutes and advanced to animated Atlas loader |
+| Screenshots | `9cfd72e9...92a9`, then `e2197233...d2e7` |
+| New boundary | 159,998-byte `0xCB684-HANG`, SHA-256 `b98c2be3...515` |
+| FPS | Not measured or claimed |
+
+The setup tool now copies and hashes only the loader root needed to anchor
+builtin lookup; other unchanged Proton files remain symlinks. The dispatcher
+validates the schema-2 marker, patched PE, and loader root before launch. The
+required exact `deja` queries returned no indexed implementation. This reuses
+the existing content-addressed direct runtime, AppID-only mapping, atomic
+`config.vdf` backup, and fail-closed object validation.
