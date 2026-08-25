@@ -10164,3 +10164,37 @@ The required `deja` query returned no indexed implementation. This phase reuses
 the patched-PRoot, private-staging, exact-receipt, and rename-promotion
 boundaries. Product launchers and a complete fresh-device run remain open.
 [Evidence](evidence/steam-option-a-debian-runtime-tablet-20260824.json)
+
+## 2026-08-25: generic removable-library Proton boundary
+
+No Man's Sky exposed two generic Pressure Vessel failures before Wine. The
+captured, non-executing runtime plan is retained at
+`logs/runtime-plans/nms-live-plan-20260825T083600Z.json` on the tablet with
+SHA-256 `2d105a4c...8366`. It showed a whole removable `steamapps` bind followed
+by exact game and compatdata binds. Because `steamapps/common` is a host-side
+symlink, Bubblewrap could not create the nested game mount target beneath the
+already-mounted parent.
+
+The router now validates the logical and resolved game paths, removes only the
+same-source/same-target parent bind, creates the logical directory chain, and
+preserves the exact child binds. It also mounts the validated, private tgcompat
+glibc root read-only at its literal Android path so ARM64 Proton executables can
+resolve their absolute ELF interpreter. The focused contract checks the exact
+source/target and rejects unsafe ownership, permissions, paths, and loader
+files; the complete project suite passed.
+
+| Live NMS gate | Result |
+| --- | --- |
+| Nested game mount | PASS; prior Bubblewrap mkdir error absent |
+| Prefix creation | PASS; 80 KiB to 344 MiB |
+| ARM64 interpreter | PASS; prior `wineserver` ENOENT absent |
+| Runtime preparation | PASS; completed after the known PRoot capsule scan |
+| `NMS.exe` and settings | Not reached; prefix finalization exited |
+
+Tablet candidate `nms-tgcompat-glibc-684481f` retains the prior router and the
+new artifact. Active SHA-256 is `c6d80036...712`; rollback SHA-256 is
+`b06d781a...21a`. The exact `deja` searches returned no indexed implementation.
+This work reuses the existing runtime-plan capture, direct Runtime root,
+removable-library mapping, and typed no-clobber deployment patterns. The nested
+mount rule was checked against Bubblewrap's upstream implementation and issue
+reports; it is not inferred from NMS behavior alone.

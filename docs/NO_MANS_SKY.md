@@ -77,8 +77,15 @@ offline hash-verified or normal Steam commit to SD.
 | Install | Build `24039799`, 28.36 GB downloaded, committed successfully to SD |
 | Automatic launch | Wrong conventional Proton; exited before Wine initialization |
 | ARM64 mapping | Correct Runtime 4 ARM64 + Proton 11 ARM64 command selected |
-| Next boundary | Stock PRoot route copied Runtime 4 file-by-file and exited before Proton |
+| Removable-library mount | Redundant parent bind removed; exact game and compatdata binds retained |
+| Proton prefix | Created successfully on internal storage; 344 MB |
+| ARM64 loader | Validated tgcompat glibc root exposed read-only inside Pressure Vessel |
+| Current boundary | Runtime setup completes, but prefix finalization exits before `NMS.exe` stays alive |
 
-The regular Steam launcher now overlays the already-validated direct Runtime 4
-policy for every game. This removes that generic per-launch runtime copy; NMS
-still requires a fresh tablet launch before any frame-rate claim.
+The regular Steam launcher overlays the already-validated direct Runtime 4
+policy for every game. The router also handles a Bubblewrap constraint that is
+common to removable libraries: it omits only a redundant whole-`steamapps`
+bind whose `common` child is a symlink, creates the logical target chain, and
+keeps the exact game and compatdata binds. The next work is moving the generic
+Proton payload onto the already-proven no-PRoot direct dispatcher. No frame or
+frame-rate claim exists yet.

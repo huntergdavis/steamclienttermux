@@ -25,6 +25,7 @@
 #define HOST_VK_ICD_TARGET "/overrides/share/vulkan/icd.d/freedreno-private.json"
 #define HOST_BVB_ICD_SUFFIX "/bvb/icd.d/bvb_icd.aarch64.json"
 #define HOST_BVB_ICD_TARGET "/overrides/share/vulkan/icd.d/bvb_icd.aarch64.json"
+#define TGCOMPAT_GLIBC_SUFFIX "/.local/share/tgcompat/glibc/current"
 
 struct expected_file
 {
@@ -244,8 +245,49 @@ find_install_mount_offset (const unsigned char *data, size_t size,
   return SIZE_MAX;
 }
 
+static size_t
+mount_record_end (const unsigned char *data, size_t size,
+                  size_t option_offset, const char *expected_target,
+                  bool require_same_source_target)
+{
+  const char *option = (const char *) data + option_offset;
+  const unsigned char *option_end =
+    memchr (option, '\0', size - option_offset);
+  size_t source_offset;
+  const char *source;
+  const unsigned char *source_end;
+  size_t target_offset;
+  const char *target;
+  const unsigned char *target_end;
+
+  if (option_end == NULL || !is_two_argument_mount (option))
+    fail ("cannot decode the game bind option");
+  source_offset = (size_t) (option_end - data) + 1;
+  if (source_offset >= size)
+    fail ("game bind is missing its source");
+  source = (const char *) data + source_offset;
+  source_end = memchr (source, '\0', size - source_offset);
+  if (source_end == NULL)
+    fail ("malformed game bind source");
+  target_offset = (size_t) (source_end - data) + 1;
+  if (target_offset >= size)
+    fail ("game bind is missing its target");
+  target = (const char *) data + target_offset;
+  target_end = memchr (target, '\0', size - target_offset);
+  if (target_end == NULL)
+    fail ("malformed game bind target");
+
+  if (expected_target != NULL && strcmp (target, expected_target) != 0)
+    fail ("unexpected mount target");
+  if (require_same_source_target && strcmp (source, target) != 0)
+    fail ("Steam library parent bind has different source and target");
+  return (size_t) (target_end - data) + 1;
+}
+
 static const char *
-validate_install_path (const char *proc_net_path)
+validate_install_path (const char *proc_net_path, char *resolved_path,
+                       size_t resolved_path_size, char *steamapps_path,
+                       size_t steamapps_path_size)
 {
   static const char removable_suffix[] =
     "/removable-library/steamapps/common/";
@@ -253,9 +295,12 @@ validate_install_path (const char *proc_net_path)
   const char *path = getenv ("STEAM_COMPAT_INSTALL_PATH");
   char removable_prefix[PATH_MAX];
   char internal_prefix[PATH_MAX];
+  char common_path[PATH_MAX];
+  char resolved_common[PATH_MAX];
   size_t proc_net_length;
   size_t base_length;
   const char *relative;
+  const char *selected_prefix;
   const char *cursor;
   struct stat st;
 
@@ -278,9 +323,25 @@ validate_install_path (const char *proc_net_path)
     fail ("Steam library path is too long");
 
   if (strncmp (path, removable_prefix, strlen (removable_prefix)) == 0)
-    relative = path + strlen (removable_prefix);
+    {
+      relative = path + strlen (removable_prefix);
+      selected_prefix = removable_prefix;
+      if (snprintf (common_path, sizeof (common_path), "%.*s",
+                    (int) strlen (removable_prefix) - 1,
+                    removable_prefix) < 0
+          || strlen (common_path) >= sizeof (common_path))
+        fail ("removable common path is too long");
+    }
   else if (strncmp (path, internal_prefix, strlen (internal_prefix)) == 0)
-    relative = path + strlen (internal_prefix);
+    {
+      relative = path + strlen (internal_prefix);
+      selected_prefix = internal_prefix;
+      if (snprintf (common_path, sizeof (common_path), "%.*s",
+                    (int) strlen (internal_prefix) - 1,
+                    internal_prefix) < 0
+          || strlen (common_path) >= sizeof (common_path))
+        fail ("internal common path is too long");
+    }
   else
     {
       fail ("STEAM_COMPAT_INSTALL_PATH is outside a supported Steam library");
@@ -303,6 +364,20 @@ validate_install_path (const char *proc_net_path)
     }
   if (stat (path, &st) < 0 || !S_ISDIR (st.st_mode))
     fail ("STEAM_COMPAT_INSTALL_PATH is not an installed directory");
+  if (resolved_path_size < PATH_MAX
+      || realpath (common_path, resolved_common) == NULL
+      || realpath (path, resolved_path) == NULL)
+    fail ("cannot resolve the installed game path");
+  if (strncmp (resolved_path, resolved_common, strlen (resolved_common)) != 0
+      || resolved_path[strlen (resolved_common)] != '/'
+      || resolved_path[strlen (resolved_common) + 1] == '\0')
+    fail ("resolved game path escapes its Steam library");
+  if (steamapps_path_size < PATH_MAX
+      || snprintf (steamapps_path, steamapps_path_size, "%.*s",
+                   (int) (strlen (selected_prefix) - strlen ("/common/")),
+                   selected_prefix) < 0
+      || strlen (steamapps_path) >= steamapps_path_size)
+    fail ("Steam library parent path is too long");
   return path;
 }
 
@@ -326,6 +401,33 @@ write_directory_chain (int fd, const char *path)
       write_arg (fd, component);
       component[i] = path[i];
     }
+}
+
+static void
+write_game_mount_range (int fd, const unsigned char *data, size_t start,
+                        size_t end, size_t parent_offset, size_t parent_end,
+                        size_t install_offset, size_t install_end,
+                        const char *install_path)
+{
+  size_t cursor = start;
+
+  if (parent_offset >= start && parent_offset < end)
+    {
+      if (parent_end > end || parent_offset < cursor)
+        fail ("Steam library parent bind crosses an injection boundary");
+      write_all (fd, data + cursor, parent_offset - cursor);
+      cursor = parent_end;
+    }
+  if (install_offset >= start && install_offset < end)
+    {
+      if (install_end > end || install_offset < cursor)
+        fail ("game bind crosses an injection boundary");
+      write_all (fd, data + cursor, install_offset - cursor);
+      write_directory_chain (fd, install_path);
+      write_all (fd, data + install_offset, install_end - install_offset);
+      cursor = install_end;
+    }
+  write_all (fd, data + cursor, end - cursor);
 }
 
 static size_t
@@ -677,6 +779,72 @@ validate_host_vk_driver_files (const char *proc_net_path, const char *path,
 }
 
 static int
+validate_tgcompat_glibc (const char *proc_net_path, const char **target_out)
+{
+  char target[PATH_MAX];
+  char resolved[PATH_MAX];
+  char allowed_parent[PATH_MAX];
+  size_t proc_net_length = strlen (proc_net_path);
+  size_t base_length;
+  const char *base_end;
+  struct stat st;
+  int directory_fd;
+  int loader_fd;
+  int libc_fd;
+
+  if (proc_net_length <= strlen (PROC_NET_SUFFIX)
+      || strcmp (proc_net_path + proc_net_length - strlen (PROC_NET_SUFFIX),
+                 PROC_NET_SUFFIX) != 0)
+    fail ("cannot derive the tgcompat glibc path");
+  base_length = proc_net_length - strlen (PROC_NET_SUFFIX);
+  base_end = memrchr (proc_net_path, '/', base_length);
+  if (base_end == NULL
+      || snprintf (target, sizeof (target), "%.*s%s",
+                   (int) (base_end - proc_net_path), proc_net_path,
+                   TGCOMPAT_GLIBC_SUFFIX) < 0
+      || strlen (target) >= sizeof (target)
+      || snprintf (allowed_parent, sizeof (allowed_parent),
+                   "%.*s/.local/share/tgcompat/glibc/",
+                   (int) (base_end - proc_net_path), proc_net_path) < 0
+      || strlen (allowed_parent) >= sizeof (allowed_parent))
+    fail ("tgcompat glibc path is too long");
+  if (realpath (target, resolved) == NULL
+      || strncmp (resolved, allowed_parent, strlen (allowed_parent)) != 0
+      || resolved[strlen (allowed_parent)] == '\0')
+    fail ("tgcompat glibc selector escapes its private parent");
+  directory_fd = open (resolved,
+                       O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_DIRECTORY);
+  if (directory_fd < 0)
+    fail ("cannot open tgcompat glibc root: %s", strerror (errno));
+  if (fstat (directory_fd, &st) < 0)
+    fail ("cannot inspect tgcompat glibc root: %s", strerror (errno));
+  if (!S_ISDIR (st.st_mode) || st.st_uid != geteuid ()
+      || (st.st_mode & 0022) != 0)
+    fail ("tgcompat glibc root is unsafe");
+  loader_fd = openat (directory_fd, "lib/ld-linux-aarch64.so.1",
+                      O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
+  libc_fd = openat (directory_fd, "lib/libc.so.6",
+                    O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
+  if (loader_fd < 0 || libc_fd < 0)
+    fail ("tgcompat glibc loader or libc is unavailable");
+  if (fstat (loader_fd, &st) < 0 || !S_ISREG (st.st_mode)
+      || st.st_uid != geteuid () || (st.st_mode & 0022) != 0
+      || st.st_size <= 0 || st.st_size > 16 * 1024 * 1024)
+    fail ("tgcompat glibc loader is unsafe");
+  if (fstat (libc_fd, &st) < 0 || !S_ISREG (st.st_mode)
+      || st.st_uid != geteuid () || (st.st_mode & 0022) != 0
+      || st.st_size <= 0 || st.st_size > 16 * 1024 * 1024)
+    fail ("tgcompat glibc libc is unsafe");
+  close (loader_fd);
+  close (libc_fd);
+  set_inherited (directory_fd, "tgcompat glibc root");
+  *target_out = strdup (target);
+  if (*target_out == NULL)
+    fail ("out of memory retaining the tgcompat glibc target");
+  return directory_fd;
+}
+
+static int
 create_args_fd (void)
 {
   const char *tmpdir = getenv ("TMPDIR");
@@ -814,14 +982,20 @@ main (int argc, char **argv)
   size_t args_size;
   size_t insertion_offset;
   size_t install_mount_offset;
-  size_t cursor_offset;
+  size_t install_mount_end = SIZE_MAX;
+  size_t steamapps_mount_offset = SIZE_MAX;
+  size_t steamapps_mount_end = SIZE_MAX;
   size_t payload_offset;
   int args_index = -1;
   int args_fd = -1;
   int proc_net_fd;
   int host_vk_driver_files_fd;
   const char *host_vk_driver_target = NULL;
+  int tgcompat_glibc_fd = -1;
+  const char *tgcompat_glibc_target = NULL;
   const char *install_path;
+  char resolved_install_path[PATH_MAX];
+  char steamapps_path[PATH_MAX];
   int gtaiv_view_fd;
   int gtaiv_directory_fds[
     sizeof (gtaiv_directories) / sizeof (gtaiv_directories[0])];
@@ -881,18 +1055,42 @@ main (int argc, char **argv)
       fail ("cannot execute real bwrap: %s", strerror (errno));
     }
 
-  install_path = validate_install_path (proc_net_path);
+  resolved_install_path[0] = '\0';
+  steamapps_path[0] = '\0';
+  install_path = validate_install_path (proc_net_path, resolved_install_path,
+                                        sizeof (resolved_install_path),
+                                        steamapps_path,
+                                        sizeof (steamapps_path));
   install_mount_offset = install_path == NULL
                            ? SIZE_MAX
                            : find_install_mount_offset (args_data, args_size,
                                                         install_path);
   if (install_path != NULL && install_mount_offset == SIZE_MAX)
     fail ("cannot find the game bind before adding its mount anchors");
+  if (install_path != NULL)
+    {
+      install_mount_end = mount_record_end (args_data, args_size,
+                                            install_mount_offset,
+                                            install_path, false);
+      steamapps_mount_offset = find_install_mount_offset (
+        args_data, args_size, steamapps_path);
+      if (steamapps_mount_offset != SIZE_MAX)
+        {
+          steamapps_mount_end = mount_record_end (
+            args_data, args_size, steamapps_mount_offset,
+            steamapps_path, true);
+          if (steamapps_mount_offset >= install_mount_offset)
+            fail ("Steam library parent bind appears after its game bind");
+        }
+    }
 
   proc_net_fd = validate_proc_net (proc_net_path);
   host_vk_driver_files_fd =
     validate_host_vk_driver_files (proc_net_path, host_vk_driver_files,
                                    &host_vk_driver_target);
+  if (install_path != NULL)
+    tgcompat_glibc_fd = validate_tgcompat_glibc (
+      proc_net_path, &tgcompat_glibc_target);
   gtaiv_view_fd = validate_gtaiv_view (proc_net_path, proc_net_fd,
                                        gtaiv_target, sizeof (gtaiv_target),
                                        gtaiv_directory_fds,
@@ -912,31 +1110,20 @@ main (int argc, char **argv)
   gtaiv_service_first = is_gtaiv_play_payload (argc, argv, args_index,
                                                gtaiv_view_fd);
   replacement_fd = create_args_fd ();
-  cursor_offset = 0;
-  if (install_path != NULL && install_mount_offset < insertion_offset)
-    {
-      write_all (replacement_fd, args_data, install_mount_offset);
-      write_directory_chain (replacement_fd, install_path);
-      cursor_offset = install_mount_offset;
-    }
-  write_all (replacement_fd, args_data + cursor_offset,
-             insertion_offset - cursor_offset);
+  write_game_mount_range (replacement_fd, args_data, 0, insertion_offset,
+                          steamapps_mount_offset, steamapps_mount_end,
+                          install_mount_offset, install_mount_end,
+                          install_path);
 
   snprintf (replacement_fd_value, sizeof (replacement_fd_value), "%d",
             proc_net_fd);
   write_arg (replacement_fd, "--ro-bind-fd");
   write_arg (replacement_fd, replacement_fd_value);
   write_arg (replacement_fd, "/proc/net");
-  cursor_offset = insertion_offset;
-  if (install_path != NULL && install_mount_offset >= insertion_offset)
-    {
-      write_all (replacement_fd, args_data + cursor_offset,
-                 install_mount_offset - cursor_offset);
-      write_directory_chain (replacement_fd, install_path);
-      cursor_offset = install_mount_offset;
-    }
-  write_all (replacement_fd, args_data + cursor_offset,
-             payload_offset - cursor_offset);
+  write_game_mount_range (replacement_fd, args_data, insertion_offset,
+                          payload_offset, steamapps_mount_offset,
+                          steamapps_mount_end, install_mount_offset,
+                          install_mount_end, install_path);
   if (gtaiv_view_fd >= 0)
     {
       snprintf (replacement_fd_value, sizeof (replacement_fd_value), "%d",
@@ -981,6 +1168,15 @@ main (int argc, char **argv)
       write_arg (replacement_fd, "--setenv");
       write_arg (replacement_fd, "VK_ICD_FILENAMES");
       write_arg (replacement_fd, host_vk_driver_target);
+    }
+  if (tgcompat_glibc_fd >= 0)
+    {
+      write_directory_chain (replacement_fd, tgcompat_glibc_target);
+      snprintf (replacement_fd_value, sizeof (replacement_fd_value), "%d",
+                tgcompat_glibc_fd);
+      write_arg (replacement_fd, "--ro-bind-fd");
+      write_arg (replacement_fd, replacement_fd_value);
+      write_arg (replacement_fd, tgcompat_glibc_target);
     }
   write_all (replacement_fd, args_data + payload_offset,
              args_size - payload_offset);

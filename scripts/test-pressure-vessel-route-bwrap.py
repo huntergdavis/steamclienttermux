@@ -67,6 +67,10 @@ def mock_bwrap():
     directory_targets = []
     directory_injections = []
     install_bind = None
+    install_bind_source = None
+    install_bind_target = None
+    steamapps_parent_bind = False
+    tgcompat_glibc_injected = None
     for index, arg in enumerate(args[:-2]):
         if arg == "--ro-bind-fd":
             if args[index + 2] == "/proc/net":
@@ -80,6 +84,10 @@ def mock_bwrap():
                 gtaiv_injected = index
             elif "/Grand Theft Auto IV/GTAIV/" in args[index + 2]:
                 gtaiv_directory_injections.append(index)
+            elif args[index + 2].endswith(
+                "/.local/share/tgcompat/glibc/current"
+            ):
+                tgcompat_glibc_injected = index
         elif arg == "--setenv" and args[index + 1] == "VK_DRIVER_FILES":
             vk_driver_files_injected = index
         elif arg == "--setenv" and args[index + 1] == "VK_ICD_FILENAMES":
@@ -87,10 +95,19 @@ def mock_bwrap():
         elif arg == "--dir":
             directory_targets.append(args[index + 1])
             directory_injections.append(index)
-        elif arg in ("--bind", "--ro-bind") and os.environ.get(
-            "STEAM_COMPAT_INSTALL_PATH"
-        ) == args[index + 2]:
-            install_bind = index
+        elif arg in ("--bind", "--ro-bind"):
+            install_path = os.environ.get("STEAM_COMPAT_INSTALL_PATH")
+            if install_path is not None:
+                steamapps = str(Path(install_path).parents[1])
+                if args[index + 2] == steamapps:
+                    steamapps_parent_bind = True
+                elif args[index + 2] in (
+                    install_path,
+                    os.path.realpath(install_path),
+                ):
+                    install_bind = index
+                    install_bind_source = args[index + 1]
+                    install_bind_target = args[index + 2]
 
     if injected is None:
         print(
@@ -168,6 +185,10 @@ def mock_bwrap():
                 "directory_targets": directory_targets,
                 "directory_injections": directory_injections,
                 "install_bind": install_bind,
+                "install_bind_source": install_bind_source,
+                "install_bind_target": install_bind_target,
+                "steamapps_parent_bind": steamapps_parent_bind,
+                "cwd": os.getcwd(),
             }
     if vk_driver_files_injected is not None:
         vk_icd_source_fd = int(args[vk_icd_bind_injected + 1])
@@ -205,6 +226,16 @@ def mock_bwrap():
                 ),
             }
         )
+    if tgcompat_glibc_injected is not None:
+        tgcompat_glibc_source_fd = int(args[tgcompat_glibc_injected + 1])
+        payload.update(
+            {
+                "tgcompat_glibc_source": os.readlink(
+                    f"/proc/self/fd/{tgcompat_glibc_source_fd}"
+                ),
+                "tgcompat_glibc_target": args[tgcompat_glibc_injected + 2],
+            }
+        )
     print(json.dumps(payload))
     return 0
 
@@ -236,6 +267,7 @@ def invoke(
     equals_form=False,
     env_overrides=None,
     wrapper_payload=None,
+    cwd=None,
 ):
     args_file = args_fd(args)
     fd = args_file.fileno()
@@ -272,6 +304,7 @@ def invoke(
             check=False,
             capture_output=True,
             text=True,
+            cwd=cwd,
         )
     finally:
         args_file.close()
@@ -282,7 +315,8 @@ def run_tests():
     source = repo / "diagnostics" / "pressure-vessel-route-bwrap.c"
 
     with tempfile.TemporaryDirectory(prefix="pressure-vessel-route-test.") as temp:
-        tempdir = Path(temp)
+        tempdir = Path(temp) / "home" / "steam-arm64"
+        tempdir.mkdir(parents=True)
         wrapper = tempdir / "steam-arm64-bwrap-route"
         proc_net = tempdir / "config" / "proc-net"
         proc_net.parent.mkdir()
@@ -304,6 +338,20 @@ def run_tests():
         bvb_icd.parent.mkdir(parents=True)
         bvb_icd.write_text("{}\n")
         bvb_icd.chmod(0o600)
+        glibc_version = (
+            tempdir.parent
+            / ".local/share/tgcompat/glibc/test-version"
+        )
+        glibc_lib = glibc_version / "lib"
+        glibc_lib.mkdir(parents=True, mode=0o700)
+        glibc_version.chmod(0o700)
+        glibc_loader = glibc_lib / "ld-linux-aarch64.so.1"
+        glibc_libc = glibc_lib / "libc.so.6"
+        glibc_loader.write_bytes(b"loader")
+        glibc_loader.chmod(0o600)
+        glibc_libc.write_bytes(b"libc")
+        glibc_libc.chmod(0o600)
+        (glibc_version.parent / "current").symlink_to(glibc_version.name)
 
         subprocess.run(
             [
@@ -349,6 +397,10 @@ def run_tests():
             "directory_targets": ["/tmp"],
             "directory_injections": [5],
             "install_bind": None,
+            "install_bind_source": None,
+            "install_bind_target": None,
+            "steamapps_parent_bind": False,
+            "cwd": str(repo),
         }
 
         install_path = (
@@ -388,8 +440,69 @@ def run_tests():
         expected_chain.append(str(install_path))
         assert payload["directory_targets"][: len(expected_chain)] == expected_chain
         assert payload["install_bind"] is not None
+        assert payload["steamapps_parent_bind"] is False
+        assert payload["install_bind_source"] == str(install_path)
+        assert payload["install_bind_target"] == str(install_path)
+        assert payload["tgcompat_glibc_source"] == str(glibc_version)
+        assert payload["tgcompat_glibc_target"] == str(
+            tempdir.parent / ".local/share/tgcompat/glibc/current"
+        )
         assert max(payload["directory_injections"][: len(expected_chain)]) < (
             payload["install_bind"]
+        )
+
+        external_common = tempdir / "external" / "steamapps" / "common"
+        resolved_install = external_common / "Symlinked Game"
+        resolved_install.mkdir(parents=True)
+        logical_common = tempdir / "client" / "steamapps" / "common"
+        logical_common.parent.mkdir(parents=True)
+        logical_common.symlink_to(external_common)
+        logical_install = logical_common / resolved_install.name
+        result = invoke(
+            wrapper,
+            proc_net,
+            [
+                "--bind",
+                str(logical_common.parent),
+                str(logical_common.parent),
+                "--bind",
+                str(logical_install),
+                str(logical_install),
+                "--proc",
+                "/proc",
+                "--",
+                "/bin/true",
+            ],
+            env_overrides={
+                "STEAM_COMPAT_APP_ID": "12345",
+                "STEAM_COMPAT_INSTALL_PATH": str(logical_install),
+            },
+            cwd=logical_install,
+        )
+        assert result.returncode == 0, result.stderr
+        payload = json.loads(result.stdout)
+        resolved_chain = []
+        for parent in reversed(resolved_install.parents):
+            if parent != Path("/"):
+                resolved_chain.append(str(parent))
+        resolved_chain.append(str(resolved_install))
+        logical_chain = []
+        for parent in reversed(logical_install.parents):
+            if parent != Path("/"):
+                logical_chain.append(str(parent))
+        logical_chain.append(str(logical_install))
+        assert payload["directory_targets"][: len(logical_chain)] == logical_chain
+        assert logical_chain != resolved_chain
+        assert payload["install_bind_source"] == str(logical_install)
+        assert payload["install_bind_target"] == str(logical_install)
+        assert payload["steamapps_parent_bind"] is False
+        assert payload["cwd"] == str(resolved_install)
+        assert max(
+            payload["directory_injections"][: len(logical_chain)]
+        ) < payload["install_bind"]
+        assert payload["tgcompat_glibc_source"] == str(glibc_version)
+        assert payload["tgcompat_glibc_target"] == str(
+            tempdir.parent / ".local/share/tgcompat/glibc/current"
         )
 
         result = invoke(
