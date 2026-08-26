@@ -45,6 +45,7 @@ def fixture_repo(root: Path, glibc_package: bytes) -> str:
     files = {
         "install.sh": b"#!/data/data/com.termux/files/usr/bin/bash\n",
         "README.md": b"# fixture\n",
+        "LICENSE": b"MIT License\n",
         ".gitignore": b"dist/\n",
         "config/debian-runtime-lock.json": b"{}\n",
         "config/glibc-runtime-lock.json": json.dumps(
@@ -119,7 +120,7 @@ def main() -> None:
             second, second_manifest = MODULE.build_archive(commit, package_path)
             assert first == second
             assert first_manifest == second_manifest
-            assert first_manifest["license_present"] is False
+            assert first_manifest["license_present"] is True
             archive = first_manifest["archive"]
             assert archive["sha256"] == hashlib.sha256(first).hexdigest()
             assert archive["size"] == len(first)
@@ -140,6 +141,7 @@ def main() -> None:
                 prefix = first_manifest["prefix"]
                 assert f"{prefix}/install.sh" in names
                 assert f"{prefix}/README.md" in names
+                assert f"{prefix}/LICENSE" in names
                 assert f"{prefix}/scripts/bootstrap-termux-stack.sh" in names
                 assert f"{prefix}/scripts/build-release-archive.py" in names
                 assert f"{prefix}/scripts/install-glibc-runtime.py" in names

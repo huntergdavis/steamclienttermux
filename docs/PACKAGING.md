@@ -258,7 +258,7 @@ See [the compact hardware evidence](evidence/steam-stack-doctor-tablet-20260824.
 - Make every system mutation transactional with exact backups and a dry-run.
 
 The remaining package gates are generic launchers, fresh-device and uninstall
-tests, license selection, and release signing. A
+tests, third-party notice generation, and release signing. A
 later optional target-SDK-36 UI can invoke fixed Termux `RUN_COMMAND` entry
 points, but it remains separately signed and never shares Termux's UID.
 
@@ -286,12 +286,10 @@ and every included file's path, size, mode, and SHA-256.
 | Archive size | 3,322,952 bytes |
 | Archive SHA-256 | `08822e3d...31bd` |
 | Valve binaries | None |
-| Tracked license | **Missing; public release blocked** |
+| Tracked license | MIT; included in the archive |
 
-The missing license is a project-owner decision and is not inferred by the
-builder. Local candidate construction and testing can continue, but no archive
-should be described or published as an open-source release until a license is
-chosen and tracked.
+The project-owned code uses MIT. Upstream binaries and source retain their own
+terms; the archive builder does not relicense them.
 
 ## Provenance
 

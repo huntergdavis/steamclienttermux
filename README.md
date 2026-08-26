@@ -133,8 +133,9 @@ python3 scripts/build-release-archive.py \
   --destination "$PWD/dist/release-candidate"
 ```
 
-Public open-source release remains blocked until the project owner selects and
-adds a license; the builder reports that state in `release-manifest.json`.
+Project-owned code is available under the [MIT License](LICENSE). Bundled or
+downloaded components retain their own licenses and distribution terms; the
+release manifest keeps those boundaries explicit.
 
 ## Documentation
 

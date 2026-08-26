@@ -192,19 +192,16 @@ hand-maintained list.
 
 ## License decision
 
-MIT is open source, but it permits a distributor to keep a modified fork
-closed. For this user-installed application stack, the recommended license for
-new project-owned code is **GPL-3.0-or-later**: anyone distributing a modified
-binary must also provide corresponding source. AGPL-3.0 adds a source offer for
-software used over a network, which is valuable for hosted services but does
-not materially strengthen this local Android launcher.
+Project-owned code uses **MIT**. This is the simplest permissive option for
+reuse, modification, commercial packaging, and combining the launcher with
+other software. It does not require modified forks to publish their source.
 
 One root license cannot replace upstream terms. The release manifest and
 notices must retain these component boundaries:
 
 | Component | Upstream terms | Release treatment |
 | --- | --- | --- |
-| Project-owned scripts and tools | Owner choice | GPL-3.0-or-later recommended |
+| Project-owned scripts and tools | MIT | Include the root license |
 | PRoot-derived patches/binary | GPL-2.0-or-later | Keep GPL notices and corresponding source |
 | glibc | LGPL-2.1-or-later | Preserve LGPL notices/source and relinking rights |
 | FEX | MIT | Preserve its copyright/license notice |
@@ -213,14 +210,10 @@ notices must retain these component boundaries:
 | Termux and Termux:X11 apps | GPL-3.0 | Separate official installs, or ship compliant source/notices |
 | Steam, Proton, games | Mixed/proprietary | Fetch from publishers; never relicense or bundle blindly |
 
-The PRoot patch directory remains under its upstream GPL terms even if the rest
-of this repository uses GPL-3.0-or-later. GPL does not compel publication of
-private changes or require anyone to submit changes upstream; it requires
-source availability when covered builds are distributed. Running or
-orchestrating separate programs does not by itself relicense original project
-code. Before release, add the chosen root license, SPDX headers,
-`THIRD_PARTY_NOTICES.md`, and a component-level SBOM. This is engineering
-guidance, not legal advice.
+The PRoot patch directory remains under its upstream GPL terms. Running or
+orchestrating separate programs does not by itself relicense project-owned MIT
+code. Before release, add `THIRD_PARTY_NOTICES.md` and a component-level SBOM.
+This is engineering guidance, not legal advice.
 
 Primary references: [GPLv3 guide](https://www.gnu.org/licenses/quick-guide-gplv3.en.html),
 [AGPL network clause](https://www.gnu.org/licenses/agpl-3.0.en.html),
@@ -237,7 +230,7 @@ Primary references: [GPLv3 guide](https://www.gnu.org/licenses/quick-guide-gplv3
 1. Extend the entry point from verified Steam seed to the open-source runtime.
 2. Fresh-device, update, rollback, and uninstall tests.
 3. Hardware validation on the Tab S8+ with exact artifact identity.
-4. Project-owner license selection and tracked license text.
+4. Third-party notices and component-level SBOM.
 5. Signed release process and compatibility matrix.
 6. Publish the same setup engine as a signed-repository `.deb`.
 

@@ -31,6 +31,7 @@ INCLUDED_FILES = {
     ".gitignore",
     "install.sh",
     "README.md",
+    "LICENSE",
     "docs/ARCHITECTURE.md",
     "docs/NATIVE_STEAM_SPEED.md",
     "docs/NO_MANS_SKY.md",
@@ -45,6 +46,7 @@ INCLUDED_FILES = {
 REQUIRED_FILES = {
     "install.sh",
     "README.md",
+    "LICENSE",
     "config/debian-runtime-lock.json",
     "config/glibc-runtime-lock.json",
     "config/proot-runtime-lock.json",
