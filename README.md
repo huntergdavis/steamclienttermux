@@ -26,6 +26,7 @@ contain Valve binaries, games, credentials, or account state.
 | Controllers | Live 8BitDo hot-plug and app-local XInput transport pass; in-game button confirmation remains |
 | Native path | Steam and CEF outside PRoot; allow-listed games use the direct dispatcher |
 | Launch polish | Tomb Raider's pre-class Wine surface stays mapped off-screen until first paint |
+| No Man's Sky | Reaches the real renderer/menu; build 170671 still ends in its own watchdog HANG before gameplay |
 
 ## Best measurements
 
@@ -103,6 +104,9 @@ scheduling, unverified windows, or mismatched artifacts.
 
 The default base is Termux private storage. An SD card is optional and used
 only for large game files; Proton prefixes and the runtime stay internal.
+On affected Android versions, public `/storage/<UUID>/Steam/steamapps/common`
+is faster than `Android/data`; the removable-library helper validates and
+selects that same-volume layout without moving prefixes or control data.
 
 | Automated | Still in progress |
 | --- | --- |

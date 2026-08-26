@@ -20,6 +20,7 @@ launcher_log=$base/logs/no-mans-sky-launcher-$stamp-$$.log
 request_timeout=${NO_MANS_SKY_DIRECT_REQUEST_TIMEOUT:-300}
 mangohud=${NO_MANS_SKY_MANGOHUD:-0}
 xinput=${NO_MANS_SKY_XINPUT:-1}
+fex_profile=${NO_MANS_SKY_FEX_PROFILE:-safe}
 mangohud_dir=
 mangohud_config=
 summary_tmp=
@@ -84,6 +85,11 @@ trap cleanup EXIT HUP INT TERM
     fail 'NO_MANS_SKY_MANGOHUD must be 0 or 1'
 [[ $xinput == 0 || $xinput == 1 ]] ||
     fail 'NO_MANS_SKY_XINPUT must be 0 or 1'
+[[ $fex_profile == proton || $fex_profile == stability ||
+   $fex_profile == strict-locks ||
+   $fex_profile == smc-full ||
+   $fex_profile == safe || $fex_profile == fast ]] ||
+    fail 'NO_MANS_SKY_FEX_PROFILE must be proton, stability, strict-locks, smc-full, safe, or fast'
 
 if [[ $mangohud == 1 ]]; then
     [[ -x $summary_tool && ! -L $summary_tool ]] ||
@@ -116,7 +122,6 @@ if [[ $mangohud == 1 ]]; then
 fi
 
 "$python" "$tool_check" check --base "$base"
-
 "$python" "$prepare" prepare --base "$base" --wine-prefix "$prefix" \
     --window-background '0 0 0' --wine-app NMS.exe \
     --mouse-warp-override disable
@@ -129,7 +134,7 @@ chmod 600 "$server_log" "$launcher_log"
 
 env -u LD_PRELOAD -u LD_LIBRARY_PATH -u GLIBC_LD_LIBRARY_PATH \
     STEAM_ARM64_DIRECT_CHILD_PRELOAD=full \
-    STEAM_ARM64_DIRECT_FEX_PROFILE=safe \
+    STEAM_ARM64_DIRECT_FEX_PROFILE=$fex_profile \
     STEAM_ARM64_DIRECT_NMS_MANGOHUD=$mangohud \
     STEAM_ARM64_DIRECT_NMS_MANGOHUD_CONFIG=$mangohud_config \
     STEAM_ARM64_DIRECT_NMS_XINPUT=$xinput \

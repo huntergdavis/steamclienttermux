@@ -133,6 +133,56 @@ def test_reconfiguration_backup(module, temporary):
     )
 
 
+def test_public_payload_common(module, temporary):
+    storage, _external, link, base = fixture(temporary)
+    paths, _backup, _view_backup = module.prepare_layout(base, link, storage)
+    public = storage / "7376-B000/Steam/steamapps/common"
+    public.mkdir(parents=True)
+    (public / "No Man's Sky").mkdir()
+
+    selected, config_backup, view_backup = module.set_payload_common(
+        base, paths, public, storage
+    )
+    assert config_backup is not None
+    assert view_backup is None
+    assert selected["external_common"] == public.resolve()
+    assert os.readlink(selected["steamapps_control"] / "common") == str(
+        public.resolve()
+    )
+    assert json.loads(selected["config"].read_text()) == {
+        "payload_common": str(public.resolve()),
+        "source": str(paths["source"]),
+        "staging_binds": {},
+        "version": 3,
+    }
+    assert module.load_layout(base, storage) == selected
+
+    second, second_backup, second_view_backup = module.set_payload_common(
+        base, selected, public, storage
+    )
+    assert second == selected
+    assert second_backup is None
+    assert second_view_backup is None
+
+    wrong_shape = storage / "7376-B000/Fast/common"
+    wrong_shape.mkdir(parents=True)
+    try:
+        module.validate_payload_common(wrong_shape, paths["source"], storage)
+    except RuntimeError as error:
+        assert "unexpected public Steam payload path" in str(error)
+    else:
+        raise AssertionError("non-Steam public payload shape was accepted")
+
+    other_volume = storage / "ABCD-1234/Steam/steamapps/common"
+    other_volume.mkdir(parents=True)
+    try:
+        module.validate_payload_common(other_volume, paths["source"], storage)
+    except RuntimeError as error:
+        assert "different storage volume" in str(error)
+    else:
+        raise AssertionError("cross-volume public payload was accepted")
+
+
 def test_hidden_data_refusals(module, temporary):
     storage, _external, link, base = fixture(temporary)
     paths, _backup, _view_backup = module.prepare_layout(base, link, storage)
@@ -583,6 +633,7 @@ def main():
     tests = (
         test_prepare_and_idempotence,
         test_reconfiguration_backup,
+        test_public_payload_common,
         test_hidden_data_refusals,
         test_legacy_native_view_migration,
         test_configuration_refusals,

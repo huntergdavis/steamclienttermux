@@ -30,19 +30,19 @@ def load_dispatcher():
 def main() -> None:
     module = load_dispatcher()
 
-    control = {"FEX_SMC_CHECKS": "none"}
+    control = {"FEX_SMC_CHECKS": "legacy", "FEX_SMCCHECKS": "none"}
     with mock.patch.dict(os.environ, {}, clear=True):
         module.apply_fex_smc_checks(control, "tombraider-benchmark")
-    assert control == {"FEX_SMC_CHECKS": "mtrack"}
+    assert control == {"FEX_SMCCHECKS": "mtrack"}
 
-    candidate = {"FEX_SMC_CHECKS": "mtrack"}
+    candidate = {"FEX_SMC_CHECKS": "legacy", "FEX_SMCCHECKS": "mtrack"}
     with mock.patch.dict(
         os.environ,
         {"STEAM_ARM64_DIRECT_FEX_SMC_CHECKS": "none"},
         clear=True,
     ):
         module.apply_fex_smc_checks(candidate, "tombraider-benchmark")
-    assert candidate == {"FEX_SMC_CHECKS": "none"}
+    assert candidate == {"FEX_SMCCHECKS": "none"}
 
     with mock.patch.dict(
         os.environ,
@@ -71,7 +71,8 @@ def main() -> None:
     sanitized = module.request_environment(
         {
             "environment": [
-                "FEX_SMC_CHECKS=none",
+                "FEX_SMC_CHECKS=legacy",
+                "FEX_SMCCHECKS=none",
                 "STEAM_ARM64_DIRECT_FEX_SMC_CHECKS=none",
                 "TOMB_RAIDER_FEX_SMC_CHECKS=none",
                 "KEEP_ME=yes",
@@ -90,6 +91,7 @@ def main() -> None:
         in launcher_source
     )
     assert launcher_source.count("-u FEX_SMC_CHECKS") == 2
+    assert launcher_source.count("-u FEX_SMCCHECKS") == 2
     assert launcher_source.count("-u TOMB_RAIDER_FEX_SMC_CHECKS") == 2
 
     rejected = subprocess.run(

@@ -88,7 +88,7 @@ offline hash-verified or normal Steam commit to SD.
 | Steam Input A/B | Returning success from the failing `ISteamInput006::Init` wrapper bypassed the pre-window crash |
 | Containment | `/proc` mapped reviewed PE inode `719319` plus the contained Wine loader root; stock Proton stayed unchanged |
 | Screenshots | Live-news UI `96fe91ee...1d29`; 1080p settings `bd2e6e74...0d86` |
-| Current boundary | Schema 3 reached the live UI and 1080p graphics menu, remained alive for more than four minutes, and wrote no new dump |
+| Current boundary | Build 170671 reaches real NMS rendering, then its watchdog reports HANG before controllable gameplay |
 
 Run the reviewed path from visible Termux:
 
@@ -188,6 +188,26 @@ so this is excluded from the gameplay chart.
 Three controlled runs reproduced the build-`170671` watchdog hang. MangoHud
 was absent for the second reproduction, so telemetry is ruled out. Multiplayer
 was restored byte-for-byte after a multiplayer-off run did not fix it.
+
+Two further discriminators are now complete:
+
+| Test | Result |
+| --- | --- |
+| Public SD payload root | Validated and faster-path-compatible; NMS still froze |
+| GameNative Stability profile | Reached THE SWARM, then froze |
+| Stability + strict split locks | Same frozen frame |
+| Stability + full SMC validation | Correct `FEX_SMCCHECKS=full`; reached the Hello Games splash, then watchdog HANG |
+
+The SMC test corrected an older environment spelling: current FEX uses
+`FEX_SMCCHECKS`, not `FEX_SMC_CHECKS`. The correction is generic and removes
+the legacy key before game launch. None of these results is gameplay or FPS
+evidence. Three retained HANG dumps from different profiles all contain the
+same `HGFS Process`, `HGFS IO`, two `HGFS Decompress`, and `Async IO Manager`
+threads. The full-SMC dump also contains `PreloadDirectory on 186 files` and
+the UI asset list while its main and worker threads are waiting. That makes an
+asset-I/O completion deadlock the leading inference, not a proven cause. The
+next useful gate is tracing that exact completion boundary—not a larger matrix
+of speculative FEX flags.
 
 The next discriminator is a new game versus the existing save:
 

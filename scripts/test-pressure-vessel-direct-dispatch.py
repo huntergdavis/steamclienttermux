@@ -442,6 +442,36 @@ def main() -> None:
         ):
             assert MODULE.nms_xinput_environment(base, "no-mans-sky") == {}
 
+    with tempfile.TemporaryDirectory(prefix="external-game-library.") as directory:
+        root = Path(directory)
+        steamapps = root / "sd-card/library/steamapps"
+        game = steamapps / "common/No Man's Sky/Binaries/NMS.exe"
+        game.parent.mkdir(parents=True)
+        game.write_bytes(b"MZfixture")
+        alias = root / "private/removable-library/steamapps/common"
+        alias.parent.mkdir(parents=True)
+        alias.symlink_to(steamapps / "common", target_is_directory=True)
+        aliased_game = alias / "No Man's Sky/Binaries/NMS.exe"
+        resolved, environment = MODULE.canonical_external_game_environment(
+            aliased_game
+        )
+        assert resolved == game
+        assert environment == {
+            "STEAM_COMPAT_INSTALL_PATH": str(
+                steamapps / "common/No Man's Sky"
+            ),
+            "STEAM_COMPAT_LIBRARY_PATHS": str(steamapps),
+        }
+        invalid = root / "not-a-library/common/No Man's Sky/Binaries/NMS.exe"
+        invalid.parent.mkdir(parents=True)
+        invalid.write_bytes(b"MZfixture")
+        try:
+            MODULE.canonical_external_game_environment(invalid)
+        except MODULE.DispatchError:
+            pass
+        else:
+            raise AssertionError("non-steamapps game path was accepted")
+
     with tempfile.TemporaryDirectory(prefix="loader-child-cwd.") as directory:
         root = Path(directory)
         working_directory = root / "game"
@@ -1098,6 +1128,8 @@ def main() -> None:
         assert dxvk_log_path.stat().st_uid == os.geteuid()
         stale_fex = {
             "FEX_MAXINST": "500",
+            "FEX_SMC_CHECKS": "legacy",
+            "FEX_SMCCHECKS": "none",
             "FEX_TSOENABLED": "1",
             "FEX_HALFBARRIERTSOENABLED": "1",
             "STEAM_FEX_TSOENABLED": "1",
@@ -1110,7 +1142,50 @@ def main() -> None:
         assert stale_fex["FEX_HALFBARRIERTSOENABLED"] == "0"
         assert stale_fex["STEAM_FEX_TSOENABLED"] == "0"
         assert stale_fex["FEX_MULTIBLOCK"] == "1"
+        assert "FEX_SMC_CHECKS" not in stale_fex
+        assert stale_fex["FEX_SMCCHECKS"] == "mtrack"
         assert stale_fex["UNRELATED"] == "preserved"
+        MODULE.apply_direct_fex_profile(stale_fex, "stability")
+        assert stale_fex == {
+            "FEX_HALFBARRIERTSOENABLED": "1",
+            "FEX_MEMCPYSETTSOENABLED": "1",
+            "FEX_MULTIBLOCK": "0",
+            "FEX_TSOENABLED": "1",
+            "FEX_VECTORTSOENABLED": "1",
+            "FEX_X87REDUCEDPRECISION": "0",
+            "STEAM_ARM64_FEX_PROFILE": "stability",
+            "STEAM_FEX_MULTIBLOCK": "0",
+            "STEAM_FEX_TSOENABLED": "1",
+            "UNRELATED": "preserved",
+        }
+        MODULE.apply_direct_fex_profile(stale_fex, "strict-locks")
+        assert stale_fex == {
+            "FEX_HALFBARRIERTSOENABLED": "1",
+            "FEX_MEMCPYSETTSOENABLED": "1",
+            "FEX_MULTIBLOCK": "0",
+            "FEX_STRICTINPROCESSSPLITLOCKS": "1",
+            "FEX_TSOENABLED": "1",
+            "FEX_VECTORTSOENABLED": "1",
+            "FEX_X87REDUCEDPRECISION": "0",
+            "STEAM_ARM64_FEX_PROFILE": "strict-locks",
+            "STEAM_FEX_MULTIBLOCK": "0",
+            "STEAM_FEX_TSOENABLED": "1",
+            "UNRELATED": "preserved",
+        }
+        MODULE.apply_direct_fex_profile(stale_fex, "smc-full")
+        assert stale_fex == {
+            "FEX_HALFBARRIERTSOENABLED": "1",
+            "FEX_MEMCPYSETTSOENABLED": "1",
+            "FEX_MULTIBLOCK": "0",
+            "FEX_SMCCHECKS": "full",
+            "FEX_TSOENABLED": "1",
+            "FEX_VECTORTSOENABLED": "1",
+            "FEX_X87REDUCEDPRECISION": "0",
+            "STEAM_ARM64_FEX_PROFILE": "smc-full",
+            "STEAM_FEX_MULTIBLOCK": "0",
+            "STEAM_FEX_TSOENABLED": "1",
+            "UNRELATED": "preserved",
+        }
         MODULE.apply_direct_fex_profile(stale_fex, "proton")
         assert stale_fex == {
             "STEAM_ARM64_FEX_PROFILE": "proton",

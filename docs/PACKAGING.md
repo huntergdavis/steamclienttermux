@@ -84,6 +84,22 @@ PowerVR, or other GPU families requires a separately tested graphics profile.
 The default library is private/internal storage; removable storage is an
 optional profile and does not complicate the normal install.
 
+For removable storage, keep manifests, prefixes, and download state private.
+Store only completed game payloads in the public same-volume directory
+`/storage/<UUID>/Steam/steamapps/common`. This avoids Android MediaProvider
+overhead under `Android/data` while preserving the existing split library.
+With Steam stopped, advanced installs can select an already-prepared path:
+
+```sh
+~/steam-arm64/compat-bin/steam-arm64-removable-library.py \
+  set-payload-common /storage/<UUID>/Steam/steamapps/common
+```
+
+The helper requires the exact directory shape, matching volume/filesystem,
+safe links, read/write access, and no live Steam/Wine process. Automatic
+migration remains a later installer gate; the default internal path is
+unchanged.
+
 ## Locked Turnip runtime
 
 The Option-A command fetches the Qualcomm/Adreno Turnip runtime directly from

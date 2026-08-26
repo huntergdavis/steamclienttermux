@@ -20,7 +20,7 @@ def main():
         "FEX_VECTORTSOENABLED=0",
         "FEX_MEMCPYSETTSOENABLED=0",
         "FEX_SMALLTSCSCALE=1",
-        "FEX_SMC_CHECKS=mtrack",
+        "FEX_SMCCHECKS=mtrack",
         "FEX_VOLATILEMETADATA=1",
         "FEX_MONOHACKS=1",
         "FEX_HIDEHYPERVISORBIT=0",

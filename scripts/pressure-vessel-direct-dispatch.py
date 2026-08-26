@@ -497,11 +497,12 @@ def apply_fex_smc_checks(
     if selector not in ("mtrack", "none"):
         fail("STEAM_ARM64_DIRECT_FEX_SMC_CHECKS must be mtrack or none")
     environment.pop("FEX_SMC_CHECKS", None)
+    environment.pop("FEX_SMCCHECKS", None)
     if command_mode not in ("tombraider", "tombraider-benchmark"):
         if selector != "mtrack":
             fail("FEX SMC-check override is valid only for Tomb Raider")
         return
-    environment["FEX_SMC_CHECKS"] = selector
+    environment["FEX_SMCCHECKS"] = selector
 
 
 def apply_dxvk_relaxed_graphics_barriers(
@@ -1236,6 +1237,7 @@ def request_environment(payload: dict[str, object]) -> dict[str, str]:
         "STEAM_ARM64_DIRECT_FEX_CODE_CACHE",
         "TOMB_RAIDER_FEX_CODE_CACHE",
         "FEX_SMC_CHECKS",
+        "FEX_SMCCHECKS",
         "STEAM_ARM64_DIRECT_FEX_SMC_CHECKS",
         "TOMB_RAIDER_FEX_SMC_CHECKS",
         "DXVK_CONFIG",
@@ -1464,6 +1466,35 @@ def validate_removable_windows_file(path: Path, description: str) -> None:
         or metadata.st_size <= 0
     ):
         fail(f"validated {description} file is unsafe: {path}")
+
+
+def canonical_external_game_environment(game: Path) -> tuple[Path, dict[str, str]]:
+    """Give Proton a real steamapps path while keeping compatdata private."""
+    try:
+        resolved_game = game.resolve(strict=True)
+        relative = resolved_game.relative_to(next(
+            parent
+            for parent in resolved_game.parents
+            if parent.name == "steamapps"
+        ))
+        steamapps = resolved_game.parents[len(relative.parts) - 1]
+    except (FileNotFoundError, StopIteration, ValueError):
+        fail(f"external game is not below a canonical steamapps directory: {game}")
+    if (
+        len(relative.parts) < 3
+        or relative.parts[0] != "common"
+        or steamapps.name != "steamapps"
+        or not steamapps.is_dir()
+        or steamapps.is_symlink()
+        or not os.access(steamapps.parent, os.W_OK)
+        or steamapps.stat().st_dev != steamapps.parent.stat().st_dev
+    ):
+        fail(f"external game library is not Proton-compatible: {steamapps}")
+    install = steamapps / "common" / relative.parts[1]
+    return resolved_game, {
+        "STEAM_COMPAT_INSTALL_PATH": str(install),
+        "STEAM_COMPAT_LIBRARY_PATHS": str(steamapps),
+    }
 
 
 def validate_runtime_executable(
@@ -1842,11 +1873,13 @@ DIRECT_FEX_KEYS = {
     "FEX_MEMCPYSETTSOENABLED",
     "FEX_SMALLTSCSCALE",
     "FEX_SMC_CHECKS",
+    "FEX_SMCCHECKS",
     "FEX_VOLATILEMETADATA",
     "FEX_MONOHACKS",
     "FEX_HIDEHYPERVISORBIT",
     "FEX_TSOENABLED",
     "FEX_HALFBARRIERTSOENABLED",
+    "FEX_STRICTINPROCESSSPLITLOCKS",
     "STEAM_FEX_MULTIBLOCK",
     "STEAM_FEX_TSOENABLED",
     "STEAM_ARM64_FEX_PROFILE",
@@ -1854,12 +1887,38 @@ DIRECT_FEX_KEYS = {
 
 
 def apply_direct_fex_profile(environment: dict[str, str], profile: str) -> None:
-    if profile not in ("proton", "safe", "fast"):
+    if profile not in (
+        "proton",
+        "stability",
+        "strict-locks",
+        "smc-full",
+        "safe",
+        "fast",
+    ):
         fail(f"unsupported direct FEX profile: {profile}")
     for name in DIRECT_FEX_KEYS:
         environment.pop(name, None)
     environment["STEAM_ARM64_FEX_PROFILE"] = profile
     if profile == "proton":
+        return
+    if profile in ("stability", "strict-locks", "smc-full"):
+        # Match GameNative's open-source Stability preset exactly.
+        environment.update(
+            {
+                "FEX_TSOENABLED": "1",
+                "FEX_VECTORTSOENABLED": "1",
+                "FEX_MEMCPYSETTSOENABLED": "1",
+                "FEX_HALFBARRIERTSOENABLED": "1",
+                "FEX_X87REDUCEDPRECISION": "0",
+                "FEX_MULTIBLOCK": "0",
+                "STEAM_FEX_MULTIBLOCK": "0",
+                "STEAM_FEX_TSOENABLED": "1",
+            }
+        )
+        if profile == "strict-locks":
+            environment["FEX_STRICTINPROCESSSPLITLOCKS"] = "1"
+        if profile == "smc-full":
+            environment["FEX_SMCCHECKS"] = "full"
         return
     environment.update(
         {
@@ -1872,7 +1931,7 @@ def apply_direct_fex_profile(environment: dict[str, str], profile: str) -> None:
             "FEX_VECTORTSOENABLED": "0",
             "FEX_MEMCPYSETTSOENABLED": "0",
             "FEX_SMALLTSCSCALE": "1",
-            "FEX_SMC_CHECKS": "mtrack",
+            "FEX_SMCCHECKS": "mtrack",
             "FEX_VOLATILEMETADATA": "1",
             "FEX_MONOHACKS": "1",
             "FEX_HIDEHYPERVISORBIT": "0",
@@ -2037,6 +2096,7 @@ def pv_smoke_invocation(
         else:
             rewritten.append(argument)
         index += 1
+    canonical_game_environment: dict[str, str] = {}
     if command_mode == "runtime-true":
         program, _, _ = runtime_true_from_plan(base, payload)
         command = [str(program)]
@@ -2080,6 +2140,10 @@ def pv_smoke_invocation(
                 game,
                 "No Man's Sky" if command_mode == "no-mans-sky" else "Tomb Raider",
             )
+            if command_mode == "no-mans-sky":
+                game, canonical_game_environment = (
+                    canonical_external_game_environment(game)
+                )
             command = [
                 str(runtime_python),
                 str(proton),
@@ -2210,6 +2274,7 @@ def pv_smoke_invocation(
             direct_game_environment(base, runtime_root, diagnostics)
         )
     if command_mode == "no-mans-sky":
+        environment.update(canonical_game_environment)
         apply_direct_fex_profile(
             environment,
             os.environ.get("STEAM_ARM64_DIRECT_FEX_PROFILE", "safe"),
@@ -2408,7 +2473,7 @@ def run_no_mans_sky(
         payload["fd_numbers"],
         working_directory=(
             base / "removable-library/steamapps/common/No Man's Sky/Binaries"
-        ),
+        ).resolve(strict=True),
         cpu_affinity=set(range(8)),
         match_proton_cpu_topology=True,
     )

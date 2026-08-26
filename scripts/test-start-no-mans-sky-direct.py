@@ -64,7 +64,7 @@ def main() -> None:
             "parser.add_argument('--mode')\n"
             "args=parser.parse_args()\n"
             "assert args.mode == 'no-mans-sky'\n"
-            "assert os.environ['STEAM_ARM64_DIRECT_FEX_PROFILE'] == 'safe'\n"
+            "assert os.environ['STEAM_ARM64_DIRECT_FEX_PROFILE'] == os.environ['FIXTURE_FEX_PROFILE']\n"
             "hud=os.environ['STEAM_ARM64_DIRECT_NMS_MANGOHUD']\n"
             "config=os.environ['STEAM_ARM64_DIRECT_NMS_MANGOHUD_CONFIG']\n"
             "assert os.environ['STEAM_ARM64_DIRECT_NMS_XINPUT'] == '1'\n"
@@ -107,6 +107,7 @@ def main() -> None:
             "FIXTURE_SOCKET": str(
                 base / "run/native-runtime-dispatch/dispatch.sock"
             ),
+            "FIXTURE_FEX_PROFILE": "safe",
         }
         result = subprocess.run(
             ["bash", str(SCRIPT)],
@@ -126,6 +127,81 @@ def main() -> None:
         )
         assert "launcher=0 server=0" in result.stdout
         fixture_socket = base / "run/native-runtime-dispatch/dispatch.sock"
+        assert not fixture_socket.exists()
+
+        proton_result = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env={
+                **environment,
+                "NO_MANS_SKY_FEX_PROFILE": "proton",
+                "FIXTURE_FEX_PROFILE": "proton",
+            },
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=10,
+        )
+        assert proton_result.returncode == 0, proton_result.stderr
+        assert not fixture_socket.exists()
+
+        stability_result = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env={
+                **environment,
+                "NO_MANS_SKY_FEX_PROFILE": "stability",
+                "FIXTURE_FEX_PROFILE": "stability",
+            },
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=10,
+        )
+        assert stability_result.returncode == 0, stability_result.stderr
+        assert not fixture_socket.exists()
+
+        strict_locks_result = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env={
+                **environment,
+                "NO_MANS_SKY_FEX_PROFILE": "strict-locks",
+                "FIXTURE_FEX_PROFILE": "strict-locks",
+            },
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=10,
+        )
+        assert strict_locks_result.returncode == 0, strict_locks_result.stderr
+        assert not fixture_socket.exists()
+
+        smc_full_result = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env={
+                **environment,
+                "NO_MANS_SKY_FEX_PROFILE": "smc-full",
+                "FIXTURE_FEX_PROFILE": "smc-full",
+            },
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=10,
+        )
+        assert smc_full_result.returncode == 0, smc_full_result.stderr
+        assert not fixture_socket.exists()
+
+        invalid_profile = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env={**environment, "NO_MANS_SKY_FEX_PROFILE": "turbo"},
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=10,
+        )
+        assert invalid_profile.returncode != 0
+        assert (
+            "must be proton, stability, strict-locks, smc-full, safe, or fast"
+            in invalid_profile.stderr
+        )
         assert not fixture_socket.exists()
 
         fps_result = subprocess.run(

@@ -152,13 +152,41 @@ def validate_external_parent(parent, storage_root=Path("/storage")):
     return resolved
 
 
-def layout_paths(base, source):
+def validate_payload_common(path, source, storage_root=Path("/storage")):
+    try:
+        resolved = path.resolve(strict=True)
+        resolved_source = source.resolve(strict=True)
+    except FileNotFoundError as error:
+        raise RuntimeError(f"public Steam payload is unavailable: {path}") from error
+    inspect_directory(resolved, "public Steam payload")
+    storage = storage_root.resolve(strict=True)
+    try:
+        relative = resolved.relative_to(storage)
+        source_relative = resolved_source.relative_to(storage)
+    except ValueError as error:
+        raise RuntimeError(f"public Steam payload is outside {storage}: {resolved}") from error
+    if (
+        len(relative.parts) != 4
+        or not UUID_PATTERN.fullmatch(relative.parts[0])
+        or relative.parts[1:] != ("Steam", "steamapps", "common")
+    ):
+        raise RuntimeError(f"unexpected public Steam payload path: {resolved}")
+    if not source_relative.parts or source_relative.parts[0] != relative.parts[0]:
+        raise RuntimeError("public Steam payload is on a different storage volume")
+    if resolved.stat().st_dev != resolved_source.stat().st_dev:
+        raise RuntimeError("public Steam payload is on a different filesystem")
+    if not os.access(resolved, os.R_OK | os.W_OK | os.X_OK):
+        raise RuntimeError(f"public Steam payload is not readable and writable: {resolved}")
+    return resolved
+
+
+def layout_paths(base, source, payload_common=None):
     return {
         "source": source,
         "target": base / "removable-library",
         "steamapps_control": base / "removable-library-steamapps",
         "external_steamapps": source / "steamapps",
-        "external_common": source / "steamapps" / "common",
+        "external_common": payload_common or source / "steamapps" / "common",
         "external_staging": source / "staging",
         "compatdata": base / "removable-library-compatdata",
         "download_state": base / "removable-library-downloads",
@@ -345,7 +373,13 @@ def validate_staging_binds(paths, staging_binds):
     return validated
 
 
-def validate_layout(base, source, storage_root=Path("/storage"), staging_binds=None):
+def validate_layout(
+    base,
+    source,
+    storage_root=Path("/storage"),
+    staging_binds=None,
+    payload_common=None,
+):
     parent = validate_external_parent(source.parent, storage_root)
     try:
         resolved_source = source.resolve(strict=True)
@@ -353,7 +387,16 @@ def validate_layout(base, source, storage_root=Path("/storage"), staging_binds=N
         raise RuntimeError(f"removable library is unavailable: {source}") from error
     if source.name != LIBRARY_NAME or resolved_source != parent / LIBRARY_NAME:
         raise RuntimeError(f"unexpected removable library path: {source}")
-    paths = layout_paths(base, resolved_source)
+    resolved_payload = None
+    if payload_common is not None:
+        if not payload_common.is_absolute():
+            raise RuntimeError(
+                f"public Steam payload path is not absolute: {payload_common}"
+            )
+        resolved_payload = validate_payload_common(
+            payload_common, resolved_source, storage_root
+        )
+    paths = layout_paths(base, resolved_source, resolved_payload)
     inspect_directory(paths["source"], "removable library")
     inspect_directory(paths["steamapps_control"], "internal Steam control root")
     inspect_directory(paths["external_steamapps"], "external steamapps root")
@@ -398,12 +441,14 @@ def validate_layout(base, source, storage_root=Path("/storage"), staging_binds=N
     return paths
 
 
-def config_bytes(source, staging_binds=None):
+def config_bytes(source, staging_binds=None, payload_common=None):
     payload = {
-        "version": 2,
+        "version": 3 if payload_common is not None else 2,
         "source": str(source),
         "staging_binds": staging_binds or {},
     }
+    if payload_common is not None:
+        payload["payload_common"] = str(payload_common)
     return (json.dumps(payload, indent=2, sort_keys=True) + "\n").encode()
 
 
@@ -586,22 +631,34 @@ def prepare_layout(base, external_parent, storage_root=Path("/storage")):
     compatdata.mkdir(mode=0o700, exist_ok=True)
     download_state.mkdir(mode=0o700, exist_ok=True)
     staging_binds = {}
+    payload_common = None
     prior_paths = None
     config = base / "config" / CONFIG_NAME
     if inspect_config(config) is not None:
         payload = load_config_payload(config)
         prior_source = Path(payload["source"])
         if prior_source.is_absolute():
-            prior_paths = layout_paths(base, prior_source)
+            prior_payload = payload.get("payload_common")
+            prior_paths = layout_paths(
+                base,
+                prior_source,
+                None if prior_payload is None else Path(prior_payload),
+            )
         if payload["source"] == str(source):
             staging_binds = payload["staging_binds"]
+            if payload.get("payload_common") is not None:
+                payload_common = validate_payload_common(
+                    Path(payload["payload_common"]), source, storage_root
+                )
     view_backup = install_native_library_view(
-        layout_paths(base, source), base / "backups", prior_paths
+        layout_paths(base, source, payload_common), base / "backups", prior_paths
     )
-    paths = validate_layout(base, source, storage_root, staging_binds)
+    paths = validate_layout(
+        base, source, storage_root, staging_binds, payload_common
+    )
     backup = write_config(
         paths["config"],
-        config_bytes(paths["source"], staging_binds),
+        config_bytes(paths["source"], staging_binds, payload_common),
         base / "backups",
     )
     return paths, backup, view_backup
@@ -615,17 +672,30 @@ def load_config_payload(config):
     if not isinstance(payload, dict):
         raise RuntimeError(f"unsupported removable-library configuration: {config}")
     if payload.get("version") == 1 and set(payload) == {"version", "source"}:
-        payload = {**payload, "staging_binds": {}}
+        payload = {**payload, "staging_binds": {}, "payload_common": None}
     elif payload.get("version") != 2 or set(payload) != {
         "version",
         "source",
         "staging_binds",
     }:
-        raise RuntimeError(f"unsupported removable-library configuration: {config}")
+        if payload.get("version") != 3 or set(payload) != {
+            "version",
+            "source",
+            "staging_binds",
+            "payload_common",
+        }:
+            raise RuntimeError(f"unsupported removable-library configuration: {config}")
+    if "payload_common" not in payload:
+        payload["payload_common"] = None
     if not isinstance(payload["source"], str) or any(
         character in payload["source"] for character in "\r\n\t\0"
     ):
         raise RuntimeError(f"invalid removable-library source: {config}")
+    if payload["payload_common"] is not None and (
+        not isinstance(payload["payload_common"], str)
+        or any(character in payload["payload_common"] for character in "\r\n\t\0")
+    ):
+        raise RuntimeError(f"invalid public Steam payload path: {config}")
     return payload
 
 
@@ -637,7 +707,44 @@ def load_layout(base, storage_root=Path("/storage")):
     source = Path(payload["source"])
     if not source.is_absolute():
         raise RuntimeError(f"removable-library source is not absolute: {source}")
-    return validate_layout(base, source, storage_root, payload["staging_binds"])
+    payload_common = payload.get("payload_common")
+    return validate_layout(
+        base,
+        source,
+        storage_root,
+        payload["staging_binds"],
+        None if payload_common is None else Path(payload_common),
+    )
+
+
+def set_payload_common(base, paths, candidate, storage_root=Path("/storage")):
+    """Select a public same-volume game payload without moving control data."""
+    payload = load_config_payload(paths["config"])
+    source = paths["source"]
+    resolved = validate_payload_common(candidate, source, storage_root)
+    prior_value = payload.get("payload_common")
+    prior_paths = layout_paths(
+        base,
+        source,
+        None if prior_value is None else Path(prior_value),
+    )
+    new_paths = layout_paths(base, source, resolved)
+    view_backup = install_native_library_view(
+        new_paths, base / "backups", prior_paths
+    )
+    validated = validate_layout(
+        base,
+        source,
+        storage_root,
+        payload["staging_binds"],
+        resolved,
+    )
+    config_backup = write_config(
+        paths["config"],
+        config_bytes(source, payload["staging_binds"], resolved),
+        base / "backups",
+    )
+    return validated, config_backup, view_backup
 
 
 def staging_mounts(paths):
@@ -692,7 +799,9 @@ def enable_staging_bind(
     }
     backup = write_config(
         paths["config"],
-        config_bytes(paths["source"], staging_binds),
+        config_bytes(
+            paths["source"], staging_binds, payload.get("payload_common")
+        ),
         base / "backups",
     )
     loaded = load_layout(base, storage_root)
@@ -751,7 +860,9 @@ def enable_empty_staging_bind(
     }
     backup = write_config(
         paths["config"],
-        config_bytes(paths["source"], staging_binds),
+        config_bytes(
+            paths["source"], staging_binds, payload.get("payload_common")
+        ),
         base / "backups",
     )
     loaded = load_layout(base, storage_root)
@@ -768,7 +879,9 @@ def disable_staging_bind(base, paths, appid, storage_root=Path("/storage")):
     del staging_binds[appid]
     backup = write_config(
         paths["config"],
-        config_bytes(paths["source"], staging_binds),
+        config_bytes(
+            paths["source"], staging_binds, payload.get("payload_common")
+        ),
         base / "backups",
     )
     loaded = load_layout(base, storage_root)
@@ -1141,6 +1254,8 @@ def build_parser():
     subparsers.add_parser("check")
     subparsers.add_parser("mount-info")
     subparsers.add_parser("staging-mount-info")
+    public_payload = subparsers.add_parser("set-payload-common")
+    public_payload.add_argument("path")
     subparsers.add_parser("register")
     staging = subparsers.add_parser("enable-staging-bind")
     staging.add_argument("appid")
@@ -1189,6 +1304,27 @@ def main():
             return 0
 
         paths = load_layout(base, storage_root)
+        if args.action == "set-payload-common":
+            if paths is None:
+                raise RuntimeError(
+                    "prepare the removable library before selecting a public payload"
+                )
+            running = find_running_processes()
+            if running:
+                details = ", ".join(f"{pid}:{comm}" for pid, comm in running)
+                raise RuntimeError(
+                    "refusing to change the payload root while processes are active: "
+                    + details
+                )
+            paths, backup, view_backup = set_payload_common(
+                base, paths, Path(args.path), storage_root
+            )
+            print(f"Public Steam payload selected: {paths['external_common']}")
+            if backup is not None:
+                print(f"Previous configuration backup: {backup}")
+            if view_backup is not None:
+                print(f"Previous mountpoint skeleton backup: {view_backup}")
+            return 0
         if args.action == "mount-info":
             if paths is None:
                 print("disabled")

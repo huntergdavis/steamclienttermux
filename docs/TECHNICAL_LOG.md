@@ -10468,3 +10468,45 @@ The required `deja` searches found no indexed implementation. The fix reuses
 GameNative's device lifecycle and this project's bounded localhost protocol.
 Visible in-game button/axis response and external-trackpad user confirmation
 remain open; neither is inferred from transport or DLL mapping alone.
+
+## 2026-08-25: public SD payload root and NMS FEX discriminators
+
+GameNative PR 1779 isolates a reusable Android storage cost: completed game
+payloads in a public volume-root directory avoid MediaProvider overhead under
+`Android/data`. The removable-library configuration now has a backward-
+compatible schema 3 and an opt-in `set-payload-common` operation. It accepts
+only `/storage/<UUID>/Steam/steamapps/common` on the same volume and filesystem
+as the configured card, with Steam/Wine stopped. Manifests, compatdata,
+downloads, and staging remain internal.
+
+The tablet moved its five existing game directories within the same SD
+filesystem and selected the public path. The helper and launcher validation
+passed, and NMS read the new canonical path. This is a generic storage-layout
+improvement, not an NMS stability claim.
+
+| NMS discriminator | Result |
+| --- | --- |
+| Public path + safe profile | THE SWARM frame became byte-identical; no input progress |
+| GameNative Stability + strict split locks | Same frozen boundary |
+| GameNative Stability + full SMC validation | Correct environment active; Hello Games splash progressed, then watchdog HANG |
+| Retained dump | 170,630 bytes; SHA-256 `3c4b667b...6dd90` |
+
+Three different-profile HANG dumps contain the same `HGFS Process`, `HGFS IO`,
+two `HGFS Decompress`, and `Async IO Manager` thread set. The full-SMC dump's
+retained memory includes `PreloadDirectory on 186 files` followed by UI asset
+paths. Its main thread and the HGFS/async workers are in wait states. This is
+evidence for an asset-I/O completion deadlock investigation, but not yet proof
+of whether the game, Wine/FEX synchronization, or the backing filesystem owns
+the missing completion.
+
+The SMC run exposed and corrected an older spelling error. Current FEX and
+GameNative use `FEX_SMCCHECKS`; `FEX_SMC_CHECKS` was ignored. Production paths
+now remove the legacy key and use the current key. Historical evidence retains
+its original spelling and therefore must not be read as proof that the old
+override took effect.
+
+Required recall queries for the public payload layout, split locks, and exact
+crash returned no indexed implementation. Reuse comes from
+[GameNative PR 1779](https://github.com/utkarshdalal/GameNative/pull/1779),
+GameNative's Stability preset/input commit `1ad70ae5`, and FEX's maintained
+[configuration registry](https://github.com/FEX-Emu/FEX/blob/main/FEXCore/Source/Interface/Config/Config.json.in).

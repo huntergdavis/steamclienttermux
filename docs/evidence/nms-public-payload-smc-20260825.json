@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "date": "2026-08-25",
+  "source_base_commit": "3a9cdcde6951ffcbdffd071a566c9d45322d6322",
+  "goal": "Move completed removable game payloads out of Android/data without moving control data, then bound the No Man's Sky hang with evidence-backed FEX profiles.",
+  "storage": {
+    "config_version": 3,
+    "payload_common_shape": "/storage/<UUID>/Steam/steamapps/common",
+    "same_volume_and_filesystem_required": true,
+    "control_data_internal": [
+      "appmanifests",
+      "compatdata",
+      "download state",
+      "active staging"
+    ],
+    "helper_sha256": "020f2eb7fb158191e62602e7348b1a9574afdaa9f9bd502e5a6f9eda581b75f3",
+    "tablet_validation": "check and mount-info passed with the public payload root"
+  },
+  "nms_build": "170671",
+  "profiles": [
+    {
+      "name": "safe-public-payload",
+      "result": "THE SWARM frame froze before input",
+      "screen_pair_identical": true
+    },
+    {
+      "name": "stability-strict-locks",
+      "result": "THE SWARM frame froze before input",
+      "screen_pair_identical": true
+    },
+    {
+      "name": "stability-smc-full",
+      "environment": {
+        "STEAM_ARM64_FEX_PROFILE": "smc-full",
+        "FEX_SMCCHECKS": "full"
+      },
+      "result": "Hello Games splash progressed, then the game watchdog reported HANG",
+      "dump_bytes": 170630,
+      "dump_sha256": "3c4b667b483dbdfbee026a147a8b60b43d8898bd0dd1aad6fd75c812f606dd90"
+    }
+  ],
+  "correction": "Current FEX uses FEX_SMCCHECKS. The older FEX_SMC_CHECKS spelling was ignored and is now removed before final environment reconstruction.",
+  "dump_thread_boundary": {
+    "reproduced_across_three_profile_dumps": true,
+    "threads": [
+      "HGFS Process Thread",
+      "HGFS IO Thread",
+      "HGFS Decompress Thread 0",
+      "HGFS Decompress Thread 1",
+      "Async IO Manager Thread"
+    ],
+    "retained_string": "PreloadDirectory on 186 files",
+    "inference": "Asset-I/O completion deadlock is the leading investigation boundary; ownership is not yet proven."
+  },
+  "boundary": {
+    "public_payload_supported": true,
+    "nms_gameplay_reached": false,
+    "nms_fps_claim": false,
+    "next_gate": "Analyze the retained watchdog minidump/thread boundary; do not expand speculative FEX flag matrices."
+  },
+  "recall": [
+    "No indexed public-payload implementation was found.",
+    "No indexed strict split-lock or exact crash implementation was found."
+  ],
+  "reuse": [
+    "https://github.com/utkarshdalal/GameNative/pull/1779",
+    "GameNative commit 1ad70ae54dcac1b9ae50d0b42c816e95f40cf22f",
+    "https://github.com/FEX-Emu/FEX/blob/main/FEXCore/Source/Interface/Config/Config.json.in"
+  ]
+}
