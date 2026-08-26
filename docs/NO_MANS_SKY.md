@@ -197,17 +197,24 @@ Two further discriminators are now complete:
 | GameNative Stability profile | Reached THE SWARM, then froze |
 | Stability + strict split locks | Same frozen frame |
 | Stability + full SMC validation | Correct `FEX_SMCCHECKS=full`; reached the Hello Games splash, then watchdog HANG |
+| Proton 11 ordinary server sync | Disabling fsync still produced `170671_0xCBBA4-HANG`; not promoted |
 
 The SMC test corrected an older environment spelling: current FEX uses
 `FEX_SMCCHECKS`, not `FEX_SMC_CHECKS`. The correction is generic and removes
 the legacy key before game launch. None of these results is gameplay or FPS
 evidence. Three retained HANG dumps from different profiles all contain the
 same `HGFS Process`, `HGFS IO`, two `HGFS Decompress`, and `Async IO Manager`
-threads. The full-SMC dump also contains `PreloadDirectory on 186 files` and
-the UI asset list while its main and worker threads are waiting. That makes an
-asset-I/O completion deadlock the leading inference, not a proven cause. The
-next useful gate is tracing that exact completion boundary—not a larger matrix
-of speculative FEX flags.
+threads. A later 12-second hung-process trace counted 30,753 syscalls but no
+game/storage opens, no `pread64`, and no open game/storage file descriptors.
+The HGFS, decompress, and async-I/O workers were in timed pipe/futex waits.
+Active SD latency is therefore ruled out at the frozen boundary; the leading
+boundary is a user-space completion, wakeup, or state deadlock.
+
+GameNative's public compatibility API proves that NMS can run on Adreno 730:
+one Android 16 / Proton 10 ARM64EC session lasted 863 seconds at 34.8643 FPS.
+Its successful reports use Proton 9/10 ARM64EC, while this stack currently uses
+Proton 11.0-2 ARM64. That version boundary is the next controlled discriminator.
+See the [compact evidence](evidence/nms-wait-boundary-20260825.json).
 
 The next discriminator is a new game versus the existing save:
 

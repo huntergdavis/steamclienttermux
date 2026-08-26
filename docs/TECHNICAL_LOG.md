@@ -1,5 +1,20 @@
 # Technical log
 
+## 2026-08-25: NMS freeze is not active SD I/O; server sync also hangs
+
+A 12-second trace at the byte-identical THE SWARM freeze recorded 30,753
+syscalls: 24,653 reads, 5,978 futex operations, and 61 `/proc/meminfo` opens.
+It recorded no game/storage opens, no `pread64`, and no open game/storage file
+descriptors. HGFS, decompress, and async-I/O workers were waiting on pipes or
+futexes, so active SD latency is ruled out at this boundary.
+
+Disabling Proton 11 fsync and falling back to ordinary wineserver sync still
+produced `170671_0xCBBA4-HANG`; the diagnostic selector was removed rather than
+becoming user-facing complexity. GameNative's public API contains successful
+Adreno 730 NMS sessions using Proton 9/10 ARM64EC, making that runtime version
+the next bounded discriminator. Evidence:
+`docs/evidence/nms-wait-boundary-20260825.json`.
+
 Reconstructed from timestamped logs, backups, exact source diffs, screenshots,
 and the final live filesystem. Times use America/Los_Angeles.
 

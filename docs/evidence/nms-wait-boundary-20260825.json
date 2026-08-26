@@ -1,0 +1,85 @@
+{
+  "schema": 1,
+  "date": "2026-08-25",
+  "source_commit": "0f3cae13c6b9d644eb4ca0a17b6723a38ca00f1b",
+  "game": {
+    "name": "No Man's Sky",
+    "appid": 275850,
+    "build": 170671
+  },
+  "frozen_frame": {
+    "stage": "THE SWARM announcement",
+    "sha256": "4cf73d2c32d5c35e0c8757dc009959548d6cd6fb0895b44ef495733e0c5afcec",
+    "matched_prior_run": true
+  },
+  "hung_trace": {
+    "duration_seconds": 12,
+    "total_syscalls": 30753,
+    "read": 24653,
+    "futex": 5978,
+    "openat": 61,
+    "close": 61,
+    "game_or_storage_file_opens": 0,
+    "pread64": 0,
+    "open_file_descriptors_to_game_or_storage": 0,
+    "openat_detail": "all 61 calls opened /proc/meminfo",
+    "worker_state": {
+      "HGFS Process Thread": "timed pipe/futex waits",
+      "HGFS IO Thread": "timed pipe/futex waits",
+      "HGFS Decompress Thread 0": "blocked pipe read",
+      "HGFS Decompress Thread 1": "blocked pipe read",
+      "Async IO Manager Thread": "periodic timed pipe wait"
+    },
+    "conclusion": "No kernel game-file I/O was outstanding during the frozen interval; active SD latency is ruled out at this boundary. The leading boundary is a user-space completion, wakeup, or state deadlock."
+  },
+  "server_sync_discriminator": {
+    "configuration": {
+      "fex_profile": "safe",
+      "PROTON_NO_FSYNC": "1",
+      "wine_sync": "ordinary wineserver"
+    },
+    "result": "watchdog HANG",
+    "crash_id_redacted": "170671_0xCBBA4-HANG",
+    "dump_size_bytes": 162666,
+    "dump_sha256": "2dedb57d02b5f8306b82ddf54f5d9289f5721dff79068aff9aec659851697fac",
+    "screenshot_sha256": "2925963240bb1bd532b35d537e67bbebe6741ef0ca19a91277e348e3f36bf059",
+    "promoted": false
+  },
+  "external_comparison": {
+    "source": "https://api.gamenative.app/api/compatibility?gameId=218&sort=rating&dir=desc&page=0&limit=200&gpu=Adreno",
+    "source_project": "https://github.com/utkarshdalal/GameNative",
+    "matching_gpu_runs": [
+      {
+        "run_id": 280403,
+        "gpu": "Adreno (TM) 730",
+        "android": "16",
+        "wine": "proton-10.0-arm64ec-2",
+        "fex": "2512",
+        "resolution": "1280x720",
+        "session_seconds": 863,
+        "average_fps": 34.8643
+      },
+      {
+        "run_id": 74858,
+        "gpu": "Adreno (TM) 730",
+        "android": "13",
+        "wine": "proton-9.0-arm64ec",
+        "fex": "2512",
+        "resolution": "1280x720",
+        "session_seconds": 168,
+        "average_fps": 59.4821
+      }
+    ],
+    "next_discriminator": "Proton 9/10 ARM64EC versus the current Proton 11.0-2 ARM64 build"
+  },
+  "privacy": {
+    "raw_trace_committed": false,
+    "raw_dump_committed": false,
+    "account_suffix_committed": false
+  },
+  "recall": {
+    "query": "FEX NMS user-space wait completion deadlock HGFS Async IO frozen no filesystem syscalls perf map debugger stacks",
+    "result": "no indexed implementation",
+    "reuse": "GameNative public compatibility records, GameNative FEX environment registry, and official FEX configuration names"
+  }
+}
