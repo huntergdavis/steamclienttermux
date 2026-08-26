@@ -212,9 +212,27 @@ boundary is a user-space completion, wakeup, or state deadlock.
 
 GameNative's public compatibility API proves that NMS can run on Adreno 730:
 one Android 16 / Proton 10 ARM64EC session lasted 863 seconds at 34.8643 FPS.
-Its successful reports use Proton 9/10 ARM64EC, while this stack currently uses
-Proton 11.0-2 ARM64. That version boundary is the next controlled discriminator.
-See the [compact evidence](evidence/nms-wait-boundary-20260825.json).
+Its successful reports use Proton 9/10 ARM64EC, while the crashing route uses
+Proton 11.0-2 ARM64. See the
+[wait-boundary evidence](evidence/nms-wait-boundary-20260825.json).
+
+## Proton 10 ARM64EC discriminator
+
+| Gate | Result |
+| --- | --- |
+| WCP, Turnip, and Windows command | Pass |
+| Proton prefix overlay and `wineboot` | Pass |
+| Real Windows pixels in Termux:X11 | Pass; `$PREFIX/tmp` selects the X11 socket |
+| Steam-authenticated NMS | Not yet; the WCP omits Steam integration |
+| Controller, gameplay, FPS | Not yet |
+
+The isolated candidate rendered Winemine for a bounded 30-second smoke. This
+proves the Proton 10 graphics path, not NMS. GameNative separately starts a
+proprietary, source-withheld Steam bootstrap helper plus a Proton-matched
+`lsteamclient`; this project will not silently bundle it. The next gate changes
+only Steam authentication, then compares a new game with the existing save.
+See the [compact evidence](evidence/nms-proton10-termux-x11-20260825.json) and
+[research note](research/GAMENATIVE_PROTON10_TERMUX_X11.md).
 
 The next discriminator is a new game versus the existing save:
 

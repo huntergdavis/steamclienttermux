@@ -26,7 +26,7 @@ contain Valve binaries, games, credentials, or account state.
 | Controllers | Live 8BitDo hot-plug and app-local XInput transport pass; in-game button confirmation remains |
 | Native path | Steam and CEF outside PRoot; allow-listed games use the direct dispatcher |
 | Launch polish | Tomb Raider's pre-class Wine surface stays mapped off-screen until first paint |
-| No Man's Sky | Reaches the real renderer/menu; build 170671 still ends in its own watchdog HANG before gameplay |
+| No Man's Sky | Proton 11 reaches the menu then hangs; isolated Proton 10 now renders real Termux:X11 pixels, with Steam-authenticated gameplay still open |
 
 ## Best measurements
 

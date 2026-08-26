@@ -1,5 +1,26 @@
 # Technical log
 
+## 2026-08-25: Proton 10 reaches real Termux:X11 pixels
+
+An isolated GameNative Proton 10 ARM64EC candidate passed private Turnip,
+Windows command, prefix-overlay, and graphical smoke gates without changing the
+installed Steam or Proton 11 trees. The black-window cause was exact:
+GameNative's imagefs `TMPDIR` cannot find Termux:X11's Unix socket; using
+`$PREFIX/tmp` rendered a real 2800x1752 Winemine frame.
+
+| Remaining gate | Boundary |
+| --- | --- |
+| NMS | Steam-authenticated launch not yet run |
+| Controller | GameNative evshim still targets its application-private imagefs |
+| FPS | No gameplay, so no performance claim |
+
+GameNative's source shows that real-Steam mode separately downloads a matched
+`lsteamclient` pair and Bionic `libsteamclient.so`, then starts the proprietary,
+source-withheld `libsteambootstrap.so`. It is a research boundary, not an MIT
+installer dependency. Required recall returned no indexed implementation;
+the candidate reused GameNative's exact prefix overlay and launcher environment
+plus this project's fail-closed artifact validation.
+
 ## 2026-08-25: NMS freeze is not active SD I/O; server sync also hangs
 
 A 12-second trace at the byte-identical THE SWARM freeze recorded 30,753

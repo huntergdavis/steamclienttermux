@@ -1,0 +1,105 @@
+{
+  "schema": 1,
+  "date": "2026-08-25",
+  "source_commit": "6bddae3d86090bfc12c8048f1164127557d7521a",
+  "game": {
+    "name": "No Man's Sky",
+    "appid": 275850,
+    "build": 170671
+  },
+  "candidate": {
+    "scope": "isolated tablet research candidate",
+    "path": "$HOME/steam-arm64/candidates/nms-proton10-bionic-c1638b1f",
+    "proton": "proton-10.0-arm64ec-2",
+    "wcp_size_bytes": 262671004,
+    "wcp_sha256": "c1638b1f830304222660e338bc032099145ad210d4e36a07d91f39c750a062f7",
+    "imagefs_sha256": "368db62bfc58b72c97e5169bda9aa64d4246f07964c447e27c79a065e7e9c48b",
+    "fex": "2512",
+    "installed_stack_modified": false
+  },
+  "gates": [
+    {
+      "name": "private Turnip Vulkan",
+      "result": "pass",
+      "detail": "Adreno 730; Vulkan device API 1.4.354; Mesa 26.2"
+    },
+    {
+      "name": "Proton 10 Windows command",
+      "result": "pass",
+      "detail": "BVB_PROTON10_WINDOWS_OK returned rc=0"
+    },
+    {
+      "name": "Proton prefix overlay",
+      "result": "pass",
+      "detail": "GameNative's missing-only aarch64/i386 DLL overlay plus explicit wineboot completed"
+    },
+    {
+      "name": "Termux:X11 Windows graphics",
+      "result": "pass",
+      "detail": "Winemine rendered for the full 30-second bounded smoke when TMPDIR selected the Termux X11 socket directory"
+    },
+    {
+      "name": "Steam-authenticated NMS",
+      "result": "not_run",
+      "detail": "The WCP omits Steam integration; GameNative separately launches its proprietary libsteambootstrap host and a version-matched lsteamclient pair"
+    },
+    {
+      "name": "controller in Proton 10",
+      "result": "not_run",
+      "detail": "GameNative evshim paths still target its application-private imagefs and are not valid in the isolated Termux candidate"
+    },
+    {
+      "name": "NMS gameplay and FPS",
+      "result": "not_run",
+      "detail": "A synthetic Windows frame is not game or performance evidence"
+    }
+  ],
+  "x11_discriminator": {
+    "display": ":0",
+    "failed_tmpdir": "$candidate/imagefs/usr/tmp",
+    "passing_tmpdir": "$PREFIX/tmp",
+    "reason": "Termux:X11 publishes its Unix socket below the Termux prefix temporary directory",
+    "screenshot": {
+      "committed": false,
+      "width": 2800,
+      "height": 1752,
+      "size_bytes": 24487,
+      "sha256": "0f9d19c78063e641b07968e147caa01aafa374a1a36f68c3cfc18a54ddc756bc",
+      "visual_result": "real Winemine menu and green mine grid"
+    }
+  },
+  "steam_boundary": {
+    "required_assets": [
+      "steam.exe",
+      "steamclient-dlls-20260619.tzst",
+      "cacert.pem",
+      "lsteamclient-arm64ec-proton10.tzst",
+      "steam-androidarm64-20260709.tzst"
+    ],
+    "endpoints": [
+      "Steam3Master=127.0.0.1:57343",
+      "SteamClientService=127.0.0.1:57344"
+    ],
+    "helper": "libsteambootstrap.so",
+    "helper_license": "proprietary; source withheld",
+    "installer_decision": "do not bundle or silently extract the helper into this MIT project"
+  },
+  "next_gate": "Prove a Steam-authenticated Proton 10 ARM64EC launch without mutating the existing Proton 11 prefix; then test a new game and the existing save separately.",
+  "external_comparison": {
+    "source": "https://api.gamenative.app/api/compatibility?gameId=218&sort=rating&dir=desc&page=0&limit=200&gpu=Adreno",
+    "a730_720p_average_fps": [34.8643, 59.4821],
+    "initial_profile_after_gameplay": "1280x720 Standard, FSR 2 Quality then Balanced, 60 FPS cap"
+  },
+  "claims": {
+    "proton10_graphical_smoke": true,
+    "nms_gameplay": false,
+    "controller": false,
+    "fps": false,
+    "easy_installer_complete": false
+  },
+  "recall": {
+    "query": "NMS Proton10 Bionic graphical smoke GameNative Winemine X11 screenshot",
+    "result": "no indexed implementation",
+    "reuse": "GameNative's exact prefix overlay and launcher environment plus this project's fail-closed artifact discipline"
+  }
+}
