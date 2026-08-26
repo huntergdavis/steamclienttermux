@@ -402,27 +402,35 @@ def main() -> None:
 
     with tempfile.TemporaryDirectory(prefix="nms-xinput.") as directory:
         base = Path(directory) / "steam-arm64"
-        library = (
+        library9 = (
             base
             / "removable-library/steamapps/common/No Man's Sky/Binaries"
             / "xinput9_1_0.dll"
         )
-        library.parent.mkdir(parents=True)
-        library.write_bytes(b"x" * 16896)
+        library14 = library9.with_name("xinput1_4.dll")
+        library9.parent.mkdir(parents=True)
+        library9.write_bytes(b"x" * 16896)
+        library14.write_bytes(b"y" * 17408)
         # Android removable storage presents fixed group-write mode bits.
-        library.chmod(0o770)
-        expected_hash = (
-            "11e928f5e337680efa6baa6e2a839795a79bd752387b1e0956ea805f1a25fa43"
-        )
+        library9.chmod(0o770)
+        library14.chmod(0o770)
+        expected_hash9 = "11e928f5e337680efa6baa6e2a839795a79bd752387b1e0956ea805f1a25fa43"
+        expected_hash14 = "3fc6d898a3f1f0e66ea3b7428409eff3e2abb10e4401aa7209e9d214524e3534"
         with (
             mock.patch.dict(
                 os.environ, {"STEAM_ARM64_DIRECT_NMS_XINPUT": "1"}, clear=False
             ),
-            mock.patch.object(MODULE, "sha256_file", return_value=expected_hash),
+            mock.patch.object(
+                MODULE,
+                "sha256_file",
+                side_effect=lambda path: (
+                    expected_hash14 if Path(path).name == "xinput1_4.dll" else expected_hash9
+                ),
+            ),
         ):
             assert MODULE.nms_xinput_environment(base, "no-mans-sky") == {
                 "STEAMCLIENTTERMUX_NMS_XINPUT": "1",
-                "WINEDLLOVERRIDES": "xinput9_1_0=n,b",
+                "WINEDLLOVERRIDES": "xinput1_4=n,b;xinput9_1_0=n,b",
             }
             try:
                 MODULE.nms_xinput_environment(base, "tombraider")
@@ -430,7 +438,7 @@ def main() -> None:
                 pass
             else:
                 raise AssertionError("NMS XInput was accepted for another game")
-            library.write_bytes(b"short")
+            library14.write_bytes(b"short")
             try:
                 MODULE.nms_xinput_environment(base, "no-mans-sky")
             except MODULE.DispatchError:
@@ -592,6 +600,9 @@ def main() -> None:
         nms_dll.parent.mkdir(parents=True)
         nms_dll.write_bytes(b"reviewed fixture")
         nms_dll.chmod(0o600)
+        nms_ntoskrnl = nms_tool / "files/lib/wine/aarch64-windows/ntoskrnl.exe"
+        nms_ntoskrnl.write_bytes(b"reviewed ntoskrnl fixture")
+        nms_ntoskrnl.chmod(0o600)
         nms_loaders = {
             nms_tool / relative: expected_digest
             for relative, expected_digest in (
@@ -607,6 +618,38 @@ def main() -> None:
             nms_base
             / "removable-library/steamapps/common/No Man's Sky/Binaries/NMS.exe"
         )
+        nms_openvr = nms_game.with_name("openvr_api.dll")
+        nms_openvr.parent.mkdir(parents=True, exist_ok=True)
+        nms_game.write_bytes(b"reviewed No Man's Sky executable fixture")
+        nms_openvr.write_bytes(b"reviewed OpenVR compatibility fixture")
+        nms_openvr_backup = nms_game.with_name(MODULE.NMS_OPENVR_BACKUP_NAME)
+        nms_openvr_backup.write_bytes(b"reviewed original OpenVR fixture")
+        nms_cmd = nms_tool / "files/lib/wine/aarch64-windows/cmd.exe"
+        nms_stock_cmd = (
+            nms_base
+            / "client/steamapps/common/Proton 11.0 (ARM64)"
+            / "files/lib/wine/aarch64-windows/cmd.exe"
+        )
+        nms_stock_cmd.parent.mkdir(parents=True)
+        nms_stock_cmd.write_bytes(b"reviewed command interpreter fixture")
+        nms_stock_cmd.chmod(0o700)
+        nms_cmd.symlink_to(nms_stock_cmd)
+        nms_dosdevices = (
+            nms_base / "removable-library-compatdata/275850/pfx/dosdevices"
+        )
+        nms_dosdevices.mkdir(parents=True)
+        (nms_dosdevices / "s:").symlink_to(nms_base / "removable-library")
+        nms_fex_overlay = (
+            nms_base
+            / "candidates"
+            / MODULE.NMS_FEX2512_DIRECTORY
+            / "lib/wine"
+        )
+        nms_fex_module = nms_fex_overlay / "aarch64-windows/libarm64ecfex.dll"
+        nms_fex_module.parent.mkdir(parents=True)
+        nms_fex_overlay.chmod(0o700)
+        nms_fex_module.write_bytes(b"reviewed FEX-2512 fixture")
+        nms_fex_module.chmod(0o600)
         nms_payload = [
             *plan["payload_argv"][:16],
             str(nms_proton),
@@ -614,17 +657,86 @@ def main() -> None:
             str(nms_game),
         ]
         original_sha256_file = MODULE.sha256_file
+        original_openvr_size = MODULE.NMS_OPENVR_DLL_SIZE
+        original_openvr_original_size = MODULE.NMS_OPENVR_ORIGINAL_SIZE
+        original_cmd_size = MODULE.NMS_PROTON_CMD_SIZE
+        original_fex_size = MODULE.NMS_FEX2512_SIZE
+        MODULE.NMS_OPENVR_DLL_SIZE = nms_openvr.stat().st_size
+        MODULE.NMS_OPENVR_ORIGINAL_SIZE = nms_openvr_backup.stat().st_size
+        MODULE.NMS_PROTON_CMD_SIZE = nms_stock_cmd.stat().st_size
+        MODULE.NMS_FEX2512_SIZE = nms_fex_module.stat().st_size
         MODULE.sha256_file = lambda path: (
             MODULE.NMS_PROTON_DLL_SHA256
             if path == nms_dll
+            else MODULE.NMS_PROTON_NTOSKRNL_SHA256
+            if path == nms_ntoskrnl
             else nms_loaders[path]
             if path in nms_loaders
+            else MODULE.NMS_OPENVR_DLL_SHA256
+            if path == nms_openvr
+            else MODULE.NMS_OPENVR_ORIGINAL_SHA256
+            if path == nms_openvr_backup
+            else MODULE.NMS_PROTON_CMD_SHA256
+            if path == nms_cmd
+            else MODULE.NMS_FEX2512_SHA256
+            if path == nms_fex_module
             else original_sha256_file(path)
         )
         try:
             assert MODULE.validated_no_mans_sky_command(
                 nms_base, nms_payload
             ) == (nms_proton, nms_game)
+            assert MODULE.no_mans_sky_windows_command(
+                nms_base, nms_game
+            ) == 'S: && cd "steamapps\\common\\No Man\'s Sky\\Binaries" && NMS.exe'
+            nms_mirror = nms_base / "game-mirrors/no-mans-sky-startup-v1/library"
+            (nms_mirror / "steamapps/common/No Man's Sky").mkdir(parents=True)
+            (nms_mirror / "steamapps/common/No Man's Sky/Binaries").symlink_to(
+                nms_game.parent
+            )
+            (nms_dosdevices / "n:").symlink_to(nms_mirror)
+            with mock.patch.dict(
+                os.environ, {"STEAM_ARM64_DIRECT_NMS_DRIVE": "N:"}
+            ):
+                assert MODULE.no_mans_sky_windows_command(
+                    nms_base, nms_game
+                ) == 'N: && cd "steamapps\\common\\No Man\'s Sky\\Binaries" && NMS.exe'
+            with mock.patch.dict(
+                os.environ, {"STEAM_ARM64_DIRECT_NMS_DRIVE": "Z:"}
+            ):
+                try:
+                    MODULE.no_mans_sky_windows_command(nms_base, nms_game)
+                except MODULE.DispatchError:
+                    pass
+                else:
+                    raise AssertionError("NMS accepted an unvalidated Windows drive")
+            with mock.patch.dict(
+                os.environ,
+                {"STEAM_ARM64_DIRECT_NMS_PREFIX": "../../arbitrary"},
+            ):
+                try:
+                    MODULE.selected_no_mans_sky_prefix(nms_base)
+                except MODULE.DispatchError:
+                    pass
+                else:
+                    raise AssertionError("NMS accepted an unsafe prefix selector")
+            with mock.patch.dict(
+                os.environ,
+                {"STEAM_ARM64_DIRECT_NMS_FEX_CORE": "proton10-2512"},
+            ):
+                assert MODULE.selected_no_mans_sky_fex_overlay(nms_base) == (
+                    nms_fex_overlay
+                )
+            with mock.patch.dict(
+                os.environ,
+                {"STEAM_ARM64_DIRECT_NMS_FEX_CORE": "unknown"},
+            ):
+                try:
+                    MODULE.selected_no_mans_sky_fex_overlay(nms_base)
+                except MODULE.DispatchError:
+                    pass
+                else:
+                    raise AssertionError("NMS accepted an unknown FEX core")
             try:
                 MODULE.validated_no_mans_sky_command(
                     nms_base, [*nms_payload, "--unexpected"]
@@ -649,6 +761,10 @@ def main() -> None:
                 )
         finally:
             MODULE.sha256_file = original_sha256_file
+            MODULE.NMS_OPENVR_DLL_SIZE = original_openvr_size
+            MODULE.NMS_OPENVR_ORIGINAL_SIZE = original_openvr_original_size
+            MODULE.NMS_PROTON_CMD_SIZE = original_cmd_size
+            MODULE.NMS_FEX2512_SIZE = original_fex_size
     benchmark_payload = [*plan["payload_argv"], "-benchmark"]
     assert MODULE.validated_tombraider_command(
         tablet_base, benchmark_payload, benchmark=True
@@ -1145,6 +1261,19 @@ def main() -> None:
         assert "FEX_SMC_CHECKS" not in stale_fex
         assert stale_fex["FEX_SMCCHECKS"] == "mtrack"
         assert stale_fex["UNRELATED"] == "preserved"
+        MODULE.apply_direct_fex_profile(stale_fex, "extreme")
+        assert stale_fex == {
+            "FEX_HALFBARRIERTSOENABLED": "0",
+            "FEX_MEMCPYSETTSOENABLED": "0",
+            "FEX_MULTIBLOCK": "1",
+            "FEX_SMALLTSCSCALE": "1",
+            "FEX_TSOENABLED": "0",
+            "FEX_VECTORTSOENABLED": "0",
+            "FEX_VOLATILEMETADATA": "1",
+            "FEX_X87REDUCEDPRECISION": "1",
+            "STEAM_ARM64_FEX_PROFILE": "extreme",
+            "UNRELATED": "preserved",
+        }
         MODULE.apply_direct_fex_profile(stale_fex, "stability")
         assert stale_fex == {
             "FEX_HALFBARRIERTSOENABLED": "1",
@@ -1269,7 +1398,8 @@ def main() -> None:
         )
         proc_stat.chmod(0o600)
         wine_debug = (
-            "+timestamp,+pid,+tid,+process,+module,+loaddll,+seh,+vulkan,"
+            "+timestamp,+pid,+tid,+server,+ntoskrnl,+process,+module,"
+            "+loaddll,+seh,+vulkan,"
             "+winsock,+wininet,+winhttp,+iphlpapi,+nsi,"
             "+secur32,+schannel"
         )
@@ -1372,9 +1502,11 @@ def main() -> None:
     assert "environment.update(bvb_vulkan_environment())" in invocation_source
     assert "environment.update(nms_mangohud_environment(base, command_mode))" in invocation_source
     assert "environment.update(nms_xinput_environment(base, command_mode))" in invocation_source
+    assert "selected_no_mans_sky_fex_overlay(base)" in invocation_source
+    assert 'str(nms_wine10["wine"])' in invocation_source
     assert "libtgcompat-robust.so" in invocation_source
     assert "libtgcompat-mprotect.so" in invocation_source
-    assert '("lean", "lean-tmp-only", "lean-debug-wait")' in invocation_source
+    assert '"lean-nms"' in invocation_source
     assert '"lean-tmp-only"' in invocation_source
     assert '"lean-debug-wait"' in invocation_source
     assert "steam-arm64-debug-wait.so" in invocation_source

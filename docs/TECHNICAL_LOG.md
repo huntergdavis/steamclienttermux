@@ -1,5 +1,54 @@
 # Technical log
 
+## 2026-08-26: FEX-2512 menu pass and packaged NMS XInput payloads
+
+The exact GameNative Stability profile plus FEX 2512 and Steam Input Force On
+reached No Man's Sky's real Play/Join Friends main menu, remained alive for
+more than 20 minutes, and wrote no new dump. Two controlled Force Off runs
+failed before the menu with `170671_0xAD184-HANG` and
+`170671_0x146FA20-HANG`. GameNative can turn Steam Input off because it owns a
+separate Steam-emulation route; this native Valve-client route currently
+cannot. The exact GameNative Extreme profile also reproduced the pre-menu
+watchdog and remains an opt-in discriminator rather than the NMS default.
+
+The release now contains deterministic `xinput1_4.dll` and
+`xinput9_1_0.dll` builds. Project installation places them in the private
+compatibility payload, and NMS setup transactionally creates only missing
+byte-exact game-local copies. Repeated setup is a no-op; an unknown existing
+DLL fails closed. Android and Wine UDP endpoints were live, but injected input
+did not change the NMS menu, so physical button/axis response remains open.
+The menu is not gameplay and no FPS is claimed.
+
+Required `deja` queries found no indexed implementation. Reuse is from
+GameNative commit `1ad70ae5`, this project's existing XInput bridge, and the
+retained screenshot/crash-log discipline.
+
+## 2026-08-26: one-command launchers and NMS loader discriminators
+
+`./install.sh` now installs the project launchers after locked runtime
+activation. The deterministic archive includes the NMS OpenVR compatibility
+asset required by that launcher transaction. The complete host project suite
+passes with `/var/tmp` selected explicitly; the product still needs a clean-
+device install/update/rollback proof before a one-click claim.
+
+NMS build 170671 remains before gameplay:
+
+| Test | Result |
+| --- | --- |
+| Clean isolated prefix | Same loader HANG; save corruption ruled out |
+| Runtime FEX code cache | 153 s then 156 s HANG; no improvement; reverted |
+| Internal 5.33 GB audio PAK | HANG delayed to 233 s; no gameplay; temporary copy removed |
+| Hardware scheduling explicitly disabled | Real NMS environment verified; AD590-HANG at 182 s; reverted |
+| Long-run ceiling | Process exited itself after AD590-HANG at 183 s |
+
+The hardware-scheduling lead came from Proton issue 9845, but that report is
+an NVIDIA crash after save load; this tablet failure is earlier and did not
+respond. The exact next A/B is GameNative's FEX-2512 ARM64EC module versus the
+Proton 11 module still used as fallback by the otherwise Wine 10 route.
+Required `deja` queries returned no indexed implementation. Reuse came from
+the existing Tomb Raider FEX cache pattern, GameNative's Stability profile,
+the validated Wine 10 route, and the generic AppID dispatcher.
+
 ## 2026-08-25: Proton 10 reaches real Termux:X11 pixels
 
 An isolated GameNative Proton 10 ARM64EC candidate passed private Turnip,

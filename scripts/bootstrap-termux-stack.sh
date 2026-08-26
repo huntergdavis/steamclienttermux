@@ -17,6 +17,7 @@ proot_installer=$repo_root/scripts/install-proot-runtime.py
 proot_builder=$repo_root/scripts/build-proot.sh
 debian_lock=$repo_root/config/debian-runtime-lock.json
 debian_installer=$repo_root/scripts/install-debian-runtime.py
+launcher_installer=$repo_root/scripts/install-project-files.sh
 base=${STEAM_ARM64_BASE:-$HOME/steam-arm64}
 
 fail() {
@@ -40,7 +41,8 @@ fail() {
         -f $proot_installer && ! -L $proot_installer &&
         -f $proot_builder && ! -L $proot_builder &&
         -f $debian_lock && ! -L $debian_lock &&
-        -f $debian_installer && ! -L $debian_installer ]] ||
+        -f $debian_installer && ! -L $debian_installer &&
+        -x $launcher_installer && ! -L $launcher_installer ]] ||
     fail 'release archive is incomplete or contains unsafe links'
 [[ $(getprop ro.product.cpu.abi) == arm64-v8a ]] ||
     fail 'this profile requires an ARM64 Android device'
@@ -60,4 +62,5 @@ python3 "$proot_installer" --lock "$proot_lock" \
     --builder "$proot_builder" --base "$base"
 python3 "$debian_installer" --lock "$debian_lock" \
     --base "$base" --prefix "$PREFIX"
-exec python3 "$setup" --lock "$lock" activate --base "$base"
+python3 "$setup" --lock "$lock" activate --base "$base"
+exec "$launcher_installer"

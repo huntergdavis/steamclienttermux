@@ -4,19 +4,38 @@ No Man's Sky is AppID `275850`. The PC renderer is Vulkan, the game supports a
 correctly paced 30 FPS mode, and the Steam build supports Steam Cloud plus
 Hello Games cross-save.
 
-## First profile
+## Target profiles
 
-| Setting | Value |
+| Target | Output | Upscaling | Detail | Cap |
+| --- | --- | --- | --- | ---: |
+| Best image quality | 1920x1080 fullscreen | FSR 2 Quality | High textures/animation; Standard heavy effects; GTAO Low | 30 |
+| 60 FPS experiment | 1280x720 fullscreen | FSR 2 Quality, then Balanced if needed | Standard; motion blur/HDR/V-sync off | 60 |
+
+Neither profile is a gameplay result yet. The first valid benchmark must be a
+repeatable on-planet route; menus and the Atlas loading sequence are excluded.
+
+## Current proven route
+
+| Boundary | Result |
 | --- | --- |
-| Output | 1920x1080 exclusive fullscreen |
-| Frame target | 30 FPS |
-| Upscaling | FSR 2 Quality |
-| Texture and animation | High |
-| Shadows, effects, reflections, volumetrics | Standard |
-| Terrain, planet, water, and base detail | Standard |
-| Ambient occlusion | GTAO Low |
-| Motion blur, HDR, V-sync | Off |
-| Thread allocation | Engine automatic (`0` / `0`) |
+| Runtime | Wine 10.14 ARM64EC with exact FEX 2512 module |
+| FEX | GameNative Stability profile |
+| Steam Input | Force On; Force Off reproduced pre-menu watchdog HANGs |
+| Rendering | Real NMS main menu, alive for more than 20 minutes, no new dump |
+| Controller plumbing | Android and Wine UDP endpoints live; visible NMS response not yet proven |
+| Gameplay / FPS | Not reached or claimed yet |
+
+The installer now carries the reviewed `xinput1_4.dll` and
+`xinput9_1_0.dll` compatibility payloads. `~/setup-no-mans-sky` installs only
+missing byte-exact copies beside `NMS.exe`, is idempotent, and refuses to
+replace an unknown file. The Android producer still requires the patched
+Termux:X11 build; packaging that app-side change is an open release gate.
+
+This input work reuses GameNative commit `1ad70ae5` for hot-plug lifecycle,
+touch-versus-physical-pointer separation, and its exact FEX profiles. Required
+local recall queries found no prior implementation.
+
+## Original 30 FPS profile
 
 Before the first launch, stop Steam and create the contained Proton tool:
 
@@ -198,6 +217,10 @@ Two further discriminators are now complete:
 | Stability + strict split locks | Same frozen frame |
 | Stability + full SMC validation | Correct `FEX_SMCCHECKS=full`; reached the Hello Games splash, then watchdog HANG |
 | Proton 11 ordinary server sync | Disabling fsync still produced `170671_0xCBBA4-HANG`; not promoted |
+| Isolated clean-save prefix | Same loader HANG; existing save data is not the cause |
+| NMS-only hardware-scheduling disable | Active in the real process; `0xAD590-HANG` at 182 s; rejected |
+| 15-minute-ceiling run | NMS exited itself after `0xAD590-HANG` at 183 s; not merely a slow loader |
+| 5.33 GB audio archive internal | Delayed the watchdog from about 153–156 s to 233 s, but did not reach gameplay; temporary copy removed |
 
 The SMC test corrected an older environment spelling: current FEX uses
 `FEX_SMCCHECKS`, not `FEX_SMC_CHECKS`. The correction is generic and removes
@@ -209,6 +232,11 @@ game/storage opens, no `pread64`, and no open game/storage file descriptors.
 The HGFS, decompress, and async-I/O workers were in timed pipe/futex waits.
 Active SD latency is therefore ruled out at the frozen boundary; the leading
 boundary is a user-space completion, wakeup, or state deadlock.
+
+The current Wine 10 route still falls back to Proton 11's ARM64EC FEX module.
+GameNative's Proton 10 artifact instead contains FEX 2512. An isolated exact-
+hash FEX-2512 A/B is the next runtime discriminator; it is not a packaged
+default unless the game reaches controllable gameplay.
 
 GameNative's public compatibility API proves that NMS can run on Adreno 730:
 one Android 16 / Proton 10 ARM64EC session lasted 863 seconds at 34.8643 FPS.

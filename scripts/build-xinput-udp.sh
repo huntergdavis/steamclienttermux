@@ -17,14 +17,19 @@ command -v "$compiler" >/dev/null 2>&1 || {
 }
 mkdir -p "$output_dir"
 
-for library in xinput1_3 xinput9_1_0; do
+for library in xinput1_3 xinput1_4 xinput9_1_0; do
     output="$output_dir/$library.dll"
+    extra_cflags=()
     if [[ $library == xinput1_3 ]]; then
         image_base=0x180000000
+    elif [[ $library == xinput1_4 ]]; then
+        image_base=0x182000000
+        extra_cflags=(-DBVB_XINPUT_1_4=1)
     else
         image_base=0x181000000
     fi
-    "$compiler" -std=c11 -O2 -s -Wall -Wextra -Werror -shared \
+    "$compiler" -std=c11 -O2 -s -Wall -Wextra -Werror \
+        "${extra_cflags[@]}" -shared \
         -Wl,--no-insert-timestamp -Wl,--kill-at -Wl,--image-base,"$image_base" \
         -o "$output" "$source_dir/xinput_udp.c" "$source_dir/$library.def" \
         -lws2_32

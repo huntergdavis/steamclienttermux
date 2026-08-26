@@ -56,9 +56,19 @@ FEX_2605_OFFLINE_COMPILER_DLL_SHA256 = {
 FEX_OFFLINE_CACHE_NAME = "tombraider-203160-offline-7efb8f8e"
 NMS_PROTON_TOOL_DIRECTORY = "steamclienttermux-nms-proton-11-arm64-45a9ed5f"
 NMS_PROTON_TOOL_NAME = "steamclienttermux_nms_proton_11_arm64_45a9ed5f"
+NMS_PROTON_STOCK_NTOSKRNL_DIRECTORY = (
+    "steamclienttermux-nms-proton-11-arm64-b00a3dcd"
+)
 NMS_PROTON_DLL_SHA256 = (
     "b00a3dcdcfceb60f1b0fc68347558d7933c15ac07bcac5cff703bbdff014501f"
 )
+NMS_PROTON_NTOSKRNL_SHA256 = (
+    "d9f25b23654d6928bdafe68b28fbed264d15da52b51778dbaa35dc01315e373b"
+)
+NMS_PROTON_CMD_SHA256 = (
+    "e490d46bb8d2d6e4d07ad77b091c540e1ecde1cfaead99e9ab5bd432e224d406"
+)
+NMS_PROTON_CMD_SIZE = 1638400
 NMS_PROTON_LOADER_CHAIN_SHA256 = {
     "files/bin-arm64/wine": (
         "75e9fd2766067c5fe828067bfe54960b04c1a43ac93ab7b234873b1b10a36bbb"
@@ -79,13 +89,93 @@ NMS_PROTON_LOADER_CHAIN_SHA256 = {
 NMS_PROTON_MARKER = {
     "loader_chain_sha256": NMS_PROTON_LOADER_CHAIN_SHA256,
     "patch_offset": 0x800E8,
+    "ntoskrnl_protocol_patch_offsets": [0x2ABA0, 0x2ACBC, 0x2A318],
+    "patched_ntoskrnl_sha256": NMS_PROTON_NTOSKRNL_SHA256,
     "patched_lsteamclient_sha256": NMS_PROTON_DLL_SHA256,
-    "schema_version": 3,
+    "schema_version": 6,
+    "source_ntoskrnl_sha256": (
+        "68d0dad49c977b0e14d4d832668bc2208fb9e2fb7ce6856cfd960286b1a33857"
+    ),
     "source_lsteamclient_sha256": (
         "9d5289451c94e1eb8df5043f7c0341c1d817a74cc43ad1518099281a9c27f7a5"
     ),
     "source_version": "1787334524 proton-11.0-2-arm64",
     "tool": NMS_PROTON_TOOL_NAME,
+}
+NMS_PROTON_STOCK_NTOSKRNL_MARKER = {
+    "patch_offset": 524520,
+    "patched_lsteamclient_sha256": NMS_PROTON_DLL_SHA256,
+    "schema_version": 1,
+    "source_lsteamclient_sha256": (
+        "9d5289451c94e1eb8df5043f7c0341c1d817a74cc43ad1518099281a9c27f7a5"
+    ),
+    "source_version": "1787334524 proton-11.0-2-arm64",
+    "tool": "steamclienttermux_nms_proton_11_arm64_b00a3dcd",
+}
+NMS_OPENVR_CANDIDATE_DIRECTORY = "nms-openvr-flat-stub-4fce1e22"
+NMS_OPENVR_DLL_SHA256 = (
+    "4fce1e22a0fe044b86862d45fc007269e1681214229d7d1ff1eedac0ceabfed5"
+)
+NMS_OPENVR_DLL_SIZE = 2048
+NMS_OPENVR_WINE_BUILTIN_SHA256 = (
+    "bebc9793a03038c425ff275c280d217a307044d0b2aeed0691eb58d3f28c8243"
+)
+NMS_OPENVR_WINE_BUILTIN_SIZE = 77824
+NMS_OPENVR_COMPATIBLE_DLLS = {
+    (NMS_OPENVR_DLL_SIZE, NMS_OPENVR_DLL_SHA256),
+    (NMS_OPENVR_WINE_BUILTIN_SIZE, NMS_OPENVR_WINE_BUILTIN_SHA256),
+}
+NMS_OPENVR_BACKUP_NAME = "openvr_api.dll.steamclienttermux-original-bab8ac6e"
+NMS_OPENVR_ORIGINAL_SHA256 = (
+    "bab8ac6ef64e68a9ca53315b0014d131088584b2efdfa6db511d67ec03cfcb4a"
+)
+NMS_OPENVR_ORIGINAL_SIZE = 837272
+NMS_WINE10_CANDIDATE_DIRECTORY = "nms-proton10-open-steam-8cddac2"
+NMS_WINE10_RUNTIME_DIRECTORY = "nms-wine10.14-glibc-arm64ec-2a9ad41"
+NMS_FEX2512_DIRECTORY = "nms-fex2512-f5e28fe4"
+NMS_FEX2512_SIZE = 9699328
+NMS_FEX2512_SHA256 = (
+    "f5e28fe418890cb04127632f542431e53e4f93a32911e072142144025051ed76"
+)
+NMS_WINE10_CANDIDATE_FILES = {
+    "runtime/bin/wine": (
+        131337,
+        "cc18dc2606e2a52301d226a890be0b67e00174671558c9480f23ae83bf15199d",
+    ),
+    "runtime/bin/wineserver": (
+        4918977,
+        "3105994fb25ce9aad025fc9f66f7ca3ecc94e42b9eb1b8a7ed573695a66df6af",
+    ),
+    "overlay/lib/wine/aarch64-windows/ntdll.dll": (
+        6234112,
+        "0fbc1e7c85979b984be9a1e8a022c8ce65a77cab2ddae4aa47b5d60ca8dfc1ef",
+    ),
+    "overlay/lib/wine/aarch64-windows/win32u.dll": (
+        749568,
+        "8ca8941e4e71b4f5b2d44a86388df47ac80296b1cb657981d0badfcd55b3a72a",
+    ),
+    "overlay/lib/wine/aarch64-windows/cmd.exe": (
+        1331200,
+        "d473dbdfbf979db36518995c7561dcc495ffe0fd5db58aca5579a0718b2b771f",
+    ),
+    "overlay/lib/wine/aarch64-unix/ntdll.so": (
+        4442528,
+        "263e57625cb64722022ba1ab7de136bdbae3bc3e3685a8589c83ca7a45268162",
+    ),
+    "overlay/lib/wine/aarch64-unix/win32u.so": (
+        10117856,
+        "d197a883eb1738d7d6025bd052b95e73eb7bfc887f6f9bb1e83df9051114003d",
+    ),
+    "overlay/lib/wine/aarch64-unix/lsteamclient.so": (
+        14131256,
+        "83a1c7e0ea1e368367dee195eb9840ab4cb623575cd77300daee3b47bec00172",
+    ),
+}
+NMS_WINE10_RUNTIME_FILES = {
+    "wine/lib/wine/aarch64-unix/ntdll.so": (
+        596696,
+        "60dc815491d302b32ec6204c7a1fca91a6b344ae5bddc9624f5ba0f5b03605bf",
+    ),
 }
 DXVK_X32_VARIANTS = {
     "dxvk-1.10.3-x32": (
@@ -1392,6 +1482,7 @@ def validated_no_mans_sky_command(
     proton = tool / "proton"
     marker = tool / ".steamclienttermux-nms-proton.json"
     dll = tool / "files/lib/wine/aarch64-windows/lsteamclient.dll"
+    ntoskrnl = tool / "files/lib/wine/aarch64-windows/ntoskrnl.exe"
     loaders = {
         tool / relative: expected_digest
         for relative, expected_digest in NMS_PROTON_LOADER_CHAIN_SHA256.items()
@@ -1399,6 +1490,7 @@ def validated_no_mans_sky_command(
     for path, description in (
         (marker, "contained No Man's Sky Proton marker"),
         (dll, "contained No Man's Sky lsteamclient DLL"),
+        (ntoskrnl, "contained No Man's Sky Wine ntoskrnl"),
         *(
             (loader, f"contained No Man's Sky Wine loader {loader.relative_to(tool)}")
             for loader in loaders
@@ -1423,6 +1515,8 @@ def validated_no_mans_sky_command(
         fail("contained No Man's Sky Proton marker is unexpected")
     if sha256_file(dll) != NMS_PROTON_DLL_SHA256:
         fail("contained No Man's Sky lsteamclient DLL hash is unexpected")
+    if sha256_file(ntoskrnl) != NMS_PROTON_NTOSKRNL_SHA256:
+        fail("contained No Man's Sky Wine ntoskrnl hash is unexpected")
     for loader, expected_digest in loaders.items():
         if sha256_file(loader) != expected_digest:
             fail(
@@ -1433,10 +1527,99 @@ def validated_no_mans_sky_command(
         base
         / "removable-library/steamapps/common/No Man's Sky/Binaries/NMS.exe"
     )
+    openvr = game.with_name("openvr_api.dll")
+    openvr_backup = game.with_name(NMS_OPENVR_BACKUP_NAME)
+    for path, description in (
+        (openvr, "active No Man's Sky OpenVR compatibility DLL"),
+        (openvr_backup, "original No Man's Sky OpenVR backup"),
+    ):
+        try:
+            metadata = path.lstat()
+        except OSError as error:
+            fail(f"{description} is unavailable: {error}")
+        if not stat.S_ISREG(metadata.st_mode) or path.is_symlink():
+            fail(f"{description} failed validation: {path}")
+        identity = (metadata.st_size, sha256_file(path))
+        expected = (
+            {
+                (NMS_OPENVR_DLL_SIZE, NMS_OPENVR_DLL_SHA256),
+                (
+                    NMS_OPENVR_WINE_BUILTIN_SIZE,
+                    NMS_OPENVR_WINE_BUILTIN_SHA256,
+                ),
+            }
+            if path == openvr
+            else {(NMS_OPENVR_ORIGINAL_SIZE, NMS_OPENVR_ORIGINAL_SHA256)}
+        )
+        if identity not in expected:
+            fail(f"{description} failed validation: {path}")
     expected = [str(proton), "waitforexitandrun", str(game)]
     if command != expected:
         fail("direct Proton dispatch received an unexpected No Man's Sky command")
     return proton, game
+
+
+def selected_no_mans_sky_proton(base: Path, current: Path) -> Path:
+    """Select only a hash-reviewed NMS Proton runtime variant."""
+    variant = os.environ.get(
+        "STEAM_ARM64_DIRECT_NMS_PROTON_RUNTIME", "patched-ntoskrnl"
+    )
+    if variant == "patched-ntoskrnl":
+        return current
+    if variant != "stock-ntoskrnl":
+        fail(
+            "STEAM_ARM64_DIRECT_NMS_PROTON_RUNTIME must be "
+            "patched-ntoskrnl or stock-ntoskrnl"
+        )
+    tool = private_directory(
+        base
+        / "client/compatibilitytools.d"
+        / NMS_PROTON_STOCK_NTOSKRNL_DIRECTORY,
+        "stock-ntoskrnl No Man's Sky Proton tool",
+    )
+    proton = tool / "proton"
+    marker = tool / ".steamclienttermux-nms-proton.json"
+    dll = tool / "files/lib/wine/aarch64-windows/lsteamclient.dll"
+    ntoskrnl = tool / "files/lib/wine/aarch64-windows/ntoskrnl.exe"
+    validate_owned_executable(proton, "stock-ntoskrnl Proton entry point")
+    for path, description in (
+        (marker, "stock-ntoskrnl Proton marker"),
+        (dll, "stock-ntoskrnl lsteamclient DLL"),
+    ):
+        try:
+            metadata = path.lstat()
+        except FileNotFoundError:
+            fail(f"{description} is unavailable: {path}")
+        if (
+            not stat.S_ISREG(metadata.st_mode)
+            or path.is_symlink()
+            or metadata.st_uid != os.geteuid()
+            or metadata.st_mode & 0o022
+        ):
+            fail(f"{description} is unsafe: {path}")
+    stock_proton = base / "client/steamapps/common/Proton 11.0 (ARM64)"
+    try:
+        nt_metadata = ntoskrnl.stat()
+        ntoskrnl.resolve(strict=True).relative_to(stock_proton.resolve(strict=True))
+    except (FileNotFoundError, OSError, ValueError):
+        fail("stock-ntoskrnl Wine ntoskrnl escapes reviewed Proton")
+    if (
+        not stat.S_ISREG(nt_metadata.st_mode)
+        or nt_metadata.st_uid != os.geteuid()
+        or nt_metadata.st_mode & 0o022
+    ):
+        fail("stock-ntoskrnl Wine ntoskrnl is unsafe")
+    try:
+        marker_payload = json.loads(marker.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        fail("stock-ntoskrnl Proton marker is invalid")
+    if marker_payload != NMS_PROTON_STOCK_NTOSKRNL_MARKER:
+        fail("stock-ntoskrnl Proton marker is unexpected")
+    if sha256_file(dll) != NMS_PROTON_DLL_SHA256:
+        fail("stock-ntoskrnl lsteamclient DLL is unexpected")
+    if sha256_file(ntoskrnl) != NMS_PROTON_MARKER["source_ntoskrnl_sha256"]:
+        fail("stock-ntoskrnl Wine ntoskrnl is unexpected")
+    return proton
 
 
 def validate_owned_executable(path: Path, description: str) -> None:
@@ -1494,6 +1677,128 @@ def canonical_external_game_environment(game: Path) -> tuple[Path, dict[str, str
     return resolved_game, {
         "STEAM_COMPAT_INSTALL_PATH": str(install),
         "STEAM_COMPAT_LIBRARY_PATHS": str(steamapps),
+    }
+
+
+def selected_no_mans_sky_prefix(base: Path) -> Path:
+    """Return the canonical prefix or an explicitly isolated test prefix."""
+    selector = os.environ.get("STEAM_ARM64_DIRECT_NMS_PREFIX")
+    if selector is None:
+        return base / "removable-library-compatdata/275850/pfx"
+    if re.fullmatch(r"nms-clean-prefix-[0-9a-f]{8}", selector) is None:
+        fail("No Man's Sky isolated prefix selector is invalid")
+    prefix = private_directory(
+        base / "candidates" / selector,
+        "No Man's Sky isolated prefix",
+    )
+    for name in ("system.reg", "user.reg", "dosdevices"):
+        if not (prefix / name).exists():
+            fail("No Man's Sky isolated prefix is incomplete")
+    return prefix
+
+
+def selected_no_mans_sky_fex_overlay(base: Path) -> Path | None:
+    """Select the exact Proton 10/FEX-2512 ARM64EC module for an A/B test."""
+    selector = os.environ.get("STEAM_ARM64_DIRECT_NMS_FEX_CORE", "current")
+    if selector == "current":
+        return None
+    if selector != "proton10-2512":
+        fail("No Man's Sky FEX core selector is invalid")
+    overlay = private_directory(
+        base / "candidates" / NMS_FEX2512_DIRECTORY / "lib/wine",
+        "No Man's Sky FEX-2512 overlay",
+    )
+    module = overlay / "aarch64-windows/libarm64ecfex.dll"
+    try:
+        metadata = module.lstat()
+    except OSError as error:
+        fail(f"No Man's Sky FEX-2512 module is unavailable: {error}")
+    if (
+        not stat.S_ISREG(metadata.st_mode)
+        or module.is_symlink()
+        or metadata.st_uid != os.geteuid()
+        or metadata.st_mode & 0o022
+        or metadata.st_size != NMS_FEX2512_SIZE
+        or sha256_file(module) != NMS_FEX2512_SHA256
+    ):
+        fail(f"No Man's Sky FEX-2512 module failed validation: {module}")
+    return overlay
+
+
+def no_mans_sky_windows_command(base: Path, game: Path) -> str:
+    """Start NMS from its Wine drive, never through case-sensitive Z:."""
+    prefix = selected_no_mans_sky_prefix(base)
+    drive = os.environ.get("STEAM_ARM64_DIRECT_NMS_DRIVE", "S:")
+    if drive not in ("S:", "N:"):
+        fail("No Man's Sky Windows drive must be S: or N:")
+    steam_drive = prefix / "dosdevices" / drive.lower()
+    drive_game = steam_drive / "steamapps/common/No Man's Sky/Binaries/NMS.exe"
+    try:
+        drive_metadata = steam_drive.lstat()
+        same_game = drive_game.samefile(game)
+    except (FileNotFoundError, OSError):
+        fail("No Man's Sky S: Steam-library mapping is unavailable")
+    if not stat.S_ISLNK(drive_metadata.st_mode) or not same_game:
+        fail("No Man's Sky S: Steam-library mapping is incorrect")
+    return (
+        f'{drive} && cd "steamapps\\common\\No Man\'s Sky\\Binaries" '
+        "&& NMS.exe"
+    )
+
+
+def validated_no_mans_sky_wine10_runtime(base: Path) -> dict[str, Path]:
+    """Return the exact Wine 10 runtime that reached the NMS renderer."""
+    candidate = private_directory(
+        base / "candidates" / NMS_WINE10_CANDIDATE_DIRECTORY,
+        "No Man's Sky Wine 10 candidate",
+    )
+    runtime = private_directory(
+        base / "candidates" / NMS_WINE10_RUNTIME_DIRECTORY,
+        "No Man's Sky Wine 10 runtime",
+    )
+    for root, files in (
+        (candidate, NMS_WINE10_CANDIDATE_FILES),
+        (runtime, NMS_WINE10_RUNTIME_FILES),
+    ):
+        for relative, (expected_size, expected_sha256) in files.items():
+            path = root / relative
+            try:
+                metadata = path.lstat()
+            except OSError as error:
+                fail(f"No Man's Sky Wine 10 file is unavailable: {error}")
+            if (
+                not stat.S_ISREG(metadata.st_mode)
+                or path.is_symlink()
+                or metadata.st_uid != os.geteuid()
+                or metadata.st_mode & 0o022
+                or metadata.st_size != expected_size
+                or sha256_file(path) != expected_sha256
+            ):
+                fail(f"No Man's Sky Wine 10 file failed validation: {path}")
+    wine = candidate / "runtime/bin/wine"
+    wineserver = candidate / "runtime/bin/wineserver"
+    if not os.access(wine, os.X_OK) or not os.access(wineserver, os.X_OK):
+        fail("No Man's Sky Wine 10 loader chain is not executable")
+    overlay = private_directory(
+        candidate / "overlay/lib/wine", "No Man's Sky Wine 10 overlay"
+    )
+    runtime_wine = private_directory(
+        runtime / "wine/lib/wine", "No Man's Sky Wine 10 library root"
+    )
+    loader_lib = private_directory(
+        runtime / "loader-lib", "No Man's Sky Wine 10 loader library"
+    )
+    stock_wine = private_directory(
+        base / "client/steamapps/common/Proton 11.0 (ARM64)/files/lib/wine",
+        "No Man's Sky stock Proton Wine library",
+    )
+    return {
+        "wine": wine,
+        "wineserver": wineserver,
+        "overlay": overlay,
+        "runtime_wine": runtime_wine,
+        "loader_lib": loader_lib,
+        "stock_wine": stock_wine,
     }
 
 
@@ -1566,7 +1871,8 @@ def proton_smoke_environment(
         if diagnostics:
             return {
                 "WINEDEBUG": (
-                    "+timestamp,+pid,+tid,+process,+module,+loaddll,+seh,+vulkan,"
+                    "+timestamp,+pid,+tid,+server,+ntoskrnl,+process,+module,"
+                    "+loaddll,+seh,+vulkan,"
                     "+winsock,+wininet,+winhttp,+iphlpapi,+nsi,"
                     "+secur32,+schannel"
                 )
@@ -1803,26 +2109,35 @@ def nms_xinput_environment(base: Path, command_mode: str) -> dict[str, str]:
     if command_mode != "no-mans-sky":
         fail("the No Man's Sky XInput profile is valid only for No Man's Sky")
 
-    library = (
-        base
-        / "removable-library/steamapps/common/No Man's Sky/Binaries"
-        / "xinput9_1_0.dll"
+    binary_directory = (
+        base / "removable-library/steamapps/common/No Man's Sky/Binaries"
     )
-    try:
-        metadata = library.lstat()
-    except OSError as error:
-        fail(f"No Man's Sky XInput bridge is unavailable: {error}")
-    if (
-        not stat.S_ISREG(metadata.st_mode)
-        or library.is_symlink()
-        or metadata.st_size != 16896
-        or sha256_file(library)
-        != "11e928f5e337680efa6baa6e2a839795a79bd752387b1e0956ea805f1a25fa43"
-    ):
-        fail(f"No Man's Sky XInput bridge failed validation: {library}")
+    expected = {
+        "xinput1_4.dll": (
+            17408,
+            "3fc6d898a3f1f0e66ea3b7428409eff3e2abb10e4401aa7209e9d214524e3534",
+        ),
+        "xinput9_1_0.dll": (
+            16896,
+            "11e928f5e337680efa6baa6e2a839795a79bd752387b1e0956ea805f1a25fa43",
+        ),
+    }
+    for name, (size, digest) in expected.items():
+        library = binary_directory / name
+        try:
+            metadata = library.lstat()
+        except OSError as error:
+            fail(f"No Man's Sky XInput bridge is unavailable: {error}")
+        if (
+            not stat.S_ISREG(metadata.st_mode)
+            or library.is_symlink()
+            or metadata.st_size != size
+            or sha256_file(library) != digest
+        ):
+            fail(f"No Man's Sky XInput bridge failed validation: {library}")
     return {
         "STEAMCLIENTTERMUX_NMS_XINPUT": "1",
-        "WINEDLLOVERRIDES": "xinput9_1_0=n,b",
+        "WINEDLLOVERRIDES": "xinput1_4=n,b;xinput9_1_0=n,b",
     }
 
 
@@ -1892,6 +2207,7 @@ def apply_direct_fex_profile(environment: dict[str, str], profile: str) -> None:
         "stability",
         "strict-locks",
         "smc-full",
+        "extreme",
         "safe",
         "fast",
     ):
@@ -1900,6 +2216,21 @@ def apply_direct_fex_profile(environment: dict[str, str], profile: str) -> None:
         environment.pop(name, None)
     environment["STEAM_ARM64_FEX_PROFILE"] = profile
     if profile == "proton":
+        return
+    if profile == "extreme":
+        # Match GameNative's open-source FEXCore Extreme preset exactly.
+        environment.update(
+            {
+                "FEX_TSOENABLED": "0",
+                "FEX_VECTORTSOENABLED": "0",
+                "FEX_MEMCPYSETTSOENABLED": "0",
+                "FEX_HALFBARRIERTSOENABLED": "0",
+                "FEX_X87REDUCEDPRECISION": "1",
+                "FEX_MULTIBLOCK": "1",
+                "FEX_SMALLTSCSCALE": "1",
+                "FEX_VOLATILEMETADATA": "1",
+            }
+        )
         return
     if profile in ("stability", "strict-locks", "smc-full"):
         # Match GameNative's open-source Stability preset exactly.
@@ -2097,6 +2428,7 @@ def pv_smoke_invocation(
             rewritten.append(argument)
         index += 1
     canonical_game_environment: dict[str, str] = {}
+    nms_wine10: dict[str, Path] | None = None
     if command_mode == "runtime-true":
         program, _, _ = runtime_true_from_plan(base, payload)
         command = [str(program)]
@@ -2144,18 +2476,39 @@ def pv_smoke_invocation(
                 game, canonical_game_environment = (
                     canonical_external_game_environment(game)
                 )
-            command = [
-                str(runtime_python),
-                str(proton),
-                "waitforexitandrun",
-                str(game),
-                *([] if command_mode == "no-mans-sky" else ["-nolauncher"]),
-                *(
-                    tombraider_benchmark_arguments(base, benchmark_preset)
-                    if benchmark
-                    else []
-                ),
-            ]
+                nms_wine10 = validated_no_mans_sky_wine10_runtime(base)
+                windows_command = no_mans_sky_windows_command(base, game)
+                command = [
+                    str(nms_wine10["wine"]),
+                    r"c:\windows\system32\cmd.exe",
+                    "/d",
+                    "/c",
+                    windows_command,
+                ]
+                final_path_prefix = nms_wine10["wine"].parent
+                libraries = ":".join(
+                    (
+                        str(nms_wine10["overlay"] / "aarch64-unix"),
+                        str(nms_wine10["loader_lib"]),
+                        str(nms_wine10["runtime_wine"] / "aarch64-unix"),
+                        str(nms_wine10["stock_wine"] / "aarch64-unix"),
+                        libraries,
+                    )
+                )
+            else:
+                game_command = [str(game), "-nolauncher"]
+                proton_verb = "waitforexitandrun"
+                command = [
+                    str(runtime_python),
+                    str(proton),
+                    proton_verb,
+                    *game_command,
+                    *(
+                        tombraider_benchmark_arguments(base, benchmark_preset)
+                        if benchmark
+                        else []
+                    ),
+                ]
             preserve_assignments = True
         elif command_mode == "fex-offline-compile":
             runtime_python = runtime_root / "usr/bin/python3"
@@ -2207,13 +2560,22 @@ def pv_smoke_invocation(
     if child_preload_profile == "full":
         child_preloads = entry_preloads
         final_preloads = None
-    elif child_preload_profile in ("lean", "lean-tmp-only", "lean-debug-wait"):
+    elif child_preload_profile in (
+        "lean",
+        "lean-tmp-only",
+        "lean-debug-wait",
+        "lean-nms",
+    ):
         child_preloads = [
             entry_preloads[0],
             entry_preloads[2],
             entry_preloads[3],
         ]
-        if child_preload_profile == "lean-tmp-only":
+        if child_preload_profile == "lean-nms":
+            if command_mode != "no-mans-sky":
+                fail("lean-nms child preload is valid only for No Man's Sky")
+            final_preloads = [entry_preloads[0], entry_preloads[3]]
+        elif child_preload_profile == "lean-tmp-only":
             final_preloads = [entry_preloads[0]]
         else:
             final_preloads = [
@@ -2232,7 +2594,7 @@ def pv_smoke_invocation(
     else:
         fail(
             "STEAM_ARM64_DIRECT_CHILD_PRELOAD must be full, lean, "
-            "lean-tmp-only, or lean-debug-wait"
+            "lean-tmp-only, lean-debug-wait, or lean-nms"
         )
     if vulkan_trace is not None:
         if final_preloads is None:
@@ -2274,6 +2636,8 @@ def pv_smoke_invocation(
             direct_game_environment(base, runtime_root, diagnostics)
         )
     if command_mode == "no-mans-sky":
+        assert nms_wine10 is not None
+        nms_fex_overlay = selected_no_mans_sky_fex_overlay(base)
         environment.update(canonical_game_environment)
         apply_direct_fex_profile(
             environment,
@@ -2281,6 +2645,44 @@ def pv_smoke_invocation(
         )
         environment.update(nms_mangohud_environment(base, command_mode))
         environment.update(nms_xinput_environment(base, command_mode))
+        prefix_path = selected_no_mans_sky_prefix(base)
+        stock_proton = base / "client/steamapps/common/Proton 11.0 (ARM64)"
+        environment.update(
+            {
+                "WINEPREFIX": str(prefix_path),
+                "WINELOADER": str(nms_wine10["wine"]),
+                "WINESERVER": str(nms_wine10["wineserver"]),
+                "WINEDLLPATH": ":".join(
+                    str(path)
+                    for path in (
+                        nms_fex_overlay,
+                        str(nms_wine10["overlay"]),
+                        str(nms_wine10["runtime_wine"]),
+                        str(nms_wine10["stock_wine"]),
+                    )
+                    if path is not None
+                ),
+                "WINE_DISABLE_KERNEL_WRITEWATCH": "1",
+                "WINEDLLOVERRIDES": (
+                    "steam.exe=b;lsteamclient=b;openvr_api=b;"
+                    "xinput1_4=n,b;xinput9_1_0=n,b"
+                ),
+                "TGCOMPAT_ROBUST_LIST": "1",
+                "FEX_APP_CONFIG": str(
+                    base
+                    / "removable-library-compatdata/275850/proton-fex-config.json"
+                ),
+                "FEX_APP_CONFIG_LOCATION": str(
+                    stock_proton / "files/share/fex-emu/"
+                ),
+                "SteamAppId": "275850",
+                "SteamGameId": "275850",
+                "SteamOverlayGameId": "275850",
+                "STEAM_COMPAT_APP_ID": "275850",
+                "STEAM_COMPAT_DATA_PATH": str(prefix_path),
+                "STEAM_COMPAT_CLIENT_INSTALL_PATH": str(base / "client"),
+            }
+        )
     if command_mode in ("tombraider", "tombraider-benchmark"):
         direct_fex_profile = os.environ.get("STEAM_ARM64_DIRECT_FEX_PROFILE")
         if direct_fex_profile is not None:

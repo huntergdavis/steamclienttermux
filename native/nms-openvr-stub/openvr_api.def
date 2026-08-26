@@ -1,0 +1,7 @@
+LIBRARY openvr_api
+EXPORTS
+    VR_InitInternal2
+    VR_ShutdownInternal
+    VR_GetGenericInterface
+    VR_IsInterfaceVersionValid
+    VR_GetInitToken

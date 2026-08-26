@@ -9,7 +9,7 @@ python=${NO_MANS_SKY_DIRECT_PYTHON:-$default_python}
 dispatcher=${NO_MANS_SKY_DIRECT_DISPATCHER:-$base/compat-bin/pressure-vessel-direct-dispatch.py}
 launcher=${NO_MANS_SKY_DIRECT_LAUNCHER:-$HOME/start-steam.sh}
 prepare=${NO_MANS_SKY_DIRECT_PREPARE:-$base/compat-bin/prepare-proton-direct-wine.py}
-tool_check=$base/compat-bin/prepare-no-mans-sky-proton.py
+tool_check=${NO_MANS_SKY_DIRECT_TOOL_CHECK:-$base/compat-bin/prepare-no-mans-sky-proton.py}
 summary_tool=${NO_MANS_SKY_SUMMARIZER:-$base/compat-bin/summarize-mangohud-csv.py}
 summary_start=${NO_MANS_SKY_SUMMARY_START_SECONDS:-60}
 prefix=$base/removable-library-compatdata/275850/pfx
@@ -88,9 +88,9 @@ trap cleanup EXIT HUP INT TERM
 [[ $fex_profile == proton || $fex_profile == stability ||
    $fex_profile == strict-locks ||
    $fex_profile == smc-full ||
+   $fex_profile == extreme ||
    $fex_profile == safe || $fex_profile == fast ]] ||
-    fail 'NO_MANS_SKY_FEX_PROFILE must be proton, stability, strict-locks, smc-full, safe, or fast'
-
+    fail 'NO_MANS_SKY_FEX_PROFILE must be proton, stability, strict-locks, smc-full, extreme, safe, or fast'
 if [[ $mangohud == 1 ]]; then
     [[ -x $summary_tool && ! -L $summary_tool ]] ||
         fail "MangoHud summary tool is unavailable: $summary_tool"
@@ -133,7 +133,7 @@ fi
 chmod 600 "$server_log" "$launcher_log"
 
 env -u LD_PRELOAD -u LD_LIBRARY_PATH -u GLIBC_LD_LIBRARY_PATH \
-    STEAM_ARM64_DIRECT_CHILD_PRELOAD=full \
+    STEAM_ARM64_DIRECT_CHILD_PRELOAD=lean-nms \
     STEAM_ARM64_DIRECT_FEX_PROFILE=$fex_profile \
     STEAM_ARM64_DIRECT_NMS_MANGOHUD=$mangohud \
     STEAM_ARM64_DIRECT_NMS_MANGOHUD_CONFIG=$mangohud_config \

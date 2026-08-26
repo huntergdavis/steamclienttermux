@@ -54,6 +54,7 @@ native_entry_stage="$(mktemp "${TMPDIR:-$PREFIX/tmp}/steam-arm64-native-entry.XX
 tmp_shim_stage="$(mktemp "${TMPDIR:-$PREFIX/tmp}/steam-arm64-native-tmp.XXXXXX")"
 debug_wait_shim_stage="$(mktemp "${TMPDIR:-$PREFIX/tmp}/steam-arm64-debug-wait.XXXXXX")"
 native_lsof_stage="$(mktemp "${TMPDIR:-$PREFIX/tmp}/steam-arm64-native-lsof.XXXXXX")"
+openvr_stub_stage=""
 cleanup_wrapper_stage() {
     if [[ -n "$wrapper_stage" ]] && [[ -f "$wrapper_stage" ]] &&
             [[ ! -L "$wrapper_stage" ]]; then
@@ -74,6 +75,10 @@ cleanup_wrapper_stage() {
     if [[ -n "$native_lsof_stage" ]] && [[ -f "$native_lsof_stage" ]] &&
             [[ ! -L "$native_lsof_stage" ]]; then
         unlink -- "$native_lsof_stage"
+    fi
+    if [[ -n "$openvr_stub_stage" ]] && [[ -f "$openvr_stub_stage" ]] &&
+            [[ ! -L "$openvr_stub_stage" ]]; then
+        unlink -- "$openvr_stub_stage"
     fi
 }
 trap cleanup_wrapper_stage EXIT
@@ -168,6 +173,22 @@ install_one "$repo_root/scripts/setup-no-mans-sky.sh" \
     "$HOME/setup-no-mans-sky" 700
 install_one "$repo_root/scripts/prepare-no-mans-sky-proton.py" \
     "$base/compat-bin/prepare-no-mans-sky-proton.py" 700
+openvr_stub_stage="$(mktemp "${TMPDIR:-$PREFIX/tmp}/nms-openvr-stub.XXXXXX")"
+base64 -d "$repo_root/assets/nms-openvr-stub/openvr_api.dll.b64" >"$openvr_stub_stage"
+if [[ "$(wc -c <"$openvr_stub_stage")" -ne 2048 ]] ||
+        [[ "$(sha256sum "$openvr_stub_stage" | awk '{print $1}')" != \
+        4fce1e22a0fe044b86862d45fc007269e1681214229d7d1ff1eedac0ceabfed5 ]]; then
+    printf 'Refusing install: bundled NMS OpenVR stub is corrupt\n' >&2
+    exit 1
+fi
+install_one "$openvr_stub_stage" \
+    "$base/compat-bin/nms-openvr-stub/openvr_api.dll" 600
+unlink -- "$openvr_stub_stage"
+openvr_stub_stage=""
+install_one "$repo_root/assets/nms-xinput/xinput1_4.dll" \
+    "$base/compat-bin/nms-xinput/xinput1_4.dll" 600
+install_one "$repo_root/assets/nms-xinput/xinput9_1_0.dll" \
+    "$base/compat-bin/nms-xinput/xinput9_1_0.dll" 600
 install_one "$repo_root/scripts/start-tombraider-direct-lean.sh" \
     "$HOME/start-tombraider-direct-lean" 700
 install_one "$repo_root/scripts/start-tombraider-direct-benchmark.sh" \

@@ -1,0 +1,5 @@
+@ cdecl VR_InitInternal2(ptr long str)
+@ cdecl VR_ShutdownInternal()
+@ cdecl VR_GetGenericInterface(str ptr)
+@ cdecl VR_IsInterfaceVersionValid(str)
+@ cdecl VR_GetInitToken()

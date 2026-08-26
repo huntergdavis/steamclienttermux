@@ -17,6 +17,7 @@ import zipfile
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 INCLUDED_ROOTS = (
+    "assets/",
     "bin/",
     "config/",
     "desktop/",
@@ -64,8 +65,12 @@ REQUIRED_FILES = {
     "scripts/install-glibc-runtime.py",
     "scripts/install-proot-runtime.py",
     "scripts/install-debian-runtime.py",
+    "scripts/install-project-files.sh",
     "scripts/build-proot.sh",
     "scripts/steam-stack-doctor.py",
+    "assets/nms-openvr-stub/openvr_api.dll.b64",
+    "assets/nms-xinput/xinput1_4.dll",
+    "assets/nms-xinput/xinput9_1_0.dll",
     "docs/PRODUCTIZATION_RESEARCH.md",
 }
 FIXED_ZIP_TIME = (1980, 1, 1, 0, 0, 0)

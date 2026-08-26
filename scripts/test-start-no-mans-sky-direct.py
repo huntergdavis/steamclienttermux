@@ -189,6 +189,21 @@ def main() -> None:
         assert smc_full_result.returncode == 0, smc_full_result.stderr
         assert not fixture_socket.exists()
 
+        extreme_result = subprocess.run(
+            ["bash", str(SCRIPT)],
+            env={
+                **environment,
+                "NO_MANS_SKY_FEX_PROFILE": "extreme",
+                "FIXTURE_FEX_PROFILE": "extreme",
+            },
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=10,
+        )
+        assert extreme_result.returncode == 0, extreme_result.stderr
+        assert not fixture_socket.exists()
+
         invalid_profile = subprocess.run(
             ["bash", str(SCRIPT)],
             env={**environment, "NO_MANS_SKY_FEX_PROFILE": "turbo"},
@@ -199,7 +214,7 @@ def main() -> None:
         )
         assert invalid_profile.returncode != 0
         assert (
-            "must be proton, stability, strict-locks, smc-full, safe, or fast"
+            "must be proton, stability, strict-locks, smc-full, extreme, safe, or fast"
             in invalid_profile.stderr
         )
         assert not fixture_socket.exists()

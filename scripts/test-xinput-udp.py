@@ -14,6 +14,7 @@ ANDROID = ROOT / "android/termux-x11-gamepad/GamepadBridge.java"
 
 EXPECTED = {
     "xinput1_3.dll": "3276f5443550a25bae01a61d99932feeb51d35986568dc3b80431539a73a070c",
+    "xinput1_4.dll": "3fc6d898a3f1f0e66ea3b7428409eff3e2abb10e4401aa7209e9d214524e3534",
     "xinput9_1_0.dll": "11e928f5e337680efa6baa6e2a839795a79bd752387b1e0956ea805f1a25fa43",
 }
 
@@ -58,14 +59,21 @@ def main() -> None:
                 library = output / name
                 assert library.read_bytes()[:2] == b"MZ"
                 assert sha256(library) == expected
-            exports = subprocess.run(
-                [objdump, "-p", str(output / "xinput9_1_0.dll")],
+            for library_name in ("xinput1_4.dll", "xinput9_1_0.dll"):
+                exports = subprocess.run(
+                    [objdump, "-p", str(output / library_name)],
+                    check=True,
+                    text=True,
+                    capture_output=True,
+                ).stdout
+                for name in ("XInputGetState", "XInputSetState", "XInputEnable"):
+                    assert name in exports
+            assert "XInputGetAudioDeviceIds" in subprocess.run(
+                [objdump, "-p", str(output / "xinput1_4.dll")],
                 check=True,
                 text=True,
                 capture_output=True,
             ).stdout
-            for name in ("XInputGetState", "XInputSetState", "XInputEnable"):
-                assert name in exports
 
     print("XInput UDP bridge tests: PASS")
 

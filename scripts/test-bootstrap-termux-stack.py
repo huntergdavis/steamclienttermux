@@ -31,12 +31,17 @@ def main() -> None:
     assert '--builder "$proot_builder" --base "$base"' in source
     assert 'python3 "$debian_installer" --lock "$debian_lock"' in source
     assert '--base "$base" --prefix "$PREFIX"' in source
-    assert 'exec python3 "$setup" --lock "$lock" activate --base "$base"' in source
+    assert 'python3 "$setup" --lock "$lock" activate --base "$base"' in source
+    assert 'launcher_installer=$repo_root/scripts/install-project-files.sh' in source
+    assert 'exec "$launcher_installer"' in source
     assert source.index('python3 "$proot_installer"') < source.index(
         'python3 "$debian_installer"'
     )
     assert source.index('python3 "$debian_installer"') < source.index(
         'activate --base "$base"'
+    )
+    assert source.index('activate --base "$base"') < source.index(
+        'exec "$launcher_installer"'
     )
     assert "curl |" not in source and "wget |" not in source
     for path in PRODUCT_RUNTIME_USERS:

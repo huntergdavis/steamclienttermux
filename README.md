@@ -15,7 +15,7 @@ contain Valve binaries, games, credentials, or account state.
 | --- | --- | --- |
 | Tomb Raider performance | 1080p tuned Ultra: **30.7 FPS average** | Replicate and generalize the profile |
 | Steam startup | UI **1.662s**; cold AppID **21.80s**; cold game **49.513s** | Connect AppID acceptance to the direct game route |
-| Easy distribution | Locked ZIP bootstrap through minimal Debian | Package product launchers and first-run setup |
+| Easy distribution | One command installs the locked runtime, launchers, and NMS game-side compatibility DLLs | Fresh-device/update/rollback proof; package Android input patch |
 
 | Component | Verified |
 | --- | --- |
@@ -23,10 +23,10 @@ contain Valve binaries, games, credentials, or account state.
 | Graphics | Hardware Vulkan through private Mesa Turnip |
 | Windows games | Proton ARM64 + FEX + DXVK |
 | Audio/input | PulseAudio; keyboard; touch and captured physical mouse are separate live paths |
-| Controllers | Live 8BitDo hot-plug and app-local XInput transport pass; in-game button confirmation remains |
+| Controllers | Android hot-plug and app-local XInput transport pass; NMS still needs visible button/axis confirmation |
 | Native path | Steam and CEF outside PRoot; allow-listed games use the direct dispatcher |
 | Launch polish | Tomb Raider's pre-class Wine surface stays mapped off-screen until first paint |
-| No Man's Sky | Proton 11 reaches the menu then hangs; isolated Proton 10 now renders real Termux:X11 pixels, with Steam-authenticated gameplay still open |
+| No Man's Sky | FEX 2512 + Steam Input reaches the real main menu without a new dump | Enter gameplay, prove controller input, then measure FPS |
 
 ## Best measurements
 
@@ -60,9 +60,9 @@ ARM64 client seed directly from Valve and never bundles Steam, games, login
 state, or credentials. It atomically activates a private mutable client tree,
 is restartable, and keeps existing clients and user libraries intact.
 
-This release preview prepares the complete locked runtime. Installing the
-small product-launcher set and proving the whole flow on a clean device are the
-remaining one-command gates; do not describe it as finished or one-click yet.
+This release preview prepares the locked runtime and installs the launchers.
+A clean-device install/update/rollback run is still required before calling it
+one-click.
 
 ## Use an installed stack
 
@@ -110,9 +110,9 @@ selects that same-volume layout without moving prefixes or control data.
 
 | Automated | Still in progress |
 | --- | --- |
-| 36 Termux packages; Valve seed; Turnip | product launchers and first-run setup |
-| Native tgcompat; patched glibc; PRoot; Debian | fresh-device end-to-end proof |
-| Idempotent, private staged promotion | full rollback and fresh-device proof |
+| 36 Termux packages; Valve seed; Turnip | first-run UI polish |
+| Native tgcompat; patched glibc; PRoot; Debian; launchers | fresh-device end-to-end proof |
+| Idempotent, private staged promotion; NMS OpenVR/XInput payloads | patched Termux:X11 input build is not packaged yet |
 
 The release ZIP contains project source plus the audited open-source glibc
 package—never Valve binaries, games, credentials, or account data. Long-term,

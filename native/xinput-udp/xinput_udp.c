@@ -390,6 +390,22 @@ DWORD WINAPI XInputGetDSoundAudioDeviceGuids(DWORD user_index, GUID *render,
                                                 : ERROR_SUCCESS;
 }
 
+#ifdef BVB_XINPUT_1_4
+DWORD WINAPI XInputGetAudioDeviceIds(DWORD user_index, WCHAR *render,
+                                     UINT *render_count, WCHAR *capture,
+                                     UINT *capture_count) {
+    if (render_count == NULL || capture_count == NULL)
+        return ERROR_BAD_ARGUMENTS;
+    if (user_index != 0 || !bvb_connected())
+        return ERROR_DEVICE_NOT_CONNECTED;
+    if (render != NULL && *render_count != 0) render[0] = L'\0';
+    if (capture != NULL && *capture_count != 0) capture[0] = L'\0';
+    *render_count = 1;
+    *capture_count = 1;
+    return ERROR_SUCCESS;
+}
+#endif
+
 DWORD WINAPI XInputWaitForGuideButton(DWORD user_index, DWORD flags,
                                       void *event) {
     (void)user_index;

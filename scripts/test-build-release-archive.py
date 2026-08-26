@@ -70,10 +70,14 @@ def fixture_repo(root: Path, glibc_package: bytes) -> str:
         "scripts/install-glibc-runtime.py": b"#!/usr/bin/env python3\n",
         "scripts/install-proot-runtime.py": b"#!/usr/bin/env python3\n",
         "scripts/install-debian-runtime.py": b"#!/usr/bin/env python3\n",
+        "scripts/install-project-files.sh": b"#!/data/data/com.termux/files/usr/bin/bash\n",
         "scripts/build-proot.sh": b"#!/data/data/com.termux/files/usr/bin/bash\n",
         "scripts/setup-steam-stack.py": b"#!/usr/bin/env python3\n",
         "scripts/steam-stack-doctor.py": b"#!/usr/bin/env python3\n",
         "scripts/check-project.sh": b"#!/bin/sh\nexit 0\n",
+        "assets/nms-openvr-stub/openvr_api.dll.b64": b"fixture-openvr-stub\n",
+        "assets/nms-xinput/xinput1_4.dll": b"fixture-xinput14\n",
+        "assets/nms-xinput/xinput9_1_0.dll": b"fixture-xinput910\n",
         "docs/PRODUCTIZATION_RESEARCH.md": b"# research\n",
         "docs/evidence/gtaiv-main-menu-2026-08-13.png": b"png-fixture",
         "docs/evidence/excluded.png": b"must-not-ship",
@@ -147,6 +151,10 @@ def main() -> None:
                 assert f"{prefix}/scripts/install-glibc-runtime.py" in names
                 assert f"{prefix}/scripts/install-proot-runtime.py" in names
                 assert f"{prefix}/scripts/install-debian-runtime.py" in names
+                assert f"{prefix}/scripts/install-project-files.sh" in names
+                assert f"{prefix}/assets/nms-openvr-stub/openvr_api.dll.b64" in names
+                assert f"{prefix}/assets/nms-xinput/xinput1_4.dll" in names
+                assert f"{prefix}/assets/nms-xinput/xinput9_1_0.dll" in names
                 assert f"{prefix}/config/proot-runtime-lock.json" in names
                 assert f"{prefix}/config/debian-runtime-lock.json" in names
                 assert f"{prefix}/artifacts/glibc_2.44_aarch64.deb" in names

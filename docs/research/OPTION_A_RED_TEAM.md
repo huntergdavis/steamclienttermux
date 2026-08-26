@@ -11,10 +11,12 @@ per-game tuning are optional profiles.
 | Caller build variables could change tgcompat | Sanitize compiler, preload, Make, and Git overrides | Fixed |
 | Setup plan omitted completed tgcompat work | Keep the plan and doctor source inventory executable | Fixed |
 | SD-card behavior complicates locks and executable mappings | Default to Termux private storage | Fixed policy |
-| Patched glibc and PRoot still require research commands | Add locked installers and receipts | Open |
-| Launchers are installed by a large developer script | Replace with a minimal manifest transaction | Open |
+| Patched glibc and PRoot required research commands | Use locked installers and receipts | Fixed |
+| Launchers were omitted from `./install.sh` | Install them after runtime activation | Fixed; minimize the transaction next |
 | First launch requires X11/audio knowledge | Add one `steam-arm64` entry and actionable doctor | Open |
 | Only Tomb Raider has a measured optimized profile | Use the next user-selected game as acceptance test | Open |
+| NMS game-side input files required manual copying | Install exact reviewed DLLs idempotently; refuse unknown files | Fixed |
+| Android controller producer requires a custom X11 build | Package or upstream the app-side patch before one-click claim | Open |
 
 ## New-game acceptance flow
 
